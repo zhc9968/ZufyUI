@@ -208,6 +208,14 @@ namespace ZufyUI {
         void SetWindowTitle(const std::wstring& t) override { SetTitle(t); }   // 窗口 SetTitle/SetWindowText 时同步
         const std::wstring& GetTitle() const { return title_; }
         void SetIcon(std::shared_ptr<Image> img) { icon_ = std::move(img); RequestRepaint(); }
+        // Window::SetAppIcon 统一入口会调这里，把 HICON 转成 Image 显示在标题栏上
+        void SetWindowIconFromHICON(HICON h) override { if (h) { SetShowIcon(true); SetIcon(Image::FromHICON(h)); } }
+
+        // 图标上的徽章 / 进度环
+        void SetIconBadge(bool on, Color color = Color::FromArgb(255, 220, 40, 40)) { iconBadgeOn_ = on; iconBadgeColor_ = color; RequestRepaint(); }
+        void ClearIconBadge() { iconBadgeOn_ = false; RequestRepaint(); }
+        void SetIconProgress(float progress) { iconProgress_ = progress; RequestRepaint(); }   // 0~1；<0 清除
+        void ClearIconProgress() { iconProgress_ = -1.0f; RequestRepaint(); }
         std::shared_ptr<Image> GetIcon() const { return icon_; }
         void SetIconSize(float w, float h) { iconW_ = w; iconH_ = h; InvalidateLayout(); RequestRepaint(); }
         void SetShowIcon(bool on) { showIcon_ = on; InvalidateLayout(); RequestRepaint(); }
@@ -356,7 +364,42 @@ namespace ZufyUI {
             if (showIcon_ && icon_ && !icon_->IsNull()) {
                 float iw = iconW_ > 0 ? iconW_ : (float)icon_->Width();
                 float ih = iconH_ > 0 ? iconH_ : (float)icon_->Height();
-                icon_->Draw(rt, D2D1::RectF(x, cy - ih * 0.5f, x + iw, cy + ih * 0.5f));
+                D2D1_RECT_F ir = D2D1::RectF(x, cy - ih * 0.5f, x + iw, cy + ih * 0.5f);
+                icon_->Draw(rt, ir);
+                float icx = (ir.left + ir.right) * 0.5f, icy = (ir.top + ir.bottom) * 0.5f;
+
+                // 进度环（iconProgress_ ∈ [0,1]；<0 表示不显示）
+                if (iconProgress_ >= 0.0f) {
+                    float rr = max(iw, ih) * 0.5f + 2.0f;
+                    if (!ringBgBrush_) rt->CreateSolidColorBrush(iconProgressBgColor_.ToD2D(), ringBgBrush_.GetAddressOf());
+                    else ringBgBrush_->SetColor(iconProgressBgColor_.ToD2D());
+                    if (ringBgBrush_) rt->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(icx, icy), rr, rr), ringBgBrush_.Get(), 2.0f);
+                    if (!ringBrush_) rt->CreateSolidColorBrush(iconProgressColor_.ToD2D(), ringBrush_.GetAddressOf());
+                    else ringBrush_->SetColor(iconProgressColor_.ToD2D());
+                    if (ringBrush_) {
+                        float p = clamp(iconProgress_, 0.0f, 1.0f);
+                        if (p > 0.0f) {
+                            const float PI = 3.14159265f;
+                            int seg = max(2, (int)(p * 64.0f));
+                            float a0 = -PI * 0.5f;
+                            D2D1_POINT_2F prev = D2D1::Point2F(icx + rr * cosf(a0), icy + rr * sinf(a0));
+                            for (int i = 1; i <= seg; ++i) {
+                                float a = a0 + 2.0f * PI * p * (float)i / (float)seg;
+                                D2D1_POINT_2F cur = D2D1::Point2F(icx + rr * cosf(a), icy + rr * sinf(a));
+                                rt->DrawLine(prev, cur, ringBrush_.Get(), 2.0f);
+                                prev = cur;
+                            }
+                        }
+                    }
+                }
+                // 徽章红点（右下角）
+                if (iconBadgeOn_) {
+                    if (!badgeBrush_) rt->CreateSolidColorBrush(iconBadgeColor_.ToD2D(), badgeBrush_.GetAddressOf());
+                    else badgeBrush_->SetColor(iconBadgeColor_.ToD2D());
+                    float r = max(4.0f, iw * 0.28f);
+                    if (badgeBrush_) rt->FillEllipse(
+                        D2D1::Ellipse(D2D1::Point2F(ir.right - r * 0.4f, ir.bottom - r * 0.4f), r, r), badgeBrush_.Get());
+                }
                 x += iw + 8.0f;
             }
             if (showTitle_ && !title_.empty()) {
@@ -390,6 +433,7 @@ namespace ZufyUI {
         void UpdateAnimation(float deltaTime) override { for (auto& b : buttons_) b->UpdateAnimation(deltaTime); }
         void ReleaseDeviceResources() override {
             bgBrush_.Reset(); textBrush_.Reset();
+            badgeBrush_.Reset(); ringBrush_.Reset(); ringBgBrush_.Reset();
             UIElement::ReleaseDeviceResources();
         }
 
@@ -405,6 +449,11 @@ namespace ZufyUI {
 
         std::wstring title_;
         std::shared_ptr<Image> icon_;
+        bool iconBadgeOn_ = false;
+        Color iconBadgeColor_ = Color::FromArgb(255, 220, 40, 40);
+        float iconProgress_ = -1.0f;
+        Color iconProgressColor_ = Color::FromArgb(255, 0, 120, 212);
+        Color iconProgressBgColor_ = Color::FromArgb(60, 0, 0, 0);
         bool showIcon_ = true;
         bool showTitle_ = true;
         float iconW_ = 16.0f, iconH_ = 16.0f;
@@ -427,6 +476,7 @@ namespace ZufyUI {
         mutable std::vector<UIElement*> childrenView_;
         ComPtr<ID2D1SolidColorBrush> bgBrush_;
         ComPtr<ID2D1SolidColorBrush> textBrush_;
+        ComPtr<ID2D1SolidColorBrush> badgeBrush_, ringBrush_, ringBgBrush_;
     };
 
     // ------------------------------------------------------------------
@@ -738,5 +788,333 @@ namespace ZufyUI {
         if (left < 0.0f) left = 0.0f;
         buttonRow_->SetMargin(Thickness(left, 0, 0, 0));
     }
+
+    // ============================================================================
+    // TrayIcon —— 托盘图标（Shell_NotifyIcon + NOTIFYICON_VERSION_4）
+    //   * v4：支持悬停(NIN_POPUPOPEN/CLOSE)、选择(NIN_SELECT/KEYSELECT)、右键(WM_CONTEXTMENU)
+    //   * 菜单：右键弹出（可配合 Menu::ShowAt 独立弹出，不绑定窗口）
+    //   * 徽章：把小红点合成到图标右下角
+    //   * 气球通知：Win10/11 会自动升级成真正的 toast 通知
+    // ============================================================================
+    class TrayIcon {
+    public:
+        TrayIcon() = default;
+        ~TrayIcon() { Remove(); }
+        TrayIcon(const TrayIcon&) = delete;
+        TrayIcon& operator=(const TrayIcon&) = delete;
+
+        bool Add(HICON icon, const std::wstring& tooltip, UINT id = 1) {
+            EnsureWindow();
+            if (!hwnd_) return false;
+
+            if (added_ && id_ == id) {   // 已加过同 ID：只更新图标/提示，避免重复 NIM_ADD 失败
+                baseIcon_ = icon;
+                ApplyTip(tooltip);
+                InvalidateIcon();
+                nid_.hIcon = CurrentIcon();
+                Shell_NotifyIconW(NIM_MODIFY, &nid_);
+                return true;
+            }
+            if (added_) {                // 换 ID：先删旧的
+                Shell_NotifyIconW(NIM_DELETE, &nid_);
+                added_ = false;
+            }
+
+            id_ = id;
+            baseIcon_ = icon;
+            nid_ = {};
+            nid_.cbSize = sizeof(nid_);
+            nid_.hWnd = hwnd_;
+            nid_.uID = id_;
+            nid_.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_SHOWTIP;
+            nid_.uCallbackMessage = kCallbackMsg;
+            nid_.hIcon = CurrentIcon();
+            ApplyTip(tooltip);
+            if (!Shell_NotifyIconW(NIM_ADD, &nid_)) return false;
+            nid_.uVersion = NOTIFYICON_VERSION_4;
+            Shell_NotifyIconW(NIM_SETVERSION, &nid_);
+            added_ = true;
+            return true;
+        }
+        bool AddFromResource(int resId, const std::wstring& tooltip, UINT id = 1) {
+            HICON h = (HICON)LoadImageW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(resId),
+                IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+            return Add(h, tooltip, id);
+        }
+        // 直接吃库自带 Image（或任何带 ToHICON() 的图片类型）
+        template <class TImage>
+        bool Add(std::shared_ptr<TImage> icon, const std::wstring& tooltip, UINT id = 1) {
+            HICON h = icon ? icon->ToHICON() : nullptr;
+            if (ownedIcon_) { DestroyIcon(ownedIcon_); ownedIcon_ = nullptr; }
+            ownedIcon_ = h;   // 由 TrayIcon 负责销毁
+            return Add(h, tooltip, id);
+        }
+        template <class TImage>
+        void SetIcon(std::shared_ptr<TImage> icon) { SetIcon(icon ? icon->ToHICON() : nullptr); }
+        bool AddFromFile(const std::wstring& icoPath, const std::wstring& tooltip, UINT id = 1) {
+            HICON h = (HICON)LoadImageW(nullptr, icoPath.c_str(), IMAGE_ICON, 0, 0,
+                LR_LOADFROMFILE | LR_DEFAULTSIZE);
+            if (!h) return false;
+            ownedIcon_ = h;
+            return Add(h, tooltip, id);
+        }
+        void Remove() {
+            if (added_) { Shell_NotifyIconW(NIM_DELETE, &nid_); added_ = false; }
+            if (badgeIcon_) { DestroyIcon(badgeIcon_); badgeIcon_ = nullptr; }
+            if (ownedIcon_) { DestroyIcon(ownedIcon_); ownedIcon_ = nullptr; }
+            if (hwnd_) { DestroyWindow(hwnd_); hwnd_ = nullptr; }
+        }
+
+        void SetIcon(HICON icon) {
+            baseIcon_ = icon;
+            InvalidateIcon();
+            if (added_) { nid_.hIcon = CurrentIcon(); Shell_NotifyIconW(NIM_MODIFY, &nid_); }
+        }
+        void SetToolTip(const std::wstring& tip) { currentTip_ = tip; ApplyTip(tip); if (added_) Shell_NotifyIconW(NIM_MODIFY, &nid_); }
+        void SetMenu(std::shared_ptr<Menu> m) { menu_ = m; }
+
+        // 徽章：右下角小红点
+        void SetBadge(Color color = Color::FromArgb(255, 220, 40, 40)) {
+            badgeColor_ = color;
+            badgeOn_ = true;
+            InvalidateIcon();
+            if (added_) { nid_.hIcon = CurrentIcon(); Shell_NotifyIconW(NIM_MODIFY, &nid_); }
+        }
+        void ClearBadge() {
+            badgeOn_ = false;
+            if (badgeIcon_) { DestroyIcon(badgeIcon_); badgeIcon_ = nullptr; }
+            iconDirty_ = false;
+            if (added_) { nid_.hIcon = CurrentIcon(); Shell_NotifyIconW(NIM_MODIFY, &nid_); }
+        }
+
+        // 气球通知（v4 下 Win10/11 自动变成 toast）。realtime=true 用 NIF_REALTIME（不被 toast 接管）
+        void ShowBalloon(const std::wstring& title, const std::wstring& text, DWORD flags = NIIF_INFO, bool realtime = false) {
+            if (!added_) return;
+            NOTIFYICONDATAW n = nid_;
+            n.uFlags = NIF_INFO | (realtime ? NIF_REALTIME : 0);
+            n.dwInfoFlags = flags;
+            wcsncpy_s(n.szInfoTitle, title.c_str(), _TRUNCATE);
+            wcsncpy_s(n.szInfo, text.c_str(), _TRUNCATE);
+            Shell_NotifyIconW(NIM_MODIFY, &n);
+        }
+
+        bool GetRect(RECT& out) const {
+            if (!added_) return false;
+            NOTIFYICONIDENTIFIER nid = {};
+            nid.cbSize = sizeof(nid);
+            nid.hWnd = nid_.hWnd;
+            nid.uID = nid_.uID;
+            return SUCCEEDED(Shell_NotifyIconGetRect(&nid, &out));
+        }
+
+        bool IsAdded() const { return added_; }
+        HWND GetHwnd() const { return hwnd_; }
+
+        // 信号
+        ZSignal<> Clicked;
+        ZSignal<> DoubleClicked;
+        ZSignal<> RightClicked;
+        ZSignal<> HoverEnter;
+        ZSignal<> HoverLeave;
+        ZSignal<> Selected;        // 键盘选中
+        ZSignal<> BalloonClicked;
+        ZSignal<> BalloonDismissed;
+        ZSignal<> BalloonTimeout;
+
+    private:
+        static constexpr UINT kCallbackMsg = WM_APP + 2;
+
+        void ApplyTip(const std::wstring& tip) {
+            currentTip_ = tip;
+            wcsncpy_s(nid_.szTip, tip.c_str(), _TRUNCATE);
+        }
+        void ShowMenuAtCursor() {
+            if (!menu_) return;
+            POINT pt;
+            GetCursorPos(&pt);
+            menu_->ShowAt(pt.x, pt.y);
+        }
+        HICON CurrentIcon() {
+            if (!badgeOn_) return baseIcon_;
+            if (iconDirty_ || !badgeIcon_) {
+                if (badgeIcon_) { DestroyIcon(badgeIcon_); badgeIcon_ = nullptr; }
+                badgeIcon_ = MakeBadgeIcon(baseIcon_, badgeColor_);
+                iconDirty_ = false;
+            }
+            return badgeIcon_ ? badgeIcon_ : baseIcon_;
+        }
+        void InvalidateIcon() { iconDirty_ = true; }
+
+        // 右下角红点徽章：取原图 32bpp 像素后手动画圆并写 alpha（GDI 画法写不进 alpha）
+        static HICON MakeBadgeIcon(HICON base, Color color) {
+            if (!base) return nullptr;
+            ICONINFO ii = {};
+            if (!GetIconInfo(base, &ii)) return nullptr;
+            BITMAP bm = {};
+            if (!ii.hbmColor || !GetObject(ii.hbmColor, sizeof(bm), &bm)) {
+                if (ii.hbmColor) DeleteObject(ii.hbmColor);
+                if (ii.hbmMask) DeleteObject(ii.hbmMask);
+                return nullptr;
+            }
+            int w = bm.bmWidth, h = bm.bmHeight;
+            if (w <= 0 || h <= 0) {
+                DeleteObject(ii.hbmColor); DeleteObject(ii.hbmMask);
+                return nullptr;
+            }
+
+            BITMAPINFO bi = {};
+            bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bi.bmiHeader.biWidth = w;
+            bi.bmiHeader.biHeight = -h;
+            bi.bmiHeader.biPlanes = 1;
+            bi.bmiHeader.biBitCount = 32;
+            bi.bmiHeader.biCompression = BI_RGB;
+
+            HDC screen = GetDC(nullptr);
+            if (!screen) {   // 先检查，避免把 NULL 传给 GetDIBits
+                DeleteObject(ii.hbmColor);
+                DeleteObject(ii.hbmMask);
+                return nullptr;
+            }
+            std::vector<uint32_t> px((size_t)w * h, 0);
+            GetDIBits(screen, ii.hbmColor, 0, h, px.data(), &bi, DIB_RGB_COLORS);
+            DeleteObject(ii.hbmColor);
+            DeleteObject(ii.hbmMask);
+
+            int d = w * 3 / 5; if (d < 8) d = 8;
+            float cx = (float)w - d * 0.5f - 1.0f;
+            float cy = (float)h - d * 0.5f - 1.0f;
+            float r = d * 0.5f;
+            int R = (int)(clamp(color.r, 0.0f, 1.0f) * 255.0f + 0.5f);
+            int G = (int)(clamp(color.g, 0.0f, 1.0f) * 255.0f + 0.5f);
+            int B = (int)(clamp(color.b, 0.0f, 1.0f) * 255.0f + 0.5f);
+            for (int y = 0; y < h; ++y) {
+                for (int x = 0; x < w; ++x) {
+                    float dx = (float)x - cx, dy = (float)y - cy;
+                    float dist = sqrtf(dx * dx + dy * dy);
+                    if (dist > r + 1.5f) continue;
+                    float a = (r + 1.5f - dist) / 1.5f;   // 边缘 1.5px 软化
+                    if (a > 1.0f) a = 1.0f; if (a < 0.0f) a = 0.0f;
+                    int A = (int)(a * 255.0f + 0.5f);
+                    // 预乘
+                    int pr = R * A / 255, pg = G * A / 255, pb = B * A / 255;
+                    px[(size_t)y * w + x] = ((uint32_t)A << 24) | ((uint32_t)pr << 16) | ((uint32_t)pg << 8) | (uint32_t)pb;
+                }
+            }
+
+            void* bits = nullptr;
+            HBITMAP dib = CreateDIBSection(screen, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+            HBITMAP mask = CreateBitmap(w, h, 1, 1, nullptr);
+            HICON out = nullptr;
+            if (dib && bits) {
+                memcpy(bits, px.data(), (size_t)w * h * 4);
+                ICONINFO ni = {};
+                ni.fIcon = TRUE;
+                ni.hbmColor = dib;
+                ni.hbmMask = mask;
+                out = CreateIconIndirect(&ni);
+            }
+            if (mask) DeleteObject(mask);
+            if (dib) DeleteObject(dib);
+            ReleaseDC(nullptr, screen);
+            return out;
+        }
+
+        void EnsureWindow() {
+            if (hwnd_) return;
+            static bool classRegistered = false;
+            if (!classRegistered) {
+                WNDCLASSEXW wc = {};
+                wc.cbSize = sizeof(WNDCLASSEXW);
+                wc.lpfnWndProc = [](HWND h, UINT m, WPARAM w, LPARAM l) -> LRESULT {
+                    TrayIcon* self = (TrayIcon*)GetWindowLongPtrW(h, GWLP_USERDATA);
+                    if (m == WM_NCCREATE) {
+                        CREATESTRUCTW* cs = (CREATESTRUCTW*)l;
+                        self = (TrayIcon*)cs->lpCreateParams;
+                        SetWindowLongPtrW(h, GWLP_USERDATA, (LONG_PTR)self);
+                    }
+                    if (self) return self->Handle(h, m, w, l);
+                    return DefWindowProcW(h, m, w, l);
+                    };
+                wc.hInstance = GetModuleHandleW(nullptr);
+                wc.lpszClassName = L"ZufyUI_TrayIconWindow";
+                RegisterClassExW(&wc);
+                classRegistered = true;
+            }
+            taskbarCreatedMsg_ = RegisterWindowMessageW(L"TaskbarCreated");
+            hwnd_ = CreateWindowExW(0, L"ZufyUI_TrayIconWindow", L"", WS_POPUP,
+                0, 0, 0, 0, nullptr, nullptr, GetModuleHandleW(nullptr), this);
+        }
+
+        LRESULT Handle(HWND h, UINT msg, WPARAM w, LPARAM l) {
+            if (msg == taskbarCreatedMsg_) {   // explorer 重启后自动重加
+                if (added_) {
+                    Shell_NotifyIconW(NIM_ADD, &nid_);
+                    nid_.uVersion = NOTIFYICON_VERSION_4;
+                    Shell_NotifyIconW(NIM_SETVERSION, &nid_);
+                }
+                return 0;
+            }
+            if (msg == kCallbackMsg) {
+                UINT ev = LOWORD(l);
+                switch (ev) {
+                case NIN_SELECT: {   // v4：左键单击；双击系统不再单发 WM_LBUTTONDBLCLK，需要自己按时间判定
+                    DWORD now = GetTickCount();
+                    if (lastClickTick_ != 0 && now - lastClickTick_ < GetDoubleClickTime()) {
+                        lastClickTick_ = 0;
+                        DoubleClicked.Fire();
+                    }
+                    else {
+                        lastClickTick_ = now;
+                        Clicked.Fire();
+                    }
+                    break;
+                }
+                case NIN_KEYSELECT: Selected.Fire(); break;
+                case NIN_POPUPOPEN: HoverEnter.Fire(); break;
+                case NIN_POPUPCLOSE: HoverLeave.Fire(); break;
+                case NIN_BALLOONUSERCLICK: BalloonClicked.Fire(); break;
+                case NIN_BALLOONHIDE: BalloonDismissed.Fire(); break;
+                case NIN_BALLOONTIMEOUT: BalloonTimeout.Fire(); break;
+                case WM_CONTEXTMENU:      // v4：右键菜单以“回调消息的 lParam”形式发来（不是常规窗口消息）
+                    RightClicked.Fire();
+                    ShowMenuAtCursor();
+                    break;
+                default: break;
+                }
+                return 0;
+            }
+            if (msg == WM_CONTEXTMENU) {       // 键盘选择菜单等场景仍是常规 WM_CONTEXTMENU
+                RightClicked.Fire();
+                ShowMenuAtCursor();
+                return 0;
+            }
+            if (msg == WM_DPICHANGED) {   // DPI 变化：重建徽章图标（尺寸相关）
+                InvalidateIcon();
+                if (added_) { nid_.hIcon = CurrentIcon(); Shell_NotifyIconW(NIM_MODIFY, &nid_); }
+                return 0;
+            }
+            if (msg == WM_SETFOCUS) {     // 焦点进入托盘：通知 Shell（辅助功能）
+                if (added_) Shell_NotifyIconW(NIM_SETFOCUS, &nid_);
+                return 0;
+            }
+            return DefWindowProcW(h, msg, w, l);
+        }
+
+        HWND hwnd_ = nullptr;
+        NOTIFYICONDATAW nid_ = {};
+        bool added_ = false;
+        UINT id_ = 1;
+        UINT taskbarCreatedMsg_ = 0;
+        HICON baseIcon_ = nullptr;
+        HICON badgeIcon_ = nullptr;      // 带徽章的合成图标（我们自己管生命周期）
+        HICON ownedIcon_ = nullptr;      // AddFromFile 加载的图标
+        bool badgeOn_ = false;
+        bool iconDirty_ = false;         // badge 图标懒重建标志
+        DWORD lastClickTick_ = 0;        // v4 双击判定（v4 不再发 WM_LBUTTONDBLCLK）
+        Color badgeColor_ = Color::FromArgb(255, 220, 40, 40);
+        std::wstring currentTip_;
+        std::shared_ptr<Menu> menu_;
+    };
 
 } // namespace ZufyUI

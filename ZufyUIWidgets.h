@@ -2755,11 +2755,14 @@ namespace ZufyUI {
             float viewportWidth = finalRect.width - (showVerticalScrollBar_ ? scrollBarWidth_ : 0);
             float viewportHeight = finalRect.height - (showHorizontalScrollBar_ ? scrollBarWidth_ : 0);
 
-            float contentWidth = max(contentDesiredSize_.width, viewportWidth);
-            float contentHeight = max(contentDesiredSize_.height, viewportHeight);
+            // 扣掉内容内边距才是内容可用区，滚动范围也要把内边距算进去
+            float availW = max(0.0f, viewportWidth - contentMargin_.left - contentMargin_.right);
+            float availH = max(0.0f, viewportHeight - contentMargin_.top - contentMargin_.bottom);
+            float contentWidth = max(contentDesiredSize_.width, availW);
+            float contentHeight = max(contentDesiredSize_.height, availH);
 
-            maxScrollX_ = max(0.0f, contentWidth - viewportWidth);
-            maxScrollY_ = max(0.0f, contentHeight - viewportHeight);
+            maxScrollX_ = max(0.0f, contentWidth + contentMargin_.left + contentMargin_.right - viewportWidth);
+            maxScrollY_ = max(0.0f, contentHeight + contentMargin_.top + contentMargin_.bottom - viewportHeight);
 
             scrollOffsetX_ = clamp(scrollOffsetX_, 0.0f, maxScrollX_);
             scrollOffsetY_ = clamp(scrollOffsetY_, 0.0f, maxScrollY_);
@@ -2995,8 +2998,10 @@ namespace ZufyUI {
             if (!content_ || lastArrangeRect_.width <= 0 || lastArrangeRect_.height <= 0) return;
             float viewportWidth = lastArrangeRect_.width - (showVerticalScrollBar_ ? scrollBarWidth_ : 0);
             float viewportHeight = lastArrangeRect_.height - (showHorizontalScrollBar_ ? scrollBarWidth_ : 0);
-            float contentWidth = max(contentDesiredSize_.width, viewportWidth);
-            float contentHeight = max(contentDesiredSize_.height, viewportHeight);
+            float availW = max(0.0f, viewportWidth - contentMargin_.left - contentMargin_.right);
+            float availH = max(0.0f, viewportHeight - contentMargin_.top - contentMargin_.bottom);
+            float contentWidth = max(contentDesiredSize_.width, availW);
+            float contentHeight = max(contentDesiredSize_.height, availH);
             Rect contentRect(lastArrangeRect_.x - Snap(scrollOffsetX_) + contentMargin_.left,
                 lastArrangeRect_.y - Snap(scrollOffsetY_) + contentMargin_.top, contentWidth, contentHeight);
             content_->Arrange(contentRect);

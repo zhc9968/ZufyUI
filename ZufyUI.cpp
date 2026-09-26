@@ -6,6 +6,7 @@
 using namespace ZufyUI;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    Window::SetProcessAppUserModelID(L"ZufyUI.Demo");   // 跳转列表/任务栏归属（建议创建窗口前设置）
     // 演示程序自己的默认背景：亚克力 + 半透明白色着色。
     // 库的默认是 Backdrop::None（不替应用决定），所以不透明/着色都由应用这里指定。
     Window::SetDefaultBackdrop(Backdrop::Acrylic, 0x80FFFFFF);
@@ -865,7 +866,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // ---------- 页面9：多窗口（原独立工具窗口的内容） ----------
     auto page9 = std::make_shared<Page>();
-    auto grid9 = page9->GetLayoutAs<GridLayout>();
+    auto page9Outer = page9->GetLayoutAs<GridLayout>();
+    auto grid9 = std::make_shared<GridLayout>();
+    if (page9Outer) {   // 多窗口页内容较多：整体套一层纵向滚动
+        auto sv9 = std::make_shared<ScrollViewer>();
+        sv9->SetContentMargin(Thickness(8, 8, 8, 8));
+        sv9->SetContent(grid9);
+        page9Outer->AddChild(sv9, 0, 0);
+    }
     if (grid9) {
         grid9->SetSpacing(10, 10);
         auto title9 = std::make_shared<Label>(L"多窗口 / owned 子窗口 / 模态");
@@ -1004,6 +1012,190 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             if (mbResult) mbResult->SetText(L"密集弹窗：你点了「" + MessageBox::ButtonLabel(box.GetResult()) + L"」");
             });
         grid9->AddChild(tdenseBtn, 9, 0, 1, 2);
+
+        // 独立右键菜单：不绑定任何窗口，ShowAtCursor 在鼠标处弹出（托盘菜单将复用这套）
+        auto tmenuBtn = std::make_shared<Button>(L"独立弹出菜单 (ShowAtCursor)");
+        tmenuBtn->Connect(tmenuBtn->Clicked, [mbResult]() {
+            auto menu = std::make_shared<Menu>();
+            menu->AddItem(L"菜单项 A", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：点了「菜单项 A」"); });
+            menu->AddItem(L"菜单项 B", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：点了「菜单项 B」"); });
+            menu->AddSeparator();
+            auto sub = std::make_shared<Menu>();
+            sub->AddItem(L"子项 1", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：点了「子项 1」"); });
+            sub->AddItem(L"子项 2", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：点了「子项 2」"); });
+            menu->AddSubmenu(L"子菜单", sub);
+            menu->ShowAtCursor();
+            });
+        grid9->AddChild(tmenuBtn, 10, 0, 1, 2);
+
+        // 托盘图标 / 任务栏状态 / 统一窗口图标
+        static TrayIcon s_tray;
+        // 托盘左键单击回调：弹一个 ZUI 消息框
+        s_tray.Clicked.connect([w = &win, mbResult]() {
+            MessageBox box(w, L"托盘", L"托盘图标被左键单击了。", MessageBox::Icon::Info,
+                       FastButton::OK | FastButton::Cancel);
+            if (mbResult) mbResult->SetText(std::wstring(L"托盘点击 → 消息框，你点了「") +
+                MessageBox::ButtonLabel(box.GetResult()) + L"」");
+            }, ConnectionThread::CurrentThread, nullptr);
+        // 气泡通知被点击 → 也弹消息框
+        s_tray.BalloonClicked.connect([w = &win, mbResult]() {
+            MessageBox box(w, L"通知", L"你点击了那条托盘通知（toast）。", MessageBox::Icon::Info,
+                       FastButton::OK);
+            if (mbResult) mbResult->SetText(std::wstring(L"通知点击 → 消息框，你点了「") +
+                MessageBox::ButtonLabel(box.GetResult()) + L"」");
+            }, ConnectionThread::CurrentThread, nullptr);
+        // 用项目自带的图标（不是系统默认图标）
+        auto loadAppImage = []() -> std::shared_ptr<Image> {
+            const wchar_t* candidates[] = { L"ZufyUI.ico", L"..\\..\\ZufyUI.ico", L"..\\..\\..\\ZufyUI.ico" };
+            for (auto p : candidates) {
+                auto img = Image::FromFile(p);
+                if (img && !img->IsNull()) return img;
+            }
+            return nullptr;
+        };
+
+        auto trayBtn = std::make_shared<Button>(L"托盘图标：添加/移除");
+        trayBtn->Connect(trayBtn->Clicked, [mbResult, w = &win, loadAppImage]() {
+            if (!s_tray.IsAdded()) {
+                auto menu = std::make_shared<Menu>();
+                menu->AddItem(L"显示并激活 (2→3→1)", [w]() { w->ShowActivate(Window::ActivateMode::All); });
+                menu->AddItem(L"仅提升 Z 序", [w]() { w->ShowActivate(Window::ActivateMode::Raise); });
+                menu->AddItem(L"闪烁任务栏", [w]() { w->Flash(5); });
+                menu->AddSeparator();
+                menu->AddItem(L"退出", [w]() { w->Close(); });
+                s_tray.SetMenu(menu);
+                bool ok = s_tray.Add(loadAppImage(), L"ZufyUI 托盘演示");   // 库自带 Image
+                if (mbResult) mbResult->SetText(ok ? L"托盘：已添加（右键看菜单，悬停看提示）" : L"托盘：添加失败");
+            }
+            else {
+                s_tray.Remove();
+                if (mbResult) mbResult->SetText(L"托盘：已移除");
+            }
+            });
+        grid9->AddChild(trayBtn, 11, 0);
+
+        auto trayToastBtn = std::make_shared<Button>(L"托盘气泡(→toast)");
+        trayToastBtn->Connect(trayToastBtn->Clicked, [mbResult, loadAppImage]() {
+            if (!s_tray.IsAdded()) s_tray.Add(loadAppImage(), L"ZufyUI");
+            s_tray.ShowBalloon(L"ZufyUI", L"这是一条托盘气球通知，Win10/11 会显示成 toast。");
+            if (mbResult) mbResult->SetText(L"已发送托盘气泡通知");
+            });
+        grid9->AddChild(trayToastBtn, 11, 1);
+
+        auto trayBadgeRow = std::make_shared<RowBox>();
+        trayBadgeRow->SetSpacing(8.0f);
+        trayBadgeRow->AddChild(std::make_shared<Label>(L"托盘徽章"));
+        auto trayBadgeSw = std::make_shared<ToggleSwitch>(false);
+        trayBadgeSw->Connect(trayBadgeSw->Toggled, [mbResult, loadAppImage](bool on) {
+            if (!s_tray.IsAdded()) s_tray.Add(loadAppImage(), L"ZufyUI");
+            if (on) s_tray.SetBadge(); else s_tray.ClearBadge();
+            if (mbResult) mbResult->SetText(on ? L"托盘徽章：开（右下角红点）" : L"托盘徽章：关");
+            });
+        trayBadgeRow->AddChild(trayBadgeSw);
+        grid9->AddChild(trayBadgeRow, 12, 0);
+
+        auto progRow = std::make_shared<RowBox>();
+        progRow->SetSpacing(8.0f);
+        progRow->AddChild(std::make_shared<Label>(L"任务栏进度"));
+        auto progSlider = std::make_shared<Slider>();
+        progSlider->SetRange(0, 100);
+        progSlider->SetWidth(200);
+        progSlider->Connect(progSlider->ValueChanged, [mbResult, w = &win](float v) {
+            int p = (int)(v + 0.5f);
+            if (p <= 0) w->SetTaskbarProgress(Window::TaskbarProgress::None);
+            else w->SetTaskbarProgress(Window::TaskbarProgress::Normal, (ULONGLONG)p, 100);
+            if (mbResult) mbResult->SetText(L"任务栏进度：" + std::to_wstring(p) + L"%");
+            });
+        progRow->AddChild(progSlider);
+        grid9->AddChild(progRow, 12, 1);
+
+        auto appIconBtn = std::make_shared<Button>(L"统一设置应用图标(项目自带图标)");
+        appIconBtn->Connect(appIconBtn->Clicked, [mbResult, w = &win, loadAppImage]() {
+            w->SetAppIcon(loadAppImage());   // 库自带 Image，直接传
+            if (mbResult) mbResult->SetText(L"已用项目自带图标统一设置（原生 + 自定义标题栏）");
+            });
+        grid9->AddChild(appIconBtn, 13, 0, 1, 2);
+
+        auto tbBadgeRow = std::make_shared<RowBox>();
+        tbBadgeRow->SetSpacing(8.0f);
+        tbBadgeRow->AddChild(std::make_shared<Label>(L"任务栏覆盖徽章"));
+        auto tbBadgeSw = std::make_shared<ToggleSwitch>(false);
+        tbBadgeSw->Connect(tbBadgeSw->Toggled, [mbResult, w = &win, loadAppImage](bool on) {
+            if (on) w->SetTaskbarOverlayIcon(loadAppImage(), L"徽章");
+            else w->ClearTaskbarOverlayIcon();
+            if (mbResult) mbResult->SetText(on ? L"任务栏覆盖徽章：开（看任务栏按钮右下角）" : L"任务栏覆盖徽章：关");
+            });
+        tbBadgeRow->AddChild(tbBadgeSw);
+        grid9->AddChild(tbBadgeRow, 14, 0, 1, 2);
+
+        auto tbIconRow = std::make_shared<RowBox>();
+        tbIconRow->SetSpacing(8.0f);
+        tbIconRow->AddChild(std::make_shared<Label>(L"标题栏图标"));
+        tbIconRow->AddChild(std::make_shared<Label>(L"徽章"));
+        auto tbIconBadgeSw = std::make_shared<ToggleSwitch>(false);
+        tbIconBadgeSw->Connect(tbIconBadgeSw->Toggled, [w = &win, loadAppImage](bool on) {
+            w->SetAppIcon(loadAppImage());
+            if (auto tb = std::dynamic_pointer_cast<TitleBar>(w->GetCustomTitleBar())) {
+                if (on) tb->SetIconBadge(true); else tb->ClearIconBadge();
+            }
+            });
+        tbIconRow->AddChild(tbIconBadgeSw);
+        tbIconRow->AddChild(std::make_shared<Label>(L"进度"));
+        auto tbIconProgSlider = std::make_shared<Slider>();
+        tbIconProgSlider->SetRange(0, 100);
+        tbIconProgSlider->SetWidth(160);
+        tbIconProgSlider->Connect(tbIconProgSlider->ValueChanged, [w = &win, loadAppImage](float v) {
+            w->SetAppIcon(loadAppImage());
+            if (auto tb = std::dynamic_pointer_cast<TitleBar>(w->GetCustomTitleBar())) {
+                float p = clamp(v / 100.0f, 0.0f, 1.0f);
+                if (p <= 0.001f) tb->ClearIconProgress(); else tb->SetIconProgress(p);
+            }
+            });
+        tbIconRow->AddChild(tbIconProgSlider);
+        grid9->AddChild(tbIconRow, 15, 0, 1, 2);
+
+        auto thumbBarBtn = std::make_shared<Button>(L"缩略图工具栏(库自带Image)");
+        thumbBarBtn->Connect(thumbBarBtn->Clicked, [mbResult, w = &win, loadAppImage]() {
+            std::vector<std::pair<Window::ThumbButtonId, std::wstring>> bs = {
+                { Window::ThumbButtonId::Prev, L"上一个" },
+                { Window::ThumbButtonId::Play, L"播放" },
+                { Window::ThumbButtonId::Pause, L"暂停" },
+                { Window::ThumbButtonId::Next, L"下一个" } };
+            std::vector<std::shared_ptr<Image>> imgs = {
+                loadAppImage(), loadAppImage(), loadAppImage(), loadAppImage() };
+            w->SetThumbButtons(bs, imgs);
+            static bool thumbHooked = false;
+            if (!thumbHooked) {   // 每个缩略图按钮点击 → 弹窗提示是哪一个
+                thumbHooked = true;
+                w->ThumbButtonClicked.connect([w, mbResult](Window::ThumbButtonId id) {
+                    const wchar_t* names[] = { L"播放", L"暂停", L"上一个", L"下一个", L"未知" };
+                    int idx = (int)id; if (idx < 0 || idx > 3) idx = 4;
+                    MessageBox box(w, L"缩略图按钮", std::wstring(L"点击了：") + names[idx],
+                                   MessageBox::Icon::Info, FastButton::OK);
+                    if (mbResult) mbResult->SetText(std::wstring(L"缩略图按钮「") + names[idx] + L"」被点击");
+                    }, ConnectionThread::CurrentThread, nullptr);
+            }
+            if (mbResult) mbResult->SetText(L"已设置缩略图工具栏（鼠标悬停任务栏按钮查看）");
+            });
+        grid9->AddChild(thumbBarBtn, 16, 0, 1, 2);
+
+        auto jumpListBtn = std::make_shared<Button>(L"跳转列表：自定义任务/分类");
+        jumpListBtn->Connect(jumpListBtn->Clicked, [mbResult, w = &win]() {
+            std::vector<Window::JumpListItem> tasks = {
+                { L"新建窗口", L"--new-window" },
+                { L"打开设置", L"--settings" },
+                { L"关于",     L"--about" },
+            };
+            std::vector<std::pair<std::wstring, std::vector<Window::JumpListItem>>> cats = {
+                { L"常用操作", {
+                    { L"打开项目 A", L"--open A" },
+                    { L"打开项目 B", L"--open B" },
+                } },
+            };
+            w->SetJumpList(tasks, cats, true);
+            if (mbResult) mbResult->SetText(L"已写入跳转列表（右键任务栏按钮查看 Tasks / 常用操作 / 最近使用）");
+            });
+        grid9->AddChild(jumpListBtn, 17, 0, 1, 2);
 
 
         auto tclose = std::make_shared<Button>(L"关闭主窗口");

@@ -23,6 +23,14 @@
 #include <wrl/implements.h>
 #include <dwrite.h>
 #include <dwmapi.h>
+#include <shellapi.h>
+#include <shobjidl.h>
+#include <commctrl.h>
+#include <propkey.h>
+#include <propvarutil.h>
+#pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "comctl32.lib")
 #include <string>
 #include <vector>
 #include <memory>
@@ -249,6 +257,7 @@ namespace ZufyUI {
         inline std::thread::id g_uiThreadId;
         inline HWND g_uiDispatcherWindow = nullptr;
         inline constexpr UINT WM_UI_TASK = WM_APP + 1;
+        inline void CloseAllOpenMenus();   // 定义在文件后部（需要 Window 完整类型）
 
         inline void InitializeUIThread() {
             g_uiThreadId = std::this_thread::get_id();
@@ -903,6 +912,8 @@ namespace ZufyUI {
 
         // 窗口标题变化时通知（自定义标题栏元素可重写以同步显示；默认无操作）
         virtual void SetWindowTitle(const std::wstring&) {}
+        // 窗口图标下发给“非参与布局”的窗口级控件（如 TitleBar 显示的应用图标）
+        virtual void SetWindowIconFromHICON(HICON) {}
 
         // ---------- 父子关系 ----------
         void SetParent(UIElement* parent) {
@@ -2182,6 +2193,11 @@ namespace ZufyUI {
             items.push_back(item);
         }
         std::vector<std::shared_ptr<MenuItem>> items;
+
+        // 独立弹出：不绑定任何窗口（典型用途：托盘图标右键菜单）。
+        // 坐标为屏幕像素；会先关掉上一个独立菜单。
+        void ShowAt(int screenX, int screenY);
+        void ShowAtCursor();
     };
 
     class MenuWindow {
@@ -2204,24 +2220,26 @@ namespace ZufyUI {
             if (!hwnd_) return;
             if (visible_) return;
 
+            AdjustPositionToScreen(x, y, contentWidthPx_, contentHeightPx_);
             screenX_ = x;
             screenY_ = y;
+            winX_ = x - shadowPx_;
+            winY_ = y - shadowPx_;
 
             if (animating_) {
                 KillTimer(hwnd_, animTimerId_);
                 animating_ = false;
             }
 
-            SetWindowPos(hwnd_, nullptr, screenX_, screenY_, windowWidthPx_, 0,
-                SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+            ShowWindow(hwnd_, SW_SHOWNA);   // 分层窗口：可见性用 ShowWindow，位置/尺寸由 ULW 设置
 
             animating_ = true;
-            currentHeightPx_ = 0;
-            targetHeightPx_ = windowHeightPx_;
+            fade_ = 0.0f;                   // 渐显：透明度 0 → 1
             visible_ = true;
+            RenderLayered();
 
             SetTimer(hwnd_, animTimerId_, 10, nullptr);
-            InvalidateRect(hwnd_, nullptr, FALSE);
+            if (standalone_) SetTimer(hwnd_, kStandalonePollTimerId, 30, nullptr);
         }
 
         void Hide() {
@@ -2243,6 +2261,7 @@ namespace ZufyUI {
                 animating_ = false;
             }
             visible_ = false;
+            if (standalone_ && hwnd_) KillTimer(hwnd_, kStandalonePollTimerId);
             if (childMenu_) {
                 childMenu_->CloseAll();
                 childMenu_.reset();
@@ -2253,12 +2272,21 @@ namespace ZufyUI {
             }
         }
 
+        // 独立模式：没有 owner 窗口帮忙关闭菜单，靠自身轮询（点菜单外/按 Esc）关闭。
+        // 注意：不使用 Win32 SetCapture。
+        void SetStandalone(bool on) { standalone_ = on; }
+        static std::shared_ptr<MenuWindow>& StandaloneHolder() {
+            static std::shared_ptr<MenuWindow> s;
+            return s;
+        }
+
     private:
         static constexpr int kSubmenuDelayMs = 300;
         static constexpr int kSubmenuHideDelayMs = 300;
         static constexpr UINT_PTR kSubmenuTimerId = 1;
         static constexpr UINT_PTR kSubmenuHideTimerId = 3;
         static constexpr UINT_PTR animTimerId_ = 4;
+        static constexpr UINT_PTR kStandalonePollTimerId = 6;
 
         int itemHeightDip_ = 30;
         int separatorHeightDip_ = 9;
@@ -2334,14 +2362,24 @@ namespace ZufyUI {
                 else if (wParam == animTimerId_) {
                     HandleAnimationTimer();
                 }
+                else if (wParam == kStandalonePollTimerId) {
+                    // 独立菜单：轮询检测「点菜单外」或「Esc」来关闭（不用 SetCapture）
+                    if (!standalone_) return 0;
+                    if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) { CloseAll(); return 0; }
+                    if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
+                        POINT pt; GetCursorPos(&pt);
+                        if (!IsPointInMenuTree(pt)) { CloseAll(); return 0; }
+                    }
+                }
                 return 0;
             case WM_DPICHANGED:
                 dpi_ = HIWORD(wParam);
                 if (dpi_ == 0) dpi_ = 96;
                 DiscardDeviceResources();
-                CreateWindowResources();
-                SetWindowPos(hwnd_, nullptr, screenX_, screenY_, windowWidthPx_, windowHeightPx_, SWP_NOZORDER);
-                InvalidateRect(hwnd_, nullptr, FALSE);
+                CreateWindowResources();   // 重新计算 winX_/winY_/windowWidthPx_/windowHeightPx_
+                // 用 winX_/winY_（含阴影偏移），不是内容坐标 screenX_/screenY_，否则会整体偏移
+                SetWindowPos(hwnd_, nullptr, winX_, winY_, windowWidthPx_, windowHeightPx_, SWP_NOZORDER);
+                RenderLayered();
                 return 0;
             case WM_DESTROY:
                 if (animating_) {
@@ -2358,16 +2396,13 @@ namespace ZufyUI {
 
         void HandleAnimationTimer() {
             if (!animating_) { KillTimer(hwnd_, animTimerId_); return; }
-            int step = max(1, targetHeightPx_ / 10);
-            currentHeightPx_ += step;
-            if (currentHeightPx_ >= targetHeightPx_) {
-                currentHeightPx_ = targetHeightPx_;
+            fade_ += 0.18f;
+            if (fade_ >= 1.0f) {
+                fade_ = 1.0f;
                 animating_ = false;
                 KillTimer(hwnd_, animTimerId_);
             }
-            SetWindowPos(hwnd_, nullptr, screenX_, screenY_, windowWidthPx_, currentHeightPx_,
-                SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
-            InvalidateRect(hwnd_, nullptr, FALSE);
+            RenderLayered();
         }
 
         bool IsPointInMenuTree(POINT ptScreen) {
@@ -2409,55 +2444,130 @@ namespace ZufyUI {
             }
 
             CalculateWindowSizeDip();
-            windowWidthPx_ = MulDiv(windowWidthDip_, dpi_, 96);
-            windowHeightPx_ = MulDiv(windowHeightDip_, dpi_, 96);
-            AdjustPositionToScreen(screenX_, screenY_, windowWidthPx_, windowHeightPx_);
+            contentWidthPx_ = MulDiv(windowWidthDip_, dpi_, 96);
+            contentHeightPx_ = MulDiv(windowHeightDip_, dpi_, 96);
+            shadowPx_ = MulDiv(shadowDip_, dpi_, 96);
+            windowWidthPx_ = contentWidthPx_ + shadowPx_ * 2;
+            windowHeightPx_ = contentHeightPx_ + shadowPx_ * 2;
 
+            // 按“菜单本体”避让屏幕边缘，再整体左上偏移阴影厚度
+            {
+                int px = screenX_, py = screenY_;
+                AdjustPositionToScreen(px, py, contentWidthPx_, contentHeightPx_);
+                screenX_ = px;
+                screenY_ = py;
+                winX_ = px - shadowPx_;
+                winY_ = py - shadowPx_;
+            }
+
+            // 分层窗口：逐像素 alpha，才能自绘柔阴影 + 圆角（不再用 SetWindowRgn）
             hwnd_ = CreateWindowExW(
-                WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
+                WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
                 L"ZufyUI_MenuWindow", L"",
                 WS_POPUP,
-                screenX_, screenY_, windowWidthPx_, windowHeightPx_,
+                winX_, winY_, windowWidthPx_, windowHeightPx_,
                 owner_, nullptr, GetModuleHandle(nullptr), this);
             if (!hwnd_) return;
 
-            SetRoundCornerRegion();
-
             D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2dFactory_);
             if (d2dFactory_) {
-                RECT rc;
-                GetClientRect(hwnd_, &rc);
-                D2D1_SIZE_U size = D2D1::SizeU(rc.right - rc.left, rc.bottom - rc.top);
                 D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
                     D2D1_RENDER_TARGET_TYPE_DEFAULT,
-                    D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED),
+                    D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
                     (FLOAT)dpi_, (FLOAT)dpi_);
-                d2dFactory_->CreateHwndRenderTarget(
-                    props,
-                    D2D1::HwndRenderTargetProperties(hwnd_, size),
-                    &renderTarget_);
-                if (renderTarget_) {
+                ID2D1DCRenderTarget* dcRT = nullptr;
+                if (SUCCEEDED(d2dFactory_->CreateDCRenderTarget(&props, &dcRT))) {
+                    renderTarget_ = dcRT;
                     renderTarget_->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
                     renderTarget_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
                 }
             }
+
+            EnsureDib(windowWidthPx_ + 8, windowHeightPx_ + 8);   // 位图比 ULW 尺寸大一圈，避免读到边界外内存（右/下出现黑边）
 
             if (renderTarget_) {
                 renderTarget_->CreateSolidColorBrush(D2D1::ColorF(1.0f, 1.0f, 1.0f), &bgBrush_);
                 renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.85f, 0.85f, 0.85f), &hoverBrush_);
                 renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f), &textBrush_);
                 renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.8f, 0.8f, 0.8f), &separatorBrush_);
+                renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.12f), &shadowBrush_);
             }
         }
 
-        void SetRoundCornerRegion() {
-            int radiusPx = MulDiv((int)cornerRadiusDip_, dpi_, 96);
-            HRGN hRgn = CreateRoundRectRgn(0, 0, windowWidthPx_ + 1, windowHeightPx_ + 1,
-                radiusPx, radiusPx);
-            SetWindowRgn(hwnd_, hRgn, TRUE);
+        // 与窗口像素尺寸一致的自上而下 32bpp DIB + 内存 DC
+        void EnsureDib(int w, int h) {
+            if (w <= 0 || h <= 0) return;
+            if (dib_ && dibW_ == w && dibH_ == h) return;
+            if (dib_) { DeleteObject(dib_); dib_ = nullptr; dibBits_ = nullptr; }
+            if (memDC_) { DeleteDC(memDC_); memDC_ = nullptr; }
+
+            BITMAPINFO bi = {};
+            bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bi.bmiHeader.biWidth = w;
+            bi.bmiHeader.biHeight = -h;              // 负数 = 自上而下
+            bi.bmiHeader.biPlanes = 1;
+            bi.bmiHeader.biBitCount = 32;
+            bi.bmiHeader.biCompression = BI_RGB;
+            dib_ = CreateDIBSection(nullptr, &bi, DIB_RGB_COLORS, &dibBits_, nullptr, 0);
+            memDC_ = CreateCompatibleDC(nullptr);
+            if (memDC_ && dib_) SelectObject(memDC_, dib_);
+            dibW_ = w; dibH_ = h;
+        }
+
+        // 画进 DIB 后 UpdateLayeredWindow 提交；fade_ 控制整窗不透明度（渐显动画）
+        void RenderLayered() {
+            if (!renderTarget_ || !memDC_ || !dib_ || !hwnd_) return;
+            RECT dcRect = { 0, 0, dibW_, dibH_ };
+
+            // 强制把 DIB 清零为纯透明：D2D 的 DC 渲染目标在预乘 alpha 下不保证覆盖到最后一行/列，
+            // 不清会导致 ULW 把右/下边缘的未初始化内存当不透明黑像素显示（黑边）。
+            if (dibBits_ && dibW_ > 0 && dibH_ > 0) {
+                memset(dibBits_, 0, (size_t)dibW_ * dibH_ * 4);
+            }
+
+            if (FAILED(renderTarget_->BindDC(memDC_, &dcRect))) return;
+
+            SetGlobalDpiScale(dpi_ / 96.0f);
+            renderTarget_->BeginDraw();
+            renderTarget_->Clear(D2D1::ColorF(0, 0, 0, 0));
+
+            // 柔阴影：像 tooltip、比它厚一点。少量低透明度图层叠加，near-body 总 alpha ~0.18
+            if (shadowBrush_) {
+                float sd = (float)shadowDip_;
+                D2D1_RECT_F body = D2D1::RectF(sd, sd, sd + (float)windowWidthDip_, sd + (float)windowHeightDip_);
+                int steps = 6;
+                float maxE = sd - 3.0f;            // 外缘留 3 DIP 全透明，避免阴影被窗口边硬裁出黑/灰边
+                if (maxE < 1.0f) maxE = 1.0f;
+                for (int i = steps; i >= 1; --i) {
+                    float e = (float)i * (maxE / (float)steps);
+                    shadowBrush_->SetColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.03f));
+                    renderTarget_->FillRoundedRectangle(
+                        D2D1::RoundedRect(
+                            D2D1::RectF(body.left - e, body.top - e, body.right + e, body.bottom + e),
+                            cornerRadiusDip_ + e, cornerRadiusDip_ + e), shadowBrush_);
+                }
+            }
+
+            // 内容平移到阴影内边距之后绘制
+            D2D1::Matrix3x2F old;
+            renderTarget_->GetTransform(&old);
+            renderTarget_->SetTransform(D2D1::Matrix3x2F::Translation((FLOAT)shadowDip_, (FLOAT)shadowDip_) * old);
+            DrawMenu();
+            renderTarget_->SetTransform(old);
+            renderTarget_->EndDraw();
+
+            HDC screenDC = GetDC(nullptr);
+            POINT dst = { winX_, winY_ };
+            POINT src = { 0, 0 };
+            SIZE size = { windowWidthPx_, windowHeightPx_ };
+            BYTE a = (BYTE)(fade_ * 255.0f + 0.5f);
+            BLENDFUNCTION bf = { AC_SRC_OVER, 0, a, AC_SRC_ALPHA };
+            UpdateLayeredWindow(hwnd_, screenDC, &dst, &size, memDC_, &src, 0, &bf, ULW_ALPHA);
+            ReleaseDC(nullptr, screenDC);
         }
 
         void DiscardDeviceResources() {
+            if (shadowBrush_) { shadowBrush_->Release(); shadowBrush_ = nullptr; }
             if (renderTarget_) { renderTarget_->Release(); renderTarget_ = nullptr; }
             if (bgBrush_) { bgBrush_->Release(); bgBrush_ = nullptr; }
             if (hoverBrush_) { hoverBrush_->Release(); hoverBrush_ = nullptr; }
@@ -2465,6 +2575,9 @@ namespace ZufyUI {
             if (separatorBrush_) { separatorBrush_->Release(); separatorBrush_ = nullptr; }
             if (textFormat_) { textFormat_->Release(); textFormat_ = nullptr; }
             if (d2dFactory_) { d2dFactory_->Release(); d2dFactory_ = nullptr; }
+            if (memDC_) { DeleteDC(memDC_); memDC_ = nullptr; }
+            if (dib_) { DeleteObject(dib_); dib_ = nullptr; dibBits_ = nullptr; }
+            dibW_ = dibH_ = 0;
         }
 
         void CalculateWindowSizeDip() {
@@ -2512,13 +2625,7 @@ namespace ZufyUI {
         void OnPaint() {
             PAINTSTRUCT ps;
             BeginPaint(hwnd_, &ps);
-            if (renderTarget_) {
-                SetGlobalDpiScale(dpi_ / 96.0f);   // 线程本地缩放：菜单窗口用自己的 DPI
-                renderTarget_->BeginDraw();
-                renderTarget_->Clear(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
-                DrawMenu();
-                renderTarget_->EndDraw();
-            }
+            RenderLayered();
             EndPaint(hwnd_, &ps);
         }
 
@@ -2579,8 +2686,8 @@ namespace ZufyUI {
 
         void OnMouseMove(int x, int y) {
             if (!hwnd_) return;
-            int dipX = MulDiv(x, 96, dpi_);
-            int dipY = MulDiv(y, 96, dpi_);
+            int dipX = MulDiv(x, 96, dpi_) - shadowDip_;
+            int dipY = MulDiv(y, 96, dpi_) - shadowDip_;
             int oldHover = hoveredIndex_;
             hoveredIndex_ = HitTestDip(dipX, dipY);
 
@@ -2626,8 +2733,8 @@ namespace ZufyUI {
 
         void OnMouseDown(int x, int y) {
             if (!hwnd_) return;
-            int dipX = MulDiv(x, 96, dpi_);
-            int dipY = MulDiv(y, 96, dpi_);
+            int dipX = MulDiv(x, 96, dpi_) - shadowDip_;
+            int dipY = MulDiv(y, 96, dpi_) - shadowDip_;
             pressedIndex_ = HitTestDip(dipX, dipY);
             if (pressedIndex_ >= 0) {
                 SetCapture(hwnd_);
@@ -2637,8 +2744,8 @@ namespace ZufyUI {
 
         void OnMouseUp(int x, int y) {
             if (!hwnd_) return;
-            int dipX = MulDiv(x, 96, dpi_);
-            int dipY = MulDiv(y, 96, dpi_);
+            int dipX = MulDiv(x, 96, dpi_) - shadowDip_;
+            int dipY = MulDiv(y, 96, dpi_) - shadowDip_;
             int idx = HitTestDip(dipX, dipY);
             if (idx >= 0 && idx == pressedIndex_) {
                 auto& item = menu_->items[idx];
@@ -2646,7 +2753,10 @@ namespace ZufyUI {
                     auto clicked = item;                 // 先保活，避免 Fire 里回调销毁菜单
                     pressedIndex_ = -1;
                     ReleaseCapture();
-                    CloseAll();
+                    // 关整棵树：在子菜单里点项目时，根菜单也必须一起关（之前只关了子菜单）
+                    MenuWindow* root = this;
+                    while (root->parent_) root = root->parent_;
+                    root->CloseAll();
                     clicked->Clicked.Fire();
                     return;
                 }
@@ -2696,8 +2806,8 @@ namespace ZufyUI {
                 else
                     curY += itemHeightDip_;
             }
-            pt.x = rc.right;
-            pt.y = rc.top + MulDiv((int)curY, dpi_, 96);
+            pt.x = rc.right - shadowPx_;
+            pt.y = rc.top + shadowPx_ + MulDiv((int)curY, dpi_, 96);
 
             if (childMenu_ && childMenu_->menu_ == item->submenu) {
                 if (childMenu_->visible_) return;
@@ -2728,13 +2838,26 @@ namespace ZufyUI {
         int hoveredIndex_ = -1;
         int pressedIndex_ = -1;
         bool isClosing_ = false;
+        bool standalone_ = false;
 
         std::unique_ptr<MenuWindow> childMenu_;
         MenuWindow* parent_ = nullptr;
         int submenuPendingIndex_ = -1;
 
         ID2D1Factory* d2dFactory_ = nullptr;
-        ID2D1HwndRenderTarget* renderTarget_ = nullptr;
+        ID2D1DCRenderTarget* renderTarget_ = nullptr;   // 分层窗口用 DC 渲染目标
+
+        // 分层窗口（UpdateLayeredWindow）：DIB + 内存 DC，用于逐像素 alpha → 自绘柔阴影 + 圆角
+        HDC memDC_ = nullptr;
+        HBITMAP dib_ = nullptr;
+        void* dibBits_ = nullptr;
+        int dibW_ = 0, dibH_ = 0;
+        int shadowDip_ = 10;                          // 自绘柔阴影厚度（DIP，比 tooltip 稍厚）
+        int shadowPx_ = 0;
+        float fade_ = 1.0f;                           // 渐显动画：整窗不透明度
+        int contentWidthPx_ = 0, contentHeightPx_ = 0;
+        int winX_ = 0, winY_ = 0;                     // 窗口（含阴影）左上角屏幕坐标
+        ID2D1SolidColorBrush* shadowBrush_ = nullptr;
         ID2D1SolidColorBrush* bgBrush_ = nullptr;
         ID2D1SolidColorBrush* hoverBrush_ = nullptr;
         ID2D1SolidColorBrush* textBrush_ = nullptr;
@@ -2745,6 +2868,23 @@ namespace ZufyUI {
     };
 
     inline ComPtr<IDWriteFactory> MenuWindow::sharedDWriteFactory_ = nullptr;
+
+    // 独立弹出：owner 用进程级隐藏消息窗口（不绑定任何用户窗口），典型用于托盘右键菜单。
+    inline void Menu::ShowAt(int screenX, int screenY) {
+        detail::InitializeUIThread();
+        detail::CloseAllOpenMenus();   // 先关掉其它已打开的菜单（避免同时存在多个）
+        HWND owner = detail::g_uiDispatcherWindow ? detail::g_uiDispatcherWindow : GetDesktopWindow();
+        auto& holder = MenuWindow::StandaloneHolder();
+        holder = std::make_shared<MenuWindow>(shared_from_this(), owner, screenX, screenY);
+        holder->SetStandalone(true);
+        holder->Show(screenX, screenY);
+    }
+
+    inline void Menu::ShowAtCursor() {
+        POINT pt{};
+        GetCursorPos(&pt);
+        ShowAt(pt.x, pt.y);
+    }
 
     // ---------- 应用核心（进程 / UI 线程级单例） ----------
     namespace detail {
@@ -3117,6 +3257,7 @@ namespace ZufyUI {
         std::shared_ptr<Layout> GetRootLayout() const { return rootElement_; }
 
         void SetContextMenu(std::shared_ptr<Menu> menu) { windowContextMenu_ = menu; }
+        void CloseContextMenu() { CloseActiveMenuWindow(); }
 
         std::shared_ptr<ColumnBox> GetRootColumnBox() const {
             return std::dynamic_pointer_cast<ColumnBox>(rootElement_);
@@ -3252,6 +3393,163 @@ namespace ZufyUI {
             if (smallIcon) SendMessageW(hwnd_, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
         }
 
+        // 统一设置应用图标：一次同时设「原生标题栏 / 任务栏 / Alt-Tab」+「自定义标题栏上的图标」
+        void SetAppIcon(HICON bigIcon, HICON smallIcon) {
+            if (!hwnd_) return;
+            HICON big = bigIcon ? bigIcon : smallIcon;
+            HICON smallIconUse = smallIcon ? smallIcon : bigIcon;
+            if (big) SendMessageW(hwnd_, WM_SETICON, ICON_BIG, (LPARAM)big);
+            if (smallIconUse) SendMessageW(hwnd_, WM_SETICON, ICON_SMALL, (LPARAM)smallIconUse);
+            if (customTitleBar_) customTitleBar_->SetWindowIconFromHICON(big);
+            // 同时更新窗口类图标：没有自定义标题栏（原生标题栏/新窗口）时也能取到图标
+            if (big) SetClassLongPtrW(hwnd_, GCLP_HICON, (LONG_PTR)big);
+            if (smallIconUse) SetClassLongPtrW(hwnd_, GCLP_HICONSM, (LONG_PTR)smallIconUse);
+            // 强制刷新非客户区（部分系统要这个才会立刻换掉标题栏图标）
+            SetWindowPos(hwnd_, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        }
+        // 从当前模块资源加载（smallId <= 0 时用 bigId）
+        void SetAppIconFromResource(int bigId, int smallId = 0) {
+            HINSTANCE h = GetModuleHandleW(nullptr);
+            HICON big = (HICON)LoadImageW(h, MAKEINTRESOURCEW(bigId), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+            HICON smallIcon = big;
+            if (smallId > 0) smallIcon = (HICON)LoadImageW(h, MAKEINTRESOURCEW(smallId), IMAGE_ICON, 16, 16, LR_SHARED);
+            SetAppIcon(big, smallIcon);
+        }
+        // 直接吃库自带 Image（或任何带 ToHICON() 的图片类型），自动转成系统图标
+        template <class TImage>
+        void SetAppIcon(std::shared_ptr<TImage> big, std::shared_ptr<TImage> smallIcon = nullptr) {
+            if (!big && !smallIcon) return;
+            HICON hb = big ? big->ToHICON() : nullptr;
+            HICON hs = smallIcon ? smallIcon->ToHICON() : (hb ? CopyIcon(hb) : nullptr);
+            SetAppIcon(hb, hs);
+        }
+
+        // ---- 任务栏状态（进度 / 覆盖徽章 / 闪烁）----
+        enum class TaskbarProgress { None = 0, Indeterminate = 1, Normal = 2, Error = 4, Paused = 8 };
+        void SetTaskbarProgress(TaskbarProgress state, ULONGLONG completed = 0, ULONGLONG total = 0) {
+            EnsureTaskbarList();
+            if (!taskbarList_) return;
+            taskbarList_->SetProgressState(hwnd_, (TBPFLAG)(int)state);
+            if (total > 0) taskbarList_->SetProgressValue(hwnd_, completed, total);
+        }
+        void SetTaskbarOverlayIcon(HICON icon, const std::wstring& description = L"") {
+            EnsureTaskbarList();
+            if (!taskbarList_) return;
+            taskbarList_->SetOverlayIcon(hwnd_, icon, description.c_str());
+        }
+        void ClearTaskbarProgress() {
+            EnsureTaskbarList();
+            if (taskbarList_) taskbarList_->SetProgressState(hwnd_, TBPF_NOPROGRESS);
+        }
+        void ClearTaskbarOverlayIcon() {
+            EnsureTaskbarList();
+            if (taskbarList_) taskbarList_->SetOverlayIcon(hwnd_, nullptr, L"");
+        }
+        void SetTaskbarProgressValue(ULONGLONG completed, ULONGLONG total) {
+            EnsureTaskbarList();
+            if (taskbarList_ && total > 0) taskbarList_->SetProgressValue(hwnd_, completed, total);
+        }
+        // 直接吃库自带 Image（带 ToHICON() 的类型）作为任务栏覆盖徽章
+        template <class TImage>
+        void SetTaskbarOverlayIcon(std::shared_ptr<TImage> img, const std::wstring& description = L"") {
+            if (!img) { ClearTaskbarOverlayIcon(); return; }
+            SetTaskbarOverlayIcon(img->ToHICON(), description);
+        }
+
+        // ---- 缩略图工具栏（悬停任务栏按钮时出现的按钮）----
+        enum class ThumbButtonId : UINT { Play = 0, Pause = 1, Prev = 2, Next = 3, MaxId = 4 };
+        ZSignal<ThumbButtonId> ThumbButtonClicked;
+        void SetThumbButtons(const std::vector<std::pair<ThumbButtonId, std::wstring>>& buttons,
+                             HIMAGELIST imageList = nullptr) {
+            EnsureTaskbarList();
+            if (!taskbarList_ || !hwnd_) return;
+            if (imageList) taskbarList_->ThumbBarSetImageList(hwnd_, imageList);
+            std::vector<THUMBBUTTON> tb(buttons.size());
+            for (size_t i = 0; i < buttons.size(); ++i) {
+                tb[i].dwMask = THB_BITMAP | THB_TOOLTIP | THB_FLAGS;
+                tb[i].iId = (UINT)buttons[i].first;
+                tb[i].iBitmap = (UINT)i;
+                wcsncpy_s(tb[i].szTip, buttons[i].second.c_str(), _TRUNCATE);
+                tb[i].dwFlags = THBF_ENABLED;
+            }
+            taskbarList_->ThumbBarAddButtons(hwnd_, (UINT)tb.size(), tb.data());
+        }
+        void UpdateThumbButton(ThumbButtonId id, bool enabled) {
+            EnsureTaskbarList();
+            if (!taskbarList_ || !hwnd_) return;
+            THUMBBUTTON tb = {};
+            tb.dwMask = THB_FLAGS;
+            tb.iId = (UINT)id;
+            tb.dwFlags = enabled ? THBF_ENABLED : THBF_DISABLED;
+            taskbarList_->ThumbBarUpdateButtons(hwnd_, 1, &tb);
+        }
+        // 便捷：直接用库自带 Image 生成 HIMAGELIST（Image → HICON → HIMAGELIST），无需用户自己准备 HIMAGELIST
+        template <class TImage>
+        void SetThumbButtons(const std::vector<std::pair<ThumbButtonId, std::wstring>>& buttons,
+                             const std::vector<std::shared_ptr<TImage>>& images) {
+            EnsureTaskbarList();
+            if (!taskbarList_ || !hwnd_) return;
+            int cx = GetSystemMetrics(SM_CXSMICON), cy = GetSystemMetrics(SM_CYSMICON);
+            if (cx <= 0) cx = 16;
+            if (cy <= 0) cy = 16;
+            if (thumbImageList_) { ImageList_Destroy(thumbImageList_); thumbImageList_ = nullptr; }
+            HIMAGELIST il = ImageList_Create(cx, cy, ILC_COLOR32 | ILC_MASK, (int)images.size(), 1);
+            if (!il) { SetThumbButtons(buttons, (HIMAGELIST)nullptr); return; }
+            for (auto& im : images) {
+                HICON h = im ? im->ToHICON() : nullptr;
+                if (h) { ImageList_ReplaceIcon(il, -1, h); DestroyIcon(h); }
+                else {   // 占位空白图，保持索引对齐
+                    HBITMAP bmp = CreateBitmap(cx, cy, 1, 32, nullptr);
+                    if (bmp) { ImageList_AddMasked(il, bmp, 0); DeleteObject(bmp); }
+                }
+            }
+            thumbImageList_ = il;   // 由本窗口持有，WM_DESTROY 时销毁
+            SetThumbButtons(buttons, il);
+        }
+
+        // ---- 跳转列表（任务栏按钮右键）----
+        // Tasks = 自定义动作（不可钉选）；categories = 自定义分类（可钉选）；另可选带出系统“最近使用”
+        struct JumpListItem {
+            std::wstring title;        // 显示文字
+            std::wstring arguments;    // 传给 target 的参数（点它时以这些参数启动）
+            std::wstring target;       // 可空：默认当前进程 exe；也可给文件/网址
+            std::wstring iconPath;     // 可空：默认用 target
+            int iconIndex = 0;
+        };
+        // 进程级 AppUserModelID（跳转列表归属；建议在创建窗口前设置一次）
+        static void SetProcessAppUserModelID(const std::wstring& id) {
+            SetCurrentProcessExplicitAppUserModelID(id.c_str());
+        }
+        void SetAppUserModelID(const std::wstring& id) { appUserModelId_ = id; }
+
+        void SetJumpList(const std::vector<JumpListItem>& tasks = {},
+                         const std::vector<std::pair<std::wstring, std::vector<JumpListItem>>>& categories = {},
+                         bool includeRecent = false) {
+            ComPtr<ICustomDestinationList> dl;
+            if (FAILED(CoCreateInstance(CLSID_DestinationList, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dl)))) return;
+            if (!appUserModelId_.empty()) dl->SetAppID(appUserModelId_.c_str());
+            UINT maxSlots = 0;
+            ComPtr<IObjectArray> removed;
+            if (FAILED(dl->BeginList(&maxSlots, IID_PPV_ARGS(&removed)))) return;
+            if (includeRecent) dl->AppendKnownCategory(KDC_RECENT);
+            if (!tasks.empty()) {
+                ComPtr<IObjectCollection> tc;
+                if (SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&tc)))) {
+                    for (auto& it : tasks) { auto l = MakeJumpLink(it); if (l) tc->AddObject(l.Get()); }
+                    ComPtr<IObjectArray> arr;
+                    if (SUCCEEDED(tc.As(&arr))) dl->AddUserTasks(arr.Get());
+                }
+            }
+            for (auto& cat : categories) {
+                ComPtr<IObjectCollection> cc;
+                if (FAILED(CoCreateInstance(CLSID_EnumerableObjectCollection, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&cc)))) continue;
+                for (auto& it : cat.second) { auto l = MakeJumpLink(it); if (l) cc->AddObject(l.Get()); }
+                ComPtr<IObjectArray> arr;
+                if (SUCCEEDED(cc.As(&arr))) dl->AppendCategory(cat.first.c_str(), arr.Get());
+            }
+            dl->CommitList();
+        }
+
         // 是否允许拖动边框调整大小
         void SetResizable(bool on) {
             resizable_ = on;
@@ -3277,14 +3575,26 @@ namespace ZufyUI {
         // 发起系统级拖动：拖动 / Aero Snap / 双击最大化全部交给系统
         void BeginSystemDrag() { if (hwnd_) { ReleaseCapture(); SendMessageW(hwnd_, WM_NCLBUTTONDOWN, HTCAPTION, 0); } }
 
-        // ---- 便捷：闪烁提示（默认连闪 5 次）。captionOnly=true 只闪标题栏，不闪任务栏 ----
-        void Flash(int times = 5, bool captionOnly = true) {
+        // ---- 闪烁提示 ----
+        // 注意：FLASHW_CAPTION 对“自定义标题栏”无效；要任务栏也闪必须用 FLASHW_ALL。
+        // FLASHW_TIMERNOFG 会忽略 uCount（一直闪到前台），默认不用它。
+        void Flash(int times = 5, bool alsoTaskbar = true) {
             if (!hwnd_) return;
             FLASHWINFO fi = {};
             fi.cbSize = sizeof(fi);
             fi.hwnd = hwnd_;
-            fi.dwFlags = captionOnly ? FLASHW_CAPTION : FLASHW_ALL;
-            fi.uCount = (times > 0) ? (UINT)times : 0;
+            fi.dwFlags = alsoTaskbar ? FLASHW_ALL : FLASHW_CAPTION;
+            fi.uCount = (times > 0) ? (UINT)times : 1;
+            fi.dwTimeout = 0;
+            FlashWindowEx(&fi);
+        }
+        void FlashUntilForeground() {   // 一直闪到窗口被激活
+            if (!hwnd_) return;
+            FLASHWINFO fi = {};
+            fi.cbSize = sizeof(fi);
+            fi.hwnd = hwnd_;
+            fi.dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG;
+            fi.uCount = 0;
             fi.dwTimeout = 0;
             FlashWindowEx(&fi);
         }
@@ -3292,6 +3602,45 @@ namespace ZufyUI {
             if (!hwnd_) return;
             FLASHWINFO fi = {}; fi.cbSize = sizeof(fi); fi.hwnd = hwnd_; fi.dwFlags = FLASHW_STOP;
             FlashWindowEx(&fi);
+        }
+
+        // ---- 显示/激活：按需要的强度分四种 ----
+        enum class ActivateMode {
+            Raise,        // 1：提升 Z 序，强制到最前（临时置顶，比普通 topmost 更前）
+            Activate,     // 2：只激活（SetActiveWindow）
+            Foreground,   // 3：SetForegroundWindow
+            All           // 4：2 → 3 → 1 依次执行
+        };
+        void RaiseTopmost() {
+            if (!hwnd_) return;
+            // 先置顶（排到所有非置顶窗口之前），再取消置顶（保持最前但不 always-on-top）
+            SetWindowPos(hwnd_, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+            SetWindowPos(hwnd_, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        }
+        void ShowActivate(ActivateMode mode = ActivateMode::All) {
+            if (!hwnd_) return;
+            if (IsIconic(hwnd_)) ShowWindow(hwnd_, SW_RESTORE);
+            else Show();
+            bool doActivate = (mode == ActivateMode::Activate || mode == ActivateMode::All);
+            bool doForeground = (mode == ActivateMode::Foreground || mode == ActivateMode::All);
+            bool doRaise = (mode == ActivateMode::Raise || mode == ActivateMode::All);
+
+            if (doForeground) {
+                HWND fg = GetForegroundWindow();
+                DWORD fgThread = fg ? GetWindowThreadProcessId(fg, nullptr) : 0;
+                DWORD myThread = GetCurrentThreadId();
+                bool attached = false;
+                if (fgThread && fgThread != myThread)
+                    attached = AttachThreadInput(fgThread, myThread, TRUE) != FALSE;
+                if (doActivate) SetActiveWindow(hwnd_);
+                SetForegroundWindow(hwnd_);
+                BringWindowToTop(hwnd_);
+                if (attached) AttachThreadInput(fgThread, myThread, FALSE);
+            }
+            else if (doActivate) {
+                SetActiveWindow(hwnd_);
+            }
+            if (doRaise) RaiseTopmost();
         }
 
         // ---- 便捷：窗口样式 / 扩展样式（如 WS_EX_TOOLWINDOW、WS_MINIMIZEBOX 等）----
@@ -3762,10 +4111,29 @@ namespace ZufyUI {
                     if (wParam != WA_INACTIVE && backdrop_ != Backdrop::None) ApplyBackdrop();
                 }
                 return 0;
+            case WM_COMMAND:
+                if (HIWORD(wParam) == THBN_CLICKED) {   // 缩略图工具栏按钮
+                    ThumbButtonClicked((ThumbButtonId)LOWORD(wParam));
+                    return 0;
+                }
+                break;
             case WM_DPICHANGED:
                 UpdateTimerState();
-                dpi_ = HIWORD(wParam); if (dpi_ == 0) dpi_ = 96;
-                DiscardDeviceResources(); CreateDeviceResources();
+                dpi_ = HIWORD(wParam); if (dpi_ == 0) dpi_ = 96;                // DPI 变了必须整条渲染链重建：D2D 上下文 + DComp 目标/visual 树 + 交换链。
+                // 只重建 renderTarget_ 的话，swapChain_/contentVisual_ 等仍是 nullptr，
+                // OnPaint 会在 EnsureSwapBackBuffer() 直接失败 → 一帧都不画，客户区变全透明
+                //（命中测试/DWM 边框与渲染链无关，所以看起来"窗口还活着"）。
+                DiscardDeviceResources();
+                if (FAILED(CreateDeviceResources()) || FAILED(CreateCompositionBackend())) {
+                    RenderingError.Fire(E_FAIL);
+                    return 0;
+                }
+                DestroyWallpaperLayer();   // 手动背景图层也挂在被继承重建的资源上
+                ApplyBackdrop();           // 亚克力/云母效果链要重新挂到新的 visual
+                ApplyWindowCorner();
+                ClearAllCaches();
+                pendingRepaint_.clear();
+                if (rootElement_) CollectVisibleCachedElements(rootElement_.get(), pendingRepaint_);
                 layoutNeeded_ = true;
                 layoutInvalidated_ = true;
                 InvalidateRect(hwnd_, nullptr, FALSE);
@@ -3923,6 +4291,11 @@ namespace ZufyUI {
                 break;                  // 交给 DefWindowProc → DestroyWindow
             }
             case WM_DESTROY:
+                if (taskbarList_) {   // 清理任务栏进度/覆盖徽章，避免窗口关闭后残留
+                    taskbarList_->SetProgressState(hwnd_, TBPF_NOPROGRESS);
+                    taskbarList_->SetOverlayIcon(hwnd_, nullptr, L"");
+                }
+                if (thumbImageList_) { ImageList_Destroy(thumbImageList_); thumbImageList_ = nullptr; }
                 if (timerRunning_) {
                     KillTimer(hwnd_, 1);
                     timerRunning_ = false;
@@ -4569,8 +4942,9 @@ namespace ZufyUI {
                 pt.x = static_cast<LONG>(MulDiv(static_cast<int>(x), static_cast<int>(dpi_), 96));
                 pt.y = static_cast<LONG>(MulDiv(static_cast<int>(y), static_cast<int>(dpi_), 96));
                 ClientToScreen(hwnd_, &pt);
-                CloseActiveMenuWindow();
-                activeMenuRoot_ = std::make_unique<MenuWindow>(menu, hwnd_, pt.x, pt.y);
+            CloseActiveMenuWindow();
+            detail::CloseAllOpenMenus();   // 关掉可能已打开的独立菜单
+            activeMenuRoot_ = std::make_unique<MenuWindow>(menu, hwnd_, pt.x, pt.y);
                 activeMenuRoot_->Show(pt.x, pt.y);
             }
         }
@@ -5205,6 +5579,38 @@ namespace ZufyUI {
         bool animationTimerActive_;   // 常驻定时器，始终 true
         std::shared_ptr<Menu> windowContextMenu_;
         std::unique_ptr<MenuWindow> activeMenuRoot_;
+        ComPtr<ITaskbarList3> taskbarList_;
+        std::mutex taskbarMtx_;
+        HIMAGELIST thumbImageList_ = nullptr;
+        void EnsureTaskbarList() {
+            std::lock_guard<std::mutex> lock(taskbarMtx_);
+            if (taskbarList_ || !hwnd_) return;
+            if (FAILED(CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&taskbarList_)))) {
+                taskbarList_.Reset();
+                return;
+            }
+            taskbarList_->HrInit();
+        }
+        ComPtr<IShellLinkW> MakeJumpLink(const JumpListItem& it) {
+            ComPtr<IShellLinkW> link;
+            if (FAILED(CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&link)))) return nullptr;
+            std::wstring target = it.target;
+            if (target.empty()) { wchar_t exe[MAX_PATH] = {}; GetModuleFileNameW(nullptr, exe, MAX_PATH); target = exe; }
+            link->SetPath(target.c_str());
+            link->SetArguments(it.arguments.c_str());
+            std::wstring icon = it.iconPath.empty() ? target : it.iconPath;
+            link->SetIconLocation(icon.c_str(), it.iconIndex);
+            ComPtr<IPropertyStore> ps;
+            if (SUCCEEDED(link->QueryInterface(IID_PPV_ARGS(&ps)))) {
+                PROPVARIANT pv; PropVariantInit(&pv);
+                pv.vt = VT_LPWSTR;
+                pv.pwszVal = const_cast<wchar_t*>(it.title.c_str());   // SetValue 会拷贝
+                ps->SetValue(PKEY_Title, pv);
+                ps->Commit();
+            }
+            return link;
+        }
+        std::wstring appUserModelId_;
         UIElement* mouseCaptureElement_ = nullptr;
         Window* owner_ = nullptr;
         std::vector<int> hiddenOwnedIds_;   // 父窗口最小化时被隐藏的 owned 窗口 id（还原时恢复）
@@ -5288,5 +5694,15 @@ namespace ZufyUI {
 
         static Application& Instance() { static Application a; return a; }
     };
+
+    // 关闭当前所有已打开的菜单（独立菜单 + 各窗口的右键菜单）——打开新菜单前先调用，保证互斥
+    inline void detail::CloseAllOpenMenus() {
+        if (auto& h = MenuWindow::StandaloneHolder()) {
+            if (h) { h->CloseAll(); h.reset(); }
+        }
+        for (Window* w : detail::AppCore::Instance().Windows()) {
+            if (w) w->CloseContextMenu();
+        }
+    }
 
 } // namespace ZufyUI

@@ -149,6 +149,7 @@ namespace ZufyUI {
         static std::shared_ptr<Image> FromResource(int id, const wchar_t* type);   // 当前模块
         static std::shared_ptr<Image> FromHBITMAP(HBITMAP hbmp);
         static std::shared_ptr<Image> FromHICON(HICON hicon);
+        HICON ToHICON() const;   // 转回系统原生图标（新建对象，用完需 DestroyIcon）
         // 内部使用：从已转换好的 WIC 源构造（供内部 helper 调用）
         static std::shared_ptr<Image> FromSource(IWICBitmapSource* src, int w, int h, bool hasAlpha);
 
@@ -366,6 +367,56 @@ namespace ZufyUI {
         ComPtr<IWICBitmap> bmp;
         if (FAILED(f->CreateBitmapFromHICON(hicon, bmp.GetAddressOf()))) return nullptr;
         return detail_img_MakeFromSource(bmp.Get());
+    }
+
+    // 反向：把库自带 Image 转成系统 HICON（预乘 alpha，供 WM_SETICON / 托盘 / 覆盖徽章等使用）
+    inline HICON Image::ToHICON() const {
+        if (!data_ || !data_->source) return nullptr;
+        IWICImagingFactory* f = ImageManager::Instance().Factory();
+        if (!f) return nullptr;
+        UINT w = 0, h = 0;
+        if (FAILED(data_->source->GetSize(&w, &h)) || w == 0 || h == 0) return nullptr;
+        ComPtr<IWICFormatConverter> conv;
+        if (FAILED(f->CreateFormatConverter(conv.GetAddressOf()))) return nullptr;
+        if (FAILED(conv->Initialize(data_->source.Get(), GUID_WICPixelFormat32bppBGRA,
+            WICBitmapDitherTypeNone, nullptr, 0.0, WICBitmapPaletteTypeCustom))) return nullptr;
+        std::vector<BYTE> buf((size_t)w * h * 4);
+        if (FAILED(conv->CopyPixels(nullptr, w * 4, (UINT)buf.size(), buf.data()))) return nullptr;
+
+        BITMAPINFO bi = {};
+        bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bi.bmiHeader.biWidth = (LONG)w;
+        bi.bmiHeader.biHeight = -(LONG)h;   // 自上而下
+        bi.bmiHeader.biPlanes = 1;
+        bi.bmiHeader.biBitCount = 32;
+        bi.bmiHeader.biCompression = BI_RGB;
+        void* bits = nullptr;
+        HDC screen = GetDC(nullptr);
+        if (!screen) return nullptr;
+        HBITMAP dib = CreateDIBSection(screen, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+        if (dib && bits) {
+            BYTE* dst = (BYTE*)bits;
+            for (size_t i = 0; i < (size_t)w * h; ++i) {
+                BYTE b = buf[i * 4 + 0], g = buf[i * 4 + 1], r = buf[i * 4 + 2], a = buf[i * 4 + 3];
+                dst[i * 4 + 0] = (BYTE)(b * a / 255);
+                dst[i * 4 + 1] = (BYTE)(g * a / 255);
+                dst[i * 4 + 2] = (BYTE)(r * a / 255);
+                dst[i * 4 + 3] = a;
+            }
+        }
+        HBITMAP mask = CreateBitmap((int)w, (int)h, 1, 1, nullptr);
+        HICON out = nullptr;
+        if (dib) {
+            ICONINFO ii = {};
+            ii.fIcon = TRUE;
+            ii.hbmColor = dib;
+            ii.hbmMask = mask;
+            out = CreateIconIndirect(&ii);
+        }
+        if (mask) DeleteObject(mask);
+        if (dib) DeleteObject(dib);
+        ReleaseDC(nullptr, screen);
+        return out;
     }
 
     // ---------------- 变换描述符 ----------------
