@@ -23,6 +23,7 @@ ZufyUI 是一个**纯头文件**的 Windows 桌面 UI 框架，直接建立在 D
 - **高 DPI 适配**：自动感知 DPI，`Snap()` 把绘制吸附到物理像素，避免模糊。
 - **IME 兼容**：文本框支持中文输入法组合输入与候选框定位。
 - **离屏缓存**：元素可自动缓存绘制结果，减少重复绘制开销。
+- **系统集成**：托盘图标（悬停/点击/右键/徽章/气泡通知）、任务栏（进度 / 覆盖徽章 / 缩略图工具栏）、跳转列表，以及**应用身份（AUMID）自注册**（统一 toast / 分组归属；需显式授权宏）。
 
 ## 环境要求
 
@@ -140,6 +141,33 @@ win.SetCustomTitleBar(bar);
 ![ZufyUI 示例程序](docs/images/demo-main.png)
 
 ## 更新日志
+
+### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
+
+**菜单**
+- 重做右键菜单为**分层窗口 + 自绘柔阴影 + 圆角 + 渐显**；修复「第二次弹不出」（根因：勾选对勾的 `ID2D1StrokeStyle` 静态跨工厂复用 → `EndDraw` 报 `D2DERR_WRONG_FACTORY`，改为随实例工厂创建/释放）。
+- 菜单项增强：`id` / 勾选 / 单选 / 默认项（加粗 + 回车）/ 危险项（红字）/ 快捷键提示 / 禁用；逐项 `bgColor` / `textColor` / `font`；`Menu::font` / `SetDefaultFont`。
+- **动态菜单工厂** `UIElement::SetContextMenuFactory`（每次右键现搭）+ `SetContextMenuEnabled`。
+- 独立弹出 `Menu::ShowAt` / `ShowAtCursor`（不绑定窗口，托盘菜单用）；开关菜单互斥。
+- 悬停高亮改为半透明叠加（自定义底色上仍可见）。
+
+**托盘 / 任务栏 / 图标**
+- `TrayIcon`（`Shell_NotifyIcon` v4）：悬停 / 点击 / 右键 / 双击、徽章（自绘合成）、气泡通知（`ShowBalloon`，`BalloonIcon` 可选 None/Info/Warning/Error/Custom，支持实时 / 静音）；`explorer` 重启自动重加。
+- 任务栏：进度（`SetTaskbarProgress`）、覆盖徽章（`SetTaskbarOverlayIcon`）、缩略图工具栏（`SetThumbButtons`，`Image` 版自动建 `HIMAGELIST`）、跳转列表（`SetJumpList`，Tasks + 分类 + 最近）。
+- `Window::SetAppIcon`（统一原生大/小 + 类图标 + 自定义标题栏）、`ShowActivate`（四模式）、`Flash`（`FLASHW_ALL`）；`TitleBar` 图标徽章 / 进度。
+- `Image::ToHICON` / `CopyPixelsBgra`。
+
+**数据视图**
+- `ListView::ItemRightClicked(row)` + `GetContextRow()`；`TableView::CellRightClicked(row,col)` + `GetContextRow()/GetContextColumn()`，支持列表/表格右键菜单。
+
+**应用身份自注册（新）**
+- 声明 `AppInfo{ displayName, aumid, icon }` + `RegisterApp(...)`（自由函数 / `Application::RegisterApp` 转发）：统一进程 AUMID，让 toast / 跳转列表 / 任务栏分组归属同一身份。
+- **需显式授权宏 `ZUFYUI_ALLOW_APP_REGISTRATION`**；授权后写注册表 `HKCU\...\AppUserModelId\<AUMID>`（DisplayName + IconUri）+ 把图标缓存到 `%LOCALAPPDATA%\ZufyUI\AppReg\<AUMID>\app.ico`，**进程退出清理缓存与注册表项**；未授权则只设 AUMID、零副作用。
+
+**构建**
+- 引入预编译头 `pch.h` / `pch.cpp`（改 demo 的编译 ~1.1s）；`Release` 关闭调试信息；`Debug` 补 `/bigobj`。
+
+> 已知问题：菜单窗口走「分层窗口 + 软件渲染目标」路径且每个菜单自建 D2D 工厂 → 每弹一次菜单约 +90MB（关闭后数秒回收）。计划改为复用共享设备（菜单走 DComp 路径），修复前请留意。
 
 ### 2026-09-20 — 性能优化 + 背景 API 收敛（v1.9.6）
 

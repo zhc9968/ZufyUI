@@ -15,6 +15,7 @@
 #include <shellapi.h>
 #include <shlobj.h>
 #pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "advapi32.lib")
 
 // windows.h 里 MessageBox 是 MessageBoxW 的宏，会和 ZufyUI::MessageBox 撞；这里撤掉宏。
 // 之后要用 Win32 的请显式写 MessageBoxW / MessageBoxA。
@@ -887,12 +888,31 @@ namespace ZufyUI {
             if (added_) { nid_.hIcon = CurrentIcon(); Shell_NotifyIconW(NIM_MODIFY, &nid_); }
         }
 
-        // 气球通知（v4 下 Win10/11 自动变成 toast）。realtime=true 用 NIF_REALTIME（不被 toast 接管）
-        void ShowBalloon(const std::wstring& title, const std::wstring& text, DWORD flags = NIIF_INFO, bool realtime = false) {
+        // 气球/toast 的主图标（对应 NOTIFYICONDATA.dwInfoFlags）
+        enum class BalloonIcon : DWORD {
+            None    = NIIF_NONE,      // 不显示图标
+            Info    = NIIF_INFO,      // 信息
+            Warning = NIIF_WARNING,   // 警告（感叹号）
+            Error   = NIIF_ERROR,     // 错误（叉）
+            Custom  = NIIF_USER,      // 自定义（用 customIcon；缺省用当前托盘图标）
+        };
+        // 气球通知（v4 下 Win10/11 自动变成 toast）。
+        //   icon=Custom 时用 customIcon（缺省=当前托盘图标），并置大图标位；
+        //   realtime=true → NIF_REALTIME（不被 toast 接管）；noSound=true → NIF_NOSOUND。
+        void ShowBalloon(const std::wstring& title, const std::wstring& text,
+                         BalloonIcon icon = BalloonIcon::Custom,
+                         HICON customIcon = nullptr,
+                         bool realtime = false, bool noSound = false) {
             if (!added_) return;
             NOTIFYICONDATAW n = nid_;
-            n.uFlags = NIF_INFO | (realtime ? NIF_REALTIME : 0);
-            n.dwInfoFlags = flags;
+            n.uFlags = NIF_INFO | NIF_ICON | (realtime ? NIF_REALTIME : 0);
+            n.hIcon = CurrentIcon();
+            n.dwInfoFlags = (DWORD)icon;
+            if (noSound) n.dwInfoFlags |= NIIF_NOSOUND;
+            if (icon == BalloonIcon::Custom) {
+                n.hBalloonIcon = customIcon ? customIcon : CurrentIcon();
+                n.dwInfoFlags |= NIIF_LARGE_ICON;
+            }
             wcsncpy_s(n.szInfoTitle, title.c_str(), _TRUNCATE);
             wcsncpy_s(n.szInfo, text.c_str(), _TRUNCATE);
             Shell_NotifyIconW(NIM_MODIFY, &n);
@@ -1116,5 +1136,157 @@ namespace ZufyUI {
         std::wstring currentTip_;
         std::shared_ptr<Menu> menu_;
     };
+
+    // ============================================================================
+    // AppRegistration —— 应用身份(AUMID)自注册（默认关闭，需显式授权）
+    // ----------------------------------------------------------------------------
+    // 创建窗口前调用一次 RegisterApp(...)，之后：
+    //   * 设置进程级 AppUserModelID → 跳转列表 / 任务栏分组 / toast 归属统一用它
+    //   * 【授权后】把图标缓存到 %LOCALAPPDATA%\ZufyUI\AppReg\<AUMID>\app.ico，
+    //     并写注册表 HKCU\Software\Classes\AppUserModelId\<AUMID> 的
+    //     DisplayName + IconUri → Win10/11 的 toast 左上角显示应用名与图标
+    //   * 进程退出时清空该缓存目录，并撤销上面写的注册表项（避免悬空 IconUri）
+    //
+    // 授权：在包含本库头文件之前 #define ZUFYUI_ALLOW_APP_REGISTRATION
+    // 未授权：只设置进程 AUMID，不写注册表、不落文件（零副作用）。
+    // ============================================================================
+    struct AppInfo {
+        std::wstring displayName;       // 显示名称（toast / 跳转列表 / 任务栏分组）
+        std::wstring aumid;             // 唯一 ID；留空=由 displayName 自动派生
+        std::shared_ptr<Image> icon;    // 图标（可空）
+    };
+
+    namespace detail {
+        inline std::wstring AppRegSanitize(const std::wstring& s) {
+            std::wstring o;
+            for (wchar_t c : s) {
+                if ((c >= L'0' && c <= L'9') || (c >= L'A' && c <= L'Z') ||
+                    (c >= L'a' && c <= L'z') || c == L'.' || c == L'-' || c == L'_')
+                    o.push_back(c);
+                else if (c == L' ' || c == L'\t')
+                    o.push_back(L'.');
+            }
+            return o.empty() ? std::wstring(L"App") : o;
+        }
+        inline std::wstring AppRegDeriveAumid(const std::wstring& name) {
+            std::wstring s = AppRegSanitize(name);
+            if (s.find(L'.') == std::wstring::npos) s = L"ZufyUI." + s;
+            if (s.size() > 128) s.resize(128);
+            return s;
+        }
+        inline std::wstring AppRegRootDir() {
+            wchar_t buf[MAX_PATH] = {};
+            DWORD n = GetEnvironmentVariableW(L"LOCALAPPDATA", buf, MAX_PATH);
+            std::wstring p = (n > 0 && n < MAX_PATH) ? std::wstring(buf, n) : std::wstring(L".");
+            return p + L"\\ZufyUI\\AppReg";
+        }
+        // 写单图 .ico（32bpp BGRA，直通 alpha，自下而上；AND 掩码全 0，透明由 alpha 决定）
+        inline bool AppRegWriteIco(const std::wstring& path, const std::vector<uint8_t>& bgra, int w, int h) {
+            if (w <= 0 || h <= 0 || bgra.size() < (size_t)w * h * 4) return false;
+            const DWORD xorStride = (DWORD)w * 4;
+            const DWORD andStride = (DWORD)(((w + 31) / 32) * 4);
+            const DWORD xorSize = xorStride * (DWORD)h;
+            const DWORD andSize = andStride * (DWORD)h;
+            const DWORD imgSize = 40 + xorSize + andSize;
+
+            HANDLE fh = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+            if (fh == INVALID_HANDLE_VALUE) return false;
+            auto wr = [&](const void* d, DWORD n) { DWORD g = 0; return WriteFile(fh, d, n, &g, nullptr) && g == n; };
+
+            BYTE dir[22] = {};
+            dir[2] = 1; dir[4] = 1;                              // type=icon, count=1
+            dir[6] = (BYTE)(w >= 256 ? 0 : w);
+            dir[7] = (BYTE)(h >= 256 ? 0 : h);
+            dir[10] = 1; dir[12] = 32;                           // planes=1, bpp=32
+            *(DWORD*)&dir[14] = imgSize;
+            *(DWORD*)&dir[18] = 22;                              // offset
+            bool ok = wr(dir, sizeof(dir));
+
+            BYTE bih[40] = {};
+            *(DWORD*)&bih[0] = 40;
+            *(LONG*)&bih[4] = w;
+            *(LONG*)&bih[8] = h * 2;                             // XOR + AND
+            *(WORD*)&bih[12] = 1;
+            *(WORD*)&bih[14] = 32;
+            *(DWORD*)&bih[20] = xorSize + andSize;
+            if (ok) ok = wr(bih, sizeof(bih));
+
+            for (int y = h - 1; y >= 0 && ok; --y)               // XOR：自下而上
+                ok = wr(bgra.data() + (size_t)y * xorStride, xorStride);
+            if (ok) {
+                std::vector<BYTE> arow(andStride, 0);
+                for (int y = 0; y < h && ok; ++y) ok = wr(arow.data(), andStride);
+            }
+            CloseHandle(fh);
+            if (!ok) DeleteFileW(path.c_str());
+            return ok;
+        }
+        inline void AppRegRemoveDir(const std::wstring& dir) {
+            if (dir.empty()) return;
+            WIN32_FIND_DATAW fd{};
+            HANDLE h = FindFirstFileW((dir + L"\\*").c_str(), &fd);
+            if (h != INVALID_HANDLE_VALUE) {
+                do {
+                    if (wcscmp(fd.cFileName, L".") != 0 && wcscmp(fd.cFileName, L"..") != 0)
+                        DeleteFileW((dir + L"\\" + fd.cFileName).c_str());
+                } while (FindNextFileW(h, &fd));
+                FindClose(h);
+            }
+            RemoveDirectoryW(dir.c_str());
+        }
+        struct AppRegState {
+            std::wstring aumid;
+            std::wstring cacheDir;
+            bool registryWritten = false;
+            ~AppRegState() {
+#ifdef ZUFYUI_ALLOW_APP_REGISTRATION
+                if (registryWritten && !aumid.empty())
+                    RegDeleteTreeW(HKEY_CURRENT_USER, (L"Software\\Classes\\AppUserModelId\\" + aumid).c_str());
+                AppRegRemoveDir(cacheDir);
+#endif
+            }
+        };
+        inline AppRegState& AppReg() { static AppRegState s; return s; }
+    } // namespace detail
+
+    // 注册应用身份；返回是否完成了完整注册（未授权宏时返回 false，但仍设置了进程 AUMID）
+    inline bool RegisterApp(const AppInfo& info) {
+        std::wstring aumid = info.aumid.empty() ? detail::AppRegDeriveAumid(info.displayName) : info.aumid;
+        if (!aumid.empty()) SetCurrentProcessExplicitAppUserModelID(aumid.c_str());
+        detail::AppReg().aumid = aumid;
+
+#ifdef ZUFYUI_ALLOW_APP_REGISTRATION
+        if (aumid.empty()) return false;
+        std::wstring dir = detail::AppRegRootDir() + L"\\" + detail::AppRegSanitize(aumid);
+        SHCreateDirectoryExW(nullptr, dir.c_str(), nullptr);
+        detail::AppReg().cacheDir = dir;
+        std::wstring icoPath = dir + L"\\app.ico";
+
+        if (info.icon && !info.icon->IsNull()) {
+            std::vector<uint8_t> px; int w = 0, h = 0;
+            if (info.icon->CopyPixelsBgra(px, w, h))
+                detail::AppRegWriteIco(icoPath, px, w, h);
+        }
+
+        HKEY hk = nullptr;
+        if (RegCreateKeyExW(HKEY_CURRENT_USER, (L"Software\\Classes\\AppUserModelId\\" + aumid).c_str(),
+                0, nullptr, REG_OPTION_NON_VOLATILE, KEY_SET_VALUE, nullptr, &hk, nullptr) == ERROR_SUCCESS) {
+            auto setSz = [&](const wchar_t* nm, const std::wstring& v) {
+                RegSetValueExW(hk, nm, 0, REG_SZ, (const BYTE*)v.c_str(), (DWORD)((v.size() + 1) * sizeof(wchar_t)));
+            };
+            if (!info.displayName.empty()) setSz(L"DisplayName", info.displayName);
+            if (GetFileAttributesW(icoPath.c_str()) != INVALID_FILE_ATTRIBUTES) setSz(L"IconUri", icoPath);
+            RegCloseKey(hk);
+            detail::AppReg().registryWritten = true;
+        }
+        return true;
+#else
+        (void)info;
+        return false;   // 未授权：只设置了 AUMID
+#endif
+    }
+
+    // Application 转发到自由函数（定义在 ZufyUI.h 的 Application 类里声明）
+    inline bool Application::RegisterApp(const AppInfo& info) { return ZufyUI::RegisterApp(info); }
 
 } // namespace ZufyUI

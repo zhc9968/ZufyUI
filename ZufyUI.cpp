@@ -6,7 +6,14 @@
 using namespace ZufyUI;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    Window::SetProcessAppUserModelID(L"ZufyUI.Demo");   // 跳转列表/任务栏归属（建议创建窗口前设置）
+    // 应用身份自注册（需在包含本库头文件前 #define ZUFYUI_ALLOW_APP_REGISTRATION 授权）：
+    // 统一 AUMID；授权后自动写注册表 + 把图标缓存到本地，进程退出时清缓存。
+    {
+        auto appIcon = Image::FromFile(L"ZufyUI.ico");
+        if (!appIcon || appIcon->IsNull()) appIcon = Image::FromFile(L"..\\..\\ZufyUI.ico");
+        if (!appIcon || appIcon->IsNull()) appIcon = Image::FromFile(L"..\\..\\..\\ZufyUI.ico");
+        RegisterApp(AppInfo{ L"ZufyUI Demo", L"ZufyUI.Demo", appIcon });
+    }
     // 演示程序自己的默认背景：亚克力 + 半透明白色着色。
     // 库的默认是 Backdrop::None（不替应用决定），所以不透明/着色都由应用这里指定。
     Window::SetDefaultBackdrop(Backdrop::Acrylic, 0x80FFFFFF);
@@ -1017,13 +1024,39 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         auto tmenuBtn = std::make_shared<Button>(L"独立弹出菜单 (ShowAtCursor)");
         tmenuBtn->Connect(tmenuBtn->Clicked, [mbResult]() {
             auto menu = std::make_shared<Menu>();
-            menu->AddItem(L"菜单项 A", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：点了「菜单项 A」"); });
-            menu->AddItem(L"菜单项 B", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：点了「菜单项 B」"); });
+            static bool showIcon = true;
+            menu->AddCheckItem(L"显示图标", showIcon, [mbResult](bool on) {
+                showIcon = on;
+                if (mbResult) mbResult->SetText(on ? L"菜单：显示图标 = 勾选" : L"菜单：显示图标 = 取消");
+                });
+            static int viewMode = 0;   // 0 列表 / 1 网格（单选）
+            menu->AddCheckItem(L"列表视图", viewMode == 0, [mbResult](bool) { viewMode = 0; if (mbResult) mbResult->SetText(L"菜单：列表视图"); }, 0, true);
+            menu->AddCheckItem(L"网格视图", viewMode == 1, [mbResult](bool) { viewMode = 1; if (mbResult) mbResult->SetText(L"菜单：网格视图"); }, 0, true);
+            menu->AddSeparator();
+            menu->AddItem(L"菜单项 A", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：菜单项 A"); }, 101);
+            menu->AddItem(L"默认项(回车)", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：默认项"); }, 102);
+            menu->items.back()->isDefault = true;
+            menu->items.back()->shortcut = L"Enter";
+            menu->AddItem(L"复制", nullptr, 103);
+            menu->items.back()->shortcut = L"Ctrl+C";
+            menu->AddItem(L"删除", nullptr, 104);
+            menu->items.back()->danger = true;
+            menu->AddItem(L"禁用项", nullptr, 105);
+            menu->items.back()->enabled = false;
             menu->AddSeparator();
             auto sub = std::make_shared<Menu>();
-            sub->AddItem(L"子项 1", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：点了「子项 1」"); });
-            sub->AddItem(L"子项 2", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：点了「子项 2」"); });
+            sub->AddItem(L"子项 1", nullptr, 201);
+            sub->AddItem(L"子项 2", nullptr, 202);
             menu->AddSubmenu(L"子菜单", sub);
+            // 演示：菜单项自定义背景色 / 文字色
+            if (menu->items.size() > 6) {
+                menu->items[4]->bgColor = Color(0.85f, 0.93f, 1.0f, 1.0f);      // 菜单项 A：浅蓝底
+                menu->items[6]->textColor = Color(0.10f, 0.60f, 0.25f, 1.0f);    // 复制：绿字
+            }
+            // 另一条结果通道：id
+            menu->ItemSelected.connect([mbResult](int id) {
+                if (mbResult) mbResult->SetText(L"独立菜单：ItemSelected id=" + std::to_wstring(id));
+                }, ConnectionThread::CurrentThread, nullptr);
             menu->ShowAtCursor();
             });
         grid9->AddChild(tmenuBtn, 10, 0, 1, 2);
@@ -1074,11 +1107,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             });
         grid9->AddChild(trayBtn, 11, 0);
 
-        auto trayToastBtn = std::make_shared<Button>(L"托盘气泡(→toast)");
+        auto trayToastBtn = std::make_shared<Button>(L"托盘气泡(→toast) 循环主图标");
         trayToastBtn->Connect(trayToastBtn->Clicked, [mbResult, loadAppImage]() {
             if (!s_tray.IsAdded()) s_tray.Add(loadAppImage(), L"ZufyUI");
-            s_tray.ShowBalloon(L"ZufyUI", L"这是一条托盘气球通知，Win10/11 会显示成 toast。");
-            if (mbResult) mbResult->SetText(L"已发送托盘气泡通知");
+            static const TrayIcon::BalloonIcon kinds[] = {
+                TrayIcon::BalloonIcon::Custom, TrayIcon::BalloonIcon::Info,
+                TrayIcon::BalloonIcon::Warning, TrayIcon::BalloonIcon::Error,
+                TrayIcon::BalloonIcon::None };
+            static const wchar_t* names[] = { L"自定义(应用图标)", L"信息", L"警告", L"错误", L"不显示" };
+            static int k = 0;
+            int cur = k % 5; ++k;
+            s_tray.ShowBalloon(L"ZufyUI",
+                std::wstring(L"主图标 = ") + names[cur] + L"，Win10/11 会显示成 toast。", kinds[cur]);
+            if (mbResult) mbResult->SetText(std::wstring(L"已发送托盘气泡，主图标=") + names[cur]);
             });
         grid9->AddChild(trayToastBtn, 11, 1);
 

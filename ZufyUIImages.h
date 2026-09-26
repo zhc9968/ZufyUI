@@ -150,6 +150,8 @@ namespace ZufyUI {
         static std::shared_ptr<Image> FromHBITMAP(HBITMAP hbmp);
         static std::shared_ptr<Image> FromHICON(HICON hicon);
         HICON ToHICON() const;   // 转回系统原生图标（新建对象，用完需 DestroyIcon）
+        // 导出像素：32bpp BGRA，直通 alpha（非预乘）——用于写 .ico 等
+        bool CopyPixelsBgra(std::vector<uint8_t>& out, int& outW, int& outH) const;
         // 内部使用：从已转换好的 WIC 源构造（供内部 helper 调用）
         static std::shared_ptr<Image> FromSource(IWICBitmapSource* src, int w, int h, bool hasAlpha);
 
@@ -417,6 +419,23 @@ namespace ZufyUI {
         if (dib) DeleteObject(dib);
         ReleaseDC(nullptr, screen);
         return out;
+    }
+
+    inline bool Image::CopyPixelsBgra(std::vector<uint8_t>& out, int& outW, int& outH) const {
+        out.clear(); outW = 0; outH = 0;
+        if (!data_ || !data_->source) return false;
+        IWICImagingFactory* f = ImageManager::Instance().Factory();
+        if (!f) return false;
+        UINT w = 0, h = 0;
+        if (FAILED(data_->source->GetSize(&w, &h)) || w == 0 || h == 0) return false;
+        ComPtr<IWICFormatConverter> conv;
+        if (FAILED(f->CreateFormatConverter(conv.GetAddressOf()))) return false;
+        if (FAILED(conv->Initialize(data_->source.Get(), GUID_WICPixelFormat32bppBGRA,
+            WICBitmapDitherTypeNone, nullptr, 0.0, WICBitmapPaletteTypeCustom))) return false;
+        out.resize((size_t)w * h * 4);
+        if (FAILED(conv->CopyPixels(nullptr, w * 4, (UINT)out.size(), out.data()))) return false;
+        outW = (int)w; outH = (int)h;
+        return true;
     }
 
     // ---------------- 变换描述符 ----------------

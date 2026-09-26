@@ -36,6 +36,8 @@ namespace ZufyUI {
         ZSignal<int> ItemDoubleClicked;  // 项目双击
         ZSignal<std::vector<int>> SelectionChangedMulti;  // 多选集合变化
         ZSignal<int, bool> ItemCheckStateChanged;         // 项勾选变化
+        ZSignal<int> ItemRightClicked;                    // 右键点击项（传行号；可配合 SetContextMenuFactory + GetContextRow）
+        int GetContextRow() const { return lastContextRow_; }   // 最近一次右键所在行（-1=无）
 
         // 选择模式
         enum class SelectionMode { Single, Extended, Multi, None };
@@ -703,6 +705,20 @@ namespace ZufyUI {
             RequestRepaint();
             MouseMove.Fire(x, y);
         }
+        bool OnContextMenu(float x, float y) override {
+            lastContextRow_ = -1;
+            if (arrangedRect_.Contains(x, y)) {
+                float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
+                float relY = y - arrangedRect_.y + Snap(scrollOffsetY_);
+                int idx = (int)(relY / effectiveRowHeight);
+                if (idx >= 0 && idx < (int)items_.size()) {
+                    lastContextRow_ = idx;
+                    ItemRightClicked(idx);
+                }
+            }
+            return false;   // 继续弹默认右键菜单（若设了 SetContextMenu / 工厂）
+        }
+
         void OnMouseDown(float x, float y) override {
             if (!arrangedRect_.Contains(x, y)) return;
             if (showScrollBar_) {
@@ -911,6 +927,7 @@ namespace ZufyUI {
         }
 
     private:
+        int lastContextRow_ = -1;   // 最近一次右键所在行（OnContextMenu 记录）
         void ShiftMultiSelForInsert(int index, int count) {
             if (count <= 0) return;
             if (!multiSel_.empty()) {
@@ -1137,6 +1154,9 @@ namespace ZufyUI {
         ZSignal<int> HeaderClicked;             // 点击表头（列索引）
         ZSignal<std::vector<std::pair<int, int>>> SelectionChangedCells; // 框选/多选变化（单元格列表）
         ZSignal<int, bool> ItemCheckStateChanged; // 行勾选变化
+        ZSignal<int, int> CellRightClicked;       // 右键点击单元格（传行、列；可配合 SetContextMenuFactory + GetContextRow/GetContextColumn）
+        int GetContextRow() const { return lastContextRow_; }      // 最近一次右键所在行（-1=无）
+        int GetContextColumn() const { return lastContextCol_; }   // 最近一次右键所在列（-1=无）
 
         TableView()
             : rowCount_(0), colCount_(0),
@@ -1931,6 +1951,23 @@ namespace ZufyUI {
             RequestRepaint();
             MouseMove.Fire(x, y);
         }
+        bool OnContextMenu(float x, float y) override {
+            lastContextRow_ = -1;
+            lastContextCol_ = -1;
+            if (arrangedRect_.Contains(x, y) && !(headerVisible_ && y <= arrangedRect_.y + headerHeight_)) {
+                float relX = x - arrangedRect_.x + Snap(scrollOffsetX_);
+                float relY = y - arrangedRect_.y - (headerVisible_ ? headerHeight_ : 0) + Snap(scrollOffsetY_);
+                int row = RowAtY(relY);
+                int col = GetColumnIndexAtX(relX);
+                if (row >= 0 && row < rowCount_ && col >= 0 && col < colCount_) {
+                    lastContextRow_ = row;
+                    lastContextCol_ = col;
+                    CellRightClicked(row, col);
+                }
+            }
+            return false;   // 继续弹默认右键菜单（若设了 SetContextMenu / 工厂）
+        }
+
         void OnMouseDown(float x, float y) override {
             if (!arrangedRect_.Contains(x, y)) return;
 
@@ -2157,6 +2194,7 @@ namespace ZufyUI {
         }
 
     private:
+        int lastContextRow_ = -1, lastContextCol_ = -1;   // 最近一次右键所在行/列（OnContextMenu 记录）
         float GetEffectiveColumnWidth(int col) const {
             if (col < 0 || col >= (int)columnWidths_.size()) return DefaultMinColumnWidth;
             if (hiddenColumns_.count(col)) return 0.0f;

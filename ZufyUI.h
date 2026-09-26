@@ -960,6 +960,14 @@ namespace ZufyUI {
         bool IsVisible() const { return visible_; }
         void SetContextMenu(std::shared_ptr<Menu> menu) { contextMenu_ = menu; }
         std::shared_ptr<Menu> GetContextMenu() const { return contextMenu_; }
+        // 动态菜单工厂：每次弹出时现搭（可依据当前状态）；优先于固定菜单
+        void SetContextMenuFactory(std::function<std::shared_ptr<Menu>()> f) { contextMenuFactory_ = std::move(f); }
+        std::shared_ptr<Menu> BuildContextMenu() const {
+            if (contextMenuFactory_) return contextMenuFactory_();
+            return contextMenu_;
+        }
+        void SetContextMenuEnabled(bool on) { contextMenuEnabled_ = on; }
+        bool IsContextMenuEnabled() const { return contextMenuEnabled_; }
         // 设置出血尺寸（单位：DIP），影响缓存大小和贴图偏移
         void SetBleed(float bleed) { bleed_ = max(0.0f, bleed); }
         float GetBleed() const { return bleed_; }
@@ -1137,6 +1145,8 @@ namespace ZufyUI {
         bool selfArrangeDirty_ = true;    // 自身需要重跑 ArrangeOverride
         bool subtreeDirty_ = false;       // 子树里有脏节点（需跑 ArrangeOverride 到达）
         std::shared_ptr<Menu> contextMenu_;
+        std::function<std::shared_ptr<Menu>()> contextMenuFactory_;
+        bool contextMenuEnabled_ = true;
         std::optional<float> horizontalStretchWeight_;
         std::optional<float> verticalStretchWeight_;
 
@@ -2169,15 +2179,44 @@ namespace ZufyUI {
         Type type = Type::Normal;
         bool enabled = true;
         std::shared_ptr<Label> icon; // 前向声明即可
+
+        // ---- 增强字段 ----
+        int id = 0;                   // 命令 id（配合 Menu::ItemSelected）
+        bool checkable = false;       // 显示勾选列
+        bool checked = false;         // 勾选状态
+        bool radio = false;           // 单选（同菜单内互斥）
+        bool isDefault = false;       // 默认项：加粗 + 回车触发
+        bool danger = false;          // 危险项：红字
+        std::wstring shortcut;        // 右侧快捷键提示（仅展示）
+        std::optional<Color> bgColor;   // 该项自定义背景色（带圆角）
+        std::optional<Color> textColor; // 该项自定义文字色
+        std::optional<FontSpec> font;   // 该项自定义字体（缺省用 Menu::font）
     };
 
     class Menu : public std::enable_shared_from_this<Menu> {
     public:
-        void AddItem(const std::wstring& text, std::function<void()> callback = nullptr) {
+        inline static FontSpec DefaultFont{};   // 全局默认菜单字体（应用可统一设置）
+        void AddItem(const std::wstring& text, std::function<void()> callback = nullptr, int id = 0) {
             auto item = std::make_shared<MenuItem>();
             item->type = MenuItem::Type::Normal;
             item->text = text;
+            item->id = id;
             if (callback) item->Clicked.connect(callback);
+            items.push_back(item);
+        }
+        // 勾选/单选项；onToggle 收到切换后的状态
+        void AddCheckItem(const std::wstring& text, bool checked,
+                          std::function<void(bool)> onToggle = nullptr, int id = 0, bool radio = false) {
+            auto item = std::make_shared<MenuItem>();
+            item->type = MenuItem::Type::Normal;
+            item->text = text;
+            item->id = id;
+            item->checkable = true;
+            item->checked = checked;
+            item->radio = radio;
+            if (onToggle) {
+                item->Clicked.connect([item, onToggle]() { onToggle(item->checked); });
+            }
             items.push_back(item);
         }
         void AddSeparator() {
@@ -2185,14 +2224,19 @@ namespace ZufyUI {
             item->type = MenuItem::Type::Separator;
             items.push_back(item);
         }
-        void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu) {
+        void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id = 0) {
             auto item = std::make_shared<MenuItem>();
             item->type = MenuItem::Type::Submenu;
             item->text = text;
             item->submenu = submenu;
+            item->id = id;
             items.push_back(item);
         }
         std::vector<std::shared_ptr<MenuItem>> items;
+        std::function<void(Menu&)> onOpening;   // 弹出前回调：可现场改勾选/启用/文字
+        ZSignal<int> ItemSelected;              // 任一普通项被点（带 id；回调之外的另一条路）
+        FontSpec font = DefaultFont;            // 菜单字体（默认与框架一致，可设）
+        static void SetDefaultFont(const FontSpec& f) { DefaultFont = f; }
 
         // 独立弹出：不绑定任何窗口（典型用途：托盘图标右键菜单）。
         // 坐标为屏幕像素；会先关掉上一个独立菜单。
@@ -2236,6 +2280,8 @@ namespace ZufyUI {
             animating_ = true;
             fade_ = 0.0f;                   // 渐显：透明度 0 → 1
             visible_ = true;
+            openedTick_ = GetTickCount();
+            prevLButtonDown_ = true;
             RenderLayered();
 
             SetTimer(hwnd_, animTimerId_, 10, nullptr);
@@ -2292,6 +2338,7 @@ namespace ZufyUI {
         int separatorHeightDip_ = 9;
         int paddingDip_ = 6;
         int arrowWidthDip_ = 20;
+        int checkWidthDip_ = 0;
         float cornerRadiusDip_ = 12.0f;
 
         bool animating_ = false;
@@ -2366,10 +2413,15 @@ namespace ZufyUI {
                     // 独立菜单：轮询检测「点菜单外」或「Esc」来关闭（不用 SetCapture）
                     if (!standalone_) return 0;
                     if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) { CloseAll(); return 0; }
-                    if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
-                        POINT pt; GetCursorPos(&pt);
+                    bool down = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+                    // 弹出后 250ms 内不判定；且只在“按下那一下”判定——否则开菜单的那次点击会把它自己关掉
+                    if (GetTickCount() - openedTick_ < 250) { prevLButtonDown_ = down; return 0; }
+                    if (down && !prevLButtonDown_) {
+                        POINT pt;
+                        GetCursorPos(&pt);
                         if (!IsPointInMenuTree(pt)) { CloseAll(); return 0; }
                     }
+                    prevLButtonDown_ = down;
                 }
                 return 0;
             case WM_DPICHANGED:
@@ -2420,10 +2472,12 @@ namespace ZufyUI {
                 wc.cbSize = sizeof(WNDCLASSEXW);
                 wc.lpfnWndProc = MenuWindow::WndProc;
                 wc.hInstance = GetModuleHandle(nullptr);
-                wc.lpszClassName = L"ZufyUI_MenuWindow";
+                wc.lpszClassName = L"ZufyUI_MenuWindow_v2";
                 wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
                 wc.hbrBackground = nullptr;
-                wc.style = CS_DROPSHADOW;
+                // 注意：不要 CS_DROPSHADOW —— 它是系统按“窗口矩形”另画的投影，会和本窗口
+                // 自绘的柔阴影（UpdateLayeredWindow 逐像素 alpha）叠加，在窗口边缘露出细黑边。
+                wc.style = 0;
                 RegisterClassExW(&wc);
                 classRegistered = true;
             }
@@ -2432,17 +2486,34 @@ namespace ZufyUI {
                 DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &sharedDWriteFactory_);
             }
             if (sharedDWriteFactory_) {
+                const FontSpec& fs = menu_->font;
+                const wchar_t* fam = fs.familyName.empty() ? L"Segoe UI" : fs.familyName.c_str();
+                const wchar_t* loc = fs.locale.empty() ? L"en-us" : fs.locale.c_str();
+                float fsz = fs.size > 0 ? fs.size : 14.0f;
                 sharedDWriteFactory_->CreateTextFormat(
-                    L"Segoe UI", nullptr, DWRITE_FONT_WEIGHT_NORMAL,
-                    DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
-                    14.0f, L"en-us", &textFormat_);
+                    fam, nullptr, fs.weight, fs.style, fs.stretch, fsz, loc, &textFormat_);
                 if (textFormat_) {
                     textFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
                     textFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
                     textFormat_->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
                 }
+                sharedDWriteFactory_->CreateTextFormat(fam, nullptr, DWRITE_FONT_WEIGHT_BOLD,
+                    fs.style, fs.stretch, fsz, loc, &boldFormat_);
+                if (boldFormat_) {
+                    boldFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+                    boldFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                    boldFormat_->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+                }
+                sharedDWriteFactory_->CreateTextFormat(fam, nullptr, DWRITE_FONT_WEIGHT_NORMAL,
+                    fs.style, fs.stretch, fsz * 0.8f, loc, &shortcutFormat_);
+                if (shortcutFormat_) {
+                    shortcutFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+                    shortcutFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                    shortcutFormat_->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+                }
             }
 
+            if (menu_ && menu_->onOpening) menu_->onOpening(*menu_);   // 弹出前回调
             CalculateWindowSizeDip();
             contentWidthPx_ = MulDiv(windowWidthDip_, dpi_, 96);
             contentHeightPx_ = MulDiv(windowHeightDip_, dpi_, 96);
@@ -2463,11 +2534,18 @@ namespace ZufyUI {
             // 分层窗口：逐像素 alpha，才能自绘柔阴影 + 圆角（不再用 SetWindowRgn）
             hwnd_ = CreateWindowExW(
                 WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
-                L"ZufyUI_MenuWindow", L"",
+                L"ZufyUI_MenuWindow_v2", L"",
                 WS_POPUP,
                 winX_, winY_, windowWidthPx_, windowHeightPx_,
                 owner_, nullptr, GetModuleHandle(nullptr), this);
             if (!hwnd_) return;
+
+            {   // DWM 非客户区渲染禁用 + 不画任何 DWM 边框/阴影（自绘阴影已足够）
+                DWMNCRENDERINGPOLICY pol = DWMNCRP_DISABLED;
+                DwmSetWindowAttribute(hwnd_, DWMWA_NCRENDERING_POLICY, &pol, sizeof(pol));
+                MARGINS mg = { 0, 0, 0, 0 };
+                DwmExtendFrameIntoClientArea(hwnd_, &mg);
+            }
 
             D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2dFactory_);
             if (d2dFactory_) {
@@ -2487,10 +2565,16 @@ namespace ZufyUI {
 
             if (renderTarget_) {
                 renderTarget_->CreateSolidColorBrush(D2D1::ColorF(1.0f, 1.0f, 1.0f), &bgBrush_);
-                renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.85f, 0.85f, 0.85f), &hoverBrush_);
+                renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.12f), &hoverBrush_);
                 renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f), &textBrush_);
                 renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.8f, 0.8f, 0.8f), &separatorBrush_);
                 renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.12f), &shadowBrush_);
+            }
+            if (d2dFactory_) {
+                D2D1_STROKE_STYLE_PROPERTIES rsp = D2D1::StrokeStyleProperties(
+                    D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND,
+                    D2D1_LINE_JOIN_ROUND, 1.0f, D2D1_DASH_STYLE_SOLID, 0.0f);
+                d2dFactory_->CreateStrokeStyle(rsp, nullptr, 0, &roundStroke_);
             }
         }
 
@@ -2556,6 +2640,18 @@ namespace ZufyUI {
             renderTarget_->SetTransform(old);
             renderTarget_->EndDraw();
 
+            // 把“可见区”最外圈 2px 强制清成透明：无论边缘线来自阴影/DWM/D2D，都彻底消掉
+            if (dibBits_) {
+                uint32_t* px = (uint32_t*)dibBits_;
+                int W = windowWidthPx_, H = windowHeightPx_;
+                if (W > 4 && H > 4 && dibW_ >= W && dibH_ >= H) {
+                    for (int k = 0; k < 2; ++k) {
+                        for (int x = 0; x < W; ++x) { px[(size_t)k * dibW_ + x] = 0; px[(size_t)(H - 1 - k) * dibW_ + x] = 0; }
+                        for (int y = 0; y < H; ++y) { px[(size_t)y * dibW_ + k] = 0; px[(size_t)y * dibW_ + (W - 1 - k)] = 0; }
+                    }
+                }
+            }
+
             HDC screenDC = GetDC(nullptr);
             POINT dst = { winX_, winY_ };
             POINT src = { 0, 0 };
@@ -2570,10 +2666,14 @@ namespace ZufyUI {
             if (shadowBrush_) { shadowBrush_->Release(); shadowBrush_ = nullptr; }
             if (renderTarget_) { renderTarget_->Release(); renderTarget_ = nullptr; }
             if (bgBrush_) { bgBrush_->Release(); bgBrush_ = nullptr; }
+            if (itemBgBrush_) { itemBgBrush_->Release(); itemBgBrush_ = nullptr; }
             if (hoverBrush_) { hoverBrush_->Release(); hoverBrush_ = nullptr; }
             if (textBrush_) { textBrush_->Release(); textBrush_ = nullptr; }
             if (separatorBrush_) { separatorBrush_->Release(); separatorBrush_ = nullptr; }
             if (textFormat_) { textFormat_->Release(); textFormat_ = nullptr; }
+            if (boldFormat_) { boldFormat_->Release(); boldFormat_ = nullptr; }
+            if (shortcutFormat_) { shortcutFormat_->Release(); shortcutFormat_ = nullptr; }
+            if (roundStroke_) { roundStroke_->Release(); roundStroke_ = nullptr; }
             if (d2dFactory_) { d2dFactory_->Release(); d2dFactory_ = nullptr; }
             if (memDC_) { DeleteDC(memDC_); memDC_ = nullptr; }
             if (dib_) { DeleteObject(dib_); dib_ = nullptr; dibBits_ = nullptr; }
@@ -2582,12 +2682,15 @@ namespace ZufyUI {
 
         void CalculateWindowSizeDip() {
             int maxTextWidth = 0;
+            int maxShortcutWidth = 0;
+            bool hasCheck = false;
             windowHeightDip_ = paddingDip_ * 2;
             for (auto& item : menu_->items) {
                 if (item->type == MenuItem::Type::Separator) {
                     windowHeightDip_ += separatorHeightDip_;
                     continue;
                 }
+                if (item->checkable) hasCheck = true;
                 ComPtr<IDWriteTextLayout> layout;
                 if (sharedDWriteFactory_ && textFormat_) {
                     sharedDWriteFactory_->CreateTextLayout(
@@ -2601,9 +2704,21 @@ namespace ZufyUI {
                         maxTextWidth = max(maxTextWidth, width);
                     }
                 }
+                if (!item->shortcut.empty() && sharedDWriteFactory_ && shortcutFormat_) {
+                    ComPtr<IDWriteTextLayout> sl;
+                    if (SUCCEEDED(sharedDWriteFactory_->CreateTextLayout(
+                        item->shortcut.c_str(), (UINT32)item->shortcut.length(),
+                        shortcutFormat_, 10000.0f, 10000.0f, &sl)) && sl) {
+                        DWRITE_TEXT_METRICS m;
+                        sl->GetMetrics(&m);
+                        maxShortcutWidth = max(maxShortcutWidth, (int)(m.width + 0.5f));
+                    }
+                }
                 windowHeightDip_ += itemHeightDip_;
             }
-            windowWidthDip_ = paddingDip_ * 2 + maxTextWidth + 24;
+            checkWidthDip_ = hasCheck ? 33 : 0;
+            windowWidthDip_ = paddingDip_ * 2 + checkWidthDip_ + maxTextWidth
+                + (maxShortcutWidth > 0 ? maxShortcutWidth + 28 : 0) + 24;
             windowWidthDip_ = max(windowWidthDip_, 60);
             windowHeightDip_ = max(windowHeightDip_, 34);
         }
@@ -2651,22 +2766,70 @@ namespace ZufyUI {
                 D2D1_RECT_F itemRect = D2D1::RectF(
                     (float)(paddingDip_ + 2), y,
                     (float)(windowWidthDip_ - paddingDip_ - 2), y + (float)itemHeightDip_);
-                if (i == hoveredIndex_ || i == pressedIndex_) {
+                // 该项自定义背景色（带圆角）—— 先画底色
+                if (item->bgColor && item->bgColor->a > 0.0f) {
+                    if (!itemBgBrush_) renderTarget_->CreateSolidColorBrush(item->bgColor->ToD2D(), &itemBgBrush_);
+                    else itemBgBrush_->SetColor(item->bgColor->ToD2D());
+                    if (itemBgBrush_) renderTarget_->FillRoundedRectangle(
+                        D2D1::RoundedRect(itemRect, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f), itemBgBrush_);
+                }
+                // 悬停/按下高亮：叠在底色之上（半透明，底色仍可见）
+                bool showHover = item->enabled && (i == hoveredIndex_ || i == pressedIndex_);
+                if (showHover) {
                     renderTarget_->FillRoundedRectangle(
                         D2D1::RoundedRect(itemRect, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f),
                         hoverBrush_);
                 }
 
-                float textX = (float)paddingDip_ + 14.0f;
+                // 勾选列：完全模仿 CheckBox —— 蓝底圆角方块 + 白勾；单选为圆环 + 圆点
+                if (item->checkable) {
+                    float cb = 15.0f;
+                    float bx = (float)paddingDip_ + 10.0f;   // 对齐分割线内侧（不是贴窗口外缘）
+                    float by = y + (itemHeightDip_ - cb) * 0.5f;
+                    float lw = max(1.6f, cb * 0.16f);
+                    if (item->radio) {
+                        float rx = bx + cb * 0.5f, ry = by + cb * 0.5f;
+                        textBrush_->SetColor(D2D1::ColorF(0.0f, 0.47f, 0.84f));
+                        renderTarget_->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.46f, cb * 0.46f), textBrush_, 1.6f);
+                        if (item->checked)
+                            renderTarget_->FillEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.22f, cb * 0.22f), textBrush_);
+                    }
+                    else if (item->checked) {
+                        textBrush_->SetColor(D2D1::ColorF(0.0f, 0.47f, 0.84f));
+                        renderTarget_->FillRoundedRectangle(
+                            D2D1::RoundedRect(D2D1::RectF(bx, by, bx + cb, by + cb), cb * 0.28f, cb * 0.28f), textBrush_);
+                        textBrush_->SetColor(D2D1::ColorF(1, 1, 1));
+                        D2D1_POINT_2F p0 = D2D1::Point2F(bx + cb * 0.24f, by + cb * 0.52f);
+                        D2D1_POINT_2F p1 = D2D1::Point2F(bx + cb * 0.43f, by + cb * 0.70f);
+                        D2D1_POINT_2F p2 = D2D1::Point2F(bx + cb * 0.76f, by + cb * 0.30f);
+                        ID2D1StrokeStyle* ss = roundStroke_;
+                        renderTarget_->DrawLine(p0, p1, textBrush_, lw, ss);
+                        renderTarget_->DrawLine(p1, p2, textBrush_, lw, ss);
+                    }
+                }
+
+                float textX = (float)paddingDip_ + (checkWidthDip_ > 0 ? (float)checkWidthDip_ : 14.0f);
                 if (item->icon) textX += 20;
                 float textRight = itemRect.right - 4;
                 if (item->type == MenuItem::Type::Submenu) {
                     textRight = itemRect.right - arrowWidthDip_ - 2;
                 }
+                if (!item->shortcut.empty()) textRight -= 104.0f;
                 D2D1_RECT_F textRect = D2D1::RectF(textX, y, textRight, y + itemHeightDip_);
+
+                D2D1_COLOR_F tcol = D2D1::ColorF(0, 0, 0);
+                if (item->textColor) tcol = item->textColor->ToD2D();
+                else if (!item->enabled) tcol = D2D1::ColorF(0.6f, 0.6f, 0.6f);
+                else if (item->danger) tcol = D2D1::ColorF(0.86f, 0.2f, 0.2f);
+                textBrush_->SetColor(tcol);
                 if (!item->text.empty()) {
-                    renderTarget_->DrawText(item->text.c_str(), (UINT32)item->text.length(),
-                        textFormat_, textRect, textBrush_);
+                    IDWriteTextFormat* tf = (item->isDefault && boldFormat_) ? boldFormat_ : textFormat_;
+                    renderTarget_->DrawText(item->text.c_str(), (UINT32)item->text.length(), tf, textRect, textBrush_);
+                }
+                if (!item->shortcut.empty() && shortcutFormat_) {
+                    D2D1_RECT_F srect = D2D1::RectF(itemRect.right - 108.0f, y, itemRect.right - 8.0f, y + itemHeightDip_);
+                    textBrush_->SetColor(D2D1::ColorF(0.45f, 0.45f, 0.45f));
+                    renderTarget_->DrawText(item->shortcut.c_str(), (UINT32)item->shortcut.length(), shortcutFormat_, srect, textBrush_);
                 }
 
                 if (item->type == MenuItem::Type::Submenu) {
@@ -2750,13 +2913,23 @@ namespace ZufyUI {
             if (idx >= 0 && idx == pressedIndex_) {
                 auto& item = menu_->items[idx];
                 if (item->type == MenuItem::Type::Normal) {
+                    if (!item->enabled) { pressedIndex_ = -1; ReleaseCapture(); InvalidateRect(hwnd_, nullptr, FALSE); return; }
+                    if (item->checkable) {   // 勾选/单选切换
+                        bool ns = !item->checked;
+                        if (item->radio && ns)
+                            for (auto& o : menu_->items) if (o.get() != item.get() && o->radio) o->checked = false;
+                        item->checked = ns;
+                    }
+                    int selId = item->id;
                     auto clicked = item;                 // 先保活，避免 Fire 里回调销毁菜单
                     pressedIndex_ = -1;
                     ReleaseCapture();
-                    // 关整棵树：在子菜单里点项目时，根菜单也必须一起关（之前只关了子菜单）
+                    // 关整棵树；ItemSelected 回传到“根菜单”，这样应用连根菜单就能收到子菜单的点击
                     MenuWindow* root = this;
                     while (root->parent_) root = root->parent_;
+                    Menu* rootMenu = root ? root->menu_.get() : nullptr;
                     root->CloseAll();
+                    if (rootMenu) rootMenu->ItemSelected.Fire(selId);
                     clicked->Clicked.Fire();
                     return;
                 }
@@ -2839,6 +3012,8 @@ namespace ZufyUI {
         int pressedIndex_ = -1;
         bool isClosing_ = false;
         bool standalone_ = false;
+        DWORD openedTick_ = 0;          // 独立菜单：弹出时刻（防误关）
+        bool prevLButtonDown_ = true;   // 独立菜单：上一帧左键状态（只在按下那一下判定）
 
         std::unique_ptr<MenuWindow> childMenu_;
         MenuWindow* parent_ = nullptr;
@@ -2859,10 +3034,14 @@ namespace ZufyUI {
         int winX_ = 0, winY_ = 0;                     // 窗口（含阴影）左上角屏幕坐标
         ID2D1SolidColorBrush* shadowBrush_ = nullptr;
         ID2D1SolidColorBrush* bgBrush_ = nullptr;
+        ID2D1SolidColorBrush* itemBgBrush_ = nullptr;
         ID2D1SolidColorBrush* hoverBrush_ = nullptr;
         ID2D1SolidColorBrush* textBrush_ = nullptr;
         ID2D1SolidColorBrush* separatorBrush_ = nullptr;
         IDWriteTextFormat* textFormat_ = nullptr;
+        IDWriteTextFormat* boldFormat_ = nullptr;
+        IDWriteTextFormat* shortcutFormat_ = nullptr;
+        ID2D1StrokeStyle* roundStroke_ = nullptr;   // 勾选对勾的圆头描边（必须随本实例工厂创建，不能 static 跨工厂复用）
 
         static ComPtr<IDWriteFactory> sharedDWriteFactory_;
     };
@@ -4204,6 +4383,15 @@ namespace ZufyUI {
                 return 0;
             case WM_KEYDOWN:
                 if (OnWindowKeyDown((int)wParam)) return 0;
+                // 键盘弹出右键菜单：菜单键 / Shift+F10
+                if (wParam == VK_APPS || (wParam == VK_F10 && (GetKeyState(VK_SHIFT) & 0x8000))) {
+                    UIElement* t = focusedElement_ ? focusedElement_ : currentHovered_;
+                    if (t) {
+                        Rect r = t->GetArrangedRect();
+                        OnContextMenu(r.x + r.width * 0.5f, r.y + r.height * 0.5f);
+                        return 0;
+                    }
+                }
                 if (wParam == VK_TAB) { MoveFocusByTab((GetKeyState(VK_SHIFT) & 0x8000) != 0); return 0; }
                 if (focusedElement_ && focusedElement_->IsEffectivelyEnabled()) focusedElement_->OnKeyDown(wParam, lParam);
                 return 0;
@@ -4931,12 +5119,8 @@ namespace ZufyUI {
             UIElement* hit = HitTestElement(x, y);
             if (hit && hit->OnContextMenu(x, y)) return;   // 控件已处理右键
             std::shared_ptr<Menu> menu;
-            if (hit && hit->GetContextMenu()) {
-                menu = hit->GetContextMenu();
-            }
-            else if (windowContextMenu_) {
-                menu = windowContextMenu_;
-            }
+            if (hit && hit->IsContextMenuEnabled()) menu = hit->BuildContextMenu();   // 固定菜单或动态工厂
+            if (!menu && windowContextMenu_) menu = windowContextMenu_;
             if (menu) {
                 POINT pt;
                 pt.x = static_cast<LONG>(MulDiv(static_cast<int>(x), static_cast<int>(dpi_), 96));
@@ -5663,6 +5847,7 @@ namespace ZufyUI {
     }
 
     // ---------- 应用（Qt 风格：app.CreateWindow(...) -> app.Run()） ----------
+    struct AppInfo;   // 应用身份信息（定义在 ZufyUIWindowTool.h）
     class Application {
     public:
         Application() = default;
@@ -5691,6 +5876,9 @@ namespace ZufyUI {
             for (auto* w : wins) if (w) w->Close();
         }
         size_t WindowCount() const { return (size_t)detail::AppCore::Instance().WindowCount(); }
+
+        // 应用身份自注册：转发到自由函数 ZufyUI::RegisterApp(...)（定义见 ZufyUIWindowTool.h）
+        bool RegisterApp(const AppInfo& info);
 
         static Application& Instance() { static Application a; return a; }
     };

@@ -126,6 +126,11 @@ namespace ZufyUI {
         HAlign GetHorizontalAlignment() const { return hAlign_; }
         VAlign GetVerticalAlignment() const { return vAlign_; }
         void SetPadding(const Thickness& p) { padding_ = p; InvalidateLayout(); RequestRepaint(); }
+        // 背景色（a=0 表示不画）+ 圆角半径
+        void SetBackgroundColor(Color c) { bgColor_ = c; bgBrush_.Reset(); RequestRepaint(); }
+        Color GetBackgroundColor() const { return bgColor_; }
+        void SetBackgroundCornerRadius(float r) { bgCornerRadius_ = r; RequestRepaint(); }
+        float GetBackgroundCornerRadius() const { return bgCornerRadius_; }
         void SetPadding(float all) { padding_ = Thickness(all, all, all, all); InvalidateLayout(); RequestRepaint(); }
         Thickness GetPadding() const { return padding_; }
         void SetLineSpacing(float spacing) { lineSpacing_ = spacing; InvalidateLayout(); RequestRepaint(); }
@@ -275,6 +280,19 @@ namespace ZufyUI {
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_) return;
 
+            // 背景（带圆角）
+            if (bgColor_.a > 0.0f) {
+                if (!bgBrush_) rt->CreateSolidColorBrush(bgColor_.ToD2D(), bgBrush_.GetAddressOf());
+                else bgBrush_->SetColor(bgColor_.ToD2D());
+                if (bgBrush_) {
+                    D2D1_RECT_F br = arrangedRect_.ToD2D();
+                    if (bgCornerRadius_ > 0.0f)
+                        rt->FillRoundedRectangle(D2D1::RoundedRect(br, bgCornerRadius_, bgCornerRadius_), bgBrush_.Get());
+                    else
+                        rt->FillRectangle(br, bgBrush_.Get());
+                }
+            }
+
             // 图标（可与文字/子控件共存；即使没有文字也绘制）
             if (image_ && !image_->IsNull() && iconRect_.right > iconRect_.left) {
                 Image::DrawOptions o;
@@ -380,6 +398,7 @@ namespace ZufyUI {
 
         void ReleaseDeviceResources() override {
             textBrush_.Reset();
+            bgBrush_.Reset();
             UIElement::ReleaseDeviceResources();
         }
 
@@ -390,6 +409,9 @@ namespace ZufyUI {
         HAlign hAlign_;
         VAlign vAlign_;
         Thickness padding_;
+        Color bgColor_ = Color(0.0f, 0.0f, 0.0f, 0.0f);
+        float bgCornerRadius_ = 0.0f;
+        ComPtr<ID2D1SolidColorBrush> bgBrush_;
         float lineSpacing_ = 0.0f;
         int maxLines_ = 0;
         ComPtr<ID2D1SolidColorBrush> textBrush_;
@@ -2596,7 +2618,7 @@ namespace ZufyUI {
 
             bool HasActiveAnimation() const override { return false; }
 
-            void ReleaseDeviceResources() override {
+        void ReleaseDeviceResources() override {
                 UIElement::ReleaseDeviceResources();
             }
 

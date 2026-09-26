@@ -23,6 +23,7 @@ ZufyUI is a **header-only** Windows desktop UI framework built directly on Direc
 - **High-DPI adaptation**: automatically aware of DPI; `Snap()` snaps drawing to physical pixels to avoid blurriness.
 - **IME compatibility**: text boxes support Chinese IME composition input and candidate window positioning.
 - **Offscreen caching**: elements can automatically cache their drawing results to reduce repeated drawing overhead.
+- **System integration**: tray icon (hover/click/right-click/badge/balloon), taskbar (progress / overlay badge / thumbnail toolbar), jump lists, and **app identity (AUMID) self-registration** (unifies toast / grouping; requires an explicit authorization macro).
 
 ## Requirements
 
@@ -140,6 +141,33 @@ A tour of the widgets (first page of the demo):
 ![ZufyUI demo](docs/images/demo-main.png)
 
 ## Changelog
+
+### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
+
+**Menus**
+- Rebuilt the right-click menu as a **layered window with self-drawn soft shadow, rounded corners, and fade-in**; fixed "menu won't open a second time" (root cause: the checkmark's `ID2D1StrokeStyle` was a `static` reused across factories → `EndDraw` returned `D2DERR_WRONG_FACTORY`; now created/released per instance).
+- Menu item enhancements: `id` / check / radio / default item (bold + Enter) / danger (red) / shortcut hint / disabled; per-item `bgColor` / `textColor` / `font`; `Menu::font` / `SetDefaultFont`.
+- **Dynamic menu factory** `UIElement::SetContextMenuFactory` (built on each right-click) + `SetContextMenuEnabled`.
+- Standalone popup `Menu::ShowAt` / `ShowAtCursor` (bound to no window; for tray menus); open menus are mutually exclusive.
+- Hover highlight is now a translucent overlay (still visible over a custom background).
+
+**Tray / taskbar / icons**
+- `TrayIcon` (`Shell_NotifyIcon` v4): hover / click / right-click / double-click, badge (self-drawn composite), balloon (`ShowBalloon`, `BalloonIcon` = None/Info/Warning/Error/Custom, realtime / silent); auto re-added after `explorer` restarts.
+- Taskbar: progress (`SetTaskbarProgress`), overlay badge (`SetTaskbarOverlayIcon`), thumbnail toolbar (`SetThumbButtons`, the `Image` overload auto-builds an `HIMAGELIST`), jump lists (`SetJumpList`, tasks + categories + recent).
+- `Window::SetAppIcon` (unifies native big/small + class icons + custom title bar), `ShowActivate` (four modes), `Flash` (`FLASHW_ALL`); `TitleBar` icon badge / progress.
+- `Image::ToHICON` / `CopyPixelsBgra`.
+
+**Data views**
+- `ListView::ItemRightClicked(row)` + `GetContextRow()`; `TableView::CellRightClicked(row,col)` + `GetContextRow()/GetContextColumn()` for list/table right-click menus.
+
+**App identity self-registration (new)**
+- Declare `AppInfo{ displayName, aumid, icon }` + `RegisterApp(...)` (free function / `Application::RegisterApp` forwarding): sets the process AUMID so toast / jump list / taskbar grouping share one identity.
+- **Requires the explicit authorization macro `ZUFYUI_ALLOW_APP_REGISTRATION`**; when authorized it writes `HKCU\...\AppUserModelId\<AUMID>` (DisplayName + IconUri) and caches the icon at `%LOCALAPPDATA%\ZufyUI\AppReg\<AUMID>\app.ico`, **cleaning both up on process exit**; without the macro it only sets the AUMID (zero side effects).
+
+**Build**
+- Added a precompiled header `pch.h` / `pch.cpp` (demo compile ~1.1s); `Release` drops debug info; `Debug` adds `/bigobj`.
+
+> Known issue: menu windows use the "layered window + software render target" path and each menu creates its own D2D factory → every menu open costs ~+90MB (released a few seconds after closing). Planned fix: reuse the shared device (move menus to the DComp path).
 
 ### 2026-09-20 — Performance work + backdrop API consolidation (v1.9.6)
 

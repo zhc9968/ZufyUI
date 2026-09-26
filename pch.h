@@ -7,6 +7,9 @@
 // 如果中间层（日志/调试显示）要跟构建配置联动，改这里的 ZufyUI_DEBUG 即可。
 // ============================================================================
 #define ZufyUI_DEBUG
+// 显式授权本库替应用做「应用身份自注册」（写 HKCU 注册表 + 把图标缓存到本地、退出清缓存）。
+// 不上报/不联网，仅本机；不定义则 RegisterApp 只设置进程 AUMID，零副作用。
+#define ZUFYUI_ALLOW_APP_REGISTRATION
 
 // ---- Win32 / 系统 ----
 #include <windows.h>
