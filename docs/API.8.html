@@ -211,6 +211,17 @@ class MenuItem {
     Type type = Type::Normal;
     bool enabled = true;
     std::shared_ptr&lt;Label&gt; icon;
+    // ---- 增强字段 ----
+    int id = 0;                      // 命令 id（配 Menu::ItemSelected）
+    bool checkable = false;          // 显示勾选列
+    bool checked = false;            // 勾选状态
+    bool radio = false;              // 单选（同菜单内互斥）
+    bool isDefault = false;          // 默认项：加粗 + 回车触发
+    bool danger = false;             // 危险项：红字
+    std::wstring shortcut;           // 右侧快捷键提示（仅展示）
+    std::optional&lt;Color&gt; bgColor;    // 该项自定义背景色（带圆角）
+    std::optional&lt;Color&gt; textColor;  // 该项自定义文字色
+    std::optional&lt;FontSpec&gt; font;    // 该项自定义字体（缺省=Menu::font）
 };
 ```
 
@@ -218,15 +229,29 @@ class MenuItem {
 
 ```cpp
 class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
-    void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr);
+    inline static FontSpec DefaultFont{};              // 全局默认菜单字体
+    void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
+    void AddCheckItem(const std::wstring&amp; text, bool checked,
+                      std::function&lt;void(bool)&gt; onToggle = nullptr, int id = 0, bool radio = false);
     void AddSeparator();
-    void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu);
+    void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu, int id = 0);
+
     std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; items;
+    std::function&lt;void(Menu&amp;)&gt; onOpening;   // 弹出前回调（可现场改勾选/启用/文字）
+    ZSignal&lt;int&gt; ItemSelected;              // 任一普通项被点（带 id；根菜单接收子菜单的点击）
+    FontSpec font = DefaultFont;            // 菜单字体
+    static void SetDefaultFont(const FontSpec&amp;);
+
+    void ShowAt(int screenX, int screenY);  // 独立弹出（不绑定任何窗口；典型用途=托盘菜单）
+    void ShowAtCursor();                    // 在鼠标当前位置弹出
 };
 ```
 
-- 用 `AddItem` 添加可点击项，`AddSeparator` 添加分隔线，`AddSubmenu` 添加子菜单。
-- 把菜单设置到元素：`element-&gt;SetContextMenu(menu);`，或设置到窗口：`window.SetContextMenu(menu);`。
+- 用 `AddItem` 添加可点击项，`AddSeparator` 添加分隔线，`AddSubmenu` 添加子菜单，`AddCheckItem` 添加勾选/单选项。
+- 把菜单设置到元素：`element-&gt;SetContextMenu(menu);`（或用 `SetContextMenuFactory` 动态现搭），或设置到窗口：`window.SetContextMenu(menu);`。
+- **独立弹出**：`menu-&gt;ShowAtCursor()` 在鼠标处弹出，不绑定窗口，适合托盘右键菜单；会先关掉其它已打开的菜单（互斥）。
+- **信号槽**：项可传 `id`，用 `menu-&gt;ItemSelected.connect([](int id){...})` 统一收；`菜单项-&gt;Clicked` / `AddItem` 的回调仍可用。`onOpening` 在每次弹出前调用，可现场改勾选/启用/文字。
+- **外观**：`MenuItem::bgColor` / `textColor` / `font` 逐项覆盖；`Menu::font` 整体字体；悬停高亮为半透明叠加（自定义底色上仍可见）。支持 `isDefault`（加粗 + 回车触发）、`danger`（红字）、`shortcut`（右侧快捷键提示）、`enabled=false`（禁用）。
 
 ## MenuWindow（弹出菜单窗口，框架内部使用）
 
@@ -245,7 +270,7 @@ class MenuWindow {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-086d60c2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-862b05f9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuItem</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
@@ -255,9 +280,20 @@ class MenuWindow {
 <span class="w">    </span><span class="n">Type</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Type</span><span class="o">::</span><span class="n">Normal</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// ---- 增强字段 ----</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                      </span><span class="c1">// 命令 id（配 Menu::ItemSelected）</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">checkable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">          </span><span class="c1">// 显示勾选列</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">checked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">            </span><span class="c1">// 勾选状态</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">radio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">              </span><span class="c1">// 单选（同菜单内互斥）</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">isDefault</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">          </span><span class="c1">// 默认项：加粗 + 回车触发</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">danger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">             </span><span class="c1">// 危险项：红字</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">shortcut</span><span class="p">;</span><span class="w">           </span><span class="c1">// 右侧快捷键提示（仅展示）</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bgColor</span><span class="p">;</span><span class="w">    </span><span class="c1">// 该项自定义背景色（带圆角）</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">textColor</span><span class="p">;</span><span class="w">  </span><span class="c1">// 该项自定义文字色</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span><span class="w">    </span><span class="c1">// 该项自定义字体（缺省=Menu::font）</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-086d60c2" style="display: none;">class MenuItem {
+<pre id="code-862b05f9" style="display: none;">class MenuItem {
     enum class Type { Normal, Separator, Submenu };
     std::wstring text;
     std::function&lt;void()&gt; callback;
@@ -265,37 +301,73 @@ class MenuWindow {
     Type type = Type::Normal;
     bool enabled = true;
     std::shared_ptr&lt;Label&gt; icon;
+    // ---- 增强字段 ----
+    int id = 0;                      // 命令 id（配 Menu::ItemSelected）
+    bool checkable = false;          // 显示勾选列
+    bool checked = false;            // 勾选状态
+    bool radio = false;              // 单选（同菜单内互斥）
+    bool isDefault = false;          // 默认项：加粗 + 回车触发
+    bool danger = false;             // 危险项：红字
+    std::wstring shortcut;           // 右侧快捷键提示（仅展示）
+    std::optional&lt;Color&gt; bgColor;    // 该项自定义背景色（带圆角）
+    std::optional&lt;Color&gt; textColor;  // 该项自定义文字色
+    std::optional&lt;FontSpec&gt; font;    // 该项自定义字体（缺省=Menu::font）
 };</pre>
 </div>
 <h2 id="menu">Menu</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-addffe67', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-317bea06', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Menu</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span>
+<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">{};</span><span class="w">              </span><span class="c1">// 全局默认菜单字体</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddCheckItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">checked</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onToggle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">radio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddSeparator</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddSubmenu</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">submenu</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddSubmenu</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">submenu</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuItem</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">items</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">Menu</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onOpening</span><span class="p">;</span><span class="w">   </span><span class="c1">// 弹出前回调（可现场改勾选/启用/文字）</span>
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemSelected</span><span class="p">;</span><span class="w">              </span><span class="c1">// 任一普通项被点（带 id；根菜单接收子菜单的点击）</span>
+<span class="w">    </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">font</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">;</span><span class="w">            </span><span class="c1">// 菜单字体</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAt</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w">  </span><span class="c1">// 独立弹出（不绑定任何窗口；典型用途=托盘菜单）</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">                    </span><span class="c1">// 在鼠标当前位置弹出</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-addffe67" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
-    void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr);
+<pre id="code-317bea06" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
+    inline static FontSpec DefaultFont{};              // 全局默认菜单字体
+    void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
+    void AddCheckItem(const std::wstring&amp; text, bool checked,
+                      std::function&lt;void(bool)&gt; onToggle = nullptr, int id = 0, bool radio = false);
     void AddSeparator();
-    void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu);
+    void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu, int id = 0);
+
     std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; items;
+    std::function&lt;void(Menu&amp;)&gt; onOpening;   // 弹出前回调（可现场改勾选/启用/文字）
+    ZSignal&lt;int&gt; ItemSelected;              // 任一普通项被点（带 id；根菜单接收子菜单的点击）
+    FontSpec font = DefaultFont;            // 菜单字体
+    static void SetDefaultFont(const FontSpec&amp;);
+
+    void ShowAt(int screenX, int screenY);  // 独立弹出（不绑定任何窗口；典型用途=托盘菜单）
+    void ShowAtCursor();                    // 在鼠标当前位置弹出
 };</pre>
 </div>
 <ul>
-<li>用 <code>AddItem</code> 添加可点击项，<code>AddSeparator</code> 添加分隔线，<code>AddSubmenu</code> 添加子菜单。</li>
-<li>把菜单设置到元素：<code>element-&gt;SetContextMenu(menu);</code>，或设置到窗口：<code>window.SetContextMenu(menu);</code>。</li>
+<li>用 <code>AddItem</code> 添加可点击项，<code>AddSeparator</code> 添加分隔线，<code>AddSubmenu</code> 添加子菜单，<code>AddCheckItem</code> 添加勾选/单选项。</li>
+<li>把菜单设置到元素：<code>element-&gt;SetContextMenu(menu);</code>（或用 <code>SetContextMenuFactory</code> 动态现搭），或设置到窗口：<code>window.SetContextMenu(menu);</code>。</li>
+<li><strong>独立弹出</strong>：<code>menu-&gt;ShowAtCursor()</code> 在鼠标处弹出，不绑定窗口，适合托盘右键菜单；会先关掉其它已打开的菜单（互斥）。</li>
+<li><strong>信号槽</strong>：项可传 <code>id</code>，用 <code>menu-&gt;ItemSelected.connect([](int id){...})</code> 统一收；<code>菜单项-&gt;Clicked</code> / <code>AddItem</code> 的回调仍可用。<code>onOpening</code> 在每次弹出前调用，可现场改勾选/启用/文字。</li>
+<li><strong>外观</strong>：<code>MenuItem::bgColor</code> / <code>textColor</code> / <code>font</code> 逐项覆盖；<code>Menu::font</code> 整体字体；悬停高亮为半透明叠加（自定义底色上仍可见）。支持 <code>isDefault</code>（加粗 + 回车触发）、<code>danger</code>（红字）、<code>shortcut</code>（右侧快捷键提示）、<code>enabled=false</code>（禁用）。</li>
 </ul>
 <h2 id="menuwindow弹出菜单窗口框架内部使用">MenuWindow（弹出菜单窗口，框架内部使用）</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-df1ee5e9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-92c25822', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuWindow</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">MenuWindow</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="p">,</span><span class="w"> </span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
@@ -304,7 +376,7 @@ class MenuWindow {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAll</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-df1ee5e9" style="display: none;">class MenuWindow {
+<pre id="code-92c25822" style="display: none;">class MenuWindow {
     MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
     void Show(int x, int y);
     void Hide();

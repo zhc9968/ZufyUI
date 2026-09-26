@@ -211,6 +211,17 @@ class MenuItem {
     Type type = Type::Normal;
     bool enabled = true;
     std::shared_ptr&lt;Label&gt; icon;
+    // ---- enhanced fields ----
+    int id = 0;                      // command id (paired with Menu::ItemSelected)
+    bool checkable = false;          // show the check column
+    bool checked = false;            // checked state
+    bool radio = false;              // radio (mutually exclusive within a menu)
+    bool isDefault = false;          // default item: bold + Enter triggers it
+    bool danger = false;             // danger item: red text
+    std::wstring shortcut;           // right-side shortcut hint (display only)
+    std::optional&lt;Color&gt; bgColor;    // per-item custom background (rounded)
+    std::optional&lt;Color&gt; textColor;  // per-item custom text color
+    std::optional&lt;FontSpec&gt; font;    // per-item font (defaults to Menu::font)
 };
 ```
 
@@ -218,15 +229,29 @@ class MenuItem {
 
 ```cpp
 class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
-    void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr);
+    inline static FontSpec DefaultFont{};              // global default menu font
+    void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
+    void AddCheckItem(const std::wstring&amp; text, bool checked,
+                      std::function&lt;void(bool)&gt; onToggle = nullptr, int id = 0, bool radio = false);
     void AddSeparator();
-    void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu);
+    void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu, int id = 0);
+
     std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; items;
+    std::function&lt;void(Menu&amp;)&gt; onOpening;   // pre-open callback (can adjust checked/enabled/text live)
+    ZSignal&lt;int&gt; ItemSelected;              // any normal item clicked (carries id; root menu receives submenu clicks)
+    FontSpec font = DefaultFont;            // menu font
+    static void SetDefaultFont(const FontSpec&amp;);
+
+    void ShowAt(int screenX, int screenY);  // standalone popup (bound to no window; typical: tray menu)
+    void ShowAtCursor();                    // pop up at the mouse cursor
 };
 ```
 
-- `AddItem` adds a clickable item, `AddSeparator` a separator, `AddSubmenu` a submenu.
-- Attach a menu to an element with `element-&gt;SetContextMenu(menu);` or to the window with `window.SetContextMenu(menu);`.
+- `AddItem` adds a clickable item, `AddSeparator` a separator, `AddSubmenu` a submenu, `AddCheckItem` a check/radio item.
+- Attach a menu to an element with `element-&gt;SetContextMenu(menu);` (or `SetContextMenuFactory` to build on demand), or to the window with `window.SetContextMenu(menu);`.
+- **Standalone popup**: `menu-&gt;ShowAtCursor()` pops up at the mouse without binding to a window (great for tray right-click menus); it first closes any other open menu (mutual exclusion).
+- **Signal-slot**: items may carry an `id`; collect them with `menu-&gt;ItemSelected.connect([](int id){...})`. Per-item `Clicked` / `AddItem` callbacks still work. `onOpening` runs before each popup.
+- **Appearance**: `MenuItem::bgColor` / `textColor` / `font` per item; `Menu::font` overall; the hover highlight is a translucent overlay (still visible over a custom background). Supports `isDefault` (bold + Enter), `danger` (red), `shortcut` (right hint), `enabled=false` (disabled).
 
 ## MenuWindow (popup, framework-internal)
 
@@ -245,7 +270,7 @@ class MenuWindow {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-21a2a63f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-7f659180', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuItem</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
@@ -255,9 +280,20 @@ class MenuWindow {
 <span class="w">    </span><span class="n">Type</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Type</span><span class="o">::</span><span class="n">Normal</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// ---- enhanced fields ----</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                      </span><span class="c1">// command id (paired with Menu::ItemSelected)</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">checkable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">          </span><span class="c1">// show the check column</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">checked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">            </span><span class="c1">// checked state</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">radio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">              </span><span class="c1">// radio (mutually exclusive within a menu)</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">isDefault</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">          </span><span class="c1">// default item: bold + Enter triggers it</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">danger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">             </span><span class="c1">// danger item: red text</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">shortcut</span><span class="p">;</span><span class="w">           </span><span class="c1">// right-side shortcut hint (display only)</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bgColor</span><span class="p">;</span><span class="w">    </span><span class="c1">// per-item custom background (rounded)</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">textColor</span><span class="p">;</span><span class="w">  </span><span class="c1">// per-item custom text color</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span><span class="w">    </span><span class="c1">// per-item font (defaults to Menu::font)</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-21a2a63f" style="display: none;">class MenuItem {
+<pre id="code-7f659180" style="display: none;">class MenuItem {
     enum class Type { Normal, Separator, Submenu };
     std::wstring text;
     std::function&lt;void()&gt; callback;
@@ -265,37 +301,73 @@ class MenuWindow {
     Type type = Type::Normal;
     bool enabled = true;
     std::shared_ptr&lt;Label&gt; icon;
+    // ---- enhanced fields ----
+    int id = 0;                      // command id (paired with Menu::ItemSelected)
+    bool checkable = false;          // show the check column
+    bool checked = false;            // checked state
+    bool radio = false;              // radio (mutually exclusive within a menu)
+    bool isDefault = false;          // default item: bold + Enter triggers it
+    bool danger = false;             // danger item: red text
+    std::wstring shortcut;           // right-side shortcut hint (display only)
+    std::optional&lt;Color&gt; bgColor;    // per-item custom background (rounded)
+    std::optional&lt;Color&gt; textColor;  // per-item custom text color
+    std::optional&lt;FontSpec&gt; font;    // per-item font (defaults to Menu::font)
 };</pre>
 </div>
 <h2 id="menu">Menu</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-77dc09e2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-48742942', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Menu</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span>
+<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">{};</span><span class="w">              </span><span class="c1">// global default menu font</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddCheckItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">checked</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onToggle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">radio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddSeparator</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddSubmenu</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">submenu</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddSubmenu</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">submenu</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuItem</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">items</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">Menu</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onOpening</span><span class="p">;</span><span class="w">   </span><span class="c1">// pre-open callback (can adjust checked/enabled/text live)</span>
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemSelected</span><span class="p">;</span><span class="w">              </span><span class="c1">// any normal item clicked (carries id; root menu receives submenu clicks)</span>
+<span class="w">    </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">font</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">;</span><span class="w">            </span><span class="c1">// menu font</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAt</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w">  </span><span class="c1">// standalone popup (bound to no window; typical: tray menu)</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">                    </span><span class="c1">// pop up at the mouse cursor</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-77dc09e2" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
-    void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr);
+<pre id="code-48742942" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
+    inline static FontSpec DefaultFont{};              // global default menu font
+    void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
+    void AddCheckItem(const std::wstring&amp; text, bool checked,
+                      std::function&lt;void(bool)&gt; onToggle = nullptr, int id = 0, bool radio = false);
     void AddSeparator();
-    void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu);
+    void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu, int id = 0);
+
     std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; items;
+    std::function&lt;void(Menu&amp;)&gt; onOpening;   // pre-open callback (can adjust checked/enabled/text live)
+    ZSignal&lt;int&gt; ItemSelected;              // any normal item clicked (carries id; root menu receives submenu clicks)
+    FontSpec font = DefaultFont;            // menu font
+    static void SetDefaultFont(const FontSpec&amp;);
+
+    void ShowAt(int screenX, int screenY);  // standalone popup (bound to no window; typical: tray menu)
+    void ShowAtCursor();                    // pop up at the mouse cursor
 };</pre>
 </div>
 <ul>
-<li><code>AddItem</code> adds a clickable item, <code>AddSeparator</code> a separator, <code>AddSubmenu</code> a submenu.</li>
-<li>Attach a menu to an element with <code>element-&gt;SetContextMenu(menu);</code> or to the window with <code>window.SetContextMenu(menu);</code>.</li>
+<li><code>AddItem</code> adds a clickable item, <code>AddSeparator</code> a separator, <code>AddSubmenu</code> a submenu, <code>AddCheckItem</code> a check/radio item.</li>
+<li>Attach a menu to an element with <code>element-&gt;SetContextMenu(menu);</code> (or <code>SetContextMenuFactory</code> to build on demand), or to the window with <code>window.SetContextMenu(menu);</code>.</li>
+<li><strong>Standalone popup</strong>: <code>menu-&gt;ShowAtCursor()</code> pops up at the mouse without binding to a window (great for tray right-click menus); it first closes any other open menu (mutual exclusion).</li>
+<li><strong>Signal-slot</strong>: items may carry an <code>id</code>; collect them with <code>menu-&gt;ItemSelected.connect([](int id){...})</code>. Per-item <code>Clicked</code> / <code>AddItem</code> callbacks still work. <code>onOpening</code> runs before each popup.</li>
+<li><strong>Appearance</strong>: <code>MenuItem::bgColor</code> / <code>textColor</code> / <code>font</code> per item; <code>Menu::font</code> overall; the hover highlight is a translucent overlay (still visible over a custom background). Supports <code>isDefault</code> (bold + Enter), <code>danger</code> (red), <code>shortcut</code> (right hint), <code>enabled=false</code> (disabled).</li>
 </ul>
 <h2 id="menuwindow-popup-framework-internal">MenuWindow (popup, framework-internal)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-244877d6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-4846ea41', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuWindow</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">MenuWindow</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="p">,</span><span class="w"> </span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
@@ -304,7 +376,7 @@ class MenuWindow {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAll</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-244877d6" style="display: none;">class MenuWindow {
+<pre id="code-4846ea41" style="display: none;">class MenuWindow {
     MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
     void Show(int x, int y);
     void Hide();

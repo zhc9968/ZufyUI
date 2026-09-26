@@ -197,7 +197,7 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class="active"><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="application"><div class="toc-row"><a href="#application" data-target="application">Application</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="多窗口的独立性与兼容"><div class="toc-row"><a href="#多窗口的独立性与兼容" data-target="多窗口的独立性与兼容">多窗口的独立性与兼容</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="多窗口常见坑"><div class="toc-row"><a href="#多窗口常见坑" data-target="多窗口常见坑">多窗口常见坑</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class="active"><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="application"><div class="toc-row"><a href="#application" data-target="application">Application</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="应用身份自注册registerapp-appinfo"><div class="toc-row"><a href="#应用身份自注册registerapp-appinfo" data-target="应用身份自注册registerapp-appinfo">应用身份自注册（RegisterApp / AppInfo）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="多窗口的独立性与兼容"><div class="toc-row"><a href="#多窗口的独立性与兼容" data-target="多窗口的独立性与兼容">多窗口的独立性与兼容</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="多窗口常见坑"><div class="toc-row"><a href="#多窗口常见坑" data-target="多窗口常见坑">多窗口常见坑</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## Application
@@ -213,6 +213,7 @@ class Application {
     void Quit(int code = 0);
     void CloseAllWindows();
     size_t WindowCount() const;
+    bool RegisterApp(const AppInfo&amp; info);   // 应用身份自注册（见「应用身份自注册」）
     static Application&amp; Instance();
 };
 ```
@@ -237,6 +238,56 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 - 关闭任意窗口不影响其它窗口；**最后一个窗口关闭时**循环自动退出。也可用 `Quit()` 主动退出。
 - 单进程应只有一个 UI 线程在跑窗口（与 Win32 一致）。
 
+## 应用身份自注册（RegisterApp / AppInfo）
+
+把「应用名 + 图标」声明一次，库统一替你设好**进程级 AppUserModelID**，并（在授权后）写注册表 + 把图标缓存到本地，让 **toast 左上角显示应用名与图标**、跳转列表 / 任务栏分组也统一归属该身份。
+
+```cpp
+struct AppInfo {
+    std::wstring displayName;      // 显示名称（toast / 跳转列表 / 任务栏分组）
+    std::wstring aumid;            // 唯一 ID；留空=由 displayName 自动派生
+    std::shared_ptr&lt;Image&gt; icon;   // 图标（可空）
+};
+
+bool RegisterApp(const AppInfo&amp; info);                 // 自由函数
+bool Application::RegisterApp(const AppInfo&amp; info);    // 转发到上面（两者等价）
+```
+
+**授权宏（重要）**：本库不是系统库，替应用动注册表/文件属于越界行为，因此**必须显式授权**——在包含本库头文件**之前**定义宏：
+
+```cpp
+#define ZUFYUI_ALLOW_APP_REGISTRATION
+```
+
+未定义该宏时：`RegisterApp` 只设置进程 AUMID（**无副作用**），不写注册表、不落文件。
+
+**授权后库会做什么**：
+
+1. 设置进程级 AUMID：`SetCurrentProcessExplicitAppUserModelID`
+2. 写注册表 `HKCU\Software\Classes\AppUserModelId\&lt;AUMID&gt;`：`DisplayName` + `IconUri`
+3. 把图标缓存到 `%LOCALAPPDATA%\ZufyUI\AppReg\&lt;AUMID&gt;\app.ico`（由 `Image` 导出为单图 `.ico`）
+4. **进程退出时**清空该缓存目录，并删除上面写的注册表项（避免 `IconUri` 指向已删除文件）
+
+**用法**（建议创建窗口前调用一次）：
+
+```cpp
+#define ZUFYUI_ALLOW_APP_REGISTRATION   // 需在 include 之前
+...
+int WINAPI WinMain(...) {
+    RegisterApp(AppInfo{ L"我的应用", L"ZufyUI.MyApp", myIcon });   // aumid 可留空自动派生
+    auto w = Application::Instance().CreateWindow(/*...*/);
+    // ...
+    return Application::Instance().Run();
+}
+```
+
+**要点**：
+
+- AUMID 每进程唯一；**只需调用一次**。`aumid` 留空时由 `displayName` 派生（去空格/非法字符；无点号则自动加 `ZufyUI.` 前缀，最长 128 字符）。
+- 授权宏是**编译期**开关；未授权不会在用户机器上留下任何痕迹。
+- Win10/11 里老式托盘气球会升级成 toast，其左上角图标/应用名由系统按 AUMID 查注册表得到——这一步正是「库替应用注册」解决的事（否则为空白）。
+- 退出清理在库内部完成，无需应用写任何代码。
+
 ## 多窗口的独立性与兼容
 
 - **重绘 / 布局按窗口路由**：每个元素记录所属窗口（`UIElement::GetWindow()`）；`RequestRepaint()` / `InvalidateLayout()` 只作用于所属窗口，窗口之间不会互相触发重绘。
@@ -260,7 +311,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d4fb9372', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-45dff108', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Application</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateWindow</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span>
@@ -270,10 +321,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Quit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAllWindows</span><span class="p">();</span>
 <span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">WindowCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">   </span><span class="c1">// 应用身份自注册（见「应用身份自注册」）</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Application</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-d4fb9372" style="display: none;">class Application {
+<pre id="code-45dff108" style="display: none;">class Application {
     std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title);
     std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title, Window* owner); // owned 子窗口
     void AddWindow(const std::shared_ptr&lt;Window&gt;&amp; w);
@@ -281,6 +333,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     void Quit(int code = 0);
     void CloseAllWindows();
     size_t WindowCount() const;
+    bool RegisterApp(const AppInfo&amp; info);   // 应用身份自注册（见「应用身份自注册」）
     static Application&amp; Instance();
 };</pre>
 </div>
@@ -288,7 +341,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e40df5bc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e169d387', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="nf">WinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">Application</span><span class="w"> </span><span class="n">app</span><span class="p">;</span>
@@ -298,7 +351,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span><span class="w">                    </span><span class="c1">// 单一消息循环，所有窗口共用</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-e40df5bc" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+<pre id="code-e169d387" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     ZufyUI::Application app;
     auto w1 = app.CreateWindow(1000, 700, L"主窗口");
     auto w2 = app.CreateWindow(640, 480, L"工具窗口");
@@ -313,6 +366,80 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <li>在 <code>Run()</code> 之后（消息循环运行期间）调用 <code>CreateWindow</code> 也能正常显示新窗口。</li>
 <li>关闭任意窗口不影响其它窗口；<strong>最后一个窗口关闭时</strong>循环自动退出。也可用 <code>Quit()</code> 主动退出。</li>
 <li>单进程应只有一个 UI 线程在跑窗口（与 Win32 一致）。</li>
+</ul>
+<h2 id="应用身份自注册registerapp-appinfo">应用身份自注册（RegisterApp / AppInfo）</h2>
+<p>把「应用名 + 图标」声明一次，库统一替你设好<strong>进程级 AppUserModelID</strong>，并（在授权后）写注册表 + 把图标缓存到本地，让 <strong>toast 左上角显示应用名与图标</strong>、跳转列表 / 任务栏分组也统一归属该身份。</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-f0081109', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">AppInfo</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">displayName</span><span class="p">;</span><span class="w">      </span><span class="c1">// 显示名称（toast / 跳转列表 / 任务栏分组）</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">aumid</span><span class="p">;</span><span class="w">            </span><span class="c1">// 唯一 ID；留空=由 displayName 自动派生</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span><span class="w">   </span><span class="c1">// 图标（可空）</span>
+<span class="p">};</span>
+
+<span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">                 </span><span class="c1">// 自由函数</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">Application::RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">    </span><span class="c1">// 转发到上面（两者等价）</span>
+</pre></div>
+<pre id="code-f0081109" style="display: none;">struct AppInfo {
+    std::wstring displayName;      // 显示名称（toast / 跳转列表 / 任务栏分组）
+    std::wstring aumid;            // 唯一 ID；留空=由 displayName 自动派生
+    std::shared_ptr&lt;Image&gt; icon;   // 图标（可空）
+};
+
+bool RegisterApp(const AppInfo&amp; info);                 // 自由函数
+bool Application::RegisterApp(const AppInfo&amp; info);    // 转发到上面（两者等价）</pre>
+</div>
+<p><strong>授权宏（重要）</strong>：本库不是系统库，替应用动注册表/文件属于越界行为，因此<strong>必须显式授权</strong>——在包含本库头文件<strong>之前</strong>定义宏：</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-b45ff1ef', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION</span>
+</pre></div>
+<pre id="code-b45ff1ef" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION</pre>
+</div>
+<p>未定义该宏时：<code>RegisterApp</code> 只设置进程 AUMID（<strong>无副作用</strong>），不写注册表、不落文件。</p>
+<p><strong>授权后库会做什么</strong>：</p>
+<ol>
+<li>设置进程级 AUMID：<code>SetCurrentProcessExplicitAppUserModelID</code></li>
+<li>写注册表 <code>HKCU\Software\Classes\AppUserModelId\&lt;AUMID&gt;</code>：<code>DisplayName</code> + <code>IconUri</code></li>
+<li>把图标缓存到 <code>%LOCALAPPDATA%\ZufyUI\AppReg\&lt;AUMID&gt;\app.ico</code>（由 <code>Image</code> 导出为单图 <code>.ico</code>）</li>
+<li><strong>进程退出时</strong>清空该缓存目录，并删除上面写的注册表项（避免 <code>IconUri</code> 指向已删除文件）</li>
+</ol>
+<p><strong>用法</strong>（建议创建窗口前调用一次）：</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-5aa2b737', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION   </span><span class="c1">// 需在 include 之前</span>
+<span class="p">...</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="n">WinMain</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">RegisterApp</span><span class="p">(</span><span class="n">AppInfo</span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"我的应用"</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"ZufyUI.MyApp"</span><span class="p">,</span><span class="w"> </span><span class="n">myIcon</span><span class="w"> </span><span class="p">});</span><span class="w">   </span><span class="c1">// aumid 可留空自动派生</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">().</span><span class="n">CreateWindow</span><span class="p">(</span><span class="cm">/*...*/</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// ...</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">().</span><span class="n">Run</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+<pre id="code-5aa2b737" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION   // 需在 include 之前
+...
+int WINAPI WinMain(...) {
+    RegisterApp(AppInfo{ L"我的应用", L"ZufyUI.MyApp", myIcon });   // aumid 可留空自动派生
+    auto w = Application::Instance().CreateWindow(/*...*/);
+    // ...
+    return Application::Instance().Run();
+}</pre>
+</div>
+<p><strong>要点</strong>：</p>
+<ul>
+<li>AUMID 每进程唯一；<strong>只需调用一次</strong>。<code>aumid</code> 留空时由 <code>displayName</code> 派生（去空格/非法字符；无点号则自动加 <code>ZufyUI.</code> 前缀，最长 128 字符）。</li>
+<li>授权宏是<strong>编译期</strong>开关；未授权不会在用户机器上留下任何痕迹。</li>
+<li>Win10/11 里老式托盘气球会升级成 toast，其左上角图标/应用名由系统按 AUMID 查注册表得到——这一步正是「库替应用注册」解决的事（否则为空白）。</li>
+<li>退出清理在库内部完成，无需应用写任何代码。</li>
 </ul>
 <h2 id="多窗口的独立性与兼容">多窗口的独立性与兼容</h2>
 <ul>

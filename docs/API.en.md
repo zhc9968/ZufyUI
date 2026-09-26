@@ -396,7 +396,9 @@ The base class of all visual elements. A custom control derives from it and impl
 | `Window* GetWindow() const` | Owning window; `nullptr` if not attached or the window was destroyed (looked up by window id, no raw pointer held) |
 | `SetVisible(bool)` / `IsVisible() const` | Visibility; false releases the cache and triggers `OnVisibilityChanged(false)` |
 | `virtual void OnVisibilityChanged(bool visible)` | Visibility hook; e.g. `ComboBox` auto-collapses its popup when hidden |
-| `SetContextMenu(std::shared_ptr<Menu>)` / `GetContextMenu()` | Right-click menu |
+| `SetContextMenu(std::shared_ptr<Menu>)` / `GetContextMenu()` | Fixed right-click menu |
+| `SetContextMenuFactory(std::function<std::shared_ptr<Menu>()>)` / `BuildContextMenu()` | **Dynamic menu factory**: built on each right-click (can depend on current state); takes precedence over a fixed menu |
+| `SetContextMenuEnabled(bool)` / `IsContextMenuEnabled() const` | Whether a right-click menu is allowed (default yes) |
 | `virtual bool OnContextMenu(float,float)` | Right-click hook; return true to suppress the default menu |
 | `SetBleed(float)` / `GetBleed() const` | Cache bleed (default `4.0f`) |
 | `template<typename Signal, typename Slot> Connection Connect(Signal&, Slot&&)` | Connect a signal: registered in the element's `ConnectionGroup` (auto-disconnected when the element dies) and returns a Qt-style **passive `Connection` handle** (destruction does not disconnect). Ignoring the return is safe; to disconnect one, `auto c = Connect(...); c.disconnect();` |
@@ -601,6 +603,17 @@ class MenuItem {
     Type type = Type::Normal;
     bool enabled = true;
     std::shared_ptr<Label> icon;
+    // ---- enhanced fields ----
+    int id = 0;                      // command id (paired with Menu::ItemSelected)
+    bool checkable = false;          // show the check column
+    bool checked = false;            // checked state
+    bool radio = false;              // radio (mutually exclusive within a menu)
+    bool isDefault = false;          // default item: bold + Enter triggers it
+    bool danger = false;             // danger item: red text
+    std::wstring shortcut;           // right-side shortcut hint (display only)
+    std::optional<Color> bgColor;    // per-item custom background (rounded)
+    std::optional<Color> textColor;  // per-item custom text color
+    std::optional<FontSpec> font;    // per-item font (defaults to Menu::font)
 };
 ```
 
@@ -608,15 +621,29 @@ class MenuItem {
 
 ```cpp
 class Menu : public std::enable_shared_from_this<Menu> {
-    void AddItem(const std::wstring& text, std::function<void()> callback = nullptr);
+    inline static FontSpec DefaultFont{};              // global default menu font
+    void AddItem(const std::wstring& text, std::function<void()> callback = nullptr, int id = 0);
+    void AddCheckItem(const std::wstring& text, bool checked,
+                      std::function<void(bool)> onToggle = nullptr, int id = 0, bool radio = false);
     void AddSeparator();
-    void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu);
+    void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id = 0);
+
     std::vector<std::shared_ptr<MenuItem>> items;
+    std::function<void(Menu&)> onOpening;   // pre-open callback (can adjust checked/enabled/text live)
+    ZSignal<int> ItemSelected;              // any normal item clicked (carries id; root menu receives submenu clicks)
+    FontSpec font = DefaultFont;            // menu font
+    static void SetDefaultFont(const FontSpec&);
+
+    void ShowAt(int screenX, int screenY);  // standalone popup (bound to no window; typical: tray menu)
+    void ShowAtCursor();                    // pop up at the mouse cursor
 };
 ```
 
-- `AddItem` adds a clickable item, `AddSeparator` a separator, `AddSubmenu` a submenu.
-- Attach a menu to an element with `element->SetContextMenu(menu);` or to the window with `window.SetContextMenu(menu);`.
+- `AddItem` adds a clickable item, `AddSeparator` a separator, `AddSubmenu` a submenu, `AddCheckItem` a check/radio item.
+- Attach a menu to an element with `element->SetContextMenu(menu);` (or `SetContextMenuFactory` to build on demand), or to the window with `window.SetContextMenu(menu);`.
+- **Standalone popup**: `menu->ShowAtCursor()` pops up at the mouse without binding to a window (great for tray right-click menus); it first closes any other open menu (mutual exclusion).
+- **Signal-slot**: items may carry an `id`; collect them with `menu->ItemSelected.connect([](int id){...})`. Per-item `Clicked` / `AddItem` callbacks still work. `onOpening` runs before each popup.
+- **Appearance**: `MenuItem::bgColor` / `textColor` / `font` per item; `Menu::font` overall; the hover highlight is a translucent overlay (still visible over a custom background). Supports `isDefault` (bold + Enter), `danger` (red), `shortcut` (right hint), `enabled=false` (disabled).
 
 ## MenuWindow (popup, framework-internal)
 
@@ -791,6 +818,7 @@ class Application {
     void Quit(int code = 0);
     void CloseAllWindows();
     size_t WindowCount() const;
+    bool RegisterApp(const AppInfo& info);   // app identity self-registration (see "App identity self-registration")
     static Application& Instance();
 };
 ```
@@ -814,6 +842,56 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 - Calling `CreateWindow` while the loop is running also works.
 - Closing one window leaves the others running; the loop exits when the **last** window closes. You can also call `Quit()`.
 - A process should run windows on a single UI thread (same as Win32).
+
+## App identity self-registration (RegisterApp / AppInfo)
+
+Declare "app name + icon" once; the library sets the **process-level AppUserModelID** for you and (once authorized) writes the registry + caches the icon locally, so the **toast top-left shows the app name and icon**, and the jump list / taskbar grouping belong to that identity.
+
+```cpp
+struct AppInfo {
+    std::wstring displayName;      // display name (toast / jump list / taskbar grouping)
+    std::wstring aumid;            // unique id; empty = derived from displayName
+    std::shared_ptr<Image> icon;   // icon (optional)
+};
+
+bool RegisterApp(const AppInfo& info);                 // free function
+bool Application::RegisterApp(const AppInfo& info);    // forwards to the above (equivalent)
+```
+
+**Authorization macro (important)**: this library is not a system library, so touching the registry/files on the app's behalf is out of scope — it therefore requires **explicit authorization**: define the macro **before including the library headers**:
+
+```cpp
+#define ZUFYUI_ALLOW_APP_REGISTRATION
+```
+
+Without it, `RegisterApp` only sets the process AUMID (**no side effects**) and writes no registry / files.
+
+**What the library does when authorized**:
+
+1. Set the process AUMID: `SetCurrentProcessExplicitAppUserModelID`
+2. Write the registry key `HKCU\Software\Classes\AppUserModelId\<AUMID>`: `DisplayName` + `IconUri`
+3. Cache the icon at `%LOCALAPPDATA%\ZufyUI\AppReg\<AUMID>\app.ico` (exported from `Image` as a single-image `.ico`)
+4. **On process exit**: delete that cache directory and the registry key above (so `IconUri` never points at a deleted file)
+
+**Usage** (call once, preferably before creating windows):
+
+```cpp
+#define ZUFYUI_ALLOW_APP_REGISTRATION   // must be before the include
+...
+int WINAPI WinMain(...) {
+    RegisterApp(AppInfo{ L"MyApp", L"ZufyUI.MyApp", myIcon });   // aumid may be empty = derived
+    auto w = Application::Instance().CreateWindow(/*...*/);
+    // ...
+    return Application::Instance().Run();
+}
+```
+
+**Notes:**
+
+- The AUMID is per-process and unique; **call once**. When `aumid` is empty it is derived from `displayName` (spaces/illegal chars stripped; a `ZufyUI.` prefix is added if there is no dot; max 128 chars).
+- The authorization macro is a **compile-time** switch; when absent, nothing is left on the user's machine.
+- On Win10/11 a legacy tray balloon is upgraded to a toast; its top-left icon/app name come from the registry keyed by the AUMID — exactly what this registration solves (otherwise it is blank).
+- Exit cleanup is handled inside the library; the app writes no code for it.
 
 ## Independence and compatibility
 
@@ -1176,6 +1254,7 @@ class ListView : public UIElement {
     ZSignal<int> ItemDoubleClicked;
     ZSignal<std::vector<int>> SelectionChangedMulti;
     ZSignal<int, bool> ItemCheckStateChanged;
+    ZSignal<int> ItemRightClicked;   // right-click an item (passes the row)
 
     ListView();
     // data
@@ -1206,6 +1285,9 @@ class ListView : public UIElement {
     std::vector<int> GetSelectedIndices() const;
     std::vector<std::wstring> GetSelectedTexts() const;
     void SelectAll();
+
+    // right-click: row of the last right-click (for SetContextMenuFactory; -1 = none)
+    int GetContextRow() const;
 
     // checking
     void SetCheckable(bool);
@@ -1240,6 +1322,7 @@ class ListView : public UIElement {
 - `SetCheckable(true)` shows a checkbox per row; `ItemCheckStateChanged(index, checked)` reports changes.
 - Sorting: set a comparator then call `Sort(asc)` (or `SortItems`); `SetShowSortIndicator(true)` shows the arrow at the top-right.
 - Hovering an item with `SetItemToolTip` uses the shared tooltip.
+- **Right-click**: `ItemRightClicked(row)` passes the clicked row; you can also read `lv->GetContextRow()` inside `SetContextMenuFactory([...]{ ... })` to build the menu on demand.
 
 ## TableView
 
@@ -1253,6 +1336,7 @@ class TableView : public UIElement {
     ZSignal<int,int> CurrentCellChanged;
     ZSignal<std::vector<std::pair<int,int>>> SelectionChangedCells;
     ZSignal<int,bool> ItemCheckStateChanged;
+    ZSignal<int,int> CellRightClicked;   // right-click a cell (passes row, col)
 
     TableView();
     void SetRowCount(int); int GetRowCount() const;
@@ -1290,6 +1374,9 @@ class TableView : public UIElement {
     std::vector<int> GetSelectedColumns() const;
     std::vector<bool> GetSelectionStates() const;
 
+    // right-click: row/col of the last right-click (for SetContextMenuFactory; -1 = none)
+    int GetContextRow() const; int GetContextColumn() const;
+
     void SetCheckable(bool);
     void SetRowChecked(int row, bool); bool IsRowChecked(int row) const;
     std::vector<bool> GetRowCheckStates() const;
@@ -1315,6 +1402,7 @@ class TableView : public UIElement {
 - `SetRowHeightAt(row, h)` changes one row; `SetRowHeight` changes the default. Row-height changes affect scrolling and hit-testing.
 - Keyboard: `↑/↓` skip disabled rows; `←/→` and `Home/End` move the current cell.
 - `SelectionMode::None` produces no selection but still fires `CellClicked`.
+- **Right-click**: `CellRightClicked(row, col)` passes the clicked cell; you can also read `GetContextRow()/GetContextColumn()` inside `SetContextMenuFactory`.
 
 ## TreeNode
 
@@ -1456,6 +1544,8 @@ class Image {
     static std::shared_ptr<Image> FromResource(int id, const wchar_t* type);        // current module
     static std::shared_ptr<Image> FromHBITMAP(HBITMAP);
     static std::shared_ptr<Image> FromHICON(HICON);
+    HICON ToHICON() const;                              // to a system HICON (new object; DestroyIcon when done)
+    bool CopyPixelsBgra(std::vector<uint8_t>& out, int& w, int& h) const;  // export 32bpp BGRA (straight alpha)
 
     // Transforms (lightweight descriptors applied by the GPU at draw time; share one decoded source)
     std::shared_ptr<Image> Scaled(float w, float h) const;
@@ -1485,9 +1575,10 @@ class Image {
 - **Resources**: `type` may be `L"PNG"`/`L"IMAGE"`/`RT_RCDATA`/`RT_BITMAP`, etc.; `RT_BITMAP` (DIB) gets a BMP file header prepended automatically; the `HMODULE` overload can load **from a DLL's resources**.
 - **Encoding**: `Encode` uses `CreateStreamOnHGlobal` (a growable memory stream, **no temp files**) and returns the encoded bytes; `Save` writes a file directly.
 - **With `Label`**: use `Label::SetImage` + `SetIconSize` to show an icon (see "Basic controls -> Label").
+- **Interop with system icons**: `ToHICON()` returns a system `HICON` (for `SetAppIcon` / `TrayIcon`); `CopyPixelsBgra()` exports 32bpp BGRA straight-alpha pixels (e.g. to write a `.ico`).
 - **Transform matrix (root cause)**: `Rotated/Mirrored` pivot around the destination rect center. D2D matrix multiplication applies the **left operand first**, so the `Rotation/Scale` overloads that take a `center` must be used; otherwise the image is pushed out of the target rect (rotated/mirrored images appear missing).
 
-###chapter: Window tools | Custom title bar TitleBar / CaptionButton / DefaultTitleBar
+###chapter: Window tools | TitleBar / MessageBox / Tray / Taskbar / Icons and activation
 
 Window-level controls live in `ZufyUIWindowTool.h` (a collection that will later also host a built-in MessageBox, etc.).
 
@@ -1606,6 +1697,106 @@ if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }
 - Customize with `SetUserContent` (no preset buttons afterwards) or the `shared_ptr<UIElement>` ctor; for full flow control build with `blocking=false` and call `RunModal` yourself.
 - Note: `windows.h` defines `MessageBox` as a macro for `MessageBoxW`; this library `#undef`s it in `ZufyUIWindowTool.h`. Use `MessageBoxW/A` explicitly for Win32.
 
+## Window icon / activation / flash
+
+```cpp
+class Window {
+    // Unified app icon (native big/small + class icons + custom title bar)
+    void SetAppIcon(HICON bigIcon, HICON smallIcon);
+    void SetAppIcon(std::shared_ptr<Image> big, std::shared_ptr<Image> small = nullptr);  // auto-converts
+    void SetAppIconFromResource(int bigId, int smallId = 0);
+
+    enum class ActivateMode { Raise, Activate, Foreground, All };
+    void ShowActivate(ActivateMode mode = ActivateMode::All);   // restores if minimized; Foreground/All call SetForegroundWindow
+    void Raise();                                               // raise Z-order only
+
+    void Flash(int times = 5, bool alsoTaskbar = true);         // default FLASHW_ALL
+    void FlashUntilForeground();
+    void StopFlash();
+};
+```
+
+- `SetAppIcon(Image)` uses `Image::ToHICON()`; after setting, the taskbar / Alt-Tab / title bar icons are consistent (class icons included).
+- `ShowActivate(All)` = restore (if minimized) + raise + `SetForegroundWindow` (uses `AttachThreadInput` for reliability).
+- `Flash()` defaults to `FLASHW_ALL` (taskbar button + window caption).
+
+## Tray icon (TrayIcon)
+
+`Shell_NotifyIcon` wrapper (`NOTIFYICON_VERSION_4`): hover / click / right-click menu / badge / balloon.
+
+```cpp
+class TrayIcon {
+    bool Add(HICON icon, const std::wstring& tooltip, UINT id = 1);
+    bool Add(std::shared_ptr<Image> icon, const std::wstring& tooltip, UINT id = 1);   // auto-converts
+    bool AddFromResource(int resId, const std::wstring& tooltip, UINT id = 1);
+    bool AddFromFile(const std::wstring& icoPath, const std::wstring& tooltip, UINT id = 1);
+    void Remove();
+    bool IsAdded() const;
+
+    void SetIcon(HICON);   void SetIcon(std::shared_ptr<Image>);
+    void SetToolTip(const std::wstring&);
+    void SetMenu(std::shared_ptr<Menu>);
+
+    void SetBadge(Color color = Color::FromArgb(255, 220, 40, 40));   // bottom-right red dot
+    void ClearBadge();
+
+    enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
+    void ShowBalloon(const std::wstring& title, const std::wstring& text,
+                     BalloonIcon icon = BalloonIcon::Custom,
+                     HICON customIcon = nullptr, bool realtime = false, bool noSound = false);
+
+    bool GetRect(RECT& out) const;
+    HWND GetHwnd() const;
+
+    ZSignal<> Clicked; ZSignal<> DoubleClicked; ZSignal<> RightClicked;
+    ZSignal<> HoverEnter; ZSignal<> HoverLeave; ZSignal<> Selected;
+    ZSignal<> BalloonClicked; ZSignal<> BalloonDismissed; ZSignal<> BalloonTimeout;
+};
+```
+
+**Notes:**
+
+- v4 callbacks: right-click arrives as `WM_CONTEXTMENU`; hover as `NIN_POPUPOPEN/CLOSE`; double-click is detected in `NIN_SELECT` via `GetDoubleClickTime()`.
+- `Add` with the same id does `NIM_MODIFY`; re-added automatically after `explorer` restarts (`TaskbarCreated`).
+- `BalloonIcon`: `None/Info/Warning/Error` (system icons) / `Custom` (uses `customIcon`, default = current tray icon); `realtime=true` (`NIF_REALTIME`); `noSound=true` mutes.
+- ⚠️ When Win10/11 upgrades a balloon to a toast, the **top-left "app icon" comes from the registry keyed by the AUMID** (`hBalloonIcon` is ignored) → use `RegisterApp` to register the app identity so the app name and icon show.
+
+## Taskbar (progress / overlay badge / thumbnail toolbar / jump list)
+
+```cpp
+class Window {
+    enum class TaskbarProgress { None = 0, Indeterminate = 1, Normal = 2, Error = 4, Paused = 8 };
+    void SetTaskbarProgress(TaskbarProgress state, ULONGLONG completed = 0, ULONGLONG total = 0);
+    void SetTaskbarProgressValue(ULONGLONG completed, ULONGLONG total);
+    void ClearTaskbarProgress();
+
+    void SetTaskbarOverlayIcon(HICON, const std::wstring& description = L"");
+    void SetTaskbarOverlayIcon(std::shared_ptr<Image>, const std::wstring& description = L"");
+    void ClearTaskbarOverlayIcon();
+
+    // Thumbnail toolbar (buttons shown when hovering the taskbar thumbnail); ThumbButtonId is a command id
+    ZSignal<ThumbButtonId> ThumbButtonClicked;
+    void SetThumbButtons(const std::vector<std::pair<ThumbButtonId, std::wstring>>& buttons, HIMAGELIST images);
+    void SetThumbButtons(const std::vector<std::pair<ThumbButtonId, std::wstring>>& buttons,
+                         const std::vector<std::shared_ptr<Image>>& images);   // auto-builds HIMAGELIST
+    void UpdateThumbButton(ThumbButtonId id, bool enabled);
+
+    // Jump list
+    struct JumpListItem { std::wstring title, arguments, target, iconPath; int iconIndex = 0; };
+    void SetJumpList(const std::vector<JumpListItem>& tasks = {},
+                     const std::vector<std::pair<std::wstring, std::vector<JumpListItem>>>& categories = {},
+                     bool includeRecent = false);
+    void SetAppUserModelID(const std::wstring&);                 // this window's AUMID
+    static void SetProcessAppUserModelID(const std::wstring&);   // process-level
+};
+```
+
+**Notes:**
+
+- Taskbar features depend on the **process/window AUMID**; prefer `RegisterApp` to register the identity once (jump list / grouping / taskbar all belong to it).
+- The `Image` overload of `SetThumbButtons` auto-converts `Image -> HICON -> HIMAGELIST`; clicks are reported via `ThumbButtonClicked(id)`.
+- `SetJumpList` supports `tasks` (user tasks) and `categories` (custom categories) + `includeRecent` (system "Recent").
+
 ## Window-level hooks (overridable)
 
 ```cpp
@@ -1629,8 +1820,10 @@ void SetInputBlocked(bool on);          // block mouse/keyboard input for this w
 | `ProgressBar` | `ValueChanged` | `float` |
 | `Slider` | `ValueChanged` / `SliderReleased` | `float` / — |
 | `ScrollViewer` | `ScrollChanged` | `float, float` |
-| `ListView` | `SelectionChanged` / `ItemClicked` / `ItemDoubleClicked` / `SelectionChangedMulti` / `ItemCheckStateChanged` | `int` / `int` / `int` / `std::vector<int>` / `int,bool` |
-| `TableView` | `CellClicked` / `CellDoubleClicked` / `HeaderClicked` / `CurrentCellChanged` / `SelectionChangedCells` / `ItemCheckStateChanged` | `int,int` / `int,int` / `int` / `int,int` / `vector<pair<int,int>>` / `int,bool` |
+| `ListView` | `SelectionChanged` / `ItemClicked` / `ItemDoubleClicked` / `SelectionChangedMulti` / `ItemCheckStateChanged` / `ItemRightClicked` | `int` / `int` / `int` / `std::vector<int>` / `int,bool` / `int` |
+| `TableView` | `CellClicked` / `CellDoubleClicked` / `HeaderClicked` / `CurrentCellChanged` / `SelectionChangedCells` / `ItemCheckStateChanged` / `CellRightClicked` | `int,int` / `int,int` / `int` / `int,int` / `vector<pair<int,int>>` / `int,bool` / `int,int` |
+| `TrayIcon` | `Clicked` / `DoubleClicked` / `RightClicked` / `HoverEnter` / `HoverLeave` / `Selected` / `BalloonClicked` / `BalloonDismissed` / `BalloonTimeout` | — |
+| `Menu` | `ItemSelected` | `int` |
 | `TreeView` | `SelectionChanged` / `NodeClicked` / `ItemDoubleClicked` / `ItemRightClicked` / `HeaderClicked` / `SelectionChangedMulti` / `ExpandChanged` / `ItemCheckStateChanged` | see above |
 | `FontManager` | `GlobalFontChanged` | — |
 | `UIZSignals` | `DrawOverlay` / `GlobalMouseDown` / `WindowDeactivated` / `ElementCaptureRequest` / `ElementCaptureRelease` / `RepaintRequest` / `LayoutInvalidated` / `DeviceReset` | see Chapter 4 |

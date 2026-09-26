@@ -213,6 +213,7 @@ class ListView : public UIElement {
     ZSignal&lt;int&gt; ItemDoubleClicked;
     ZSignal&lt;std::vector&lt;int&gt;&gt; SelectionChangedMulti;
     ZSignal&lt;int, bool&gt; ItemCheckStateChanged;
+    ZSignal&lt;int&gt; ItemRightClicked;   // 右键点击项（传行号）
 
     ListView();
     // 数据
@@ -244,6 +245,9 @@ class ListView : public UIElement {
     std::vector&lt;int&gt; GetSelectedIndices() const;
     std::vector&lt;std::wstring&gt; GetSelectedTexts() const;
     void SelectAll();
+
+    // 右键：最近一次右键所在行（配 SetContextMenuFactory 用；-1=没点到有效行）
+    int GetContextRow() const;
 
     // 勾选
     void SetCheckable(bool);
@@ -280,6 +284,7 @@ class ListView : public UIElement {
 - `SetCheckable(true)` 后每行出现复选框，`ItemCheckStateChanged(index, checked)` 通知变化。
 - 排序：设置比较器后调用 `Sort(asc)`（或 `SortItems`）；`SetShowSortIndicator(true)` 时右上角显示排序箭头。
 - 悬停带 `SetItemToolTip` 的项时使用框架统一 ToolTip。
+- **右键**：`ItemRightClicked(row)` 传点击行号；也可在 `SetContextMenuFactory([...]{ int row = lv-&gt;GetContextRow(); ... })` 里现搭菜单。
 
 ## TableView
 
@@ -293,6 +298,7 @@ class TableView : public UIElement {
     ZSignal&lt;int,int&gt; CurrentCellChanged;
     ZSignal&lt;std::vector&lt;std::pair&lt;int,int&gt;&gt;&gt; SelectionChangedCells;
     ZSignal&lt;int,bool&gt; ItemCheckStateChanged;
+    ZSignal&lt;int,int&gt; CellRightClicked;   // 右键点击单元格（传行、列）
 
     TableView();
     // 行列
@@ -340,6 +346,10 @@ class TableView : public UIElement {
     std::vector&lt;int&gt; GetSelectedColumns() const;
     std::vector&lt;bool&gt; GetSelectionStates() const;
 
+    // 右键：最近一次右键所在行/列（配 SetContextMenuFactory 用；-1=没点到有效单元格）
+    int GetContextRow() const;
+    int GetContextColumn() const;
+
     // 勾选 / 每行禁用
     void SetCheckable(bool);
     void SetRowChecked(int row, bool); bool IsRowChecked(int row) const;
@@ -374,6 +384,7 @@ class TableView : public UIElement {
 - `SetRowHeightAt(row, h)` 只改某一行；`SetRowHeight` 改默认行高。行高变化会影响滚动与命中测试。
 - 键盘：`↑/↓` 跳过禁用行；`←/→`、`Home/End` 移动当前单元格。
 - `SelectionMode::None` 下不产生选择，但仍触发 `CellClicked`。
+- **右键**：`CellRightClicked(row, col)` 传点击的行列；也可在 `SetContextMenuFactory` 里用 `GetContextRow()/GetContextColumn()` 读。
 - **注意**：不同版本曾缺少 `GetRowCount/GetColumnCount`，当前已提供。
 
 ## TreeNode
@@ -496,7 +507,7 @@ class TreeView : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-584ecdc1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-3cf9aff1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
 
@@ -506,6 +517,7 @@ class TreeView : public UIElement {
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemDoubleClicked</span><span class="p">;</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">SelectionChangedMulti</span><span class="p">;</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemCheckStateChanged</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemRightClicked</span><span class="p">;</span><span class="w">   </span><span class="c1">// 右键点击项（传行号）</span>
 
 <span class="w">    </span><span class="n">ListView</span><span class="p">();</span>
 <span class="w">    </span><span class="c1">// 数据</span>
@@ -538,6 +550,9 @@ class TreeView : public UIElement {
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetSelectedTexts</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SelectAll</span><span class="p">();</span>
 
+<span class="w">    </span><span class="c1">// 右键：最近一次右键所在行（配 SetContextMenuFactory 用；-1=没点到有效行）</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetContextRow</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+
 <span class="w">    </span><span class="c1">// 勾选</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCheckable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItemChecked</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span>
@@ -564,7 +579,7 @@ class TreeView : public UIElement {
 <span class="w">    </span><span class="c1">//       SetAlternatingRowColor / SetMarqueeEnabled / SetButtonMode / SetButtonSpacing 等</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-584ecdc1" style="display: none;">enum class SelectionMode { Single, Extended, Multi, None };
+<pre id="code-3cf9aff1" style="display: none;">enum class SelectionMode { Single, Extended, Multi, None };
 
 class ListView : public UIElement {
     ZSignal&lt;int&gt; SelectionChanged;
@@ -572,6 +587,7 @@ class ListView : public UIElement {
     ZSignal&lt;int&gt; ItemDoubleClicked;
     ZSignal&lt;std::vector&lt;int&gt;&gt; SelectionChangedMulti;
     ZSignal&lt;int, bool&gt; ItemCheckStateChanged;
+    ZSignal&lt;int&gt; ItemRightClicked;   // 右键点击项（传行号）
 
     ListView();
     // 数据
@@ -603,6 +619,9 @@ class ListView : public UIElement {
     std::vector&lt;int&gt; GetSelectedIndices() const;
     std::vector&lt;std::wstring&gt; GetSelectedTexts() const;
     void SelectAll();
+
+    // 右键：最近一次右键所在行（配 SetContextMenuFactory 用；-1=没点到有效行）
+    int GetContextRow() const;
 
     // 勾选
     void SetCheckable(bool);
@@ -638,12 +657,13 @@ class ListView : public UIElement {
 <li><code>SetCheckable(true)</code> 后每行出现复选框，<code>ItemCheckStateChanged(index, checked)</code> 通知变化。</li>
 <li>排序：设置比较器后调用 <code>Sort(asc)</code>（或 <code>SortItems</code>）；<code>SetShowSortIndicator(true)</code> 时右上角显示排序箭头。</li>
 <li>悬停带 <code>SetItemToolTip</code> 的项时使用框架统一 ToolTip。</li>
+<li><strong>右键</strong>：<code>ItemRightClicked(row)</code> 传点击行号；也可在 <code>SetContextMenuFactory([...]{ int row = lv-&gt;GetContextRow(); ... })</code> 里现搭菜单。</li>
 </ul>
 <h2 id="tableview">TableView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7216df2d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-3b0903a7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Cell</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Column</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
 
@@ -654,6 +674,7 @@ class ListView : public UIElement {
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CurrentCellChanged</span><span class="p">;</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="n">SelectionChangedCells</span><span class="p">;</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemCheckStateChanged</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CellRightClicked</span><span class="p">;</span><span class="w">   </span><span class="c1">// 右键点击单元格（传行、列）</span>
 
 <span class="w">    </span><span class="n">TableView</span><span class="p">();</span>
 <span class="w">    </span><span class="c1">// 行列</span>
@@ -701,6 +722,10 @@ class ListView : public UIElement {
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetSelectedColumns</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetSelectionStates</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 
+<span class="w">    </span><span class="c1">// 右键：最近一次右键所在行/列（配 SetContextMenuFactory 用；-1=没点到有效单元格）</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetContextRow</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetContextColumn</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+
 <span class="w">    </span><span class="c1">// 勾选 / 每行禁用</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCheckable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRowChecked</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsRowChecked</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -725,7 +750,7 @@ class ListView : public UIElement {
 <span class="w">    </span><span class="c1">//   SetHeaderBackgroundColor / SetTextColor / SetGridLineColor / SetScrollBarColors 等</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-7216df2d" style="display: none;">enum class SelectionMode { Cell, Row, Column, None };
+<pre id="code-3b0903a7" style="display: none;">enum class SelectionMode { Cell, Row, Column, None };
 
 class TableView : public UIElement {
     ZSignal&lt;int,int&gt; CellClicked;
@@ -734,6 +759,7 @@ class TableView : public UIElement {
     ZSignal&lt;int,int&gt; CurrentCellChanged;
     ZSignal&lt;std::vector&lt;std::pair&lt;int,int&gt;&gt;&gt; SelectionChangedCells;
     ZSignal&lt;int,bool&gt; ItemCheckStateChanged;
+    ZSignal&lt;int,int&gt; CellRightClicked;   // 右键点击单元格（传行、列）
 
     TableView();
     // 行列
@@ -781,6 +807,10 @@ class TableView : public UIElement {
     std::vector&lt;int&gt; GetSelectedColumns() const;
     std::vector&lt;bool&gt; GetSelectionStates() const;
 
+    // 右键：最近一次右键所在行/列（配 SetContextMenuFactory 用；-1=没点到有效单元格）
+    int GetContextRow() const;
+    int GetContextColumn() const;
+
     // 勾选 / 每行禁用
     void SetCheckable(bool);
     void SetRowChecked(int row, bool); bool IsRowChecked(int row) const;
@@ -814,13 +844,14 @@ class TableView : public UIElement {
 <li><code>SetRowHeightAt(row, h)</code> 只改某一行；<code>SetRowHeight</code> 改默认行高。行高变化会影响滚动与命中测试。</li>
 <li>键盘：<code>↑/↓</code> 跳过禁用行；<code>←/→</code>、<code>Home/End</code> 移动当前单元格。</li>
 <li><code>SelectionMode::None</code> 下不产生选择，但仍触发 <code>CellClicked</code>。</li>
+<li><strong>右键</strong>：<code>CellRightClicked(row, col)</code> 传点击的行列；也可在 <code>SetContextMenuFactory</code> 里用 <code>GetContextRow()/GetContextColumn()</code> 读。</li>
 <li><strong>注意</strong>：不同版本曾缺少 <code>GetRowCount/GetColumnCount</code>，当前已提供。</li>
 </ul>
 <h2 id="treenode">TreeNode</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a88ea829', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-a3cb0c0f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">TreeNode</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">columns</span><span class="p">;</span><span class="w">       </span><span class="c1">// Label 化：每列一个真 Label（第 0 列为节点文本）</span>
@@ -841,7 +872,7 @@ class TableView : public UIElement {
 <span class="w">    </span><span class="n">TreeNode</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">cols</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-a88ea829" style="display: none;">struct TreeNode {
+<pre id="code-a3cb0c0f" style="display: none;">struct TreeNode {
     std::vector&lt;std::shared_ptr&lt;Label&gt;&gt; columns;       // Label 化：每列一个真 Label（第 0 列为节点文本）
     TreeNode* parent = nullptr;                        // 非拥有
     std::vector&lt;std::shared_ptr&lt;TreeNode&gt;&gt; children;
@@ -869,7 +900,7 @@ class TableView : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-46e102b9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-4e143dd1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">CheckMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Linked</span><span class="p">,</span><span class="w"> </span><span class="n">Independent</span><span class="w"> </span><span class="p">};</span><span class="w">          </span><span class="c1">// 勾选父子联动/独立</span>
@@ -943,7 +974,7 @@ class TableView : public UIElement {
 <span class="w">    </span><span class="c1">// 框选：SetMarqueeEnabled / SetMarqueeCheckSync</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-46e102b9" style="display: none;">enum class SelectionMode { Single, Extended, Multi };
+<pre id="code-4e143dd1" style="display: none;">enum class SelectionMode { Single, Extended, Multi };
 enum class CheckMode { Linked, Independent };          // 勾选父子联动/独立
 
 class TreeView : public UIElement {

@@ -403,7 +403,9 @@ struct FontSpec {
 | `Window* GetWindow() const` | 所属窗口；未挂载或窗口已销毁时返回 `nullptr`（内部按窗口 id 查找，不持有裸指针） |
 | `void SetVisible(bool)` / `bool IsVisible() const` | 可见性；设为 false 会释放缓存，并触发 `OnVisibilityChanged(false)` |
 | `virtual void OnVisibilityChanged(bool visible)` | 可见性变化钩子；例如 `ComboBox` 在隐藏时会自动收起下拉弹层 |
-| `void SetContextMenu(std::shared_ptr<Menu>)` / `GetContextMenu()` | 右键菜单 |
+| `void SetContextMenu(std::shared_ptr<Menu>)` / `GetContextMenu()` | 固定右键菜单 |
+| `void SetContextMenuFactory(std::function<std::shared_ptr<Menu>()>)` / `BuildContextMenu()` | **动态菜单工厂**：每次右键现搭（可依据当前状态）；优先于固定菜单 |
+| `void SetContextMenuEnabled(bool)` / `bool IsContextMenuEnabled() const` | 是否允许右键出菜单（默认允许） |
 | `virtual bool OnContextMenu(float,float)` | 右键钩子；返回 true 表示已处理，不再弹默认菜单 |
 | `void SetBleed(float)` / `float GetBleed() const` | 缓存出血（默认 `4.0f`） |
 | `template<typename Signal, typename Slot> Connection Connect(Signal&, Slot&&)` | 连接信号：连接登记进本元素的 `ConnectionGroup`（元素析构时自动断开），并返回 Qt 风格的**被动 `Connection` 句柄**（析构不断连）。忽略返回值安全；要单独断开写 `auto c = Connect(...); c.disconnect();` |
@@ -610,6 +612,17 @@ class MenuItem {
     Type type = Type::Normal;
     bool enabled = true;
     std::shared_ptr<Label> icon;
+    // ---- 增强字段 ----
+    int id = 0;                      // 命令 id（配 Menu::ItemSelected）
+    bool checkable = false;          // 显示勾选列
+    bool checked = false;            // 勾选状态
+    bool radio = false;              // 单选（同菜单内互斥）
+    bool isDefault = false;          // 默认项：加粗 + 回车触发
+    bool danger = false;             // 危险项：红字
+    std::wstring shortcut;           // 右侧快捷键提示（仅展示）
+    std::optional<Color> bgColor;    // 该项自定义背景色（带圆角）
+    std::optional<Color> textColor;  // 该项自定义文字色
+    std::optional<FontSpec> font;    // 该项自定义字体（缺省=Menu::font）
 };
 ```
 
@@ -617,15 +630,29 @@ class MenuItem {
 
 ```cpp
 class Menu : public std::enable_shared_from_this<Menu> {
-    void AddItem(const std::wstring& text, std::function<void()> callback = nullptr);
+    inline static FontSpec DefaultFont{};              // 全局默认菜单字体
+    void AddItem(const std::wstring& text, std::function<void()> callback = nullptr, int id = 0);
+    void AddCheckItem(const std::wstring& text, bool checked,
+                      std::function<void(bool)> onToggle = nullptr, int id = 0, bool radio = false);
     void AddSeparator();
-    void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu);
+    void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id = 0);
+
     std::vector<std::shared_ptr<MenuItem>> items;
+    std::function<void(Menu&)> onOpening;   // 弹出前回调（可现场改勾选/启用/文字）
+    ZSignal<int> ItemSelected;              // 任一普通项被点（带 id；根菜单接收子菜单的点击）
+    FontSpec font = DefaultFont;            // 菜单字体
+    static void SetDefaultFont(const FontSpec&);
+
+    void ShowAt(int screenX, int screenY);  // 独立弹出（不绑定任何窗口；典型用途=托盘菜单）
+    void ShowAtCursor();                    // 在鼠标当前位置弹出
 };
 ```
 
-- 用 `AddItem` 添加可点击项，`AddSeparator` 添加分隔线，`AddSubmenu` 添加子菜单。
-- 把菜单设置到元素：`element->SetContextMenu(menu);`，或设置到窗口：`window.SetContextMenu(menu);`。
+- 用 `AddItem` 添加可点击项，`AddSeparator` 添加分隔线，`AddSubmenu` 添加子菜单，`AddCheckItem` 添加勾选/单选项。
+- 把菜单设置到元素：`element->SetContextMenu(menu);`（或用 `SetContextMenuFactory` 动态现搭），或设置到窗口：`window.SetContextMenu(menu);`。
+- **独立弹出**：`menu->ShowAtCursor()` 在鼠标处弹出，不绑定窗口，适合托盘右键菜单；会先关掉其它已打开的菜单（互斥）。
+- **信号槽**：项可传 `id`，用 `menu->ItemSelected.connect([](int id){...})` 统一收；`菜单项->Clicked` / `AddItem` 的回调仍可用。`onOpening` 在每次弹出前调用，可现场改勾选/启用/文字。
+- **外观**：`MenuItem::bgColor` / `textColor` / `font` 逐项覆盖；`Menu::font` 整体字体；悬停高亮为半透明叠加（自定义底色上仍可见）。支持 `isDefault`（加粗 + 回车触发）、`danger`（红字）、`shortcut`（右侧快捷键提示）、`enabled=false`（禁用）。
 
 ## MenuWindow（弹出菜单窗口，框架内部使用）
 
@@ -800,6 +827,7 @@ class Application {
     void Quit(int code = 0);
     void CloseAllWindows();
     size_t WindowCount() const;
+    bool RegisterApp(const AppInfo& info);   // 应用身份自注册（见「应用身份自注册」）
     static Application& Instance();
 };
 ```
@@ -823,6 +851,56 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 - 在 `Run()` 之后（消息循环运行期间）调用 `CreateWindow` 也能正常显示新窗口。
 - 关闭任意窗口不影响其它窗口；**最后一个窗口关闭时**循环自动退出。也可用 `Quit()` 主动退出。
 - 单进程应只有一个 UI 线程在跑窗口（与 Win32 一致）。
+
+## 应用身份自注册（RegisterApp / AppInfo）
+
+把「应用名 + 图标」声明一次，库统一替你设好**进程级 AppUserModelID**，并（在授权后）写注册表 + 把图标缓存到本地，让 **toast 左上角显示应用名与图标**、跳转列表 / 任务栏分组也统一归属该身份。
+
+```cpp
+struct AppInfo {
+    std::wstring displayName;      // 显示名称（toast / 跳转列表 / 任务栏分组）
+    std::wstring aumid;            // 唯一 ID；留空=由 displayName 自动派生
+    std::shared_ptr<Image> icon;   // 图标（可空）
+};
+
+bool RegisterApp(const AppInfo& info);                 // 自由函数
+bool Application::RegisterApp(const AppInfo& info);    // 转发到上面（两者等价）
+```
+
+**授权宏（重要）**：本库不是系统库，替应用动注册表/文件属于越界行为，因此**必须显式授权**——在包含本库头文件**之前**定义宏：
+
+```cpp
+#define ZUFYUI_ALLOW_APP_REGISTRATION
+```
+
+未定义该宏时：`RegisterApp` 只设置进程 AUMID（**无副作用**），不写注册表、不落文件。
+
+**授权后库会做什么**：
+
+1. 设置进程级 AUMID：`SetCurrentProcessExplicitAppUserModelID`
+2. 写注册表 `HKCU\Software\Classes\AppUserModelId\<AUMID>`：`DisplayName` + `IconUri`
+3. 把图标缓存到 `%LOCALAPPDATA%\ZufyUI\AppReg\<AUMID>\app.ico`（由 `Image` 导出为单图 `.ico`）
+4. **进程退出时**清空该缓存目录，并删除上面写的注册表项（避免 `IconUri` 指向已删除文件）
+
+**用法**（建议创建窗口前调用一次）：
+
+```cpp
+#define ZUFYUI_ALLOW_APP_REGISTRATION   // 需在 include 之前
+...
+int WINAPI WinMain(...) {
+    RegisterApp(AppInfo{ L"我的应用", L"ZufyUI.MyApp", myIcon });   // aumid 可留空自动派生
+    auto w = Application::Instance().CreateWindow(/*...*/);
+    // ...
+    return Application::Instance().Run();
+}
+```
+
+**要点**：
+
+- AUMID 每进程唯一；**只需调用一次**。`aumid` 留空时由 `displayName` 派生（去空格/非法字符；无点号则自动加 `ZufyUI.` 前缀，最长 128 字符）。
+- 授权宏是**编译期**开关；未授权不会在用户机器上留下任何痕迹。
+- Win10/11 里老式托盘气球会升级成 toast，其左上角图标/应用名由系统按 AUMID 查注册表得到——这一步正是「库替应用注册」解决的事（否则为空白）。
+- 退出清理在库内部完成，无需应用写任何代码。
 
 ## 多窗口的独立性与兼容
 
@@ -1207,6 +1285,7 @@ class ListView : public UIElement {
     ZSignal<int> ItemDoubleClicked;
     ZSignal<std::vector<int>> SelectionChangedMulti;
     ZSignal<int, bool> ItemCheckStateChanged;
+    ZSignal<int> ItemRightClicked;   // 右键点击项（传行号）
 
     ListView();
     // 数据
@@ -1238,6 +1317,9 @@ class ListView : public UIElement {
     std::vector<int> GetSelectedIndices() const;
     std::vector<std::wstring> GetSelectedTexts() const;
     void SelectAll();
+
+    // 右键：最近一次右键所在行（配 SetContextMenuFactory 用；-1=没点到有效行）
+    int GetContextRow() const;
 
     // 勾选
     void SetCheckable(bool);
@@ -1274,6 +1356,7 @@ class ListView : public UIElement {
 - `SetCheckable(true)` 后每行出现复选框，`ItemCheckStateChanged(index, checked)` 通知变化。
 - 排序：设置比较器后调用 `Sort(asc)`（或 `SortItems`）；`SetShowSortIndicator(true)` 时右上角显示排序箭头。
 - 悬停带 `SetItemToolTip` 的项时使用框架统一 ToolTip。
+- **右键**：`ItemRightClicked(row)` 传点击行号；也可在 `SetContextMenuFactory([...]{ int row = lv->GetContextRow(); ... })` 里现搭菜单。
 
 ## TableView
 
@@ -1287,6 +1370,7 @@ class TableView : public UIElement {
     ZSignal<int,int> CurrentCellChanged;
     ZSignal<std::vector<std::pair<int,int>>> SelectionChangedCells;
     ZSignal<int,bool> ItemCheckStateChanged;
+    ZSignal<int,int> CellRightClicked;   // 右键点击单元格（传行、列）
 
     TableView();
     // 行列
@@ -1334,6 +1418,10 @@ class TableView : public UIElement {
     std::vector<int> GetSelectedColumns() const;
     std::vector<bool> GetSelectionStates() const;
 
+    // 右键：最近一次右键所在行/列（配 SetContextMenuFactory 用；-1=没点到有效单元格）
+    int GetContextRow() const;
+    int GetContextColumn() const;
+
     // 勾选 / 每行禁用
     void SetCheckable(bool);
     void SetRowChecked(int row, bool); bool IsRowChecked(int row) const;
@@ -1368,6 +1456,7 @@ class TableView : public UIElement {
 - `SetRowHeightAt(row, h)` 只改某一行；`SetRowHeight` 改默认行高。行高变化会影响滚动与命中测试。
 - 键盘：`↑/↓` 跳过禁用行；`←/→`、`Home/End` 移动当前单元格。
 - `SelectionMode::None` 下不产生选择，但仍触发 `CellClicked`。
+- **右键**：`CellRightClicked(row, col)` 传点击的行列；也可在 `SetContextMenuFactory` 里用 `GetContextRow()/GetContextColumn()` 读。
 - **注意**：不同版本曾缺少 `GetRowCount/GetColumnCount`，当前已提供。
 
 ## TreeNode
@@ -1528,6 +1617,8 @@ class Image {
     static std::shared_ptr<Image> FromResource(int id, const wchar_t* type);        // 当前模块
     static std::shared_ptr<Image> FromHBITMAP(HBITMAP);
     static std::shared_ptr<Image> FromHICON(HICON);
+    HICON ToHICON() const;                              // 转回系统 HICON（新建对象，用完 DestroyIcon）
+    bool CopyPixelsBgra(std::vector<uint8_t>& out, int& w, int& h) const;  // 导出 32bpp BGRA（直通 alpha）
 
     // 变换（轻量描述符，绘制时 GPU 施加，共享同一份解码数据）
     std::shared_ptr<Image> Scaled(float w, float h) const;
@@ -1557,9 +1648,10 @@ class Image {
 - **资源**：`FromResource` 的 `type` 可传 `L"PNG"`/`L"IMAGE"`/`RT_RCDATA`/`RT_BITMAP` 等；`RT_BITMAP`（DIB）会自动补 BMP 文件头再解码；`HMODULE` 版本可用于**从 DLL 资源**加载。
 - **编码**：`Encode` 用 `CreateStreamOnHGlobal` 得到可增长内存流（**无临时文件**），返回编码字节；`Save` 直接写文件。
 - **配合 `Label`**：`Label::SetImage` + `SetIconSize` 即可显示图标（见“基础控件 → Label”）。
+- **与系统图标互转**：`ToHICON()` 得到系统 `HICON`（用于 `SetAppIcon` / `TrayIcon` 等）；`CopyPixelsBgra()` 导出 32bpp BGRA 直通像素（用于写 `.ico` 等）。
 - **变换矩阵（根源）**：`Rotated/Mirrored` 以目标矩形中心为轴。D2D 矩阵乘法是“左侧先应用”，必须用带 `center` 的 `Rotation/Scale` 重载，否则会把图像推出目标矩形（表现为旋转/镜像后什么都看不到）。
 
-###chapter: 窗口工具 | 自定义标题栏 TitleBar / CaptionButton / DefaultTitleBar
+###chapter: 窗口工具 | TitleBar / MessageBox / 托盘 / 任务栏 / 图标与激活
 
 窗口工具控件在 `ZufyUIWindowTool.h`（窗口级控件集合，后续还会放内置 MessageBox 等）。
 
@@ -1678,6 +1770,106 @@ if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }
 - 自定义：`SetUserContent`（之后没有预设按钮）或直接用带 `shared_ptr<UIElement>` 的构造；需要自己控制流程时用 `blocking=false` 建窗后自行 `RunModal`。
 - 注意：`windows.h` 里 `MessageBox` 是 `MessageBoxW` 的宏，本库在 `ZufyUIWindowTool.h` 中 `#undef` 掉它；要用 Win32 的请显式写 `MessageBoxW/A`。
 
+## 窗口图标 / 激活 / 闪烁
+
+```cpp
+class Window {
+    // 统一设置应用图标（原生大/小图标 + 类图标 + 自定义标题栏）
+    void SetAppIcon(HICON bigIcon, HICON smallIcon);
+    void SetAppIcon(std::shared_ptr<Image> big, std::shared_ptr<Image> small = nullptr);  // 自动转 HICON
+    void SetAppIconFromResource(int bigId, int smallId = 0);
+
+    enum class ActivateMode { Raise, Activate, Foreground, All };
+    void ShowActivate(ActivateMode mode = ActivateMode::All);   // 最小化则还原；Foreground/All 调 SetForegroundWindow
+    void Raise();                                               // 仅提升 Z 序
+
+    void Flash(int times = 5, bool alsoTaskbar = true);         // 默认 FLASHW_ALL
+    void FlashUntilForeground();
+    void StopFlash();
+};
+```
+
+- `SetAppIcon(Image)` 走 `Image::ToHICON()`；设置后任务栏 / Alt-Tab / 标题栏图标一致（另含类图标）。
+- `ShowActivate(All)` = 还原（若最小化）+ 置顶 + `SetForegroundWindow`（内部 `AttachThreadInput` 提高成功率）。
+- `Flash()` 默认 `FLASHW_ALL`（任务栏按钮 + 窗口标题）。
+
+## 托盘图标（TrayIcon）
+
+`Shell_NotifyIcon` 封装（`NOTIFYICON_VERSION_4`）：悬停 / 点击 / 右键菜单 / 徽章 / 气泡通知。
+
+```cpp
+class TrayIcon {
+    bool Add(HICON icon, const std::wstring& tooltip, UINT id = 1);
+    bool Add(std::shared_ptr<Image> icon, const std::wstring& tooltip, UINT id = 1);   // 自动转
+    bool AddFromResource(int resId, const std::wstring& tooltip, UINT id = 1);
+    bool AddFromFile(const std::wstring& icoPath, const std::wstring& tooltip, UINT id = 1);
+    void Remove();
+    bool IsAdded() const;
+
+    void SetIcon(HICON);   void SetIcon(std::shared_ptr<Image>);
+    void SetToolTip(const std::wstring&);
+    void SetMenu(std::shared_ptr<Menu>);
+
+    void SetBadge(Color color = Color::FromArgb(255, 220, 40, 40));   // 右下角小红点
+    void ClearBadge();
+
+    enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
+    void ShowBalloon(const std::wstring& title, const std::wstring& text,
+                     BalloonIcon icon = BalloonIcon::Custom,
+                     HICON customIcon = nullptr, bool realtime = false, bool noSound = false);
+
+    bool GetRect(RECT& out) const;
+    HWND GetHwnd() const;
+
+    ZSignal<> Clicked; ZSignal<> DoubleClicked; ZSignal<> RightClicked;
+    ZSignal<> HoverEnter; ZSignal<> HoverLeave; ZSignal<> Selected;
+    ZSignal<> BalloonClicked; ZSignal<> BalloonDismissed; ZSignal<> BalloonTimeout;
+};
+```
+
+**要点**：
+
+- v4 回调：右键以 `WM_CONTEXTMENU` 到达；悬停 `NIN_POPUPOPEN/CLOSE`；双击在 `NIN_SELECT` 里按 `GetDoubleClickTime()` 判定。
+- 重复 `Add` 同 ID 自动 `NIM_MODIFY`；`explorer` 重启后自动重加（`TaskbarCreated`）。
+- `BalloonIcon`：`None/Info/Warning/Error`（系统图标）/`Custom`（用 `customIcon`，缺省=当前托盘图标）；`realtime=true`（`NIF_REALTIME`）；`noSound=true` 静音。
+- ⚠️ Win10/11 把气球升级成 toast 时，**左上角“应用图标”由系统按 AUMID 查注册表**（`hBalloonIcon` 被忽略）→ 用 `RegisterApp` 登记应用身份即可显示应用名与图标。
+
+## 任务栏（进度 / 覆盖徽章 / 缩略图工具栏 / 跳转列表）
+
+```cpp
+class Window {
+    enum class TaskbarProgress { None = 0, Indeterminate = 1, Normal = 2, Error = 4, Paused = 8 };
+    void SetTaskbarProgress(TaskbarProgress state, ULONGLONG completed = 0, ULONGLONG total = 0);
+    void SetTaskbarProgressValue(ULONGLONG completed, ULONGLONG total);
+    void ClearTaskbarProgress();
+
+    void SetTaskbarOverlayIcon(HICON, const std::wstring& description = L"");
+    void SetTaskbarOverlayIcon(std::shared_ptr<Image>, const std::wstring& description = L"");
+    void ClearTaskbarOverlayIcon();
+
+    // 缩略图工具栏（缩略图悬停时的一排按钮）；ThumbButtonId 为命令 id
+    ZSignal<ThumbButtonId> ThumbButtonClicked;
+    void SetThumbButtons(const std::vector<std::pair<ThumbButtonId, std::wstring>>& buttons, HIMAGELIST images);
+    void SetThumbButtons(const std::vector<std::pair<ThumbButtonId, std::wstring>>& buttons,
+                         const std::vector<std::shared_ptr<Image>>& images);   // 自动建 HIMAGELIST
+    void UpdateThumbButton(ThumbButtonId id, bool enabled);
+
+    // 跳转列表
+    struct JumpListItem { std::wstring title, arguments, target, iconPath; int iconIndex = 0; };
+    void SetJumpList(const std::vector<JumpListItem>& tasks = {},
+                     const std::vector<std::pair<std::wstring, std::vector<JumpListItem>>>& categories = {},
+                     bool includeRecent = false);
+    void SetAppUserModelID(const std::wstring&);                 // 本窗口 AUMID
+    static void SetProcessAppUserModelID(const std::wstring&);   // 进程级
+};
+```
+
+**要点**：
+
+- 任务栏能力依赖**进程/窗口 AUMID**；建议用 `RegisterApp` 统一登记（跳转列表 / 分组 / taskbar 都归属该身份）。
+- `SetThumbButtons` 的 `Image` 版会自动 `Image → HICON → HIMAGELIST`；点击经 `ThumbButtonClicked(id)` 通知。
+- `SetJumpList` 支持 `tasks`（用户任务）与 `categories`（自定义分类）+ `includeRecent`（系统“最近”）。
+
 ## 窗口级钩子（可重写）
 
 ```cpp
@@ -1701,8 +1893,10 @@ void SetInputBlocked(bool on);          // 屏蔽本窗口鼠标/键盘输入
 | `ProgressBar` | `ValueChanged` | `float` |
 | `Slider` | `ValueChanged` / `SliderReleased` | `float` / — |
 | `ScrollViewer` | `ScrollChanged` | `float, float` |
-| `ListView` | `SelectionChanged` / `ItemClicked` / `ItemDoubleClicked` / `SelectionChangedMulti` / `ItemCheckStateChanged` | `int` / `int` / `int` / `std::vector<int>` / `int,bool` |
-| `TableView` | `CellClicked` / `CellDoubleClicked` / `HeaderClicked` / `CurrentCellChanged` / `SelectionChangedCells` / `ItemCheckStateChanged` | `int,int` / `int,int` / `int` / `int,int` / `vector<pair<int,int>>` / `int,bool` |
+| `ListView` | `SelectionChanged` / `ItemClicked` / `ItemDoubleClicked` / `SelectionChangedMulti` / `ItemCheckStateChanged` / `ItemRightClicked` | `int` / `int` / `int` / `std::vector<int>` / `int,bool` / `int` |
+| `TableView` | `CellClicked` / `CellDoubleClicked` / `HeaderClicked` / `CurrentCellChanged` / `SelectionChangedCells` / `ItemCheckStateChanged` / `CellRightClicked` | `int,int` / `int,int` / `int` / `int,int` / `vector<pair<int,int>>` / `int,bool` / `int,int` |
+| `TrayIcon` | `Clicked` / `DoubleClicked` / `RightClicked` / `HoverEnter` / `HoverLeave` / `Selected` / `BalloonClicked` / `BalloonDismissed` / `BalloonTimeout` | — |
+| `Menu` | `ItemSelected` | `int` |
 | `TreeView` | `SelectionChanged` / `NodeClicked` / `ItemDoubleClicked` / `ItemRightClicked` / `HeaderClicked` / `SelectionChangedMulti` / `ExpandChanged` / `ItemCheckStateChanged` | 见上 |
 | `FontManager` | `GlobalFontChanged` | — |
 | `UIZSignals` | `DrawOverlay` / `GlobalMouseDown` / `WindowDeactivated` / `ElementCaptureRequest` / `ElementCaptureRelease` / `RepaintRequest` / `LayoutInvalidated` / `DeviceReset` | 见第 4 章 |

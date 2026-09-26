@@ -243,6 +243,8 @@ class Image {
     static std::shared_ptr&lt;Image&gt; FromResource(int id, const wchar_t* type);        // current module
     static std::shared_ptr&lt;Image&gt; FromHBITMAP(HBITMAP);
     static std::shared_ptr&lt;Image&gt; FromHICON(HICON);
+    HICON ToHICON() const;                              // to a system HICON (new object; DestroyIcon when done)
+    bool CopyPixelsBgra(std::vector&lt;uint8_t&gt;&amp; out, int&amp; w, int&amp; h) const;  // export 32bpp BGRA (straight alpha)
 
     // Transforms (lightweight descriptors applied by the GPU at draw time; share one decoded source)
     std::shared_ptr&lt;Image&gt; Scaled(float w, float h) const;
@@ -272,6 +274,7 @@ class Image {
 - **Resources**: `type` may be `L"PNG"`/`L"IMAGE"`/`RT_RCDATA`/`RT_BITMAP`, etc.; `RT_BITMAP` (DIB) gets a BMP file header prepended automatically; the `HMODULE` overload can load **from a DLL's resources**.
 - **Encoding**: `Encode` uses `CreateStreamOnHGlobal` (a growable memory stream, **no temp files**) and returns the encoded bytes; `Save` writes a file directly.
 - **With `Label`**: use `Label::SetImage` + `SetIconSize` to show an icon (see "Basic controls -&gt; Label").
+- **Interop with system icons**: `ToHICON()` returns a system `HICON` (for `SetAppIcon` / `TrayIcon`); `CopyPixelsBgra()` exports 32bpp BGRA straight-alpha pixels (e.g. to write a `.ico`).
 - **Transform matrix (root cause)**: `Rotated/Mirrored` pivot around the destination rect center. D2D matrix multiplication applies the **left operand first**, so the `Rotation/Scale` overloads that take a `center` must be used; otherwise the image is pushed out of the target rect (rotated/mirrored images appear missing).</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 13 · Images</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 13</span><h1>Images</h1><p class="chapter-summary">Image, ImageManager, ImageDeviceCache</p></header><p>The image system lives in <code>ZufyUIImages.h</code>: WIC decoding plus Direct2D (GPU) drawing and transforms.</p>
@@ -279,7 +282,7 @@ class Image {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3749943b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-82d8e6b5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ImageManager</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">ImageManager</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
@@ -294,7 +297,7 @@ class Image {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Clear</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-3749943b" style="display: none;">class ImageManager {
+<pre id="code-82d8e6b5" style="display: none;">class ImageManager {
     static ImageManager&amp; Instance();
     IWICImagingFactory* Factory();                        // shared WIC factory
     void RegisterCache(const std::shared_ptr&lt;ImageDeviceCache&gt;&amp;);
@@ -315,7 +318,7 @@ class ImageDeviceCache {                                  // per-render-target I
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c70badfd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-1857cef4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Image</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Format</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Png</span><span class="p">,</span><span class="w"> </span><span class="n">Jpeg</span><span class="p">,</span><span class="w"> </span><span class="n">Bmp</span><span class="p">,</span><span class="w"> </span><span class="n">Gif</span><span class="p">,</span><span class="w"> </span><span class="n">Tiff</span><span class="w"> </span><span class="p">};</span>
@@ -335,6 +338,8 @@ class ImageDeviceCache {                                  // per-render-target I
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromResource</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">wchar_t</span><span class="o">*</span><span class="w"> </span><span class="n">type</span><span class="p">);</span><span class="w">        </span><span class="c1">// current module</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromHBITMAP</span><span class="p">(</span><span class="n">HBITMAP</span><span class="p">);</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromHICON</span><span class="p">(</span><span class="n">HICON</span><span class="p">);</span>
+<span class="w">    </span><span class="n">HICON</span><span class="w"> </span><span class="nf">ToHICON</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                              </span><span class="c1">// to a system HICON (new object; DestroyIcon when done)</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">CopyPixelsBgra</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">h</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="c1">// export 32bpp BGRA (straight alpha)</span>
 
 <span class="w">    </span><span class="c1">// Transforms (lightweight descriptors applied by the GPU at draw time; share one decoded source)</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Scaled</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -355,7 +360,7 @@ class ImageDeviceCache {                                  // per-render-target I
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Encode</span><span class="p">(</span><span class="n">Format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Format</span><span class="o">::</span><span class="n">Png</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">quality</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.9f</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-c70badfd" style="display: none;">class Image {
+<pre id="code-1857cef4" style="display: none;">class Image {
     enum class Format { Png, Jpeg, Bmp, Gif, Tiff };
     enum class Interpolation { Nearest, Linear };
     struct DrawOptions { float opacity = 1.0f; Interpolation interpolation = Interpolation::Linear; };
@@ -373,6 +378,8 @@ class ImageDeviceCache {                                  // per-render-target I
     static std::shared_ptr&lt;Image&gt; FromResource(int id, const wchar_t* type);        // current module
     static std::shared_ptr&lt;Image&gt; FromHBITMAP(HBITMAP);
     static std::shared_ptr&lt;Image&gt; FromHICON(HICON);
+    HICON ToHICON() const;                              // to a system HICON (new object; DestroyIcon when done)
+    bool CopyPixelsBgra(std::vector&lt;uint8_t&gt;&amp; out, int&amp; w, int&amp; h) const;  // export 32bpp BGRA (straight alpha)
 
     // Transforms (lightweight descriptors applied by the GPU at draw time; share one decoded source)
     std::shared_ptr&lt;Image&gt; Scaled(float w, float h) const;
@@ -401,9 +408,10 @@ class ImageDeviceCache {                                  // per-render-target I
 <li><strong>Resources</strong>: <code>type</code> may be <code>L"PNG"</code>/<code>L"IMAGE"</code>/<code>RT_RCDATA</code>/<code>RT_BITMAP</code>, etc.; <code>RT_BITMAP</code> (DIB) gets a BMP file header prepended automatically; the <code>HMODULE</code> overload can load <strong>from a DLL's resources</strong>.</li>
 <li><strong>Encoding</strong>: <code>Encode</code> uses <code>CreateStreamOnHGlobal</code> (a growable memory stream, <strong>no temp files</strong>) and returns the encoded bytes; <code>Save</code> writes a file directly.</li>
 <li><strong>With <code>Label</code></strong>: use <code>Label::SetImage</code> + <code>SetIconSize</code> to show an icon (see "Basic controls -&gt; Label").</li>
+<li><strong>Interop with system icons</strong>: <code>ToHICON()</code> returns a system <code>HICON</code> (for <code>SetAppIcon</code> / <code>TrayIcon</code>); <code>CopyPixelsBgra()</code> exports 32bpp BGRA straight-alpha pixels (e.g. to write a <code>.ico</code>).</li>
 <li><strong>Transform matrix (root cause)</strong>: <code>Rotated/Mirrored</code> pivot around the destination rect center. D2D matrix multiplication applies the <strong>left operand first</strong>, so the <code>Rotation/Scale</code> overloads that take a <code>center</code> must be used; otherwise the image is pushed out of the target rect (rotated/mirrored images appear missing).</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.12.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Data views</span><span class="nav-desc">ListView, TableView, TreeNode, TreeView</span></a><a class="next" href="API.en.14.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Window tools</span><span class="nav-desc">Custom title bar TitleBar / CaptionButton / DefaultTitleBar</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.en.12.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Data views</span><span class="nav-desc">ListView, TableView, TreeNode, TreeView</span></a><a class="next" href="API.en.14.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Window tools</span><span class="nav-desc">TitleBar / MessageBox / Tray / Taskbar / Icons and activation</span></a></nav>
         </main>
     </div>
 

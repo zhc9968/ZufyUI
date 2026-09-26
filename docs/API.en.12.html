@@ -213,6 +213,7 @@ class ListView : public UIElement {
     ZSignal&lt;int&gt; ItemDoubleClicked;
     ZSignal&lt;std::vector&lt;int&gt;&gt; SelectionChangedMulti;
     ZSignal&lt;int, bool&gt; ItemCheckStateChanged;
+    ZSignal&lt;int&gt; ItemRightClicked;   // right-click an item (passes the row)
 
     ListView();
     // data
@@ -243,6 +244,9 @@ class ListView : public UIElement {
     std::vector&lt;int&gt; GetSelectedIndices() const;
     std::vector&lt;std::wstring&gt; GetSelectedTexts() const;
     void SelectAll();
+
+    // right-click: row of the last right-click (for SetContextMenuFactory; -1 = none)
+    int GetContextRow() const;
 
     // checking
     void SetCheckable(bool);
@@ -277,6 +281,7 @@ class ListView : public UIElement {
 - `SetCheckable(true)` shows a checkbox per row; `ItemCheckStateChanged(index, checked)` reports changes.
 - Sorting: set a comparator then call `Sort(asc)` (or `SortItems`); `SetShowSortIndicator(true)` shows the arrow at the top-right.
 - Hovering an item with `SetItemToolTip` uses the shared tooltip.
+- **Right-click**: `ItemRightClicked(row)` passes the clicked row; you can also read `lv-&gt;GetContextRow()` inside `SetContextMenuFactory([...]{ ... })` to build the menu on demand.
 
 ## TableView
 
@@ -290,6 +295,7 @@ class TableView : public UIElement {
     ZSignal&lt;int,int&gt; CurrentCellChanged;
     ZSignal&lt;std::vector&lt;std::pair&lt;int,int&gt;&gt;&gt; SelectionChangedCells;
     ZSignal&lt;int,bool&gt; ItemCheckStateChanged;
+    ZSignal&lt;int,int&gt; CellRightClicked;   // right-click a cell (passes row, col)
 
     TableView();
     void SetRowCount(int); int GetRowCount() const;
@@ -327,6 +333,9 @@ class TableView : public UIElement {
     std::vector&lt;int&gt; GetSelectedColumns() const;
     std::vector&lt;bool&gt; GetSelectionStates() const;
 
+    // right-click: row/col of the last right-click (for SetContextMenuFactory; -1 = none)
+    int GetContextRow() const; int GetContextColumn() const;
+
     void SetCheckable(bool);
     void SetRowChecked(int row, bool); bool IsRowChecked(int row) const;
     std::vector&lt;bool&gt; GetRowCheckStates() const;
@@ -352,6 +361,7 @@ class TableView : public UIElement {
 - `SetRowHeightAt(row, h)` changes one row; `SetRowHeight` changes the default. Row-height changes affect scrolling and hit-testing.
 - Keyboard: `↑/↓` skip disabled rows; `←/→` and `Home/End` move the current cell.
 - `SelectionMode::None` produces no selection but still fires `CellClicked`.
+- **Right-click**: `CellRightClicked(row, col)` passes the clicked cell; you can also read `GetContextRow()/GetContextColumn()` inside `SetContextMenuFactory`.
 
 ## TreeNode
 
@@ -455,7 +465,7 @@ class TreeView : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2a617f52', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-e88cc1a8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
 
@@ -465,6 +475,7 @@ class TreeView : public UIElement {
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemDoubleClicked</span><span class="p">;</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">SelectionChangedMulti</span><span class="p">;</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemCheckStateChanged</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemRightClicked</span><span class="p">;</span><span class="w">   </span><span class="c1">// right-click an item (passes the row)</span>
 
 <span class="w">    </span><span class="n">ListView</span><span class="p">();</span>
 <span class="w">    </span><span class="c1">// data</span>
@@ -496,6 +507,9 @@ class TreeView : public UIElement {
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetSelectedTexts</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SelectAll</span><span class="p">();</span>
 
+<span class="w">    </span><span class="c1">// right-click: row of the last right-click (for SetContextMenuFactory; -1 = none)</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetContextRow</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+
 <span class="w">    </span><span class="c1">// checking</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCheckable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItemChecked</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsItemChecked</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -520,7 +534,7 @@ class TreeView : public UIElement {
 <span class="w">    </span><span class="c1">//   SetAlternatingRowColor / SetMarqueeEnabled / SetButtonMode / SetButtonSpacing ...</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-2a617f52" style="display: none;">enum class SelectionMode { Single, Extended, Multi, None };
+<pre id="code-e88cc1a8" style="display: none;">enum class SelectionMode { Single, Extended, Multi, None };
 
 class ListView : public UIElement {
     ZSignal&lt;int&gt; SelectionChanged;
@@ -528,6 +542,7 @@ class ListView : public UIElement {
     ZSignal&lt;int&gt; ItemDoubleClicked;
     ZSignal&lt;std::vector&lt;int&gt;&gt; SelectionChangedMulti;
     ZSignal&lt;int, bool&gt; ItemCheckStateChanged;
+    ZSignal&lt;int&gt; ItemRightClicked;   // right-click an item (passes the row)
 
     ListView();
     // data
@@ -558,6 +573,9 @@ class ListView : public UIElement {
     std::vector&lt;int&gt; GetSelectedIndices() const;
     std::vector&lt;std::wstring&gt; GetSelectedTexts() const;
     void SelectAll();
+
+    // right-click: row of the last right-click (for SetContextMenuFactory; -1 = none)
+    int GetContextRow() const;
 
     // checking
     void SetCheckable(bool);
@@ -591,12 +609,13 @@ class ListView : public UIElement {
 <li><code>SetCheckable(true)</code> shows a checkbox per row; <code>ItemCheckStateChanged(index, checked)</code> reports changes.</li>
 <li>Sorting: set a comparator then call <code>Sort(asc)</code> (or <code>SortItems</code>); <code>SetShowSortIndicator(true)</code> shows the arrow at the top-right.</li>
 <li>Hovering an item with <code>SetItemToolTip</code> uses the shared tooltip.</li>
+<li><strong>Right-click</strong>: <code>ItemRightClicked(row)</code> passes the clicked row; you can also read <code>lv-&gt;GetContextRow()</code> inside <code>SetContextMenuFactory([...]{ ... })</code> to build the menu on demand.</li>
 </ul>
 <h2 id="tableview">TableView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-166ddfea', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-61d81043', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Cell</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Column</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
 
@@ -607,6 +626,7 @@ class ListView : public UIElement {
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CurrentCellChanged</span><span class="p">;</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="n">SelectionChangedCells</span><span class="p">;</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemCheckStateChanged</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CellRightClicked</span><span class="p">;</span><span class="w">   </span><span class="c1">// right-click a cell (passes row, col)</span>
 
 <span class="w">    </span><span class="n">TableView</span><span class="p">();</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRowCount</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetRowCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -644,6 +664,9 @@ class ListView : public UIElement {
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetSelectedColumns</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetSelectionStates</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 
+<span class="w">    </span><span class="c1">// right-click: row/col of the last right-click (for SetContextMenuFactory; -1 = none)</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetContextRow</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetContextColumn</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCheckable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRowChecked</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsRowChecked</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetRowCheckStates</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -659,7 +682,7 @@ class ListView : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowSortIndicator</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSortIndicatorColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-166ddfea" style="display: none;">enum class SelectionMode { Cell, Row, Column, None };
+<pre id="code-61d81043" style="display: none;">enum class SelectionMode { Cell, Row, Column, None };
 
 class TableView : public UIElement {
     ZSignal&lt;int,int&gt; CellClicked;
@@ -668,6 +691,7 @@ class TableView : public UIElement {
     ZSignal&lt;int,int&gt; CurrentCellChanged;
     ZSignal&lt;std::vector&lt;std::pair&lt;int,int&gt;&gt;&gt; SelectionChangedCells;
     ZSignal&lt;int,bool&gt; ItemCheckStateChanged;
+    ZSignal&lt;int,int&gt; CellRightClicked;   // right-click a cell (passes row, col)
 
     TableView();
     void SetRowCount(int); int GetRowCount() const;
@@ -705,6 +729,9 @@ class TableView : public UIElement {
     std::vector&lt;int&gt; GetSelectedColumns() const;
     std::vector&lt;bool&gt; GetSelectionStates() const;
 
+    // right-click: row/col of the last right-click (for SetContextMenuFactory; -1 = none)
+    int GetContextRow() const; int GetContextColumn() const;
+
     void SetCheckable(bool);
     void SetRowChecked(int row, bool); bool IsRowChecked(int row) const;
     std::vector&lt;bool&gt; GetRowCheckStates() const;
@@ -729,12 +756,13 @@ class TableView : public UIElement {
 <li><code>SetRowHeightAt(row, h)</code> changes one row; <code>SetRowHeight</code> changes the default. Row-height changes affect scrolling and hit-testing.</li>
 <li>Keyboard: <code>↑/↓</code> skip disabled rows; <code>←/→</code> and <code>Home/End</code> move the current cell.</li>
 <li><code>SelectionMode::None</code> produces no selection but still fires <code>CellClicked</code>.</li>
+<li><strong>Right-click</strong>: <code>CellRightClicked(row, col)</code> passes the clicked cell; you can also read <code>GetContextRow()/GetContextColumn()</code> inside <code>SetContextMenuFactory</code>.</li>
 </ul>
 <h2 id="treenode">TreeNode</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2abc23a0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-2a50da89', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">TreeNode</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">columns</span><span class="p">;</span><span class="w">       </span><span class="c1">// Label-ized: one real Label per column (col 0 = node text)</span>
@@ -755,7 +783,7 @@ class TableView : public UIElement {
 <span class="w">    </span><span class="n">TreeNode</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">cols</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-2abc23a0" style="display: none;">struct TreeNode {
+<pre id="code-2a50da89" style="display: none;">struct TreeNode {
     std::vector&lt;std::shared_ptr&lt;Label&gt;&gt; columns;       // Label-ized: one real Label per column (col 0 = node text)
     TreeNode* parent = nullptr;                        // non-owning
     std::vector&lt;std::shared_ptr&lt;TreeNode&gt;&gt; children;
@@ -783,7 +811,7 @@ class TableView : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-98fa2297', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-e7615492', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">CheckMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Linked</span><span class="p">,</span><span class="w"> </span><span class="n">Independent</span><span class="w"> </span><span class="p">};</span>
@@ -839,7 +867,7 @@ class TableView : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAlternatingRowColors</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetGridVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-98fa2297" style="display: none;">enum class SelectionMode { Single, Extended, Multi };
+<pre id="code-e7615492" style="display: none;">enum class SelectionMode { Single, Extended, Multi };
 enum class CheckMode { Linked, Independent };
 
 class TreeView : public UIElement {

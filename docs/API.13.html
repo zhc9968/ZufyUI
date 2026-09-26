@@ -243,6 +243,8 @@ class Image {
     static std::shared_ptr&lt;Image&gt; FromResource(int id, const wchar_t* type);        // 当前模块
     static std::shared_ptr&lt;Image&gt; FromHBITMAP(HBITMAP);
     static std::shared_ptr&lt;Image&gt; FromHICON(HICON);
+    HICON ToHICON() const;                              // 转回系统 HICON（新建对象，用完 DestroyIcon）
+    bool CopyPixelsBgra(std::vector&lt;uint8_t&gt;&amp; out, int&amp; w, int&amp; h) const;  // 导出 32bpp BGRA（直通 alpha）
 
     // 变换（轻量描述符，绘制时 GPU 施加，共享同一份解码数据）
     std::shared_ptr&lt;Image&gt; Scaled(float w, float h) const;
@@ -272,6 +274,7 @@ class Image {
 - **资源**：`FromResource` 的 `type` 可传 `L"PNG"`/`L"IMAGE"`/`RT_RCDATA`/`RT_BITMAP` 等；`RT_BITMAP`（DIB）会自动补 BMP 文件头再解码；`HMODULE` 版本可用于**从 DLL 资源**加载。
 - **编码**：`Encode` 用 `CreateStreamOnHGlobal` 得到可增长内存流（**无临时文件**），返回编码字节；`Save` 直接写文件。
 - **配合 `Label`**：`Label::SetImage` + `SetIconSize` 即可显示图标（见“基础控件 → Label”）。
+- **与系统图标互转**：`ToHICON()` 得到系统 `HICON`（用于 `SetAppIcon` / `TrayIcon` 等）；`CopyPixelsBgra()` 导出 32bpp BGRA 直通像素（用于写 `.ico` 等）。
 - **变换矩阵（根源）**：`Rotated/Mirrored` 以目标矩形中心为轴。D2D 矩阵乘法是“左侧先应用”，必须用带 `center` 的 `Rotation/Scale` 重载，否则会把图像推出目标矩形（表现为旋转/镜像后什么都看不到）。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 13 章 · 图像</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 13 章</span><h1>图像</h1><p class="chapter-summary">Image、ImageManager、ImageDeviceCache</p></header><p>图像系统在 <code>ZufyUIImages.h</code>，用 WIC 解码、Direct2D（GPU）绘制与变换。</p>
@@ -279,7 +282,7 @@ class Image {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-61e9a0fc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-2c629cc2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ImageManager</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">ImageManager</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
@@ -294,7 +297,7 @@ class Image {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Clear</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-61e9a0fc" style="display: none;">class ImageManager {
+<pre id="code-2c629cc2" style="display: none;">class ImageManager {
     static ImageManager&amp; Instance();
     IWICImagingFactory* Factory();                        // 共享的 WIC 工厂
     void RegisterCache(const std::shared_ptr&lt;ImageDeviceCache&gt;&amp;);
@@ -315,7 +318,7 @@ class ImageDeviceCache {                                  // 某个 Image 在“
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a73025e7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e38d396d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Image</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Format</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Png</span><span class="p">,</span><span class="w"> </span><span class="n">Jpeg</span><span class="p">,</span><span class="w"> </span><span class="n">Bmp</span><span class="p">,</span><span class="w"> </span><span class="n">Gif</span><span class="p">,</span><span class="w"> </span><span class="n">Tiff</span><span class="w"> </span><span class="p">};</span>
@@ -335,6 +338,8 @@ class ImageDeviceCache {                                  // 某个 Image 在“
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromResource</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">wchar_t</span><span class="o">*</span><span class="w"> </span><span class="n">type</span><span class="p">);</span><span class="w">        </span><span class="c1">// 当前模块</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromHBITMAP</span><span class="p">(</span><span class="n">HBITMAP</span><span class="p">);</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromHICON</span><span class="p">(</span><span class="n">HICON</span><span class="p">);</span>
+<span class="w">    </span><span class="n">HICON</span><span class="w"> </span><span class="nf">ToHICON</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                              </span><span class="c1">// 转回系统 HICON（新建对象，用完 DestroyIcon）</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">CopyPixelsBgra</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">h</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="c1">// 导出 32bpp BGRA（直通 alpha）</span>
 
 <span class="w">    </span><span class="c1">// 变换（轻量描述符，绘制时 GPU 施加，共享同一份解码数据）</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Scaled</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -355,7 +360,7 @@ class ImageDeviceCache {                                  // 某个 Image 在“
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Encode</span><span class="p">(</span><span class="n">Format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Format</span><span class="o">::</span><span class="n">Png</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">quality</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.9f</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-a73025e7" style="display: none;">class Image {
+<pre id="code-e38d396d" style="display: none;">class Image {
     enum class Format { Png, Jpeg, Bmp, Gif, Tiff };
     enum class Interpolation { Nearest, Linear };
     struct DrawOptions { float opacity = 1.0f; Interpolation interpolation = Interpolation::Linear; };
@@ -373,6 +378,8 @@ class ImageDeviceCache {                                  // 某个 Image 在“
     static std::shared_ptr&lt;Image&gt; FromResource(int id, const wchar_t* type);        // 当前模块
     static std::shared_ptr&lt;Image&gt; FromHBITMAP(HBITMAP);
     static std::shared_ptr&lt;Image&gt; FromHICON(HICON);
+    HICON ToHICON() const;                              // 转回系统 HICON（新建对象，用完 DestroyIcon）
+    bool CopyPixelsBgra(std::vector&lt;uint8_t&gt;&amp; out, int&amp; w, int&amp; h) const;  // 导出 32bpp BGRA（直通 alpha）
 
     // 变换（轻量描述符，绘制时 GPU 施加，共享同一份解码数据）
     std::shared_ptr&lt;Image&gt; Scaled(float w, float h) const;
@@ -401,9 +408,10 @@ class ImageDeviceCache {                                  // 某个 Image 在“
 <li><strong>资源</strong>：<code>FromResource</code> 的 <code>type</code> 可传 <code>L"PNG"</code>/<code>L"IMAGE"</code>/<code>RT_RCDATA</code>/<code>RT_BITMAP</code> 等；<code>RT_BITMAP</code>（DIB）会自动补 BMP 文件头再解码；<code>HMODULE</code> 版本可用于<strong>从 DLL 资源</strong>加载。</li>
 <li><strong>编码</strong>：<code>Encode</code> 用 <code>CreateStreamOnHGlobal</code> 得到可增长内存流（<strong>无临时文件</strong>），返回编码字节；<code>Save</code> 直接写文件。</li>
 <li><strong>配合 <code>Label</code></strong>：<code>Label::SetImage</code> + <code>SetIconSize</code> 即可显示图标（见“基础控件 → Label”）。</li>
+<li><strong>与系统图标互转</strong>：<code>ToHICON()</code> 得到系统 <code>HICON</code>（用于 <code>SetAppIcon</code> / <code>TrayIcon</code> 等）；<code>CopyPixelsBgra()</code> 导出 32bpp BGRA 直通像素（用于写 <code>.ico</code> 等）。</li>
 <li><strong>变换矩阵（根源）</strong>：<code>Rotated/Mirrored</code> 以目标矩形中心为轴。D2D 矩阵乘法是“左侧先应用”，必须用带 <code>center</code> 的 <code>Rotation/Scale</code> 重载，否则会把图像推出目标矩形（表现为旋转/镜像后什么都看不到）。</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.12.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">数据视图</span><span class="nav-desc">ListView、TableView、TreeNode、TreeView</span></a><a class="next" href="API.14.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">窗口工具</span><span class="nav-desc">自定义标题栏 TitleBar / CaptionButton / DefaultTitleBar</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.12.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">数据视图</span><span class="nav-desc">ListView、TableView、TreeNode、TreeView</span></a><a class="next" href="API.14.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">窗口工具</span><span class="nav-desc">TitleBar / MessageBox / 托盘 / 任务栏 / 图标与激活</span></a></nav>
         </main>
     </div>
 

@@ -212,8 +212,10 @@ pre { line-height: 125%; }
 | `ProgressBar` | `ValueChanged` | `float` |
 | `Slider` | `ValueChanged` / `SliderReleased` | `float` / — |
 | `ScrollViewer` | `ScrollChanged` | `float, float` |
-| `ListView` | `SelectionChanged` / `ItemClicked` / `ItemDoubleClicked` / `SelectionChangedMulti` / `ItemCheckStateChanged` | `int` / `int` / `int` / `std::vector&lt;int&gt;` / `int,bool` |
-| `TableView` | `CellClicked` / `CellDoubleClicked` / `HeaderClicked` / `CurrentCellChanged` / `SelectionChangedCells` / `ItemCheckStateChanged` | `int,int` / `int,int` / `int` / `int,int` / `vector&lt;pair&lt;int,int&gt;&gt;` / `int,bool` |
+| `ListView` | `SelectionChanged` / `ItemClicked` / `ItemDoubleClicked` / `SelectionChangedMulti` / `ItemCheckStateChanged` / `ItemRightClicked` | `int` / `int` / `int` / `std::vector&lt;int&gt;` / `int,bool` / `int` |
+| `TableView` | `CellClicked` / `CellDoubleClicked` / `HeaderClicked` / `CurrentCellChanged` / `SelectionChangedCells` / `ItemCheckStateChanged` / `CellRightClicked` | `int,int` / `int,int` / `int` / `int,int` / `vector&lt;pair&lt;int,int&gt;&gt;` / `int,bool` / `int,int` |
+| `TrayIcon` | `Clicked` / `DoubleClicked` / `RightClicked` / `HoverEnter` / `HoverLeave` / `Selected` / `BalloonClicked` / `BalloonDismissed` / `BalloonTimeout` | — |
+| `Menu` | `ItemSelected` | `int` |
 | `TreeView` | `SelectionChanged` / `NodeClicked` / `ItemDoubleClicked` / `ItemRightClicked` / `HeaderClicked` / `SelectionChangedMulti` / `ExpandChanged` / `ItemCheckStateChanged` | 见上 |
 | `FontManager` | `GlobalFontChanged` | — |
 | `UIZSignals` | `DrawOverlay` / `GlobalMouseDown` / `WindowDeactivated` / `ElementCaptureRequest` / `ElementCaptureRelease` / `RepaintRequest` / `LayoutInvalidated` / `DeviceReset` | 见第 4 章 |
@@ -361,13 +363,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 </tr>
 <tr>
 <td><code>ListView</code></td>
-<td><code>SelectionChanged</code> / <code>ItemClicked</code> / <code>ItemDoubleClicked</code> / <code>SelectionChangedMulti</code> / <code>ItemCheckStateChanged</code></td>
-<td><code>int</code> / <code>int</code> / <code>int</code> / <code>std::vector&lt;int&gt;</code> / <code>int,bool</code></td>
+<td><code>SelectionChanged</code> / <code>ItemClicked</code> / <code>ItemDoubleClicked</code> / <code>SelectionChangedMulti</code> / <code>ItemCheckStateChanged</code> / <code>ItemRightClicked</code></td>
+<td><code>int</code> / <code>int</code> / <code>int</code> / <code>std::vector&lt;int&gt;</code> / <code>int,bool</code> / <code>int</code></td>
 </tr>
 <tr>
 <td><code>TableView</code></td>
-<td><code>CellClicked</code> / <code>CellDoubleClicked</code> / <code>HeaderClicked</code> / <code>CurrentCellChanged</code> / <code>SelectionChangedCells</code> / <code>ItemCheckStateChanged</code></td>
-<td><code>int,int</code> / <code>int,int</code> / <code>int</code> / <code>int,int</code> / <code>vector&lt;pair&lt;int,int&gt;&gt;</code> / <code>int,bool</code></td>
+<td><code>CellClicked</code> / <code>CellDoubleClicked</code> / <code>HeaderClicked</code> / <code>CurrentCellChanged</code> / <code>SelectionChangedCells</code> / <code>ItemCheckStateChanged</code> / <code>CellRightClicked</code></td>
+<td><code>int,int</code> / <code>int,int</code> / <code>int</code> / <code>int,int</code> / <code>vector&lt;pair&lt;int,int&gt;&gt;</code> / <code>int,bool</code> / <code>int,int</code></td>
+</tr>
+<tr>
+<td><code>TrayIcon</code></td>
+<td><code>Clicked</code> / <code>DoubleClicked</code> / <code>RightClicked</code> / <code>HoverEnter</code> / <code>HoverLeave</code> / <code>Selected</code> / <code>BalloonClicked</code> / <code>BalloonDismissed</code> / <code>BalloonTimeout</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Menu</code></td>
+<td><code>ItemSelected</code></td>
+<td><code>int</code></td>
 </tr>
 <tr>
 <td><code>TreeView</code></td>
@@ -490,7 +502,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3461b69f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-20bb54dd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZDataViewer.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -542,7 +554,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-3461b69f" style="display: none;">#include "ZDataViewer.h"
+<pre id="code-20bb54dd" style="display: none;">#include "ZDataViewer.h"
 using namespace ZufyUI;
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -592,7 +604,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 0;
 }</pre>
 </div>
-<nav class="chapter-nav"><a class="prev" href="API.14.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">窗口工具</span><span class="nav-desc">自定义标题栏 TitleBar / CaptionButton / DefaultTitleBar</span></a><a class="next" href="API.html"><span class="nav-label">返回目录 &#8594;</span><span class="nav-title">回到章节目录</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.14.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">窗口工具</span><span class="nav-desc">TitleBar / MessageBox / 托盘 / 任务栏 / 图标与激活</span></a><a class="next" href="API.html"><span class="nav-label">返回目录 &#8594;</span><span class="nav-title">回到章节目录</span></a></nav>
         </main>
     </div>
 

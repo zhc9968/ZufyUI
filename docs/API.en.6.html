@@ -324,7 +324,9 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 | `Window* GetWindow() const` | Owning window; `nullptr` if not attached or the window was destroyed (looked up by window id, no raw pointer held) |
 | `SetVisible(bool)` / `IsVisible() const` | Visibility; false releases the cache and triggers `OnVisibilityChanged(false)` |
 | `virtual void OnVisibilityChanged(bool visible)` | Visibility hook; e.g. `ComboBox` auto-collapses its popup when hidden |
-| `SetContextMenu(std::shared_ptr&lt;Menu&gt;)` / `GetContextMenu()` | Right-click menu |
+| `SetContextMenu(std::shared_ptr&lt;Menu&gt;)` / `GetContextMenu()` | Fixed right-click menu |
+| `SetContextMenuFactory(std::function&lt;std::shared_ptr&lt;Menu&gt;()&gt;)` / `BuildContextMenu()` | **Dynamic menu factory**: built on each right-click (can depend on current state); takes precedence over a fixed menu |
+| `SetContextMenuEnabled(bool)` / `IsContextMenuEnabled() const` | Whether a right-click menu is allowed (default yes) |
 | `virtual bool OnContextMenu(float,float)` | Right-click hook; return true to suppress the default menu |
 | `SetBleed(float)` / `GetBleed() const` | Cache bleed (default `4.0f`) |
 | `template&lt;typename Signal, typename Slot&gt; Connection Connect(Signal&amp;, Slot&amp;&amp;)` | Connect a signal: registered in the element's `ConnectionGroup` (auto-disconnected when the element dies) and returns a Qt-style **passive `Connection` handle** (destruction does not disconnect). Ignoring the return is safe; to disconnect one, `auto c = Connect(...); c.disconnect();` |
@@ -712,7 +714,15 @@ virtual void CollectDragRegions(std::vector&lt;Rect&gt;&amp; out) const;   // Wi
 </tr>
 <tr>
 <td><code>SetContextMenu(std::shared_ptr&lt;Menu&gt;)</code> / <code>GetContextMenu()</code></td>
-<td>Right-click menu</td>
+<td>Fixed right-click menu</td>
+</tr>
+<tr>
+<td><code>SetContextMenuFactory(std::function&lt;std::shared_ptr&lt;Menu&gt;()&gt;)</code> / <code>BuildContextMenu()</code></td>
+<td><strong>Dynamic menu factory</strong>: built on each right-click (can depend on current state); takes precedence over a fixed menu</td>
+</tr>
+<tr>
+<td><code>SetContextMenuEnabled(bool)</code> / <code>IsContextMenuEnabled() const</code></td>
+<td>Whether a right-click menu is allowed (default yes)</td>
 </tr>
 <tr>
 <td><code>virtual bool OnContextMenu(float,float)</code></td>
@@ -775,7 +785,7 @@ virtual void CollectDragRegions(std::vector&lt;Rect&gt;&amp; out) const;   // Wi
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1201a6cd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-c5ce9663', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Dot</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
@@ -791,7 +801,7 @@ virtual void CollectDragRegions(std::vector&lt;Rect&gt;&amp; out) const;   // Wi
 <span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">r_</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-1201a6cd" style="display: none;">class Dot : public UIElement {
+<pre id="code-c5ce9663" style="display: none;">class Dot : public UIElement {
 public:
     Dot(float r) : r_(r) {}
     Size Measure(const Size&amp;) override { return Size(r_ * 2, r_ * 2); }
@@ -809,7 +819,7 @@ private:
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-343e16b3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d1ccf315', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">LayoutParticipation</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">Normal</span><span class="p">,</span><span class="w">            </span><span class="c1">// participates in layout (default)</span>
@@ -820,7 +830,7 @@ private:
 <span class="n">LayoutParticipation</span><span class="w"> </span><span class="nf">GetLayoutParticipation</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">ParticipatesInLayout</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-343e16b3" style="display: none;">enum class LayoutParticipation {
+<pre id="code-d1ccf315" style="display: none;">enum class LayoutParticipation {
     Normal,            // participates in layout (default)
     DrawBeforeLayout,  // does not participate: drawn separately before the normal layout tree
     DrawAfterLayout    // does not participate: drawn after the normal layout tree, before overlays
@@ -837,7 +847,7 @@ bool ParticipatesInLayout() const;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-459c2b9f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-ada7572e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDraggable</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span><span class="w">                 </span><span class="c1">// the whole arrangedRect is a drag region</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDragRegion</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Rect</span><span class="o">&amp;</span><span class="w"> </span><span class="n">localRect</span><span class="p">);</span><span class="w">  </span><span class="c1">// a local sub-region</span>
@@ -847,7 +857,7 @@ bool ParticipatesInLayout() const;</pre>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">IsPointInDragRegion</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">CollectDragRegions</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Rect</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// Window collects recursively</span>
 </pre></div>
-<pre id="code-459c2b9f" style="display: none;">void SetDraggable(bool on);                 // the whole arrangedRect is a drag region
+<pre id="code-ada7572e" style="display: none;">void SetDraggable(bool on);                 // the whole arrangedRect is a drag region
 void SetDragRegion(const Rect&amp; localRect);  // a local sub-region
 void ClearDragRegion();
 bool HasDragRegion() const;

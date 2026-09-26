@@ -197,7 +197,7 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class="active"><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="application"><div class="toc-row"><a href="#application" data-target="application">Application</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="independence-and-compatibility"><div class="toc-row"><a href="#independence-and-compatibility" data-target="independence-and-compatibility">Independence and compatibility</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="multi-window-pitfalls"><div class="toc-row"><a href="#multi-window-pitfalls" data-target="multi-window-pitfalls">Multi-window pitfalls</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class="active"><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="application"><div class="toc-row"><a href="#application" data-target="application">Application</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="app-identity-self-registration-registerapp-appinfo"><div class="toc-row"><a href="#app-identity-self-registration-registerapp-appinfo" data-target="app-identity-self-registration-registerapp-appinfo">App identity self-registration (RegisterApp / AppInfo)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="independence-and-compatibility"><div class="toc-row"><a href="#independence-and-compatibility" data-target="independence-and-compatibility">Independence and compatibility</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="multi-window-pitfalls"><div class="toc-row"><a href="#multi-window-pitfalls" data-target="multi-window-pitfalls">Multi-window pitfalls</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Application
@@ -213,6 +213,7 @@ class Application {
     void Quit(int code = 0);
     void CloseAllWindows();
     size_t WindowCount() const;
+    bool RegisterApp(const AppInfo&amp; info);   // app identity self-registration (see "App identity self-registration")
     static Application&amp; Instance();
 };
 ```
@@ -237,6 +238,56 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 - Closing one window leaves the others running; the loop exits when the **last** window closes. You can also call `Quit()`.
 - A process should run windows on a single UI thread (same as Win32).
 
+## App identity self-registration (RegisterApp / AppInfo)
+
+Declare "app name + icon" once; the library sets the **process-level AppUserModelID** for you and (once authorized) writes the registry + caches the icon locally, so the **toast top-left shows the app name and icon**, and the jump list / taskbar grouping belong to that identity.
+
+```cpp
+struct AppInfo {
+    std::wstring displayName;      // display name (toast / jump list / taskbar grouping)
+    std::wstring aumid;            // unique id; empty = derived from displayName
+    std::shared_ptr&lt;Image&gt; icon;   // icon (optional)
+};
+
+bool RegisterApp(const AppInfo&amp; info);                 // free function
+bool Application::RegisterApp(const AppInfo&amp; info);    // forwards to the above (equivalent)
+```
+
+**Authorization macro (important)**: this library is not a system library, so touching the registry/files on the app's behalf is out of scope — it therefore requires **explicit authorization**: define the macro **before including the library headers**:
+
+```cpp
+#define ZUFYUI_ALLOW_APP_REGISTRATION
+```
+
+Without it, `RegisterApp` only sets the process AUMID (**no side effects**) and writes no registry / files.
+
+**What the library does when authorized**:
+
+1. Set the process AUMID: `SetCurrentProcessExplicitAppUserModelID`
+2. Write the registry key `HKCU\Software\Classes\AppUserModelId\&lt;AUMID&gt;`: `DisplayName` + `IconUri`
+3. Cache the icon at `%LOCALAPPDATA%\ZufyUI\AppReg\&lt;AUMID&gt;\app.ico` (exported from `Image` as a single-image `.ico`)
+4. **On process exit**: delete that cache directory and the registry key above (so `IconUri` never points at a deleted file)
+
+**Usage** (call once, preferably before creating windows):
+
+```cpp
+#define ZUFYUI_ALLOW_APP_REGISTRATION   // must be before the include
+...
+int WINAPI WinMain(...) {
+    RegisterApp(AppInfo{ L"MyApp", L"ZufyUI.MyApp", myIcon });   // aumid may be empty = derived
+    auto w = Application::Instance().CreateWindow(/*...*/);
+    // ...
+    return Application::Instance().Run();
+}
+```
+
+**Notes:**
+
+- The AUMID is per-process and unique; **call once**. When `aumid` is empty it is derived from `displayName` (spaces/illegal chars stripped; a `ZufyUI.` prefix is added if there is no dot; max 128 chars).
+- The authorization macro is a **compile-time** switch; when absent, nothing is left on the user's machine.
+- On Win10/11 a legacy tray balloon is upgraded to a toast; its top-left icon/app name come from the registry keyed by the AUMID — exactly what this registration solves (otherwise it is blank).
+- Exit cleanup is handled inside the library; the app writes no code for it.
+
 ## Independence and compatibility
 
 - **Per-window repaint/layout**: each element records its owning window (`UIElement::GetWindow()`); `RequestRepaint()` / `InvalidateLayout()` only affect that window — windows do not repaint each other.
@@ -260,7 +311,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-fb1be276', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-7b572af9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Application</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateWindow</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span>
@@ -270,10 +321,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Quit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAllWindows</span><span class="p">();</span>
 <span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">WindowCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">   </span><span class="c1">// app identity self-registration (see "App identity self-registration")</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Application</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-fb1be276" style="display: none;">class Application {
+<pre id="code-7b572af9" style="display: none;">class Application {
     std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title);
     std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title, Window* owner); // owned child
     void AddWindow(const std::shared_ptr&lt;Window&gt;&amp; w);
@@ -281,6 +333,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     void Quit(int code = 0);
     void CloseAllWindows();
     size_t WindowCount() const;
+    bool RegisterApp(const AppInfo&amp; info);   // app identity self-registration (see "App identity self-registration")
     static Application&amp; Instance();
 };</pre>
 </div>
@@ -288,7 +341,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-afb61b77', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-b7986829', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="nf">WinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">Application</span><span class="w"> </span><span class="n">app</span><span class="p">;</span>
@@ -298,7 +351,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span><span class="w">                    </span><span class="c1">// one shared message loop</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-afb61b77" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+<pre id="code-b7986829" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     ZufyUI::Application app;
     auto w1 = app.CreateWindow(1000, 700, L"Main");
     auto w2 = app.CreateWindow(640, 480, L"Tool");
@@ -313,6 +366,80 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <li>Calling <code>CreateWindow</code> while the loop is running also works.</li>
 <li>Closing one window leaves the others running; the loop exits when the <strong>last</strong> window closes. You can also call <code>Quit()</code>.</li>
 <li>A process should run windows on a single UI thread (same as Win32).</li>
+</ul>
+<h2 id="app-identity-self-registration-registerapp-appinfo">App identity self-registration (RegisterApp / AppInfo)</h2>
+<p>Declare "app name + icon" once; the library sets the <strong>process-level AppUserModelID</strong> for you and (once authorized) writes the registry + caches the icon locally, so the <strong>toast top-left shows the app name and icon</strong>, and the jump list / taskbar grouping belong to that identity.</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-45ca1b0a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">AppInfo</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">displayName</span><span class="p">;</span><span class="w">      </span><span class="c1">// display name (toast / jump list / taskbar grouping)</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">aumid</span><span class="p">;</span><span class="w">            </span><span class="c1">// unique id; empty = derived from displayName</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span><span class="w">   </span><span class="c1">// icon (optional)</span>
+<span class="p">};</span>
+
+<span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">                 </span><span class="c1">// free function</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">Application::RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">    </span><span class="c1">// forwards to the above (equivalent)</span>
+</pre></div>
+<pre id="code-45ca1b0a" style="display: none;">struct AppInfo {
+    std::wstring displayName;      // display name (toast / jump list / taskbar grouping)
+    std::wstring aumid;            // unique id; empty = derived from displayName
+    std::shared_ptr&lt;Image&gt; icon;   // icon (optional)
+};
+
+bool RegisterApp(const AppInfo&amp; info);                 // free function
+bool Application::RegisterApp(const AppInfo&amp; info);    // forwards to the above (equivalent)</pre>
+</div>
+<p><strong>Authorization macro (important)</strong>: this library is not a system library, so touching the registry/files on the app's behalf is out of scope — it therefore requires <strong>explicit authorization</strong>: define the macro <strong>before including the library headers</strong>:</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-b1d3ad31', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION</span>
+</pre></div>
+<pre id="code-b1d3ad31" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION</pre>
+</div>
+<p>Without it, <code>RegisterApp</code> only sets the process AUMID (<strong>no side effects</strong>) and writes no registry / files.</p>
+<p><strong>What the library does when authorized</strong>:</p>
+<ol>
+<li>Set the process AUMID: <code>SetCurrentProcessExplicitAppUserModelID</code></li>
+<li>Write the registry key <code>HKCU\Software\Classes\AppUserModelId\&lt;AUMID&gt;</code>: <code>DisplayName</code> + <code>IconUri</code></li>
+<li>Cache the icon at <code>%LOCALAPPDATA%\ZufyUI\AppReg\&lt;AUMID&gt;\app.ico</code> (exported from <code>Image</code> as a single-image <code>.ico</code>)</li>
+<li><strong>On process exit</strong>: delete that cache directory and the registry key above (so <code>IconUri</code> never points at a deleted file)</li>
+</ol>
+<p><strong>Usage</strong> (call once, preferably before creating windows):</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-7d7519d8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION   </span><span class="c1">// must be before the include</span>
+<span class="p">...</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="n">WinMain</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">RegisterApp</span><span class="p">(</span><span class="n">AppInfo</span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"MyApp"</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"ZufyUI.MyApp"</span><span class="p">,</span><span class="w"> </span><span class="n">myIcon</span><span class="w"> </span><span class="p">});</span><span class="w">   </span><span class="c1">// aumid may be empty = derived</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">().</span><span class="n">CreateWindow</span><span class="p">(</span><span class="cm">/*...*/</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// ...</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">().</span><span class="n">Run</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+<pre id="code-7d7519d8" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION   // must be before the include
+...
+int WINAPI WinMain(...) {
+    RegisterApp(AppInfo{ L"MyApp", L"ZufyUI.MyApp", myIcon });   // aumid may be empty = derived
+    auto w = Application::Instance().CreateWindow(/*...*/);
+    // ...
+    return Application::Instance().Run();
+}</pre>
+</div>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>The AUMID is per-process and unique; <strong>call once</strong>. When <code>aumid</code> is empty it is derived from <code>displayName</code> (spaces/illegal chars stripped; a <code>ZufyUI.</code> prefix is added if there is no dot; max 128 chars).</li>
+<li>The authorization macro is a <strong>compile-time</strong> switch; when absent, nothing is left on the user's machine.</li>
+<li>On Win10/11 a legacy tray balloon is upgraded to a toast; its top-left icon/app name come from the registry keyed by the AUMID — exactly what this registration solves (otherwise it is blank).</li>
+<li>Exit cleanup is handled inside the library; the app writes no code for it.</li>
 </ul>
 <h2 id="independence-and-compatibility">Independence and compatibility</h2>
 <ul>

@@ -197,7 +197,7 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class="active"><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="messagebox-fastbutton"><div class="toc-row"><a href="#messagebox-fastbutton" data-target="messagebox-fastbutton">MessageBox / FastButton</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="window-level-hooks-overridable"><div class="toc-row"><a href="#window-level-hooks-overridable" data-target="window-level-hooks-overridable">Window-level hooks (overridable)</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class="active"><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="messagebox-fastbutton"><div class="toc-row"><a href="#messagebox-fastbutton" data-target="messagebox-fastbutton">MessageBox / FastButton</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="window-icon-activation-flash"><div class="toc-row"><a href="#window-icon-activation-flash" data-target="window-icon-activation-flash">Window icon / activation / flash</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="tray-icon-trayicon"><div class="toc-row"><a href="#tray-icon-trayicon" data-target="tray-icon-trayicon">Tray icon (TrayIcon)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="taskbar-progress-overlay-badge-thumbnail-toolbar-jump-list"><div class="toc-row"><a href="#taskbar-progress-overlay-badge-thumbnail-toolbar-jump-list" data-target="taskbar-progress-overlay-badge-thumbnail-toolbar-jump-list">Taskbar (progress / overlay badge / thumbnail toolbar / jump list)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="window-level-hooks-overridable"><div class="toc-row"><a href="#window-level-hooks-overridable" data-target="window-level-hooks-overridable">Window-level hooks (overridable)</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>Window-level controls live in `ZufyUIWindowTool.h` (a collection that will later also host a built-in MessageBox, etc.).
@@ -317,6 +317,106 @@ if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }
 - Customize with `SetUserContent` (no preset buttons afterwards) or the `shared_ptr&lt;UIElement&gt;` ctor; for full flow control build with `blocking=false` and call `RunModal` yourself.
 - Note: `windows.h` defines `MessageBox` as a macro for `MessageBoxW`; this library `#undef`s it in `ZufyUIWindowTool.h`. Use `MessageBoxW/A` explicitly for Win32.
 
+## Window icon / activation / flash
+
+```cpp
+class Window {
+    // Unified app icon (native big/small + class icons + custom title bar)
+    void SetAppIcon(HICON bigIcon, HICON smallIcon);
+    void SetAppIcon(std::shared_ptr&lt;Image&gt; big, std::shared_ptr&lt;Image&gt; small = nullptr);  // auto-converts
+    void SetAppIconFromResource(int bigId, int smallId = 0);
+
+    enum class ActivateMode { Raise, Activate, Foreground, All };
+    void ShowActivate(ActivateMode mode = ActivateMode::All);   // restores if minimized; Foreground/All call SetForegroundWindow
+    void Raise();                                               // raise Z-order only
+
+    void Flash(int times = 5, bool alsoTaskbar = true);         // default FLASHW_ALL
+    void FlashUntilForeground();
+    void StopFlash();
+};
+```
+
+- `SetAppIcon(Image)` uses `Image::ToHICON()`; after setting, the taskbar / Alt-Tab / title bar icons are consistent (class icons included).
+- `ShowActivate(All)` = restore (if minimized) + raise + `SetForegroundWindow` (uses `AttachThreadInput` for reliability).
+- `Flash()` defaults to `FLASHW_ALL` (taskbar button + window caption).
+
+## Tray icon (TrayIcon)
+
+`Shell_NotifyIcon` wrapper (`NOTIFYICON_VERSION_4`): hover / click / right-click menu / badge / balloon.
+
+```cpp
+class TrayIcon {
+    bool Add(HICON icon, const std::wstring&amp; tooltip, UINT id = 1);
+    bool Add(std::shared_ptr&lt;Image&gt; icon, const std::wstring&amp; tooltip, UINT id = 1);   // auto-converts
+    bool AddFromResource(int resId, const std::wstring&amp; tooltip, UINT id = 1);
+    bool AddFromFile(const std::wstring&amp; icoPath, const std::wstring&amp; tooltip, UINT id = 1);
+    void Remove();
+    bool IsAdded() const;
+
+    void SetIcon(HICON);   void SetIcon(std::shared_ptr&lt;Image&gt;);
+    void SetToolTip(const std::wstring&amp;);
+    void SetMenu(std::shared_ptr&lt;Menu&gt;);
+
+    void SetBadge(Color color = Color::FromArgb(255, 220, 40, 40));   // bottom-right red dot
+    void ClearBadge();
+
+    enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
+    void ShowBalloon(const std::wstring&amp; title, const std::wstring&amp; text,
+                     BalloonIcon icon = BalloonIcon::Custom,
+                     HICON customIcon = nullptr, bool realtime = false, bool noSound = false);
+
+    bool GetRect(RECT&amp; out) const;
+    HWND GetHwnd() const;
+
+    ZSignal&lt;&gt; Clicked; ZSignal&lt;&gt; DoubleClicked; ZSignal&lt;&gt; RightClicked;
+    ZSignal&lt;&gt; HoverEnter; ZSignal&lt;&gt; HoverLeave; ZSignal&lt;&gt; Selected;
+    ZSignal&lt;&gt; BalloonClicked; ZSignal&lt;&gt; BalloonDismissed; ZSignal&lt;&gt; BalloonTimeout;
+};
+```
+
+**Notes:**
+
+- v4 callbacks: right-click arrives as `WM_CONTEXTMENU`; hover as `NIN_POPUPOPEN/CLOSE`; double-click is detected in `NIN_SELECT` via `GetDoubleClickTime()`.
+- `Add` with the same id does `NIM_MODIFY`; re-added automatically after `explorer` restarts (`TaskbarCreated`).
+- `BalloonIcon`: `None/Info/Warning/Error` (system icons) / `Custom` (uses `customIcon`, default = current tray icon); `realtime=true` (`NIF_REALTIME`); `noSound=true` mutes.
+- ⚠️ When Win10/11 upgrades a balloon to a toast, the **top-left "app icon" comes from the registry keyed by the AUMID** (`hBalloonIcon` is ignored) → use `RegisterApp` to register the app identity so the app name and icon show.
+
+## Taskbar (progress / overlay badge / thumbnail toolbar / jump list)
+
+```cpp
+class Window {
+    enum class TaskbarProgress { None = 0, Indeterminate = 1, Normal = 2, Error = 4, Paused = 8 };
+    void SetTaskbarProgress(TaskbarProgress state, ULONGLONG completed = 0, ULONGLONG total = 0);
+    void SetTaskbarProgressValue(ULONGLONG completed, ULONGLONG total);
+    void ClearTaskbarProgress();
+
+    void SetTaskbarOverlayIcon(HICON, const std::wstring&amp; description = L"");
+    void SetTaskbarOverlayIcon(std::shared_ptr&lt;Image&gt;, const std::wstring&amp; description = L"");
+    void ClearTaskbarOverlayIcon();
+
+    // Thumbnail toolbar (buttons shown when hovering the taskbar thumbnail); ThumbButtonId is a command id
+    ZSignal&lt;ThumbButtonId&gt; ThumbButtonClicked;
+    void SetThumbButtons(const std::vector&lt;std::pair&lt;ThumbButtonId, std::wstring&gt;&gt;&amp; buttons, HIMAGELIST images);
+    void SetThumbButtons(const std::vector&lt;std::pair&lt;ThumbButtonId, std::wstring&gt;&gt;&amp; buttons,
+                         const std::vector&lt;std::shared_ptr&lt;Image&gt;&gt;&amp; images);   // auto-builds HIMAGELIST
+    void UpdateThumbButton(ThumbButtonId id, bool enabled);
+
+    // Jump list
+    struct JumpListItem { std::wstring title, arguments, target, iconPath; int iconIndex = 0; };
+    void SetJumpList(const std::vector&lt;JumpListItem&gt;&amp; tasks = {},
+                     const std::vector&lt;std::pair&lt;std::wstring, std::vector&lt;JumpListItem&gt;&gt;&gt;&amp; categories = {},
+                     bool includeRecent = false);
+    void SetAppUserModelID(const std::wstring&amp;);                 // this window's AUMID
+    static void SetProcessAppUserModelID(const std::wstring&amp;);   // process-level
+};
+```
+
+**Notes:**
+
+- Taskbar features depend on the **process/window AUMID**; prefer `RegisterApp` to register the identity once (jump list / grouping / taskbar all belong to it).
+- The `Image` overload of `SetThumbButtons` auto-converts `Image -&gt; HICON -&gt; HIMAGELIST`; clicks are reported via `ThumbButtonClicked(id)`.
+- `SetJumpList` supports `tasks` (user tasks) and `categories` (custom categories) + `includeRecent` (system "Recent").
+
 ## Window-level hooks (overridable)
 
 ```cpp
@@ -326,11 +426,11 @@ virtual void OnWindowSize();            // WM_SIZE (final layout that depends on
 void SetInputBlocked(bool on);          // block mouse/keyboard input for this window
 ```</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 14 · Window tools</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 14</span><h1>Window tools</h1><p class="chapter-summary">Custom title bar TitleBar / CaptionButton / DefaultTitleBar</p></header><p>Window-level controls live in <code>ZufyUIWindowTool.h</code> (a collection that will later also host a built-in MessageBox, etc.).</p>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 14</span><h1>Window tools</h1><p class="chapter-summary">TitleBar / MessageBox / Tray / Taskbar / Icons and activation</p></header><p>Window-level controls live in <code>ZufyUIWindowTool.h</code> (a collection that will later also host a built-in MessageBox, etc.).</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9a783893', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-f990f4a2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TitleBar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
@@ -377,7 +477,7 @@ void SetInputBlocked(bool on);          // block mouse/keyboard input for this w
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMinimizeVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMaximizeVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCloseVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-9a783893" style="display: none;">class TitleBar : public UIElement {
+<pre id="code-f990f4a2" style="display: none;">class TitleBar : public UIElement {
     void SetTitle(const std::wstring&amp;);
     const std::wstring&amp; GetTitle() const;
     void SetIcon(std::shared_ptr&lt;Image&gt;);        // reuses the image system
@@ -426,14 +526,14 @@ class DefaultTitleBar : public TitleBar {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d82d8ec4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-7edb4324', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">DefaultTitleBar</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetTitle</span><span class="p">(</span><span class="sa">L</span><span class="s">"My Window"</span><span class="p">);</span>
 <span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetIcon</span><span class="p">(</span><span class="n">myImage</span><span class="p">);</span><span class="w">                 </span><span class="c1">// optional</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span><span class="w">            </span><span class="c1">// install; win.SetCustomTitleBar(nullptr) restores the native one</span>
 </pre></div>
-<pre id="code-d82d8ec4" style="display: none;">auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
+<pre id="code-7edb4324" style="display: none;">auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 bar-&gt;SetTitle(L"My Window");
 bar-&gt;SetIcon(myImage);                 // optional
 win.SetCustomTitleBar(bar);            // install; win.SetCustomTitleBar(nullptr) restores the native one</pre>
@@ -452,7 +552,7 @@ win.SetCustomTitleBar(bar);            // install; win.SetCustomTitleBar(nullptr
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-22ebfec2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-26c19719', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">FastButton</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="p">{</span><span class="w">   </span><span class="c1">// bit flags, combine with |</span>
 <span class="w">    </span><span class="n">None</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">OK</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Cancel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Apply</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
@@ -486,7 +586,7 @@ win.SetCustomTitleBar(bar);            // install; win.SetCustomTitleBar(nullptr
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">FastButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ButtonClicked</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-22ebfec2" style="display: none;">enum class FastButton : unsigned {   // bit flags, combine with |
+<pre id="code-26c19719" style="display: none;">enum class FastButton : unsigned {   // bit flags, combine with |
     None = 0, OK = 1 &lt;&lt; 0, Cancel = 1 &lt;&lt; 1, Apply = 1 &lt;&lt; 2,
     Close = 1 &lt;&lt; 3, Yes = 1 &lt;&lt; 4, No = 1 &lt;&lt; 5, Help = 1 &lt;&lt; 6
 };
@@ -521,13 +621,13 @@ class MessageBox : public Window {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3932311f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-599915b0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">MessageBox</span><span class="w"> </span><span class="n">box</span><span class="p">(</span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Title"</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Body"</span><span class="p">,</span><span class="w"> </span><span class="n">MessageBox</span><span class="o">::</span><span class="n">Icon</span><span class="o">::</span><span class="n">Info</span><span class="p">,</span>
 <span class="w">                    </span><span class="n">FastButton</span><span class="o">::</span><span class="n">Yes</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">FastButton</span><span class="o">::</span><span class="n">No</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">FastButton</span><span class="o">::</span><span class="n">Cancel</span><span class="p">);</span>
 <span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">HasFlag</span><span class="p">(</span><span class="n">box</span><span class="p">.</span><span class="n">GetResult</span><span class="p">(),</span><span class="w"> </span><span class="n">FastButton</span><span class="o">::</span><span class="n">Yes</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">}</span>
 </pre></div>
-<pre id="code-3932311f" style="display: none;">ZufyUI::MessageBox box(owner, L"Title", L"Body", MessageBox::Icon::Info,
+<pre id="code-599915b0" style="display: none;">ZufyUI::MessageBox box(owner, L"Title", L"Body", MessageBox::Icon::Info,
                     FastButton::Yes | FastButton::No | FastButton::Cancel);
 if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }</pre>
 </div>
@@ -538,18 +638,193 @@ if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }</pre>
 <li>Customize with <code>SetUserContent</code> (no preset buttons afterwards) or the <code>shared_ptr&lt;UIElement&gt;</code> ctor; for full flow control build with <code>blocking=false</code> and call <code>RunModal</code> yourself.</li>
 <li>Note: <code>windows.h</code> defines <code>MessageBox</code> as a macro for <code>MessageBoxW</code>; this library <code>#undef</code>s it in <code>ZufyUIWindowTool.h</code>. Use <code>MessageBoxW/A</code> explicitly for Win32.</li>
 </ul>
+<h2 id="window-icon-activation-flash">Window icon / activation / flash</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-952a21f6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Unified app icon (native big/small + class icons + custom title bar)</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAppIcon</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">bigIcon</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="n">smallIcon</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAppIcon</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">big</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">small</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span><span class="w">  </span><span class="c1">// auto-converts</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAppIconFromResource</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">bigId</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">smallId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ActivateMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Raise</span><span class="p">,</span><span class="w"> </span><span class="n">Activate</span><span class="p">,</span><span class="w"> </span><span class="n">Foreground</span><span class="p">,</span><span class="w"> </span><span class="n">All</span><span class="w"> </span><span class="p">};</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowActivate</span><span class="p">(</span><span class="n">ActivateMode</span><span class="w"> </span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ActivateMode</span><span class="o">::</span><span class="n">All</span><span class="p">);</span><span class="w">   </span><span class="c1">// restores if minimized; Foreground/All call SetForegroundWindow</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Raise</span><span class="p">();</span><span class="w">                                               </span><span class="c1">// raise Z-order only</span>
+
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Flash</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">times</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">alsoTaskbar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span><span class="w">         </span><span class="c1">// default FLASHW_ALL</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">FlashUntilForeground</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">StopFlash</span><span class="p">();</span>
+<span class="p">};</span>
+</pre></div>
+<pre id="code-952a21f6" style="display: none;">class Window {
+    // Unified app icon (native big/small + class icons + custom title bar)
+    void SetAppIcon(HICON bigIcon, HICON smallIcon);
+    void SetAppIcon(std::shared_ptr&lt;Image&gt; big, std::shared_ptr&lt;Image&gt; small = nullptr);  // auto-converts
+    void SetAppIconFromResource(int bigId, int smallId = 0);
+
+    enum class ActivateMode { Raise, Activate, Foreground, All };
+    void ShowActivate(ActivateMode mode = ActivateMode::All);   // restores if minimized; Foreground/All call SetForegroundWindow
+    void Raise();                                               // raise Z-order only
+
+    void Flash(int times = 5, bool alsoTaskbar = true);         // default FLASHW_ALL
+    void FlashUntilForeground();
+    void StopFlash();
+};</pre>
+</div>
+<ul>
+<li><code>SetAppIcon(Image)</code> uses <code>Image::ToHICON()</code>; after setting, the taskbar / Alt-Tab / title bar icons are consistent (class icons included).</li>
+<li><code>ShowActivate(All)</code> = restore (if minimized) + raise + <code>SetForegroundWindow</code> (uses <code>AttachThreadInput</code> for reliability).</li>
+<li><code>Flash()</code> defaults to <code>FLASHW_ALL</code> (taskbar button + window caption).</li>
+</ul>
+<h2 id="tray-icon-trayicon">Tray icon (TrayIcon)</h2>
+<p><code>Shell_NotifyIcon</code> wrapper (<code>NOTIFYICON_VERSION_4</code>): hover / click / right-click menu / badge / balloon.</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-c0cb0b26', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TrayIcon</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Add</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">icon</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Add</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w">   </span><span class="c1">// auto-converts</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">AddFromResource</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">resId</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">AddFromFile</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">icoPath</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Remove</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsAdded</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">HICON</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetToolTip</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBadge</span><span class="p">(</span><span class="n">Color</span><span class="w"> </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="o">::</span><span class="n">FromArgb</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">220</span><span class="p">,</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span><span class="w"> </span><span class="mi">40</span><span class="p">));</span><span class="w">   </span><span class="c1">// bottom-right red dot</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearBadge</span><span class="p">();</span>
+
+<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BalloonIcon</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="n">Warning</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="p">,</span><span class="w"> </span><span class="n">Custom</span><span class="w"> </span><span class="p">};</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowBalloon</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span>
+<span class="w">                     </span><span class="n">BalloonIcon</span><span class="w"> </span><span class="n">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BalloonIcon</span><span class="o">::</span><span class="n">Custom</span><span class="p">,</span>
+<span class="w">                     </span><span class="n">HICON</span><span class="w"> </span><span class="n">customIcon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">realtime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">noSound</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
+
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">GetRect</span><span class="p">(</span><span class="n">RECT</span><span class="o">&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="n">HWND</span><span class="w"> </span><span class="nf">GetHwnd</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DoubleClicked</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">RightClicked</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">HoverEnter</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">HoverLeave</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Selected</span><span class="p">;</span>
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BalloonClicked</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BalloonDismissed</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BalloonTimeout</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+<pre id="code-c0cb0b26" style="display: none;">class TrayIcon {
+    bool Add(HICON icon, const std::wstring&amp; tooltip, UINT id = 1);
+    bool Add(std::shared_ptr&lt;Image&gt; icon, const std::wstring&amp; tooltip, UINT id = 1);   // auto-converts
+    bool AddFromResource(int resId, const std::wstring&amp; tooltip, UINT id = 1);
+    bool AddFromFile(const std::wstring&amp; icoPath, const std::wstring&amp; tooltip, UINT id = 1);
+    void Remove();
+    bool IsAdded() const;
+
+    void SetIcon(HICON);   void SetIcon(std::shared_ptr&lt;Image&gt;);
+    void SetToolTip(const std::wstring&amp;);
+    void SetMenu(std::shared_ptr&lt;Menu&gt;);
+
+    void SetBadge(Color color = Color::FromArgb(255, 220, 40, 40));   // bottom-right red dot
+    void ClearBadge();
+
+    enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
+    void ShowBalloon(const std::wstring&amp; title, const std::wstring&amp; text,
+                     BalloonIcon icon = BalloonIcon::Custom,
+                     HICON customIcon = nullptr, bool realtime = false, bool noSound = false);
+
+    bool GetRect(RECT&amp; out) const;
+    HWND GetHwnd() const;
+
+    ZSignal&lt;&gt; Clicked; ZSignal&lt;&gt; DoubleClicked; ZSignal&lt;&gt; RightClicked;
+    ZSignal&lt;&gt; HoverEnter; ZSignal&lt;&gt; HoverLeave; ZSignal&lt;&gt; Selected;
+    ZSignal&lt;&gt; BalloonClicked; ZSignal&lt;&gt; BalloonDismissed; ZSignal&lt;&gt; BalloonTimeout;
+};</pre>
+</div>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>v4 callbacks: right-click arrives as <code>WM_CONTEXTMENU</code>; hover as <code>NIN_POPUPOPEN/CLOSE</code>; double-click is detected in <code>NIN_SELECT</code> via <code>GetDoubleClickTime()</code>.</li>
+<li><code>Add</code> with the same id does <code>NIM_MODIFY</code>; re-added automatically after <code>explorer</code> restarts (<code>TaskbarCreated</code>).</li>
+<li><code>BalloonIcon</code>: <code>None/Info/Warning/Error</code> (system icons) / <code>Custom</code> (uses <code>customIcon</code>, default = current tray icon); <code>realtime=true</code> (<code>NIF_REALTIME</code>); <code>noSound=true</code> mutes.</li>
+<li>⚠️ When Win10/11 upgrades a balloon to a toast, the <strong>top-left "app icon" comes from the registry keyed by the AUMID</strong> (<code>hBalloonIcon</code> is ignored) → use <code>RegisterApp</code> to register the app identity so the app name and icon show.</li>
+</ul>
+<h2 id="taskbar-progress-overlay-badge-thumbnail-toolbar-jump-list">Taskbar (progress / overlay badge / thumbnail toolbar / jump list)</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-b52f03fe', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TaskbarProgress</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Indeterminate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Normal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">Paused</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span><span class="w"> </span><span class="p">};</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTaskbarProgress</span><span class="p">(</span><span class="n">TaskbarProgress</span><span class="w"> </span><span class="n">state</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">completed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTaskbarProgressValue</span><span class="p">(</span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">completed</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">total</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarProgress</span><span class="p">();</span>
+
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">SetTaskbarOverlayIcon</span><span class="p">(</span><span class="n">HICON</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">SetTaskbarOverlayIcon</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarOverlayIcon</span><span class="p">();</span>
+
+<span class="w">    </span><span class="c1">// Thumbnail toolbar (buttons shown when hovering the taskbar thumbnail); ThumbButtonId is a command id</span>
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">ThumbButtonId</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ThumbButtonClicked</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetThumbButtons</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ThumbButtonId</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">buttons</span><span class="p">,</span><span class="w"> </span><span class="n">HIMAGELIST</span><span class="w"> </span><span class="n">images</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetThumbButtons</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ThumbButtonId</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">buttons</span><span class="p">,</span>
+<span class="w">                         </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">images</span><span class="p">);</span><span class="w">   </span><span class="c1">// auto-builds HIMAGELIST</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">UpdateThumbButton</span><span class="p">(</span><span class="n">ThumbButtonId</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Jump list</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">JumpListItem</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">arguments</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">iconPath</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">iconIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetJumpList</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">JumpListItem</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">tasks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
+<span class="w">                     </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">JumpListItem</span><span class="o">&gt;&gt;&gt;&amp;</span><span class="w"> </span><span class="n">categories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
+<span class="w">                     </span><span class="kt">bool</span><span class="w"> </span><span class="n">includeRecent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">                 </span><span class="c1">// this window's AUMID</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetProcessAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// process-level</span>
+<span class="p">};</span>
+</pre></div>
+<pre id="code-b52f03fe" style="display: none;">class Window {
+    enum class TaskbarProgress { None = 0, Indeterminate = 1, Normal = 2, Error = 4, Paused = 8 };
+    void SetTaskbarProgress(TaskbarProgress state, ULONGLONG completed = 0, ULONGLONG total = 0);
+    void SetTaskbarProgressValue(ULONGLONG completed, ULONGLONG total);
+    void ClearTaskbarProgress();
+
+    void SetTaskbarOverlayIcon(HICON, const std::wstring&amp; description = L"");
+    void SetTaskbarOverlayIcon(std::shared_ptr&lt;Image&gt;, const std::wstring&amp; description = L"");
+    void ClearTaskbarOverlayIcon();
+
+    // Thumbnail toolbar (buttons shown when hovering the taskbar thumbnail); ThumbButtonId is a command id
+    ZSignal&lt;ThumbButtonId&gt; ThumbButtonClicked;
+    void SetThumbButtons(const std::vector&lt;std::pair&lt;ThumbButtonId, std::wstring&gt;&gt;&amp; buttons, HIMAGELIST images);
+    void SetThumbButtons(const std::vector&lt;std::pair&lt;ThumbButtonId, std::wstring&gt;&gt;&amp; buttons,
+                         const std::vector&lt;std::shared_ptr&lt;Image&gt;&gt;&amp; images);   // auto-builds HIMAGELIST
+    void UpdateThumbButton(ThumbButtonId id, bool enabled);
+
+    // Jump list
+    struct JumpListItem { std::wstring title, arguments, target, iconPath; int iconIndex = 0; };
+    void SetJumpList(const std::vector&lt;JumpListItem&gt;&amp; tasks = {},
+                     const std::vector&lt;std::pair&lt;std::wstring, std::vector&lt;JumpListItem&gt;&gt;&gt;&amp; categories = {},
+                     bool includeRecent = false);
+    void SetAppUserModelID(const std::wstring&amp;);                 // this window's AUMID
+    static void SetProcessAppUserModelID(const std::wstring&amp;);   // process-level
+};</pre>
+</div>
+<p><strong>Notes:</strong></p>
+<ul>
+<li>Taskbar features depend on the <strong>process/window AUMID</strong>; prefer <code>RegisterApp</code> to register the identity once (jump list / grouping / taskbar all belong to it).</li>
+<li>The <code>Image</code> overload of <code>SetThumbButtons</code> auto-converts <code>Image -&gt; HICON -&gt; HIMAGELIST</code>; clicks are reported via <code>ThumbButtonClicked(id)</code>.</li>
+<li><code>SetJumpList</code> supports <code>tasks</code> (user tasks) and <code>categories</code> (custom categories) + <code>includeRecent</code> (system "Recent").</li>
+</ul>
 <h2 id="window-level-hooks-overridable">Window-level hooks (overridable)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2d1e2085', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-794c8346', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowKeyDown</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vk</span><span class="p">);</span><span class="w">   </span><span class="c1">// called before dispatching to the focused element; true = handled</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">);</span><span class="w">     </span><span class="c1">// WM_TIMER</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">OnWindowSize</span><span class="p">();</span><span class="w">            </span><span class="c1">// WM_SIZE (final layout that depends on client width)</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetInputBlocked</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span><span class="w">          </span><span class="c1">// block mouse/keyboard input for this window</span>
 </pre></div>
-<pre id="code-2d1e2085" style="display: none;">virtual bool OnWindowKeyDown(int vk);   // called before dispatching to the focused element; true = handled
+<pre id="code-794c8346" style="display: none;">virtual bool OnWindowKeyDown(int vk);   // called before dispatching to the focused element; true = handled
 virtual bool OnWindowTimer(int id);     // WM_TIMER
 virtual void OnWindowSize();            // WM_SIZE (final layout that depends on client width)
 void SetInputBlocked(bool on);          // block mouse/keyboard input for this window</pre>

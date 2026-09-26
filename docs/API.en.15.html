@@ -212,8 +212,10 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 | `ProgressBar` | `ValueChanged` | `float` |
 | `Slider` | `ValueChanged` / `SliderReleased` | `float` / — |
 | `ScrollViewer` | `ScrollChanged` | `float, float` |
-| `ListView` | `SelectionChanged` / `ItemClicked` / `ItemDoubleClicked` / `SelectionChangedMulti` / `ItemCheckStateChanged` | `int` / `int` / `int` / `std::vector&lt;int&gt;` / `int,bool` |
-| `TableView` | `CellClicked` / `CellDoubleClicked` / `HeaderClicked` / `CurrentCellChanged` / `SelectionChangedCells` / `ItemCheckStateChanged` | `int,int` / `int,int` / `int` / `int,int` / `vector&lt;pair&lt;int,int&gt;&gt;` / `int,bool` |
+| `ListView` | `SelectionChanged` / `ItemClicked` / `ItemDoubleClicked` / `SelectionChangedMulti` / `ItemCheckStateChanged` / `ItemRightClicked` | `int` / `int` / `int` / `std::vector&lt;int&gt;` / `int,bool` / `int` |
+| `TableView` | `CellClicked` / `CellDoubleClicked` / `HeaderClicked` / `CurrentCellChanged` / `SelectionChangedCells` / `ItemCheckStateChanged` / `CellRightClicked` | `int,int` / `int,int` / `int` / `int,int` / `vector&lt;pair&lt;int,int&gt;&gt;` / `int,bool` / `int,int` |
+| `TrayIcon` | `Clicked` / `DoubleClicked` / `RightClicked` / `HoverEnter` / `HoverLeave` / `Selected` / `BalloonClicked` / `BalloonDismissed` / `BalloonTimeout` | — |
+| `Menu` | `ItemSelected` | `int` |
 | `TreeView` | `SelectionChanged` / `NodeClicked` / `ItemDoubleClicked` / `ItemRightClicked` / `HeaderClicked` / `SelectionChangedMulti` / `ExpandChanged` / `ItemCheckStateChanged` | see above |
 | `FontManager` | `GlobalFontChanged` | — |
 | `UIZSignals` | `DrawOverlay` / `GlobalMouseDown` / `WindowDeactivated` / `ElementCaptureRequest` / `ElementCaptureRelease` / `RepaintRequest` / `LayoutInvalidated` / `DeviceReset` | see Chapter 4 |
@@ -359,13 +361,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 </tr>
 <tr>
 <td><code>ListView</code></td>
-<td><code>SelectionChanged</code> / <code>ItemClicked</code> / <code>ItemDoubleClicked</code> / <code>SelectionChangedMulti</code> / <code>ItemCheckStateChanged</code></td>
-<td><code>int</code> / <code>int</code> / <code>int</code> / <code>std::vector&lt;int&gt;</code> / <code>int,bool</code></td>
+<td><code>SelectionChanged</code> / <code>ItemClicked</code> / <code>ItemDoubleClicked</code> / <code>SelectionChangedMulti</code> / <code>ItemCheckStateChanged</code> / <code>ItemRightClicked</code></td>
+<td><code>int</code> / <code>int</code> / <code>int</code> / <code>std::vector&lt;int&gt;</code> / <code>int,bool</code> / <code>int</code></td>
 </tr>
 <tr>
 <td><code>TableView</code></td>
-<td><code>CellClicked</code> / <code>CellDoubleClicked</code> / <code>HeaderClicked</code> / <code>CurrentCellChanged</code> / <code>SelectionChangedCells</code> / <code>ItemCheckStateChanged</code></td>
-<td><code>int,int</code> / <code>int,int</code> / <code>int</code> / <code>int,int</code> / <code>vector&lt;pair&lt;int,int&gt;&gt;</code> / <code>int,bool</code></td>
+<td><code>CellClicked</code> / <code>CellDoubleClicked</code> / <code>HeaderClicked</code> / <code>CurrentCellChanged</code> / <code>SelectionChangedCells</code> / <code>ItemCheckStateChanged</code> / <code>CellRightClicked</code></td>
+<td><code>int,int</code> / <code>int,int</code> / <code>int</code> / <code>int,int</code> / <code>vector&lt;pair&lt;int,int&gt;&gt;</code> / <code>int,bool</code> / <code>int,int</code></td>
+</tr>
+<tr>
+<td><code>TrayIcon</code></td>
+<td><code>Clicked</code> / <code>DoubleClicked</code> / <code>RightClicked</code> / <code>HoverEnter</code> / <code>HoverLeave</code> / <code>Selected</code> / <code>BalloonClicked</code> / <code>BalloonDismissed</code> / <code>BalloonTimeout</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Menu</code></td>
+<td><code>ItemSelected</code></td>
+<td><code>int</code></td>
 </tr>
 <tr>
 <td><code>TreeView</code></td>
@@ -488,7 +500,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-782f9233', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-04acb494', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZDataViewer.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -538,7 +550,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-782f9233" style="display: none;">#include "ZDataViewer.h"
+<pre id="code-04acb494" style="display: none;">#include "ZDataViewer.h"
 using namespace ZufyUI;
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -586,7 +598,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 0;
 }</pre>
 </div>
-<nav class="chapter-nav"><a class="prev" href="API.en.14.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Window tools</span><span class="nav-desc">Custom title bar TitleBar / CaptionButton / DefaultTitleBar</span></a><a class="next" href="API.en.html"><span class="nav-label">Contents &#8594;</span><span class="nav-title">Back to the chapter list</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.en.14.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Window tools</span><span class="nav-desc">TitleBar / MessageBox / Tray / Taskbar / Icons and activation</span></a><a class="next" href="API.en.html"><span class="nav-label">Contents &#8594;</span><span class="nav-title">Back to the chapter list</span></a></nav>
         </main>
     </div>
 
