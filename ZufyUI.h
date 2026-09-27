@@ -81,9 +81,9 @@
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 9
-#define ZufyUI_VERSION_PATCH 6
-#define ZufyUI_VERSION_STRING L"1.9.6"
+#define ZufyUI_VERSION_MINOR 10
+#define ZufyUI_VERSION_PATCH 0
+#define ZufyUI_VERSION_STRING L"1.10.0"
 
 #ifndef DWMWA_BORDER_COLOR
 #define DWMWA_BORDER_COLOR 34

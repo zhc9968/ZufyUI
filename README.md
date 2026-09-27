@@ -160,6 +160,12 @@ win.SetCustomTitleBar(bar);
 - 菜单键盘：`↑/↓/Home/End`、`Enter`、`Esc`、`←/→` 子菜单、菜单项快捷键（`Ctrl+C` 等）；`Tab` 关菜单。
 - ToolTip：修「文字画到框外」（布局宽/高夹到渲染目标范围 + 省略号 + 截断裁剪）。
 
+**数据视图 / 文档（v1.10.0）**
+- 数据视图新增坐标换算辅助 `ContentToLocalX/Y` + `LocalToContentX/Y`（把散落的 `arrangedRect_.x - Snap(scrollOffsetX_)` 收敛到一处）。
+- 核对确认：数据变更方法（`SetRowCount` / `SetColumnCount` / 增删行列 / `SetItem` / `AddItem`…）内部均已自动 `InvalidateLayout` + `RequestRepaint`；容器 `AddChild`/`SetParent` 自动标脏——**无需手动 `MarkChildrenDirty`**。
+- 文档补充「窗口生命周期与语义」（`Show` / `RunModal` / owned / `shared_ptr`）。
+- 版本 **1.9.6 → 1.10.0**。
+
 ### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
 
 **菜单**

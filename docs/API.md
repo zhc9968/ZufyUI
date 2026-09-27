@@ -974,6 +974,37 @@ int WINAPI WinMain(...) {
 - 需要窗口归属的全局信号（`GlobalMouseDown`、`WindowDeactivated`）都带上了 `Window*`；订阅时用 `GetWindow()` 过滤，只处理本窗口。
 - 所有窗口必须在同一 UI 线程创建与运行。
 
+## 窗口生命周期与语义（Show / RunModal / owned / shared_ptr）
+
+三种"显示"方式语义不同，别混用：
+
+| 方式 | 语义 | 所有权 | 适用 |
+|---|---|---|---|
+| `Window win; win.Create(...); win.Show();` | 非模态、单窗口 | `win` 对象本身（栈/成员） | 主窗口 / 单窗口应用 |
+| `Application::Instance().CreateWindow(...)` → `shared_ptr<Window>` | 非模态、可多开 | **必须自己持有返回的 `shared_ptr`**（丢了窗口即销毁） | 多窗口 / 动态开窗 |
+| `win.RunModal(Window* owner)`（`Show()` 之后调用） | **模态**：禁用 owner、进入嵌套消息循环、关闭后恢复 | 由持有者决定 | 对话框 / 确认框 |
+
+要点：
+- **`Create` 不再自动显示**（1.8.0 起）：`Create` 之后必须显式 `Show()`。
+- **`shared_ptr` 即所有权**：`CreateWindow` 返回的窗口，外部一旦不再持有就立即销毁。想"开着不关"就放进容器（如 `std::vector<std::shared_ptr<Window>>`）。
+- **模态用 `RunModal(owner)`，不是 `Show`**：它禁用 owner、跑嵌套消息循环、关闭后恢复 owner。`MessageBox` 的 `blocking=true` 就是内部替你 `RunModal`。
+- **owned 子窗口**：`CreateWindow(..., Window* owner)` 或 `SetOwner(owner)` —— 始终在 owner 之上、随 owner 最小化；`SetOwnedMinimizePolicy` 可选 隐藏 / 禁用最小化。
+- **不要手写消息循环**：多窗口共用一个 `Application::Run()`；`RunModal` 的嵌套循环由库管理。
+
+## 数据视图的坐标换算（辅助方法）
+
+`ListView` / `TableView` / `TreeView` 都提供内容坐标 <-> 控件本地坐标的换算（把原先散落各处的 `arrangedRect_.x - Snap(scrollOffsetX_)` 收敛到一处）：
+
+```cpp
+float ContentToLocalX(float cx) const;   // 内容 X → 本地 X（含滚动偏移）
+float ContentToLocalY(float cy) const;
+float LocalToContentX(float lx) const;   // 本地 X → 内容 X
+float LocalToContentY(float ly) const;
+```
+
+- `ListView` 只有纵向滚动，其 `ContentToLocalX/LocalToContentX` 不含滚动偏移。
+- `TableView` / `TreeView` 带表头，纵向换算在各自内部已含表头处理（用它们提供的 `ContentToLocalY` 时注意语义）。
+
 ###chapter: 基础控件 | Label、Button、TextBox、ComboBox、ToggleSwitch、CheckBox、ScrollViewer、ProgressBar、Slider
 
 ## 辅助函数

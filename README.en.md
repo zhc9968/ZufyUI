@@ -160,6 +160,12 @@ A tour of the widgets (first page of the demo):
 - Menu keyboard: `↑/↓/Home/End`, `Enter`, `Esc`, `←/→` submenus, item shortcuts (`Ctrl+C`, ...); `Tab` closes the menu.
 - ToolTip: fixed "text drawn outside the box" (clamp the layout to the render target + ellipsis + clip).
 
+**Data views / docs (v1.10.0)**
+- Data views gain coordinate helpers `ContentToLocalX/Y` + `LocalToContentX/Y` (collapsing the scattered `arrangedRect_.x - Snap(scrollOffsetX_)` into one place).
+- Audited and confirmed: data-mutating methods (`SetRowCount` / `SetColumnCount` / row/column insert/remove / `SetItem` / `AddItem`, ...) already auto `InvalidateLayout` + `RequestRepaint`; containers' `AddChild`/`SetParent` auto-mark dirty — **no manual `MarkChildrenDirty` needed**.
+- Docs: added "Window lifetime and semantics" (`Show` / `RunModal` / owned / `shared_ptr`).
+- Version **1.9.6 -> 1.10.0**.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**

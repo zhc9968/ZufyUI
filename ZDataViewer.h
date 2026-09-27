@@ -38,6 +38,12 @@ namespace ZufyUI {
         ZSignal<int, bool> ItemCheckStateChanged;         // 项勾选变化
         ZSignal<int> ItemRightClicked;                    // 右键点击项（传行号；可配合 SetContextMenuFactory + GetContextRow）
         int GetContextRow() const { return lastContextRow_; }   // 最近一次右键所在行（-1=无）
+        // 坐标换算辅助：内容坐标 <-> 控件本地坐标（含滚动偏移），避免散落各处 `arrangedRect_... - Snap(scrollOffset...)`
+        // ListView 只有纵向滚动，X 无滚动偏移。
+        float ContentToLocalX(float cx) const { return arrangedRect_.x + cx; }
+        float ContentToLocalY(float cy) const { return arrangedRect_.y - Snap(scrollOffsetY_) + cy; }
+        float LocalToContentX(float lx) const { return lx - arrangedRect_.x; }
+        float LocalToContentY(float ly) const { return ly - arrangedRect_.y + Snap(scrollOffsetY_); }
 
         // 选择模式
         enum class SelectionMode { Single, Extended, Multi, None };
@@ -663,7 +669,7 @@ namespace ZufyUI {
             }
             if (pressActive_ && marqueeEnabled_ && (GetKeyState(VK_LBUTTON) & 0x8000)) {
                 float cx = x - arrangedRect_.x;
-                float cy = y - arrangedRect_.y + Snap(scrollOffsetY_);
+                float cy = LocalToContentY(y);
                 if (!marqueeActive_ && (fabs(cx - pressStartCX_) > 4.0f || fabs(cy - pressStartCY_) > 4.0f)) {
                     marqueeActive_ = true;
                     multiSel_.clear();
@@ -691,7 +697,7 @@ namespace ZufyUI {
                 return;
             }
             float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
-            float relY = y - arrangedRect_.y + Snap(scrollOffsetY_);
+            float relY = LocalToContentY(y);
             int idx = (int)(relY / effectiveRowHeight);
             if (idx >= 0 && idx < (int)items_.size())
                 hoveredIndex_ = idx;
@@ -709,7 +715,7 @@ namespace ZufyUI {
             lastContextRow_ = -1;
             if (arrangedRect_.Contains(x, y)) {
                 float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
-                float relY = y - arrangedRect_.y + Snap(scrollOffsetY_);
+                float relY = LocalToContentY(y);
                 int idx = (int)(relY / effectiveRowHeight);
                 if (idx >= 0 && idx < (int)items_.size()) {
                     lastContextRow_ = idx;
@@ -744,13 +750,13 @@ namespace ZufyUI {
                 }
             }
             float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
-            float relY = y - arrangedRect_.y + Snap(scrollOffsetY_);
+            float relY = LocalToContentY(y);
             int idx = (int)(relY / effectiveRowHeight);
 
             pressActive_ = true;
             marqueeActive_ = false;
             pressStartCX_ = x - arrangedRect_.x;
-            pressStartCY_ = y - arrangedRect_.y + Snap(scrollOffsetY_);
+            pressStartCY_ = LocalToContentY(y);
             marqueeCurCX_ = pressStartCX_;
             marqueeCurCY_ = pressStartCY_;
 
@@ -1157,6 +1163,9 @@ namespace ZufyUI {
         ZSignal<int, int> CellRightClicked;       // 右键点击单元格（传行、列；可配合 SetContextMenuFactory + GetContextRow/GetContextColumn）
         int GetContextRow() const { return lastContextRow_; }      // 最近一次右键所在行（-1=无）
         int GetContextColumn() const { return lastContextCol_; }   // 最近一次右键所在列（-1=无）
+        // 坐标换算辅助（X，不含表头）
+        float ContentToLocalX(float cx) const { return arrangedRect_.x - Snap(scrollOffsetX_) + cx; }
+        float LocalToContentX(float lx) const { return lx - arrangedRect_.x + Snap(scrollOffsetX_); }
 
         TableView()
             : rowCount_(0), colCount_(0),
@@ -1664,7 +1673,7 @@ namespace ZufyUI {
             if (lastRow < 0) lastRow = rowCount_ - 1;
             if (lastRow > rowCount_ - 1) lastRow = rowCount_ - 1;
             const float bleedY = 3.0f;
-            float colX = arrangedRect_.x - Snap(scrollOffsetX_);
+            float colX = ContentToLocalX(0.0f);
             for (int col = 0; col < colCount_; ++col) {
                 float colWidth = GetEffectiveColumnWidth(col);
                 if (colWidth <= 0.0f) { colX += colWidth; continue; }
@@ -1722,7 +1731,7 @@ namespace ZufyUI {
             IDWriteTextFormat* fmt = GetFontFormat();
             FontSpec spec = GetEffectiveFontSpec();
 
-            float colX = arrangedRect_.x - Snap(scrollOffsetX_);
+            float colX = ContentToLocalX(0.0f);
             for (int col = 0; col < colCount_; ++col) {
                 float colWidth = GetEffectiveColumnWidth(col);
                 if (colWidth <= 0.0f) { colX += colWidth; continue; }
@@ -1883,7 +1892,7 @@ namespace ZufyUI {
             if (isDraggingHorizontal_) { HandleHorizontalScrollDrag(x); return; }
             if (pressActive_ && marqueeEnabled_ && selectionMode_ != SelectionMode::None && (GetKeyState(VK_LBUTTON) & 0x8000)) {
                 float ho = headerVisible_ ? headerHeight_ : 0;
-                float cx = x - arrangedRect_.x + Snap(scrollOffsetX_);
+                float cx = LocalToContentX(x);
                 float cy = y - arrangedRect_.y - ho + Snap(scrollOffsetY_);
                 if (!marqueeActive_ && (fabs(cx - pressStartCX_) > 4.0f || fabs(cy - pressStartCY_) > 4.0f)) {
                     marqueeActive_ = true;
@@ -1908,7 +1917,7 @@ namespace ZufyUI {
             isHorizontalHovered_ = (showHorizontalScrollBar_ && y >= arrangedRect_.y + arrangedRect_.height - scrollBarWidth_);
 
             if (headerVisible_ && y <= arrangedRect_.y + headerHeight_) {
-                float relX = x - arrangedRect_.x + Snap(scrollOffsetX_);
+                float relX = LocalToContentX(x);
                 float colX = 0;
                 bool nearBoundary = false;
                 for (int col = 0; col < colCount_ - 1; ++col) {
@@ -1932,7 +1941,7 @@ namespace ZufyUI {
                 SetCursor(LoadCursor(nullptr, IDC_ARROW));
             }
 
-            float relX = x - arrangedRect_.x + Snap(scrollOffsetX_);
+            float relX = LocalToContentX(x);
             float relY = y - arrangedRect_.y - (headerVisible_ ? headerHeight_ : 0) + Snap(scrollOffsetY_);
             int row = RowAtY(relY);
             int col = GetColumnIndexAtX(relX);
@@ -1955,7 +1964,7 @@ namespace ZufyUI {
             lastContextRow_ = -1;
             lastContextCol_ = -1;
             if (arrangedRect_.Contains(x, y) && !(headerVisible_ && y <= arrangedRect_.y + headerHeight_)) {
-                float relX = x - arrangedRect_.x + Snap(scrollOffsetX_);
+                float relX = LocalToContentX(x);
                 float relY = y - arrangedRect_.y - (headerVisible_ ? headerHeight_ : 0) + Snap(scrollOffsetY_);
                 int row = RowAtY(relY);
                 int col = GetColumnIndexAtX(relX);
@@ -1972,7 +1981,7 @@ namespace ZufyUI {
             if (!arrangedRect_.Contains(x, y)) return;
 
             if (headerVisible_ && y <= arrangedRect_.y + headerHeight_) {
-                float relX = x - arrangedRect_.x + Snap(scrollOffsetX_);
+                float relX = LocalToContentX(x);
                 float colX = 0;
                 for (int col = 0; col < colCount_ - 1; ++col) {
                     float colWidth = GetEffectiveColumnWidth(col);
@@ -2034,7 +2043,7 @@ namespace ZufyUI {
                 }
             }
 
-            float relX = x - arrangedRect_.x + Snap(scrollOffsetX_);
+            float relX = LocalToContentX(x);
             float relY = y - arrangedRect_.y - (headerVisible_ ? headerHeight_ : 0) + Snap(scrollOffsetY_);
             int row = RowAtY(relY);
             int col = GetColumnIndexAtX(relX);
@@ -2420,7 +2429,7 @@ namespace ZufyUI {
             IDWriteTextFormat* fmt = GetFontFormat();
             FontSpec spec = GetEffectiveFontSpec();
 
-            float colX = arrangedRect_.x - Snap(scrollOffsetX_);
+            float colX = ContentToLocalX(0.0f);
             for (int col = 0; col < colCount_; ++col) {
                 float colWidth = GetEffectiveColumnWidth(col);
                 if (colWidth <= 0.0f) { colX += colWidth; continue; }
@@ -2692,6 +2701,10 @@ namespace ZufyUI {
         ZSignal<int> HeaderClicked;                            // 点击表头（列索引）
         ZSignal<std::vector<std::shared_ptr<TreeNode>>> SelectionChangedMulti; // 多选集合变化
         ZSignal<std::shared_ptr<TreeNode>, TreeNode::CheckState> ItemCheckStateChanged; // 勾选变化
+
+        // 坐标换算辅助（X，不含表头）
+        float ContentToLocalX(float cx) const { return arrangedRect_.x - Snap(scrollOffsetX_) + cx; }
+        float LocalToContentX(float lx) const { return lx - arrangedRect_.x + Snap(scrollOffsetX_); }
 
         // 选择模式（参考 Qt::SelectionMode）
         enum class SelectionMode { Single, Extended, Multi };
@@ -3397,7 +3410,7 @@ namespace ZufyUI {
             FontSpec spec = GetEffectiveFontSpec();
 
             std::vector<float> colXPositions(columnCount_);
-            float colX = arrangedRect_.x - Snap(scrollOffsetX_);
+            float colX = ContentToLocalX(0.0f);
             for (int c = 0; c < columnCount_; ++c) {
                 colXPositions[c] = colX;
                 colX += GetEffectiveColumnWidth(c);
@@ -3573,7 +3586,7 @@ namespace ZufyUI {
             }
             if (pressActive_ && marqueeEnabled_ && (GetKeyState(VK_LBUTTON) & 0x8000)) {
                 float ho = headerVisible_ ? headerHeight_ : 0;
-                float cx = x - arrangedRect_.x + Snap(scrollOffsetX_);
+                float cx = LocalToContentX(x);
                 float cy = y - arrangedRect_.y - ho + Snap(scrollOffsetY_);
                 if (!marqueeActive_ && (fabs(cx - pressStartCX_) > 4.0f || fabs(cy - pressStartCY_) > 4.0f)) {
                     marqueeActive_ = true;
@@ -3608,7 +3621,7 @@ namespace ZufyUI {
 
             float headerOffset = headerVisible_ ? headerHeight_ : 0;
             if (headerVisible_ && y <= arrangedRect_.y + headerOffset) {
-                float relX = x - arrangedRect_.x + Snap(scrollOffsetX_);
+                float relX = LocalToContentX(x);
                 float colX = 0;
                 bool nearBoundary = false;
                 for (int c = 0; c < columnCount_ - 1; ++c) {
@@ -3648,7 +3661,7 @@ namespace ZufyUI {
             float headerOffset = headerVisible_ ? headerHeight_ : 0;
 
             if (headerVisible_ && y <= arrangedRect_.y + headerOffset) {
-                float relX = x - arrangedRect_.x + Snap(scrollOffsetX_);
+                float relX = LocalToContentX(x);
                 float colX = 0;
                 for (int c = 0; c < columnCount_ - 1; ++c) {
                     float colWidth = GetEffectiveColumnWidth(c);
@@ -3738,7 +3751,7 @@ namespace ZufyUI {
             // 记录拖拽起点（内容坐标，用于框选）
             pressActive_ = true;
             marqueeActive_ = false;
-            pressStartCX_ = x - arrangedRect_.x + Snap(scrollOffsetX_);
+            pressStartCX_ = LocalToContentX(x);
             pressStartCY_ = y - arrangedRect_.y - headerOffset + Snap(scrollOffsetY_);
             marqueeCurCX_ = pressStartCX_;
             marqueeCurCY_ = pressStartCY_;
@@ -3958,7 +3971,7 @@ namespace ZufyUI {
             auto node = GetNodeAtY(y);
             if (node) {
                 lastContextNode_ = node;
-                int col = GetColumnIndexAtX(x - arrangedRect_.x + Snap(scrollOffsetX_));
+                int col = GetColumnIndexAtX(LocalToContentX(x));
                 ItemRightClicked(node, col == 0);
             }
             return false;   // 继续弹出默认右键菜单（若设置了 SetContextMenu）
@@ -4153,7 +4166,7 @@ namespace ZufyUI {
         float GetNodeTextStartX(std::shared_ptr<TreeNode> node) const {
             int depth = GetNodeDepth(node);
             const float kBaseOffset = 12.0f;
-            float indentX = arrangedRect_.x - Snap(scrollOffsetX_) + kBaseOffset + depth * indent_;
+            float indentX = ContentToLocalX(0.0f) + kBaseOffset + depth * indent_;
             if (indentX < arrangedRect_.x + 12.0f) {
                 indentX = arrangedRect_.x + 12.0f;
             }
@@ -4290,7 +4303,7 @@ namespace ZufyUI {
             IDWriteTextFormat* fmt = GetFontFormat();
             FontSpec spec = GetEffectiveFontSpec();
 
-            float colX = arrangedRect_.x - Snap(scrollOffsetX_);
+            float colX = ContentToLocalX(0.0f);
             for (int c = 0; c < columnCount_; ++c) {
                 float colWidth = GetEffectiveColumnWidth(c);
                 if (colX + colWidth >= arrangedRect_.x && colX <= arrangedRect_.x + viewportWidth) {
