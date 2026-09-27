@@ -3646,6 +3646,13 @@ namespace ZufyUI {
         void Hide() { if (hwnd_) ShowWindow(hwnd_, SW_HIDE); }
         void Raise() { if (hwnd_) SetWindowPos(hwnd_, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE); }
 
+        // 整窗内容不透明度（0..1）；弹出层渐显/淡出用（改 DComp 内容视觉的 opacity，立即生效）
+        void SetContentOpacity(float opacity) {
+            if (opacity < 0.0f) opacity = 0.0f;
+            if (opacity > 1.0f) opacity = 1.0f;
+            if (contentVisual_) contentVisual_->put_Opacity(opacity);
+        }
+
         // 父子（owned）窗口：设置所有者后，本窗口会始终位于所有者之上，并随所有者最小化。
         void SetOwner(Window* owner) {
             owner_ = owner;
