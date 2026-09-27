@@ -362,6 +362,12 @@ A tour of the widgets (first page of the demo):
 - Menu keyboard: `↑/↓/Home/End`, `Enter`, `Esc`, `←/→` submenus, item shortcuts (`Ctrl+C`, ...); `Tab` closes the menu.
 - ToolTip: fixed "text drawn outside the box" (clamp the layout to the render target + ellipsis + clip).
 
+**Data views / docs (v1.10.0)**
+- Data views gain coordinate helpers `ContentToLocalX/Y` + `LocalToContentX/Y` (collapsing the scattered `arrangedRect_.x - Snap(scrollOffsetX_)` into one place).
+- Audited and confirmed: data-mutating methods (`SetRowCount` / `SetColumnCount` / row/column insert/remove / `SetItem` / `AddItem`, ...) already auto `InvalidateLayout` + `RequestRepaint`; containers' `AddChild`/`SetParent` auto-mark dirty — **no manual `MarkChildrenDirty` needed**.
+- Docs: added "Window lifetime and semantics" (`Show` / `RunModal` / owned / `shared_ptr`).
+- Version **1.9.6 -&gt; 1.10.0**.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**
@@ -659,11 +665,11 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-c4e00beb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-8279997b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-c4e00beb" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-8279997b" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own <code>WinMain</code>.</p>
@@ -672,7 +678,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-43a14d28', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-fdd98a10', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
@@ -685,7 +691,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 └── docs/
     └── API.en.md      # Full API documentation
 </pre></div>
-<pre id="code-43a14d28" style="display: none;">ZufyUI/
+<pre id="code-fdd98a10" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # Data views: ListView / TableView / TreeView
@@ -700,7 +706,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-8384693b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-39f40202', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -736,7 +742,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-8384693b" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-39f40202" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -784,25 +790,25 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-af01b74e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-6b04a64a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// Mica + fully transparent tint</span>
 </pre></div>
-<pre id="code-af01b74e" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
+<pre id="code-6b04a64a" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
 </div>
 <p><img alt="Backdrop: manual Mica" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>Step 3: a custom title bar.</strong></p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-6be53d80', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-a7074c45', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar lives here</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">DefaultTitleBar</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 </pre></div>
-<pre id="code-6be53d80" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
+<pre id="code-a7074c45" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);</pre>
@@ -825,6 +831,11 @@ win.SetCustomTitleBar(bar);</pre>
 <p><strong>Misc</strong>
 - Menu keyboard: <code>↑/↓/Home/End</code>, <code>Enter</code>, <code>Esc</code>, <code>←/→</code> submenus, item shortcuts (<code>Ctrl+C</code>, ...); <code>Tab</code> closes the menu.
 - ToolTip: fixed "text drawn outside the box" (clamp the layout to the render target + ellipsis + clip).</p>
+<p><strong>Data views / docs (v1.10.0)</strong>
+- Data views gain coordinate helpers <code>ContentToLocalX/Y</code> + <code>LocalToContentX/Y</code> (collapsing the scattered <code>arrangedRect_.x - Snap(scrollOffsetX_)</code> into one place).
+- Audited and confirmed: data-mutating methods (<code>SetRowCount</code> / <code>SetColumnCount</code> / row/column insert/remove / <code>SetItem</code> / <code>AddItem</code>, ...) already auto <code>InvalidateLayout</code> + <code>RequestRepaint</code>; containers' <code>AddChild</code>/<code>SetParent</code> auto-mark dirty — <strong>no manual <code>MarkChildrenDirty</code> needed</strong>.
+- Docs: added "Window lifetime and semantics" (<code>Show</code> / <code>RunModal</code> / owned / <code>shared_ptr</code>).
+- Version <strong>1.9.6 -&gt; 1.10.0</strong>.</p>
 <h3 id="2026-09-26-tray-taskbar-menu-enhancements-app-identity-self-registration">2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration</h3>
 <p><strong>Menus</strong>
 - Rebuilt the right-click menu as a <strong>layered window with self-drawn soft shadow, rounded corners, and fade-in</strong>; fixed "menu won't open a second time" (root cause: the checkmark's <code>ID2D1StrokeStyle</code> was a <code>static</code> reused across factories → <code>EndDraw</code> returned <code>D2DERR_WRONG_FACTORY</code>; now created/released per instance).

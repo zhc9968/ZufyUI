@@ -965,6 +965,37 @@ int WINAPI WinMain(...) {
 - Window-scoped global signals (`GlobalMouseDown`, `WindowDeactivated`) carry a `Window*`; filter with `GetWindow()`.
 - Create and run all windows on the same UI thread.
 
+## Window lifetime and semantics (Show / RunModal / owned / shared_ptr)
+
+Three "show" paths with different semantics — don't mix them:
+
+| Path | Semantics | Ownership | Use for |
+|---|---|---|---|
+| `Window win; win.Create(...); win.Show();` | non-modal, single window | the `win` object itself (stack/member) | main window / single-window apps |
+| `Application::Instance().CreateWindow(...)` -> `shared_ptr<Window>` | non-modal, multi | **you must keep the returned `shared_ptr`** (drop it and the window is destroyed) | multi-window / dynamic open |
+| `win.RunModal(Window* owner)` (after `Show()`) | **modal**: disables the owner, runs a nested message loop, restores on close | decided by the holder | dialogs / confirmations |
+
+Notes:
+- **`Create` no longer auto-shows** (since 1.8.0): you must call `Show()` explicitly afterwards.
+- **`shared_ptr` IS ownership**: a window returned by `CreateWindow` is destroyed as soon as nobody holds it. To keep it open, store it (e.g. `std::vector<std::shared_ptr<Window>>`).
+- **Use `RunModal(owner)` for modal, not `Show`**: it disables the owner, enters a nested loop, and restores the owner on close. `MessageBox` with `blocking=true` does this for you.
+- **owned child windows**: `CreateWindow(..., Window* owner)` or `SetOwner(owner)` — always above the owner, minimized with it; `SetOwnedMinimizePolicy` can Hide / disable minimize.
+- **Don't write your own message loop**: all windows share one `Application::Run()`; the modal nested loop is managed by the library.
+
+## Coordinate helpers in data views
+
+`ListView` / `TableView` / `TreeView` provide content <-> local coordinate conversion (collapsing the scattered `arrangedRect_.x - Snap(scrollOffsetX_)` into one place):
+
+```cpp
+float ContentToLocalX(float cx) const;   // content X -> local X (with scroll offset)
+float ContentToLocalY(float cy) const;
+float LocalToContentX(float lx) const;   // local X -> content X
+float LocalToContentY(float ly) const;
+```
+
+- `ListView` scrolls vertically only, so its `ContentToLocalX/LocalToContentX` carry no scroll offset.
+- `TableView` / `TreeView` have a header; their vertical conversion already accounts for it per class.
+
 ###chapter: Basic controls | Label, Button, TextBox, ComboBox, ToggleSwitch, CheckBox, ScrollViewer, ProgressBar, Slider
 
 ## Helper
