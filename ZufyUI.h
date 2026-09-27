@@ -5105,8 +5105,9 @@ class MenuWindowBase;
 
         // 以弹出层创建：width/height 为 DIP 的“内容尺寸”（窗口另加阴影边距）
         bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY) {
-            screenX_ = screenX; screenY_ = screenY;
             contentWidthDip_ = widthDip; contentHeightDip_ = heightDip;
+            AdjustToWorkArea(screenX, screenY);            // 按工作区避让，避免弹出到屏幕外
+            screenX_ = screenX; screenY_ = screenY;
             SetBackdrop(Backdrop::None, 0x00000000);   // 背景全透明
             SetContentOpacity(1.0f);
             return Window::Create(widthDip + shadowDip_ * 2, heightDip + shadowDip_ * 2, L"");
@@ -5114,6 +5115,7 @@ class MenuWindowBase;
 
         // 在屏幕 (screenX,screenY)（内容左上角）处弹出
         void ShowAtPoint(int screenX, int screenY) {
+            AdjustToWorkArea(screenX, screenY);            // 按工作区避让
             screenX_ = screenX; screenY_ = screenY;
             HWND h = GetHwnd();
             if (h) SetWindowPos(h, HWND_TOPMOST, screenX - shadowDip_, screenY - shadowDip_, 0, 0,
@@ -5136,8 +5138,10 @@ class MenuWindowBase;
             if (!parent_ && detail::g_activeMenu == this) detail::g_activeMenu = nullptr;
             StopFade();
             HWND h = GetHwnd();
-            if (h) { KillTimer(h, kPollTimerId); DestroyWindow(h); }
-            if (childPopup_) { childPopup_->CloseAll(); childPopup_.reset(); }
+            if (h) { KillTimer(h, kPollTimerId); DestroyWindow(h); }   // 只销毁 HWND
+            if (childPopup_) childPopup_->CloseAll();                  // 递归关闭子窗口 HWND（不在此析构对象）
+            // 对象本身由持有者(shared_ptr / unique_ptr)在本消息处理之外析构，
+            // 避免“在窗口自身消息处理中把 this 析构掉”导致卡死/崩溃。
         }
         void SetStandalone(bool on) { standalone_ = on; }
         MenuWindowBase* ParentPopup() const { return parent_; }
@@ -5193,6 +5197,22 @@ class MenuWindowBase;
             childPopup_ = std::move(c);
             if (childPopup_) childPopup_->parent_ = this;
         }
+        // 按“内容”尺寸把 (x,y) 夹到当前显示器工作区内（避免弹出到屏幕外）
+        void AdjustToWorkArea(int& x, int& y) const {
+            int dpi = (int)GetDpiScale();
+            int cw = MulDiv(contentWidthDip_, dpi, 96);
+            int ch = MulDiv(contentHeightDip_, dpi, 96);
+            POINT pt = { x, y };
+            HMONITOR mon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+            MONITORINFO mi = { sizeof(MONITORINFO) };
+            RECT wa;
+            if (GetMonitorInfoW(mon, &mi)) wa = mi.rcWork;
+            else SystemParametersInfoW(SPI_GETWORKAREA, 0, &wa, 0);
+            if (x + cw > wa.right) x = wa.right - cw;
+            if (y + ch > wa.bottom) y = wa.bottom - ch;
+            if (x < wa.left) x = wa.left;
+            if (y < wa.top) y = wa.top;
+        }
         int  ShadowDip() const { return shadowDip_; }
         int  ContentWidthDip()  const { return contentWidthDip_; }
         int  ContentHeightDip() const { return contentHeightDip_; }
@@ -5223,6 +5243,7 @@ class MenuWindowBase;
     public:
         MenuWindow(std::shared_ptr<Menu> menu, HWND ownerHwnd, int x, int y) : menu_(menu) {
             ownerHwnd_ = ownerHwnd;
+            EnsureTextFormats();          // 先建文本格式，量宽才准确（否则窗口过窄、文字被裁）
             CalculateWindowSizeDip();
             CreatePopup(windowWidthDip_, windowHeightDip_, x, y);
         }
@@ -5297,12 +5318,21 @@ class MenuWindowBase;
                 if (submenuPendingIndex_ >= 0) { OpenSubmenu(submenuPendingIndex_); submenuPendingIndex_ = -1; }
                 return true;
             }
+            if (id == (int)kSubmenuHideTimerId) {   // 鼠标离开子菜单项后：不在弹出层树内则收起子菜单
+                if (GetHwnd()) KillTimer(GetHwnd(), kSubmenuHideTimerId);
+                POINT pt; GetCursorPos(&pt);
+                if (!IsPointInPopupTree(pt)) CloseChildMenu();
+                else if (GetHwnd()) SetTimer(GetHwnd(), kSubmenuHideTimerId, kSubmenuHideDelayMs, nullptr);
+                return true;
+            }
             return false;
         }
 
     private:
         static constexpr UINT_PTR kSubmenuTimerId = 1;
+        static constexpr UINT_PTR kSubmenuHideTimerId = 3;
         static constexpr int kSubmenuDelayMs = 300;
+        static constexpr int kSubmenuHideDelayMs = 300;
 
         MenuWindow* ParentMenu() const { return static_cast<MenuWindow*>(ParentPopup()); }
         void CloseChildMenu() {
@@ -5562,6 +5592,13 @@ class MenuWindowBase;
             hoveredIndex_ = HitTestDip(dipX, dipY);
             if (hoveredIndex_ != oldHover) {
                 if (submenuPendingIndex_ >= 0) { KillTimer(GetHwnd(), kSubmenuTimerId); submenuPendingIndex_ = -1; }
+                // 有子菜单时：悬停到非“子菜单项”上 → 延时收起子菜单
+                if (ChildPopup()) {
+                    bool onSub = (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()
+                        && menu_->items[hoveredIndex_]->type == MenuItem::Type::Submenu);
+                    if (GetHwnd()) KillTimer(GetHwnd(), kSubmenuHideTimerId);
+                    if (!onSub && GetHwnd()) SetTimer(GetHwnd(), kSubmenuHideTimerId, kSubmenuHideDelayMs, nullptr);
+                }
                 if (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()) {
                     auto& it = menu_->items[hoveredIndex_];
                     if (it->type == MenuItem::Type::Submenu && it->submenu) {
