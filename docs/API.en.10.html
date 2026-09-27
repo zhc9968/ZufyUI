@@ -342,7 +342,7 @@ float LocalToContentY(float ly) const;
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ecada8e9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d466dbe3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Application</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateWindow</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span>
@@ -356,7 +356,7 @@ float LocalToContentY(float ly) const;
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Application</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-ecada8e9" style="display: none;">class Application {
+<pre id="code-d466dbe3" style="display: none;">class Application {
     std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title);
     std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title, Window* owner); // owned child
     void AddWindow(const std::shared_ptr&lt;Window&gt;&amp; w);
@@ -372,7 +372,7 @@ float LocalToContentY(float ly) const;
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d740f960', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-a8f04c83', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="nf">WinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">Application</span><span class="w"> </span><span class="n">app</span><span class="p">;</span>
@@ -382,7 +382,7 @@ float LocalToContentY(float ly) const;
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span><span class="w">                    </span><span class="c1">// one shared message loop</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-d740f960" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+<pre id="code-a8f04c83" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     ZufyUI::Application app;
     auto w1 = app.CreateWindow(1000, 700, L"Main");
     auto w2 = app.CreateWindow(640, 480, L"Tool");
@@ -403,7 +403,7 @@ float LocalToContentY(float ly) const;
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2108767c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d258df73', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">AppInfo</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">displayName</span><span class="p">;</span><span class="w">      </span><span class="c1">// display name (toast / jump list / taskbar grouping)</span>
@@ -414,7 +414,7 @@ float LocalToContentY(float ly) const;
 <span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">                 </span><span class="c1">// free function</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">Application::RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">    </span><span class="c1">// forwards to the above (equivalent)</span>
 </pre></div>
-<pre id="code-2108767c" style="display: none;">struct AppInfo {
+<pre id="code-d258df73" style="display: none;">struct AppInfo {
     std::wstring displayName;      // display name (toast / jump list / taskbar grouping)
     std::wstring aumid;            // unique id; empty = derived from displayName
     std::shared_ptr&lt;Image&gt; icon;   // icon (optional)
@@ -427,11 +427,11 @@ bool Application::RegisterApp(const AppInfo&amp; info);    // forwards to the ab
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b82d85cc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-2eed49c6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION</span>
 </pre></div>
-<pre id="code-b82d85cc" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION</pre>
+<pre id="code-2eed49c6" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION</pre>
 </div>
 <p>Without it, <code>RegisterApp</code> only sets the process AUMID (<strong>no side effects</strong>) and writes no registry / files.</p>
 <p><strong>What the library does when authorized</strong>:</p>
@@ -445,7 +445,7 @@ bool Application::RegisterApp(const AppInfo&amp; info);    // forwards to the ab
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0c06877c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-82bb425f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION   </span><span class="c1">// must be before the include</span>
 <span class="p">...</span>
@@ -456,7 +456,7 @@ bool Application::RegisterApp(const AppInfo&amp; info);    // forwards to the ab
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">().</span><span class="n">Run</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-0c06877c" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION   // must be before the include
+<pre id="code-82bb425f" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION   // must be before the include
 ...
 int WINAPI WinMain(...) {
     RegisterApp(AppInfo{ L"MyApp", L"ZufyUI.MyApp", myIcon });   // aumid may be empty = derived
@@ -533,14 +533,14 @@ int WINAPI WinMain(...) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ba648c0d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-593cba7e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">float</span><span class="w"> </span><span class="nf">ContentToLocalX</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">cx</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// content X -&gt; local X (with scroll offset)</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">ContentToLocalY</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">cy</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">LocalToContentX</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">lx</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// local X -&gt; content X</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">LocalToContentY</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">ly</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-ba648c0d" style="display: none;">float ContentToLocalX(float cx) const;   // content X -&gt; local X (with scroll offset)
+<pre id="code-593cba7e" style="display: none;">float ContentToLocalX(float cx) const;   // content X -&gt; local X (with scroll offset)
 float ContentToLocalY(float cy) const;
 float LocalToContentX(float lx) const;   // local X -&gt; content X
 float LocalToContentY(float ly) const;</pre>
