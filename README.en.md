@@ -142,6 +142,24 @@ A tour of the widgets (first page of the demo):
 
 ## Changelog
 
+### 2026-09-27 — Menu rework: popup layer now derives from Window (fixes ~+90MB per open) + openable Window internals
+
+**Menu (major architecture rework)**
+- Right-click / standalone / submenu popups now **derive from `Window`** (`MenuWindowBase : Window` + `MenuWindow : MenuWindowBase`) and use **DComp + the process-shared D3D/D2D device** — fixing **~+90MB per menu open** (the old code used `WS_EX_LAYERED + UpdateLayeredWindow + DIB + its own D2D factory/DC render target`, i.e. a separate software render device per menu).
+- Soft shadow, rounded corners, fade-in, screen-edge avoidance, outside-click/Esc close, and the submenu open/close delay are all preserved.
+- Popups return `WM_MOUSEACTIVATE → MA_NOACTIVATE` and `WM_NCACTIVATE → FALSE` (refuse activation), so clicking them no longer makes the owner window receive a spurious `WM_KILLFOCUS` (the root cause of "clicking an item does nothing / just closes").
+- `MenuWindowBase` is subclassable → users can build **custom flyouts** (flyout / panel).
+
+**Openable Window internals (new)**
+- Overridable creation parameters: `GetCreateStyle` / `GetCreateExStyle` / `GetCreatePos` / `WantDwmChrome` / `WantBackdrop`.
+- Message interception: `OnWindowMessage` (single entry; return true to swallow) + `OnWindowMessageHandled` (observe) + `OnWindowClosing`.
+- Self-draw: `RenderContent(ID2D1DeviceContext*)`; `SetContentOpacity` (whole-window opacity, for popup fade).
+- `Window` is now **subclassable** (virtual dtor + the virtuals above).
+
+**Misc**
+- Menu keyboard: `↑/↓/Home/End`, `Enter`, `Esc`, `←/→` submenus, item shortcuts (`Ctrl+C`, ...); `Tab` closes the menu.
+- ToolTip: fixed "text drawn outside the box" (clamp the layout to the render target + ellipsis + clip).
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**

@@ -142,6 +142,24 @@ win.SetCustomTitleBar(bar);
 
 ## 更新日志
 
+### 2026-09-27 — 菜单重构：弹出层继承 Window（根治每次 +90MB）+ 窗口底层开放
+
+**菜单（重要架构重构）**
+- 右键 / 独立 / 子菜单的弹出层改为**继承 `Window`**（`MenuWindowBase : Window` + `MenuWindow : MenuWindowBase`），走 **DComp + 进程级共享 D3D/D2D 设备** —— **根治「每弹一次菜单约 +90MB」**（旧实现是 `WS_EX_LAYERED + UpdateLayeredWindow + DIB + 自建 D2D 工厂/DC 渲染目标`，每个菜单一套软件渲染设备）。
+- 柔阴影、圆角、渐显、屏幕边缘避让、点外/Esc 关闭、子菜单延时开/收，全部保留。
+- 弹出层 `WM_MOUSEACTIVATE → MA_NOACTIVATE`、`WM_NCACTIVATE → FALSE`（拒绝激活），点击它们不再让主窗口收到伪 `WM_KILLFOCUS`（这是「点菜单项不触发、直接关闭」的根因）。
+- `MenuWindowBase` 可继承 → 用户可用它做**自定义浮层**（flyout / 面板）。
+
+**窗口底层开放（新）**
+- 创建参数可重写：`GetCreateStyle` / `GetCreateExStyle` / `GetCreatePos` / `WantDwmChrome` / `WantBackdrop`。
+- 消息拦截：`OnWindowMessage`（万能入口，返回 true 拦截）+ `OnWindowMessageHandled`（旁路观察）+ `OnWindowClosing`。
+- 自绘：`RenderContent(ID2D1DeviceContext*)`；`SetContentOpacity`（整窗不透明度，弹窗渐显）。
+- `Window` 现为**可继承**（虚析构 + 上述虚函数）。
+
+**其它**
+- 菜单键盘：`↑/↓/Home/End`、`Enter`、`Esc`、`←/→` 子菜单、菜单项快捷键（`Ctrl+C` 等）；`Tab` 关菜单。
+- ToolTip：修「文字画到框外」（布局宽/高夹到渲染目标范围 + 省略号 + 截断裁剪）。
+
 ### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
 
 **菜单**
