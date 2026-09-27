@@ -2628,6 +2628,8 @@ class MenuWindowBase;
                 ApplyAccentState(ACCENT_DISABLED);
             }
 
+            if (s_defaultAppIconBig_) SetAppIcon(s_defaultAppIconBig_, s_defaultAppIconSmall_);   // 应用全局默认图标（RegisterApp 设置）
+
             // 亚克力参数变化 → 重新加载亚克力（重建 DComp 效果图 + 重绘）
             acrylicReloadConn_ = UIZSignals::ReloadAcrylic.connect([this]() {
                 noiseBrush_.Reset();   // 噪点参数可能变了，重建
@@ -2830,6 +2832,15 @@ class MenuWindowBase;
             // 强制刷新非客户区（部分系统要这个才会立刻换掉标题栏图标）
             SetWindowPos(hwnd_, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
         }
+
+        // 默认应用图标：由 RegisterApp 设置一次，之后创建的窗口自动应用（不再需要每个窗口手动 SetAppIcon）
+        inline static HICON s_defaultAppIconBig_ = nullptr;
+        inline static HICON s_defaultAppIconSmall_ = nullptr;
+        static void SetDefaultAppIcon(HICON bigIcon, HICON smallIcon = nullptr) {
+            s_defaultAppIconBig_ = bigIcon;
+            s_defaultAppIconSmall_ = smallIcon ? smallIcon : bigIcon;
+        }
+
         // 从当前模块资源加载（smallId <= 0 时用 bigId）
         void SetAppIconFromResource(int bigId, int smallId = 0) {
             HINSTANCE h = GetModuleHandleW(nullptr);

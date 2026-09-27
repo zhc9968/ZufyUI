@@ -1255,6 +1255,10 @@ namespace ZufyUI {
         if (!aumid.empty()) SetCurrentProcessExplicitAppUserModelID(aumid.c_str());
         detail::AppReg().aumid = aumid;
 
+        // 应用图标：设为「全局默认」→ 之后创建的所有窗口自动 SetAppIcon（一个入口统一设置名称与图标）
+        if (info.icon && !info.icon->IsNull())
+            Window::SetDefaultAppIcon(info.icon->ToHICON());
+
 #ifdef ZUFYUI_ALLOW_APP_REGISTRATION
         if (aumid.empty()) return false;
         std::wstring dir = detail::AppRegRootDir() + L"\\" + detail::AppRegSanitize(aumid);

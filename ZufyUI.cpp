@@ -22,13 +22,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 1;
     }
 
-    win.SetAppIcon(appIcon);   // 窗口/任务栏图标也从上面统一的 appIcon 设置
-
     // 主窗口使用自定义标题栏（拖动标题栏移动窗口，右上角三件套与原生一致）
     win.SetWindowCorner(Window::WindowCorner::Round);
     win.SetResizable(true);
     auto titleBar = std::make_shared<DefaultTitleBar>();
     titleBar->SetTitle(kTitle);
+    titleBar->SetIcon(appIcon);   // 自定义标题栏图标也来自同一个 appIcon
     titleBar->SetHeight(34);
     win.SetCustomTitleBar(titleBar);
 
