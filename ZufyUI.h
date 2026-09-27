@@ -3278,7 +3278,9 @@ class MenuWindowBase;
             }
             if (self) {
                 LRESULT r = self->HandleMessage(message, wParam, lParam);
-                self->OnWindowMessageHandled(message, wParam, lParam, r);
+                // 自毁保护：HandleMessage 期间 self 可能已被析构（如菜单在嵌套消息循环里被销毁）。
+                // 只用 HWND 值判断（不碰 self），窗口销毁后 IsWindow 返回 false，避免访问已释放的 this/vtable。
+                if (IsWindow(hwnd)) self->OnWindowMessageHandled(message, wParam, lParam, r);
                 return r;
             }
             return DefWindowProc(hwnd, message, wParam, lParam);
@@ -5548,10 +5550,13 @@ class MenuWindowBase;
                 int selId = item->id;
                 auto clicked = item;
                 MenuWindow* root = this; while (root->parentMenu_) root = root->parentMenu_;
-                Menu* rootMenu = root ? root->menu_.get() : nullptr;
+                std::shared_ptr<Menu> rootMenu = root ? root->menu_ : nullptr;
                 root->CloseAll();
-                if (rootMenu) rootMenu->ItemSelected.Fire(selId);
-                clicked->Clicked.Fire();
+                // 两条结果通道都排到本帧消息处理“之后”再触发：菜单项回调常会弹模态框（MessageBox 等），
+                // 会在嵌套消息循环触发 WM_KILLFOCUS → CloseAllOpenMenus → 析构菜单对象；若此时仍在
+                // WndProc/HandleMessage 栈上就会 use-after-free。延迟一拍（shared_ptr 保活）彻底避开。
+                detail::PostToUIThread([rootMenu, selId]() { if (rootMenu) rootMenu->ItemSelected.Fire(selId); });
+                detail::PostToUIThread([clicked]() { clicked->Clicked.Fire(); });
             }
             else if (item->type == MenuItem::Type::Submenu) {
                 OpenSubmenu(idx);
