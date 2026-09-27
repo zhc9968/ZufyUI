@@ -228,7 +228,7 @@ namespace ZufyUI {
         void SetActiveTitleColor(Color c) { activeTitleColor_ = c; RequestRepaint(); }
         void SetButtonWidth(float w) { userButtonWidth_ = true; buttonWidth_ = max(0.0f, w); for (auto& b : buttons_) b->SetButtonWidth(w); InvalidateLayout(); RequestRepaint(); }
         void SetButtonHeight(float h) { userButtonHeight_ = true; buttonHeight_ = max(0.0f, h); InvalidateLayout(); RequestRepaint(); }
-        // 覆盖右边距（默认跟随 DWM 系统值）
+        // 覆盖右边距（默认 1.0 DIP：按钮右边缘与标题栏右边缘齐平；不跟随 DWM 推算）
         void SetRightMargin(float m) { rightMarginOverride_ = true; rightMargin_ = max(0.0f, m); InvalidateLayout(); RequestRepaint(); }
         void ClearRightMargin() { rightMarginOverride_ = false; InvalidateLayout(); RequestRepaint(); }
 

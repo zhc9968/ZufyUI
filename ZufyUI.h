@@ -82,8 +82,8 @@
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 10
-#define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.10.0"
+#define ZufyUI_VERSION_PATCH 1
+#define ZufyUI_VERSION_STRING L"1.10.1"
 
 #ifndef DWMWA_BORDER_COLOR
 #define DWMWA_BORDER_COLOR 34
@@ -554,8 +554,10 @@ class MenuWindowBase;
     // 全局文本布局缓存 key：文本 + 格式 + 量化后的宽高（0.5 DIP）+ noWrap + mode(0=原始,1=显示)
     struct TextLayoutKey {
         std::wstring text; const void* fmt; int w2, h2; bool noWrap; int mode;
+        int hAlign = 0, vAlign = 0, ls2 = 0, maxLines = 0;   // mode=2（带对齐/行距/多行装饰）用
         bool operator==(const TextLayoutKey& o) const {
-            return fmt == o.fmt && w2 == o.w2 && h2 == o.h2 && noWrap == o.noWrap && mode == o.mode && text == o.text;
+            return fmt == o.fmt && w2 == o.w2 && h2 == o.h2 && noWrap == o.noWrap && mode == o.mode &&
+                hAlign == o.hAlign && vAlign == o.vAlign && ls2 == o.ls2 && maxLines == o.maxLines && text == o.text;
         }
     };
     struct TextLayoutKeyHash {
@@ -563,6 +565,8 @@ class MenuWindowBase;
             size_t h = std::hash<std::wstring>{}(k.text);
             h ^= std::hash<const void*>{}(k.fmt) + 0x9e3779b9u + (h << 6) + (h >> 2);
             h ^= (size_t)(k.w2 * 73856093) ^ (size_t)(k.h2 * 19349663) ^ (size_t)(k.noWrap ? 1 : 0) ^ (size_t)(k.mode * 83492791);
+            h ^= (size_t)(k.hAlign * 2654435761u) ^ (size_t)(k.vAlign * 40503)
+               ^ (size_t)(k.ls2 * 2246822519u) ^ (size_t)(k.maxLines * 3266489917u);
             return h;
         }
     };
@@ -626,6 +630,37 @@ class MenuWindowBase;
             Store(Key(origText, fmt, maxWidth, maxHeight, noWrap, 1), layout);
         }
 
+        // ---- 带装饰参数的布局缓存（对齐/行距/最大行数都进 key；Label 等走这条）----
+        // 返回**共享** layout，调用方不得再 SetTextAlignment/SetLineSpacing/SetTrimming 修改它。
+        // 装饰参数用 int 传（调用方枚举值直接转 int：HAlign/VAlign 0=起始、1=中、2=末）。
+        IDWriteTextLayout* GetStyledLayout(const std::wstring& text, IDWriteTextFormat* fmt,
+            float w, float h, bool noWrap, int hAlign, int vAlign, float lineSpacing, int maxLines) {
+            if (!fmt || text.empty() || w <= 0.0f || h <= 0.0f) return nullptr;
+            TextLayoutKey key = StyledKey(text, fmt, w, h, noWrap, 2, hAlign, vAlign, lineSpacing, maxLines);
+            auto it = layoutCache_.find(key);
+            if (it != layoutCache_.end() && it->second) return it->second.Get();
+            IDWriteFactory* factory = GetFactory();
+            if (!factory) return nullptr;
+            ComPtr<IDWriteTextLayout> layout;
+            if (FAILED(factory->CreateTextLayout(text.c_str(), (UINT32)text.length(), fmt, w, h, &layout)) || !layout) return nullptr;
+            ApplyDecorations(layout.Get(), factory, fmt, noWrap, hAlign, vAlign, lineSpacing, maxLines);
+            Store(std::move(key), layout.Get());
+            return layout.Get();
+        }
+        // 显示布局（按【原文本】缓存截断后的结果，含装饰）：命中即跳过整段截断计算
+        IDWriteTextLayout* GetStyledDisplayLayout(const std::wstring& origText, IDWriteTextFormat* fmt,
+            float w, float h, bool noWrap, int hAlign, int vAlign, float lineSpacing, int maxLines) {
+            if (!fmt || origText.empty() || w <= 0.0f || h <= 0.0f) return nullptr;
+            auto it = layoutCache_.find(StyledKey(origText, fmt, w, h, noWrap, 3, hAlign, vAlign, lineSpacing, maxLines));
+            return (it != layoutCache_.end() && it->second) ? it->second.Get() : nullptr;
+        }
+        void CacheStyledDisplayLayout(const std::wstring& origText, IDWriteTextFormat* fmt,
+            float w, float h, bool noWrap, int hAlign, int vAlign, float lineSpacing, int maxLines,
+            IDWriteTextLayout* layout) {
+            if (!fmt || origText.empty() || !layout) return;
+            Store(StyledKey(origText, fmt, w, h, noWrap, 3, hAlign, vAlign, lineSpacing, maxLines), layout);
+        }
+
         // 设置全局默认字体，触发 GlobalFontChanged 让所有未覆盖的控件重建
         void SetGlobalFont(const FontSpec& spec) {
             globalFont_ = spec;
@@ -643,6 +678,40 @@ class MenuWindowBase;
 
         TextLayoutKey Key(const std::wstring& text, IDWriteTextFormat* fmt, float w, float h, bool noWrap, int mode) {
             return TextLayoutKey{ text, fmt, (int)std::lround(w * 2.0f), (int)std::lround(h * 2.0f), noWrap, mode };
+        }
+        TextLayoutKey StyledKey(const std::wstring& text, IDWriteTextFormat* fmt, float w, float h,
+            bool noWrap, int mode, int hAlign, int vAlign, float lineSpacing, int maxLines) {
+            return TextLayoutKey{ text, fmt, (int)std::lround(w * 2.0f), (int)std::lround(h * 2.0f), noWrap, mode,
+                                  hAlign, vAlign, (int)std::lround(lineSpacing * 100.0f), maxLines };
+        }
+        static void ApplyDecorations(IDWriteTextLayout* layout, IDWriteFactory* factory, IDWriteTextFormat* fmt,
+            bool noWrap, int hAlign, int vAlign, float lineSpacing, int maxLines) {
+            if (!layout) return;
+            layout->SetWordWrapping(noWrap ? DWRITE_WORD_WRAPPING_NO_WRAP : DWRITE_WORD_WRAPPING_WRAP);
+            if (lineSpacing > 0.0f)
+                layout->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, lineSpacing, lineSpacing * 0.8f);
+            if (maxLines > 0) {
+                DWRITE_LINE_METRICS lm{};
+                UINT32 lc = 0;
+                layout->GetLineMetrics(&lm, 1, &lc);
+                float lh = lm.height > 0 ? lm.height : layout->GetFontSize() * 1.4f;
+                layout->SetMaxHeight(maxLines * lh);
+                ComPtr<IDWriteInlineObject> trimmingSign;
+                if (SUCCEEDED(factory->CreateEllipsisTrimmingSign(fmt, &trimmingSign))) {
+                    DWRITE_TRIMMING trimming{ DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
+                    layout->SetTrimming(&trimming, trimmingSign.Get());
+                }
+            }
+            switch (hAlign) {
+            case 1:  layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);   break;
+            case 2:  layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING); break;
+            default: layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);  break;
+            }
+            switch (vAlign) {
+            case 1:  layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER); break;
+            case 2:  layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_FAR);    break;
+            default: layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);   break;
+            }
         }
         void Store(TextLayoutKey key, IDWriteTextLayout* layout) {
             if (!layout) return;
@@ -2388,6 +2457,28 @@ class MenuWindowBase;
         };
     }
 
+    // ---------- 进程级 DPI 感知 ----------
+    namespace detail {
+        // 必须在进程内创建任何窗口之前调用：一旦建过窗口，系统就锁定 DPI 感知，之后调用必然失败（静默）。
+        // 因此放到静态初始化阶段执行（见下方 guard），而不是 Window::Create 里。
+        inline void EnsureProcessDpiAwareness() {
+            static bool s_done = false;
+            if (s_done) return;
+            s_done = true;
+            HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
+            if (!hUser32) return;
+            typedef BOOL(WINAPI* pSetProcessDpiAwarenessContext)(HANDLE);
+            if (auto spdac = (pSetProcessDpiAwarenessContext)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext"))
+                spdac((HANDLE)-4);   // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+            else {
+                typedef BOOL(WINAPI* pSetProcessDPIAware)(void);
+                if (auto spda = (pSetProcessDPIAware)GetProcAddress(hUser32, "SetProcessDPIAware")) spda();
+            }
+        }
+        struct DpiAwarenessGuard { DpiAwarenessGuard() { EnsureProcessDpiAwareness(); } };
+        namespace { DpiAwarenessGuard g_dpiAwarenessGuard; }   // 静态初始化：早于 main、早于任何窗口
+    }
+
     // ========== DComp 亚克力效果封装（移植自 ALTaleX531/Win32Acrylic，MIT） ==========
     // detail_fx（手写 IGraphicsEffect 效果类 + 官方亚克力/云母配方）已移至 ZufyUIAcrylic.h
 
@@ -2517,7 +2608,7 @@ class MenuWindowBase;
         // ---- 窗口创建参数（可重写；默认 = 普通顶层窗口）----
         virtual DWORD GetCreateStyle()   const { return WS_OVERLAPPEDWINDOW; }
         virtual DWORD GetCreateExStyle() const { return WS_EX_NOREDIRECTIONBITMAP; }
-        virtual void  GetCreatePos(int& x, int& y) const { x = CW_USEDEFAULT; y = CW_USEDEFAULT; }
+        virtual void  GetCreatePos(int& x, int& y) const { (void)x; (void)y; }   // 默认不调整：用 Create 传入的 x/y
         virtual bool  WantDwmChrome()    const { return true; }   // 系统边框/阴影/圆角/非客户区
         virtual bool  WantBackdrop()     const { return true; }   // 是否应用 Backdrop
 
@@ -2554,25 +2645,12 @@ class MenuWindowBase;
             DefaultBackdropColor = tint;
         }
 
-        bool Create(int width, int height, const std::wstring& title) {
-            // 进程级 DPI 感知只需设置一次（多窗口重复调用无意义）
-            static bool s_dpiAwareSet = false;
-            if (!s_dpiAwareSet) {
-                s_dpiAwareSet = true;
-                HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
-                if (hUser32) {
-                    typedef BOOL(WINAPI* pSetProcessDpiAwarenessContext)(HANDLE);
-                    pSetProcessDpiAwarenessContext SetProcessDpiAwarenessContext = (pSetProcessDpiAwarenessContext)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
-                    if (SetProcessDpiAwarenessContext) {
-                        SetProcessDpiAwarenessContext((HANDLE)-4);
-                    }
-                    else {
-                        typedef BOOL(WINAPI* pSetProcessDPIAware)(void);
-                        pSetProcessDPIAware SetProcessDPIAware = (pSetProcessDPIAware)GetProcAddress(hUser32, "SetProcessDPIAware");
-                        if (SetProcessDPIAware) SetProcessDPIAware();
-                    }
-                }
-            }
+        // x/y 为屏幕像素位置；默认 CW_USEDEFAULT（系统决定）。传入具体位置即以此为准；
+        // 未传时可由 GetCreatePos 覆盖（弹出层用）。
+        bool Create(int width, int height, const std::wstring& title,
+                    int x = CW_USEDEFAULT, int y = CW_USEDEFAULT) {
+            // 兜底：正常情况下 DPI 感知已在静态初始化阶段设置（早于任何窗口）；此处重复调用是幂等的。
+            detail::EnsureProcessDpiAwareness();
 
             UINT sysDpi = GetDpiForSystem();
             if (sysDpi == 0) sysDpi = 96;
@@ -2595,8 +2673,8 @@ class MenuWindowBase;
             DWORD style = GetCreateStyle();
             if (owner_ && ownedMinimizePolicy_ == OwnedMinimizePolicy::DisableMinimize)
                 style &= ~WS_MINIMIZEBOX;   // 方案4：创建时就置灰最小化按钮
-            int cposX = CW_USEDEFAULT, cposY = CW_USEDEFAULT;
-            GetCreatePos(cposX, cposY);
+            int cposX = x, cposY = y;
+            GetCreatePos(cposX, cposY);   // 可重写：覆盖成绝对位置
             hwnd_ = CreateWindowExW(GetCreateExStyle(), L"ZufyUIWindowClass", title.c_str(), style,
                 cposX, cposY, physicalWidth, physicalHeight,
                 hwndOwner, nullptr, GetModuleHandle(nullptr), this);

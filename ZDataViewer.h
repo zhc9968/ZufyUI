@@ -480,13 +480,19 @@ namespace ZufyUI {
         const std::vector<UIElement*>& GetChildren() const override {
             float eff = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
             float snapped = Snap(scrollOffsetY_);
-            // 命中缓存要覆盖影响布局的几何：滚动量、项数、行高、勾选框（只有滚动量时会漏掉“滚动中增删项”）
-            float key = snapped
-                      + (float)items_.size() * 1000000.0f + eff * 100000.0f
-                      + (itemsCheckable_ ? 10000.0f : 0.0f);
-            if (!childrenDirty_ && key == lastChildrenSnap_) return childrenView_;
+            // 命中缓存要覆盖所有影响子元素布局的输入：滚动量、项数、行高、勾选框、容器矩形。
+            // 逐字段比较（不用 float 编码 key：项数×1e6 与行高×1e5 的字段区间会重叠并丢精度）
+            if (!childrenDirty_ &&
+                snapped == lastChildrenScrollY_ && eff == lastChildrenEff_ &&
+                items_.size() == lastChildrenCount_ && itemsCheckable_ == lastChildrenCheckable_ &&
+                arrangedRect_.x == lastChildrenArrX_ && arrangedRect_.y == lastChildrenArrY_ &&
+                arrangedRect_.width == lastChildrenArrW_)
+                return childrenView_;
             childrenDirty_ = false;
-            lastChildrenSnap_ = key;
+            lastChildrenScrollY_ = snapped; lastChildrenEff_ = eff;
+            lastChildrenCount_ = items_.size(); lastChildrenCheckable_ = itemsCheckable_;
+            lastChildrenArrX_ = arrangedRect_.x; lastChildrenArrY_ = arrangedRect_.y;
+            lastChildrenArrW_ = arrangedRect_.width;
             childrenView_.clear();
             if (eff <= 0.0f) return childrenView_;
             float left = arrangedRect_.x + (buttonMode_ ? 4.0f : 0.0f) + 8.0f;   // 按钮模式 itemRect 左移 4（与原绘制一致）
@@ -508,7 +514,11 @@ namespace ZufyUI {
             return D2D1::RectF(arrangedRect_.x - 2.0f, arrangedRect_.y - 2.0f,
                 arrangedRect_.x + arrangedRect_.width + 2.0f, arrangedRect_.y + arrangedRect_.height + 2.0f);
         }
-        mutable float lastChildrenSnap_ = -1e30f;
+        mutable float lastChildrenScrollY_ = -1e30f;
+        mutable float lastChildrenEff_ = -1e30f;
+        mutable size_t lastChildrenCount_ = (size_t)-1;
+        mutable bool lastChildrenCheckable_ = false;
+        mutable float lastChildrenArrX_ = -1e30f, lastChildrenArrY_ = -1e30f, lastChildrenArrW_ = -1e30f;
 
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_) return;
@@ -2635,7 +2645,7 @@ namespace ZufyUI {
         enum class CheckState { Unchecked, PartiallyChecked, Checked };
 
         std::vector<std::shared_ptr<Label>> columns;        // Label 化：每列一个真 Label（文本/图标/内嵌控件由它自己画）
-        TreeNode* parent = nullptr;
+        std::weak_ptr<TreeNode> parent;                     // weak 断环（避免 shared_ptr 循环）；用时 .lock()
         std::vector<std::shared_ptr<TreeNode>> children;
         bool expanded = false;
         int depth = 0;
@@ -2819,7 +2829,7 @@ namespace ZufyUI {
             if (!parent) return nullptr;
             auto child = std::make_shared<TreeNode>(text);
             child->columns.resize(columnCount_);
-            child->parent = parent.get();
+            child->parent = parent;
             child->depth = parent->depth + 1;
             child->checkable = checkableMode_ || parent->checkable;
             parent->children.push_back(child);
@@ -2832,7 +2842,7 @@ namespace ZufyUI {
             if (!parent) return nullptr;
             auto child = std::make_shared<TreeNode>(columns);
             child->columns.resize(columnCount_);
-            child->parent = parent.get();
+            child->parent = parent;
             child->depth = parent->depth + 1;
             child->checkable = checkableMode_ || parent->checkable;
             parent->children.push_back(child);
@@ -2845,8 +2855,8 @@ namespace ZufyUI {
         void RemoveNode(std::shared_ptr<TreeNode> node) {
             if (!node) return;
             EraseCheckAnim(node);
-            if (node->parent) {
-                auto& siblings = node->parent->children;
+            if (auto p = node->parent.lock()) {
+                auto& siblings = p->children;
                 siblings.erase(std::remove(siblings.begin(), siblings.end(), node), siblings.end());
             }
             else {
@@ -3069,7 +3079,7 @@ namespace ZufyUI {
             if (!parent) return nullptr;
             auto child = std::make_shared<TreeNode>(columns);
             child->columns.resize(columnCount_);
-            child->parent = parent.get();
+            child->parent = parent;
             child->depth = parent->depth + 1;
             child->checkable = checkableMode_ || parent->checkable;
             if (defaultExpandDepth_ >= 0 && child->depth < defaultExpandDepth_) child->expanded = true;
@@ -3098,21 +3108,22 @@ namespace ZufyUI {
         }
         int IndexOfNode(std::shared_ptr<TreeNode> node) const {
             if (!node) return -1;
-            const auto& siblings = node->parent ? node->parent->children : roots_;
+            auto pp = node->parent.lock();
+            const auto& siblings = pp ? pp->children : roots_;
             for (int i = 0; i < (int)siblings.size(); ++i) if (siblings[i] == node) return i;
             return -1;
         }
         bool MoveNode(std::shared_ptr<TreeNode> node, std::shared_ptr<TreeNode> newParent, int index) {
             if (!node) return false;
             if (newParent && IsAncestorOf(node, newParent)) return false;   // 不能移到自己的后代里
-            if (node->parent) {
-                auto& s = node->parent->children;
+            if (auto p = node->parent.lock()) {
+                auto& s = p->children;
                 s.erase(std::remove(s.begin(), s.end(), node), s.end());
             }
             else {
                 roots_.erase(std::remove(roots_.begin(), roots_.end(), node), roots_.end());
             }
-            node->parent = newParent.get();
+            node->parent = newParent;
             if (newParent) {
                 if (index < 0 || index > (int)newParent->children.size()) index = (int)newParent->children.size();
                 newParent->children.insert(newParent->children.begin() + index, node);
@@ -3141,7 +3152,7 @@ namespace ZufyUI {
             std::function<void(std::vector<std::shared_ptr<TreeNode>>&)> doSort =
                 [&](std::vector<std::shared_ptr<TreeNode>>& list) {
                 std::stable_sort(list.begin(), list.end(), cmp);
-                if (recursive) for (auto& n : list) { doSort(n->children); UpdateDepthRecursive(n, n->parent ? n->parent->depth + 1 : 0); }
+                if (recursive) for (auto& n : list) { doSort(n->children); auto np = n->parent.lock(); UpdateDepthRecursive(n, np ? np->depth + 1 : 0); }
                 };
             if (parent) doSort(parent->children);
             else doSort(roots_);
@@ -3190,8 +3201,8 @@ namespace ZufyUI {
         // 节点路径（默认用第一列文本拼接）
         std::wstring GetNodePath(const std::shared_ptr<TreeNode>& node, const std::wstring& separator = L" / ") const {
             std::vector<std::wstring> parts;
-            TreeNode* cur = node.get();
-            while (cur) { parts.push_back((cur->columns.empty() || !cur->columns[0]) ? L"" : cur->columns[0]->GetText()); cur = cur->parent; }
+            for (auto cur = node; cur; cur = cur->parent.lock())
+                parts.push_back((cur->columns.empty() || !cur->columns[0]) ? L"" : cur->columns[0]->GetText());
             std::reverse(parts.begin(), parts.end());
             std::wstring out;
             for (size_t i = 0; i < parts.size(); ++i) { if (i) out += separator; out += parts[i]; }
@@ -3859,9 +3870,8 @@ namespace ZufyUI {
             case VK_LEFT:
                 if (selectedNode_ && selectedNode_->expanded)
                     ExpandNode(selectedNode_, false);
-                else if (selectedNode_ && selectedNode_->parent) {
-                    auto parentShared = FindNode(selectedNode_->parent);
-                    if (parentShared) SetSelectedNode(parentShared);
+                else if (selectedNode_) {
+                    if (auto parentShared = selectedNode_->parent.lock()) SetSelectedNode(parentShared);
                 }
                 break;
             case VK_HOME:
@@ -4018,14 +4028,14 @@ namespace ZufyUI {
             if (selectionMode_ != SelectionMode::Single) SelectionChangedMulti(GetSelectedNodes());
         }
         bool IsAncestorOf(std::shared_ptr<TreeNode> ancestor, std::shared_ptr<TreeNode> node) const {
-            TreeNode* p = node ? node->parent : nullptr;
-            while (p) { if (p == ancestor.get()) return true; p = p->parent; }
+            std::shared_ptr<TreeNode> p = node ? node->parent.lock() : nullptr;
+            while (p) { if (p == ancestor) return true; p = p->parent.lock(); }
             return false;
         }
         void UpdateDepthRecursive(std::shared_ptr<TreeNode> node, int depth) {
             if (!node) return;
             node->depth = depth;
-            for (auto& c : node->children) { c->parent = node.get(); UpdateDepthRecursive(c, depth + 1); }
+            for (auto& c : node->children) { c->parent = node; UpdateDepthRecursive(c, depth + 1); }
         }
         int CountRecursive(std::shared_ptr<TreeNode> node) const {
             if (!node) return 0;
@@ -4039,9 +4049,7 @@ namespace ZufyUI {
             for (auto& c : node->children) SetExpandedRecursive(c, e);
         }
         void UpdateParentCheckState(std::shared_ptr<TreeNode> node) {
-            TreeNode* p = node ? node->parent : nullptr;
-            if (!p) return;
-            auto parent = FindNode(p);
+            std::shared_ptr<TreeNode> parent = node ? node->parent.lock() : nullptr;
             if (!parent) return;
             bool allChecked = true, allUnchecked = true;
             for (auto& c : parent->children) {

@@ -232,17 +232,25 @@ namespace ZufyUI {
         // 从系统 XAML 控件资源加载官方噪点贴图（WIC 位图，亚克力/手绘云母共用）
         inline ComPtr<IWICBitmap> LoadSystemNoiseWIC(IWICImagingFactory* wic) {
             if (!wic) return nullptr;
-            HINSTANCE hModule = LoadLibraryExW(L"Windows.UI.Xaml.Controls.dll", nullptr,
-                LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
-            if (!hModule) return nullptr;
-            HRSRC hResource = FindResourceW(hModule, MAKEINTRESOURCEW(2000), RT_RCDATA);
-            if (!hResource) { FreeLibrary(hModule); return nullptr; }
-            HGLOBAL hGlobal = LoadResource(hModule, hResource);
-            DWORD size = SizeofResource(hModule, hResource);
+            // 缓存：模块句柄只 LoadLibrary 一次；解码后的噪点位图只解一次。
+            // 二者都与 DPI 无关，而噪点 brush 会在 WM_DPICHANGED 时 Reset → 重建，
+            // 否则每次 DPI 变化都要重新 LoadLibrary + 找资源 + WIC 解码。
+            static HINSTANCE s_mod = nullptr;
+            if (!s_mod) {
+                s_mod = LoadLibraryExW(L"Windows.UI.Xaml.Controls.dll", nullptr,
+                    LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+                if (!s_mod) return nullptr;
+            }
+            static ComPtr<IWICBitmap> s_cached;
+            if (s_cached) return s_cached;
+
+            HRSRC hResource = FindResourceW(s_mod, MAKEINTRESOURCEW(2000), RT_RCDATA);
+            if (!hResource) return nullptr;
+            HGLOBAL hGlobal = LoadResource(s_mod, hResource);
+            DWORD size = SizeofResource(s_mod, hResource);
             BYTE* data = hGlobal ? (BYTE*)LockResource(hGlobal) : nullptr;
             ComPtr<IStream> stream(data ? SHCreateMemStream(data, size) : nullptr);
             if (hGlobal) { UnlockResource(hGlobal); FreeResource(hGlobal); }
-            FreeLibrary(hModule);
             if (!stream) return nullptr;
             ComPtr<IWICBitmapDecoder> decoder;
             if (FAILED(wic->CreateDecoderFromStream(stream.Get(), &GUID_VendorMicrosoft,
@@ -253,9 +261,8 @@ namespace ZufyUI {
             if (FAILED(wic->CreateFormatConverter(&conv))) return nullptr;
             if (FAILED(conv->Initialize(frame.Get(), GUID_WICPixelFormat32bppPBGRA,
                 WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom))) return nullptr;
-            ComPtr<IWICBitmap> wicBitmap;
-            if (FAILED(wic->CreateBitmapFromSource(conv.Get(), WICBitmapNoCache, &wicBitmap))) return nullptr;
-            return wicBitmap;
+            if (FAILED(wic->CreateBitmapFromSource(conv.Get(), WICBitmapNoCache, &s_cached))) return nullptr;
+            return s_cached;
         }
 
         inline ComPtr<ICompositionSurfaceBrush> CreateSystemNoiseBrush(

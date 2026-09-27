@@ -167,6 +167,16 @@ A tour of the widgets (first page of the demo):
 - Docs: added "Window lifetime and semantics" (`Show` / `RunModal` / owned / `shared_ptr`).
 - Version **1.9.6 -> 1.10.0**.
 
+**Internal robustness / performance (v1.10.1)**
+- **Process DPI awareness** moved to static-initialization time (before `main`, before any window) — it used to live in `Window::Create` with its return value ignored, so if the process created any other window first it would silently fail and every coordinate in the process would be wrong.
+- `Window::Create` gained `x` / `y` position parameters (default `CW_USEDEFAULT`; when omitted it can still be overridden by `GetCreatePos`).
+- `ListView` child cache now uses **field-by-field comparison** — the old float key (`count*1e6 + rowHeight*1e5 + ...`) had overlapping field ranges and lost precision past ~10k items.
+- `TreeView::TreeNode::parent` is now `std::weak_ptr` (weak ref breaks the cycle); checking walks the parent chain with `lock()`, dropping the per-level whole-tree `FindNode` (was O(n·d)).
+- System noise texture now caches the **module handle + decoded WIC bitmap**: a DPI change no longer re-runs `LoadLibrary` + WIC decode.
+- `ImageDeviceCache::Get` moves the GPU upload (`CreateBitmapFromWicBitmap`) out of the lock (double-checked).
+- `ComboBox` dropdown now connects to the global `DrawOverlay` **on demand**: collapsed combo boxes no longer run an empty lambda every frame.
+- `Label::Draw` / `Label::MeasureOverride` go through the `FontManager` layout cache (key now includes **alignment / line spacing / max lines**; the Ellipsis truncation result is cached by **original text**, so a hit skips the whole truncation computation). Highest-frequency widget path — biggest win in tables.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**

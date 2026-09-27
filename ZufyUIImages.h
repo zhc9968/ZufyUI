@@ -45,15 +45,19 @@ namespace ZufyUI {
     public:
         ID2D1Bitmap* Get(ID2D1RenderTarget* rt, IWICBitmapSource* src) {
             if (!rt || !src) return nullptr;
-            std::lock_guard<std::mutex> lock(mtx_);
             ImageCacheKey key{ g_imageDeviceEpoch, rt };
-            auto it = map_.find(key);
-            if (it != map_.end() && it->second) return it->second.Get();
+            {
+                std::lock_guard<std::mutex> lock(mtx_);
+                auto it = map_.find(key);
+                if (it != map_.end() && it->second) return it->second.Get();
+            }
+            // 锁外做 GPU 上传：CreateBitmapFromWicBitmap 可能耗时，不应占着锁挡住其它命中
             ComPtr<ID2D1Bitmap> bmp;
             HRESULT hr = rt->CreateBitmapFromWicBitmap(src, nullptr, bmp.GetAddressOf());
             if (FAILED(hr) || !bmp) return nullptr;
-            map_[key] = bmp;
-            return bmp.Get();
+            std::lock_guard<std::mutex> lock(mtx_);
+            auto ins = map_.emplace(key, bmp);   // 并发下可能别人已插入：保留先到的
+            return ins.first->second ? ins.first->second.Get() : bmp.Get();
         }
         void Clear() { std::lock_guard<std::mutex> lock(mtx_); map_.clear(); }
         void Clear(ID2D1RenderTarget* rt) {

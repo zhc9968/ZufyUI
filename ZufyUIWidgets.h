@@ -208,11 +208,11 @@ namespace ZufyUI {
                 IDWriteTextFormat* fmt = GetFontFormat();
                 if (factory && fmt) {
                     if (overflow_ == TextOverflow::Wrap && availableSize.width != FLT_MAX && availableSize.width > 0) {
-                        ComPtr<IDWriteTextLayout> tempLayout;
                         float availW = max(0.0f, availableSize.width - padW - (iw > 0 ? iw + iconSpacing_ : 0.0f));
-                        factory->CreateTextLayout(text_.c_str(), (UINT32)text_.length(), fmt, availW, 10000.0f, &tempLayout);
+                        // 走全局布局缓存（wrap）；测量只取 metrics，装饰保持旧行为（不加行距/多行）
+                        IDWriteTextLayout* tempLayout = FontManager::Instance().GetStyledLayout(
+                            text_, fmt, availW, 10000.0f, false, (int)hAlign_, (int)vAlign_, 0.0f, 0);
                         if (tempLayout) {
-                            tempLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
                             DWRITE_TEXT_METRICS metrics;
                             tempLayout->GetMetrics(&metrics);
                             textW = min(availW, metrics.width);
@@ -220,8 +220,9 @@ namespace ZufyUI {
                         }
                     }
                     else {
-                        ComPtr<IDWriteTextLayout> layout;
-                        factory->CreateTextLayout(text_.c_str(), (UINT32)text_.length(), fmt, 10000.0f, 10000.0f, &layout);
+                        // 走全局布局缓存（no-wrap）
+                        IDWriteTextLayout* layout = FontManager::Instance().GetStyledLayout(
+                            text_, fmt, 10000.0f, 10000.0f, true, (int)hAlign_, (int)vAlign_, 0.0f, 0);
                         if (layout) {
                             DWRITE_TEXT_METRICS metrics;
                             layout->GetMetrics(&metrics);
@@ -312,88 +313,60 @@ namespace ZufyUI {
             rect.right = arrangedRect_.x + arrangedRect_.width - padding_.right;
             if (rect.right < rect.left) rect.right = rect.left;
             if (rect.bottom < rect.top) rect.bottom = rect.top;
-            std::wstring displayText = text_;
+            FontManager& fm = FontManager::Instance();
+            const float boxW = rect.right - rect.left;
+            const float boxH = rect.bottom - rect.top;
+            const int ha = (int)hAlign_, va = (int)vAlign_;
+            IDWriteTextLayout* layout = nullptr;
 
-            // ---------- Ellipsis 模式：先做截断判定，得到 displayText ----------
             if (overflow_ == TextOverflow::Ellipsis) {
-                ComPtr<IDWriteTextLayout> measureLayout;
-                factory->CreateTextLayout(text_.c_str(), (UINT32)text_.length(), fmt,
-                    rect.right - rect.left, rect.bottom - rect.top, &measureLayout);
-                if (measureLayout) {
-                    measureLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-                    DWRITE_TEXT_METRICS metrics;
-                    measureLayout->GetMetrics(&metrics);
-                    if (metrics.width > (rect.right - rect.left) && displayText.length() > 3) {
-                        const std::wstring suffix = L"...";
-                        int len = (int)displayText.length();
-                        int lo = 0, hi = len - 1, best = -1;
-                        while (lo <= hi) {                       // 二分（与 DrawTextWithEllipsis 对齐；原来逐字符 O(n)）
-                            int mid = (lo + hi) / 2;
-                            std::wstring test;
-                            test.reserve((size_t)mid + suffix.size());
-                            test.assign(displayText, 0, mid);
-                            test += suffix;
-                            ComPtr<IDWriteTextLayout> testLayout;
-                            factory->CreateTextLayout(test.c_str(), (UINT32)test.length(), fmt,
-                                rect.right - rect.left, rect.bottom - rect.top, &testLayout);
-                            if (!testLayout) break;
-                            testLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-                            DWRITE_TEXT_METRICS tm;
-                            testLayout->GetMetrics(&tm);
-                            if (tm.width <= (rect.right - rect.left)) { best = mid; lo = mid + 1; }
-                            else hi = mid - 1;
+                // ① 命中“显示布局”缓存 → 跳过整段截断计算（key 含文本/尺寸/对齐/行距/多行）
+                layout = fm.GetStyledDisplayLayout(text_, fmt, boxW, boxH, true, ha, va, lineSpacing_, maxLines_);
+                if (!layout) {
+                    // ② 未命中：先量自然宽度判断是否需要截断，再二分找最长可显示前缀
+                    std::wstring displayText = text_;
+                    IDWriteTextLayout* measureLayout = fm.GetStyledLayout(
+                        text_, fmt, boxW, boxH, true, ha, va, 0.0f, 0);   // 只判宽：不加行距/多行装饰
+                    if (measureLayout) {
+                        DWRITE_TEXT_METRICS metrics;
+                        measureLayout->GetMetrics(&metrics);
+                        if (metrics.width > boxW && displayText.length() > 3) {
+                            const std::wstring suffix = L"...";
+                            int len = (int)displayText.length();
+                            int lo = 0, hi = len - 1, best = -1;
+                            while (lo <= hi) {                       // 二分（与 DrawTextWithEllipsis 对齐）
+                                int mid = (lo + hi) / 2;
+                                std::wstring test;
+                                test.reserve((size_t)mid + suffix.size());
+                                test.assign(displayText, 0, mid);
+                                test += suffix;
+                                ComPtr<IDWriteTextLayout> testLayout;   // 中间结果不入全局缓存，避免污染
+                                factory->CreateTextLayout(test.c_str(), (UINT32)test.length(), fmt, boxW, boxH, &testLayout);
+                                if (!testLayout) break;
+                                testLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+                                DWRITE_TEXT_METRICS tm;
+                                testLayout->GetMetrics(&tm);
+                                if (tm.width <= boxW) { best = mid; lo = mid + 1; }
+                                else hi = mid - 1;
+                            }
+                            displayText = (best >= 0) ? (displayText.substr(0, best) + suffix) : suffix;
                         }
-                        displayText = (best >= 0) ? (displayText.substr(0, best) + suffix) : suffix;
                     }
+                    layout = fm.GetStyledLayout(displayText, fmt, boxW, boxH, true, ha, va, lineSpacing_, maxLines_);
+                    if (layout) fm.CacheStyledDisplayLayout(text_, fmt, boxW, boxH, true, ha, va, lineSpacing_, maxLines_, layout);
                 }
-            }
-
-            // ---------- 统一绘制：创建带对齐的 layout ----------
-            ComPtr<IDWriteTextLayout> layout;
-            factory->CreateTextLayout(displayText.c_str(), (UINT32)displayText.length(), fmt,
-                rect.right - rect.left, rect.bottom - rect.top, &layout);
-            if (!layout) return;
-
-            if (lineSpacing_ > 0.0f)
-                layout->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, lineSpacing_, lineSpacing_ * 0.8f);
-            if (maxLines_ > 0) {
-                DWRITE_LINE_METRICS lm{};
-                UINT32 lc = 0;
-                layout->GetLineMetrics(&lm, 1, &lc);
-                float lh = lm.height > 0 ? lm.height : layout->GetFontSize() * 1.4f;
-                layout->SetMaxHeight(maxLines_ * lh);
-                ComPtr<IDWriteInlineObject> trimmingSign;
-                if (SUCCEEDED(factory->CreateEllipsisTrimmingSign(fmt, &trimmingSign))) {
-                    DWRITE_TRIMMING trimming{ DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
-                    layout->SetTrimming(&trimming, trimmingSign.Get());
-                }
-            }
-
-            // 水平对齐
-            switch (hAlign_) {
-            case HAlign::Left:   layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING); break;
-            case HAlign::Center: layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER); break;
-            case HAlign::Right:  layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING); break;
-            }
-            // 垂直对齐
-            switch (vAlign_) {
-            case VAlign::Top:    layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR); break;
-            case VAlign::Center: layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER); break;
-            case VAlign::Bottom: layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_FAR); break;
-            }
-            // 换行策略
-            if (overflow_ == TextOverflow::Wrap) {
-                layout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
             }
             else {
-                layout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+                layout = fm.GetStyledLayout(text_, fmt, boxW, boxH, overflow_ != TextOverflow::Wrap,
+                                            ha, va, lineSpacing_, maxLines_);
             }
+            if (!layout) return;
 
             if (!textBrush_) rt->CreateSolidColorBrush(textColor_.ToD2D(), textBrush_.GetAddressOf());
             else textBrush_->SetColor(textColor_.ToD2D());
             if (!IsEffectivelyEnabled() && textBrush_) textBrush_->SetColor(DefaultDisabledColor.ToD2D());
 
-            rt->DrawTextLayout(D2D1::Point2F(Snap(rect.left), Snap(rect.top)), layout.Get(), textBrush_.Get());
+            rt->DrawTextLayout(D2D1::Point2F(Snap(rect.left), Snap(rect.top)), layout, textBrush_.Get());
         }
 
         void ReleaseDeviceResources() override {
@@ -1391,14 +1364,8 @@ namespace ZufyUI {
             width_ = DefaultWidth; height_ = DefaultHeight;
             UpdateIndicatorPosition();
 
-            UIZSignals::DrawOverlay.connect(
-                [this](Window* w, ID2D1RenderTarget* rt) {
-                    if (w != GetWindow()) return;   // 只画在自己所属窗口上
-                    if (expandProgress_ > 0.01f || expanded_) DrawExpandedList(rt);
-                },
-                ConnectionThread::CurrentThread,
-                connectionGroup_
-            );
+            // 展开列表的叠加绘制改为“按需连接”（见 EnsureOverlayConnected）：未展开的 ComboBox 不挂全局 DrawOverlay，
+            // 避免每个 ComboBox 每帧都跑一遍空 lambda。
 
             UIZSignals::GlobalMouseDown.connect(
                 [this](Window* w, float x, float y) {
@@ -2136,8 +2103,22 @@ namespace ZufyUI {
             }
         }
 
+        // 展开时才挂全局 DrawOverlay；收起且动画结束即断连（懒连接，避免未展开的 ComboBox 每帧空跑）
+        void EnsureOverlayConnected() {
+            if (overlayConn_) return;
+            overlayConn_ = UIZSignals::DrawOverlay.connect(
+                [this](Window* w, ID2D1RenderTarget* rt) {
+                    if (w != GetWindow()) return;                 // 只画在自己所属窗口上
+                    if (expanded_ || expandProgress_ > 0.01f) DrawExpandedList(rt);
+                    if (!expanded_ && expandProgress_ <= 0.01f) overlayConn_.disconnect();  // 收起且动画结束 → 断连
+                },
+                ConnectionThread::CurrentThread,
+                connectionGroup_);
+        }
+
         void ExpandInternal() {
             if (expanded_ || items_.empty()) return;
+            EnsureOverlayConnected();   // 按需连接全局 DrawOverlay
             expanded_ = true;
             justExpanded_ = true;
             expandUp_ = false;
@@ -2189,6 +2170,7 @@ namespace ZufyUI {
         int selectedIndex_;
         bool expanded_;
         float expandProgress_;
+        Connection overlayConn_;   // 懒连接的 DrawOverlay 句柄
         int hoveredItemIndex_;
         int pressedItemIndex_;
         bool pressedOnSelf_;

@@ -167,6 +167,16 @@ win.SetCustomTitleBar(bar);
 - 文档补充「窗口生命周期与语义」（`Show` / `RunModal` / owned / `shared_ptr`）。
 - 版本 **1.9.6 → 1.10.0**。
 
+**内部健壮性 / 性能（v1.10.1）**
+- **进程级 DPI 感知**改到静态初始化阶段（早于 `main`、早于任何窗口）——原先放在 `Window::Create` 里、且忽略返回值，若进程先建过别的窗口就会静默失败、全进程坐标皆错。
+- `Window::Create` 增加 `x` / `y` 位置参数（默认 `CW_USEDEFAULT`；未传时仍可由 `GetCreatePos` 覆盖）。
+- `ListView` 子元素缓存改用**逐字段比较**——原来的浮点 key（`项数×1e6 + 行高×1e5 + …`）字段区间本身就会重叠，上万项时丢精度必撞。
+- `TreeView::TreeNode::parent` 改 `std::weak_ptr`（弱引用断环），勾选沿父链直接 `lock()`，去掉每层一次 `FindNode` 的全树搜索（原 O(n·d)）。
+- 系统噪点贴图缓存 **module 句柄 + 解码后的 WIC 位图**：DPI 变化不再重复 `LoadLibrary` + WIC 解码。
+- `ImageDeviceCache::Get` 把 GPU 上传（`CreateBitmapFromWicBitmap`）移出锁（双检）。
+- `ComboBox` 展开列表改**按需连接**全局 `DrawOverlay`：未展开的 ComboBox 不再每帧空跑。
+- `Label::Draw` / `Label::MeasureOverride` 走 `FontManager` 布局缓存（缓存 key 增加**对齐 / 行距 / 多行**；Ellipsis 的截断结果按**原文本**缓存，命中即跳过整段截断计算）。最高频控件路径，表格里放大收益。
+
 ### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
 
 **菜单**
