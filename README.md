@@ -159,6 +159,7 @@ win.SetCustomTitleBar(bar);
 **其它**
 - 菜单键盘：`↑/↓/Home/End`、`Enter`、`Esc`、`←/→` 子菜单、菜单项快捷键（`Ctrl+C` 等）；`Tab` 关菜单。
 - ToolTip：修「文字画到框外」（布局宽/高夹到渲染目标范围 + 省略号 + 截断裁剪）。
+- **修复崩溃**：菜单项回调里弹模态框（`MessageBox` 等）导致的 use-after-free —— `Window::WndProc` 加**自毁保护**（`HandleMessage` 期间窗口对象可能被析构，之后只按 HWND 判断、不再碰 `self`）；菜单项回调**延迟到本帧消息处理之后**再触发（`detail::PostToUIThread`，`shared_ptr` 保活），彻底避开"在消息栈内被析构"。
 
 **数据视图 / 文档（v1.10.0）**
 - 数据视图新增坐标换算辅助 `ContentToLocalX/Y` + `LocalToContentX/Y`（把散落的 `arrangedRect_.x - Snap(scrollOffsetX_)` 收敛到一处）。

@@ -159,6 +159,7 @@ A tour of the widgets (first page of the demo):
 **Misc**
 - Menu keyboard: `↑/↓/Home/End`, `Enter`, `Esc`, `←/→` submenus, item shortcuts (`Ctrl+C`, ...); `Tab` closes the menu.
 - ToolTip: fixed "text drawn outside the box" (clamp the layout to the render target + ellipsis + clip).
+- **Crash fix**: a use-after-free when a menu item callback pops a modal (e.g. `MessageBox`) — `Window::WndProc` now has a **self-destruct guard** (the window object may be destroyed during `HandleMessage`, so afterwards it only checks the HWND and never touches `self`); menu item callbacks are **deferred to after the current message is handled** (`detail::PostToUIThread`, kept alive with `shared_ptr`), so they never run inside the message stack.
 
 **Data views / docs (v1.10.0)**
 - Data views gain coordinate helpers `ContentToLocalX/Y` + `LocalToContentX/Y` (collapsing the scattered `arrangedRect_.x - Snap(scrollOffsetX_)` into one place).
