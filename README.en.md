@@ -177,6 +177,10 @@ A tour of the widgets (first page of the demo):
 - `ComboBox` dropdown now connects to the global `DrawOverlay` **on demand**: collapsed combo boxes no longer run an empty lambda every frame.
 - `Label::Draw` / `Label::MeasureOverride` go through the `FontManager` layout cache (key now includes **alignment / line spacing / max lines**; the Ellipsis truncation result is cached by **original text**, so a hit skips the whole truncation computation). Highest-frequency widget path — biggest win in tables.
 
+**Stability fix (v1.10.2)**
+- **Text-layout cache accessors now return a strong `ComPtr` instead of a raw pointer.** `GetRawLayout` / `GetDisplayLayout` / `GetStyledLayout` / `GetStyledDisplayLayout` used to hand back a **raw borrow** into the cache, and the bounded FIFO (cap 400, drops 1/4 at a time) could free that entry between "got the pointer" and "used it" -> dangling (surfaced as an access violation in `Label::MeasureOverride` -> `GetMetrics` under large tables + frequent refresh). The caller now holds a strong reference, so an evicted entry cannot invalidate the object.
+- `FontManager`'s factory init, `formatCache_`, and `layoutCache_` / `layoutFifo_` are now guarded by a `std::mutex` (defends against any future cross-thread call).
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**

@@ -82,8 +82,8 @@
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 10
-#define ZufyUI_VERSION_PATCH 1
-#define ZufyUI_VERSION_STRING L"1.10.1"
+#define ZufyUI_VERSION_PATCH 2
+#define ZufyUI_VERSION_STRING L"1.10.2"
 
 #ifndef DWMWA_BORDER_COLOR
 #define DWMWA_BORDER_COLOR 34
@@ -579,17 +579,19 @@ class MenuWindowBase;
         }
 
         IDWriteFactory* GetFactory() {
-            if (!dwriteFactory_) {
+            std::call_once(factoryOnce_, [this]() {
                 DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &dwriteFactory_);
-            }
+            });
             return dwriteFactory_.Get();
         }
 
         // 按 spec 获取共享的 IDWriteTextFormat（带缓存）
         IDWriteTextFormat* GetFormat(const FontSpec& spec) {
-            auto it = formatCache_.find(spec);
-            if (it != formatCache_.end()) return it->second.Get();
-
+            {
+                std::lock_guard<std::mutex> lock(mtx_);
+                auto it = formatCache_.find(spec);
+                if (it != formatCache_.end()) return it->second.Get();
+            }
             IDWriteFactory* factory = GetFactory();
             if (!factory) return nullptr;
 
@@ -604,25 +606,27 @@ class MenuWindowBase;
             fmt->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             fmt->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
 
-            IDWriteTextFormat* raw = fmt.Get();
-            formatCache_.emplace(spec, std::move(fmt));
-            return raw;
+            std::lock_guard<std::mutex> lock(mtx_);
+            auto ins = formatCache_.emplace(spec, std::move(fmt));   // 并发下保留先到的
+            return ins.first->second.Get();
         }
 
         // ---- 全局文本布局缓存（跨所有控件共享，避免每帧每单元格 CreateTextLayout）----
-        // 安全性依赖 formatCache_ **永不淘汰**（同一 FontSpec 永远返回同一 IDWriteTextFormat*）；
-        // 若未来给 formatCache_ 加淘汰，必须同时清空 layoutCache_。
-        // 只返回"基础"layout 供绘制，调用方**不得修改**它（需 lineSpacing/trimming 的请自建旁路缓存）。
-        IDWriteTextLayout* GetRawLayout(const std::wstring& text, IDWriteTextFormat* fmt,
+        // 返回值是**强引用 ComPtr**：调用方持有期间，即使该条目随后被 FIFO 淘汰，layout 对象也不会失效
+        //（裸借用 + 有界淘汰 = 悬垂；这是之前崩溃的根因，返回值类型已从裸指针改为 ComPtr）。
+        // 缓存对象**只读**：调用方不得再对返回的 layout 做 SetTextAlignment/SetLineSpacing/SetTrimming。
+        // formatCache_ 永不淘汰 → 同一 FontSpec 永远返回同一 IDWriteTextFormat*。
+        ComPtr<IDWriteTextLayout> GetRawLayout(const std::wstring& text, IDWriteTextFormat* fmt,
             float maxWidth, float maxHeight, bool noWrap) {
             return GetOrCreate(text, fmt, maxWidth, maxHeight, noWrap, 0);
         }
         // 显示布局：按【原文本】缓存截断后的最终 layout（命中即跳过整段截断计算）
-        IDWriteTextLayout* GetDisplayLayout(const std::wstring& origText, IDWriteTextFormat* fmt,
+        ComPtr<IDWriteTextLayout> GetDisplayLayout(const std::wstring& origText, IDWriteTextFormat* fmt,
             float maxWidth, float maxHeight, bool noWrap) {
             if (!fmt || origText.empty() || maxWidth <= 0.0f || maxHeight <= 0.0f) return nullptr;
+            std::lock_guard<std::mutex> lock(mtx_);
             auto it = layoutCache_.find(Key(origText, fmt, maxWidth, maxHeight, noWrap, 1));
-            return (it != layoutCache_.end() && it->second) ? it->second.Get() : nullptr;
+            return (it != layoutCache_.end()) ? it->second : nullptr;
         }
         void CacheDisplayLayout(const std::wstring& origText, IDWriteTextFormat* fmt,
             float maxWidth, float maxHeight, bool noWrap, IDWriteTextLayout* layout) {
@@ -633,26 +637,30 @@ class MenuWindowBase;
         // ---- 带装饰参数的布局缓存（对齐/行距/最大行数都进 key；Label 等走这条）----
         // 返回**共享** layout，调用方不得再 SetTextAlignment/SetLineSpacing/SetTrimming 修改它。
         // 装饰参数用 int 传（调用方枚举值直接转 int：HAlign/VAlign 0=起始、1=中、2=末）。
-        IDWriteTextLayout* GetStyledLayout(const std::wstring& text, IDWriteTextFormat* fmt,
+        ComPtr<IDWriteTextLayout> GetStyledLayout(const std::wstring& text, IDWriteTextFormat* fmt,
             float w, float h, bool noWrap, int hAlign, int vAlign, float lineSpacing, int maxLines) {
             if (!fmt || text.empty() || w <= 0.0f || h <= 0.0f) return nullptr;
             TextLayoutKey key = StyledKey(text, fmt, w, h, noWrap, 2, hAlign, vAlign, lineSpacing, maxLines);
-            auto it = layoutCache_.find(key);
-            if (it != layoutCache_.end() && it->second) return it->second.Get();
+            {
+                std::lock_guard<std::mutex> lock(mtx_);
+                auto it = layoutCache_.find(key);
+                if (it != layoutCache_.end() && it->second) return it->second;
+            }
             IDWriteFactory* factory = GetFactory();
             if (!factory) return nullptr;
             ComPtr<IDWriteTextLayout> layout;
             if (FAILED(factory->CreateTextLayout(text.c_str(), (UINT32)text.length(), fmt, w, h, &layout)) || !layout) return nullptr;
             ApplyDecorations(layout.Get(), factory, fmt, noWrap, hAlign, vAlign, lineSpacing, maxLines);
             Store(std::move(key), layout.Get());
-            return layout.Get();
+            return layout;
         }
         // 显示布局（按【原文本】缓存截断后的结果，含装饰）：命中即跳过整段截断计算
-        IDWriteTextLayout* GetStyledDisplayLayout(const std::wstring& origText, IDWriteTextFormat* fmt,
+        ComPtr<IDWriteTextLayout> GetStyledDisplayLayout(const std::wstring& origText, IDWriteTextFormat* fmt,
             float w, float h, bool noWrap, int hAlign, int vAlign, float lineSpacing, int maxLines) {
             if (!fmt || origText.empty() || w <= 0.0f || h <= 0.0f) return nullptr;
+            std::lock_guard<std::mutex> lock(mtx_);
             auto it = layoutCache_.find(StyledKey(origText, fmt, w, h, noWrap, 3, hAlign, vAlign, lineSpacing, maxLines));
-            return (it != layoutCache_.end() && it->second) ? it->second.Get() : nullptr;
+            return (it != layoutCache_.end()) ? it->second : nullptr;
         }
         void CacheStyledDisplayLayout(const std::wstring& origText, IDWriteTextFormat* fmt,
             float w, float h, bool noWrap, int hAlign, int vAlign, float lineSpacing, int maxLines,
@@ -715,6 +723,7 @@ class MenuWindowBase;
         }
         void Store(TextLayoutKey key, IDWriteTextLayout* layout) {
             if (!layout) return;
+            std::lock_guard<std::mutex> lock(mtx_);
             auto exist = layoutCache_.find(key);
             if (exist != layoutCache_.end()) { exist->second = layout; return; }   // 已存在：覆盖，不 push fifo（防 map/fifo 不同步）
             if (layoutCache_.size() >= kLayoutCacheMax) {   // 有界：一次淘汰最旧的 1/4
@@ -727,22 +736,27 @@ class MenuWindowBase;
             layoutCache_[key] = layout;              // ComPtr 赋值会 AddRef
             layoutFifo_.push_back(std::move(key));
         }
-        IDWriteTextLayout* GetOrCreate(const std::wstring& text, IDWriteTextFormat* fmt,
+        ComPtr<IDWriteTextLayout> GetOrCreate(const std::wstring& text, IDWriteTextFormat* fmt,
             float w, float h, bool noWrap, int mode) {
             if (!fmt || text.empty() || w <= 0.0f || h <= 0.0f) return nullptr;
             TextLayoutKey key = Key(text, fmt, w, h, noWrap, mode);
-            auto it = layoutCache_.find(key);
-            if (it != layoutCache_.end() && it->second) return it->second.Get();
+            {
+                std::lock_guard<std::mutex> lock(mtx_);
+                auto it = layoutCache_.find(key);
+                if (it != layoutCache_.end() && it->second) return it->second;
+            }
             IDWriteFactory* factory = GetFactory();
             if (!factory) return nullptr;
             ComPtr<IDWriteTextLayout> layout;
             if (FAILED(factory->CreateTextLayout(text.c_str(), (UINT32)text.length(), fmt, w, h, &layout)) || !layout) return nullptr;
             if (noWrap) layout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
             Store(std::move(key), layout.Get());
-            return layout.Get();
+            return layout;
         }
 
         ComPtr<IDWriteFactory> dwriteFactory_;
+        std::once_flag factoryOnce_;
+        mutable std::mutex mtx_;   // 保护 formatCache_ / layoutCache_ / layoutFifo_（防未来跨线程调用）
         std::unordered_map<FontSpec, ComPtr<IDWriteTextFormat>, FontSpecHash> formatCache_;   // 契约：永不淘汰
         // 全局文本布局缓存（跨控件共享；有界 FIFO）
         static constexpr size_t kLayoutCacheMax = 400;

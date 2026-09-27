@@ -30,10 +30,10 @@ namespace ZufyUI {
 
         FontManager& fm = FontManager::Instance();
         // 热路径：显示布局缓存命中（key=原文本+宽高+格式）→ 直接画，跳过整段"测量 + 二分截断"
-        IDWriteTextLayout* finalLayout = fm.GetDisplayLayout(text, fmt, maxWidth, maxHeight, forceNoWrap);
+        ComPtr<IDWriteTextLayout> finalLayout = fm.GetDisplayLayout(text, fmt, maxWidth, maxHeight, forceNoWrap);
         if (!finalLayout) {
             // 未命中：原始布局（也走缓存）测宽 → 超宽二分截断（中间 layout 不缓存）
-            IDWriteTextLayout* measureLayout = fm.GetRawLayout(text, fmt, maxWidth, maxHeight, forceNoWrap);
+            ComPtr<IDWriteTextLayout> measureLayout = fm.GetRawLayout(text, fmt, maxWidth, maxHeight, forceNoWrap);
             if (!measureLayout) return;
             DWRITE_TEXT_METRICS metrics;
             measureLayout->GetMetrics(&metrics);
@@ -65,7 +65,7 @@ namespace ZufyUI {
                 finalLayout = measureLayout;   // 未截断 → 复用原始布局
             }
             if (!finalLayout) return;
-            fm.CacheDisplayLayout(text, fmt, maxWidth, maxHeight, forceNoWrap, finalLayout);
+            fm.CacheDisplayLayout(text, fmt, maxWidth, maxHeight, forceNoWrap, finalLayout.Get());
         }
 
         if (!textBrush) rt->CreateSolidColorBrush(color, textBrush.GetAddressOf());
@@ -77,7 +77,7 @@ namespace ZufyUI {
         if (align == TextHAlign::Center) drawX = rect.left + (maxWidth - fm2.width) / 2.0f;
         else if (align == TextHAlign::Right) drawX = rect.left + (maxWidth - fm2.width);
         if (drawX < rect.left) drawX = rect.left;
-        rt->DrawTextLayout(D2D1::Point2F(Snap(drawX), Snap(rect.top)), finalLayout, textBrush.Get());
+        rt->DrawTextLayout(D2D1::Point2F(Snap(drawX), Snap(rect.top)), finalLayout.Get(), textBrush.Get());
     }
 
     // ---------- 标签（支持对齐、换行/省略号，最终修正版） ----------
@@ -210,7 +210,7 @@ namespace ZufyUI {
                     if (overflow_ == TextOverflow::Wrap && availableSize.width != FLT_MAX && availableSize.width > 0) {
                         float availW = max(0.0f, availableSize.width - padW - (iw > 0 ? iw + iconSpacing_ : 0.0f));
                         // 走全局布局缓存（wrap）；测量只取 metrics，装饰保持旧行为（不加行距/多行）
-                        IDWriteTextLayout* tempLayout = FontManager::Instance().GetStyledLayout(
+                        ComPtr<IDWriteTextLayout> tempLayout = FontManager::Instance().GetStyledLayout(
                             text_, fmt, availW, 10000.0f, false, (int)hAlign_, (int)vAlign_, 0.0f, 0);
                         if (tempLayout) {
                             DWRITE_TEXT_METRICS metrics;
@@ -221,7 +221,7 @@ namespace ZufyUI {
                     }
                     else {
                         // 走全局布局缓存（no-wrap）
-                        IDWriteTextLayout* layout = FontManager::Instance().GetStyledLayout(
+                        ComPtr<IDWriteTextLayout> layout = FontManager::Instance().GetStyledLayout(
                             text_, fmt, 10000.0f, 10000.0f, true, (int)hAlign_, (int)vAlign_, 0.0f, 0);
                         if (layout) {
                             DWRITE_TEXT_METRICS metrics;
@@ -317,7 +317,7 @@ namespace ZufyUI {
             const float boxW = rect.right - rect.left;
             const float boxH = rect.bottom - rect.top;
             const int ha = (int)hAlign_, va = (int)vAlign_;
-            IDWriteTextLayout* layout = nullptr;
+            ComPtr<IDWriteTextLayout> layout = nullptr;
 
             if (overflow_ == TextOverflow::Ellipsis) {
                 // ① 命中“显示布局”缓存 → 跳过整段截断计算（key 含文本/尺寸/对齐/行距/多行）
@@ -325,7 +325,7 @@ namespace ZufyUI {
                 if (!layout) {
                     // ② 未命中：先量自然宽度判断是否需要截断，再二分找最长可显示前缀
                     std::wstring displayText = text_;
-                    IDWriteTextLayout* measureLayout = fm.GetStyledLayout(
+                    ComPtr<IDWriteTextLayout> measureLayout = fm.GetStyledLayout(
                         text_, fmt, boxW, boxH, true, ha, va, 0.0f, 0);   // 只判宽：不加行距/多行装饰
                     if (measureLayout) {
                         DWRITE_TEXT_METRICS metrics;
@@ -353,7 +353,7 @@ namespace ZufyUI {
                         }
                     }
                     layout = fm.GetStyledLayout(displayText, fmt, boxW, boxH, true, ha, va, lineSpacing_, maxLines_);
-                    if (layout) fm.CacheStyledDisplayLayout(text_, fmt, boxW, boxH, true, ha, va, lineSpacing_, maxLines_, layout);
+                    if (layout) fm.CacheStyledDisplayLayout(text_, fmt, boxW, boxH, true, ha, va, lineSpacing_, maxLines_, layout.Get());
                 }
             }
             else {
@@ -366,7 +366,7 @@ namespace ZufyUI {
             else textBrush_->SetColor(textColor_.ToD2D());
             if (!IsEffectivelyEnabled() && textBrush_) textBrush_->SetColor(DefaultDisabledColor.ToD2D());
 
-            rt->DrawTextLayout(D2D1::Point2F(Snap(rect.left), Snap(rect.top)), layout, textBrush_.Get());
+            rt->DrawTextLayout(D2D1::Point2F(Snap(rect.left), Snap(rect.top)), layout.Get(), textBrush_.Get());
         }
 
         void ReleaseDeviceResources() override {
@@ -456,7 +456,7 @@ namespace ZufyUI {
             IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(GetEffectiveFontSpec());
             if (!fmt) return L"";
             // GetDisplayLayout 非空 = 需要截断显示（即文本放不下）
-            IDWriteTextLayout* layout = FontManager::Instance().GetDisplayLayout(text_, fmt, availW, 1.0e6f, true);
+            ComPtr<IDWriteTextLayout> layout = FontManager::Instance().GetDisplayLayout(text_, fmt, availW, 1.0e6f, true);
             return layout ? text_ : L"";
         }
         void SetColors(Color normal, Color hover, Color pressed) {

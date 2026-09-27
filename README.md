@@ -177,6 +177,10 @@ win.SetCustomTitleBar(bar);
 - `ComboBox` 展开列表改**按需连接**全局 `DrawOverlay`：未展开的 ComboBox 不再每帧空跑。
 - `Label::Draw` / `Label::MeasureOverride` 走 `FontManager` 布局缓存（缓存 key 增加**对齐 / 行距 / 多行**；Ellipsis 的截断结果按**原文本**缓存，命中即跳过整段截断计算）。最高频控件路径，表格里放大收益。
 
+**稳定性修复（v1.10.2）**
+- **文本布局缓存返回值从裸指针改为强引用 `ComPtr`**。`GetRawLayout` / `GetDisplayLayout` / `GetStyledLayout` / `GetStyledDisplayLayout` 之前返回缓存内部的**裸借用指针**，而有界 FIFO（上限 400、一次淘汰 1/4）可能在"取到指针"与"使用"之间把条目释放 → 悬垂（大规模表格 + 高频刷新时表现为 `Label::MeasureOverride` → `GetMetrics` 的访问冲突）。现在调用方持有强引用，条目即使被淘汰、对象也不会失效。
+- `FontManager` 的工厂初始化、`formatCache_`、`layoutCache_` / `layoutFifo_` 统一加 `std::mutex` 保护（防御未来可能的跨线程调用）。
+
 ### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
 
 **菜单**
