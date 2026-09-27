@@ -263,7 +263,6 @@ class MenuWindowBase;
         inline MenuWindowBase* g_activeMenu = nullptr;   // 当前打开的菜单（根）；窗口把键盘转发给它
         inline bool ForwardKeyToActiveMenu(int vk);      // 定义在 MenuWindow 之后（需要完整类型）
         inline bool IsPointInActiveMenuPopup(POINT ptScreen);   // 同上
-        inline bool IsHwndOfActiveMenu(HWND h);                 // 同上
 
         inline void InitializeUIThread() {
             g_uiThreadId = std::this_thread::get_id();
@@ -3475,6 +3474,7 @@ class MenuWindowBase;
                 if (customFrame_ && wParam == HTCAPTION) { ShowSystemMenu(); return 0; }
                 break;
             case WM_NCACTIVATE:
+                if (!WantDwmChrome()) return FALSE;   // 弹出层：拒绝激活，避免点击/弹出时触发主窗口伪 WM_KILLFOCUS
                 if (customFrame_) return TRUE;   // 不绘制默认非客户区
                 break;
             case WM_NCPAINT:
@@ -3639,18 +3639,12 @@ class MenuWindowBase;
                 if (focusedElement_) focusedElement_->OnFocus();
                 UpdateIMEAssociation();
                 return 0;
-            case WM_KILLFOCUS: {
+            case WM_KILLFOCUS:
                 UpdateTimerState();
-                // 关键：点击 WS_EX_NOACTIVATE 弹窗会让原前台窗口先收到一次“伪 WM_KILLFOCUS”（随后恢复）。
-                // 此时焦点 HWND 就是菜单窗口本身，绝不能因此关掉菜单（否则点击菜单项时菜单先被销毁、回调永不触发）。
-                HWND newFocus = reinterpret_cast<HWND>(wParam);
-                if (!detail::IsHwndOfActiveMenu(newFocus)) {
-                    detail::CloseAllOpenMenus();
-                }
+                detail::CloseAllOpenMenus();
                 if (focusedElement_) focusedElement_->OnBlur();
                 ImmAssociateContext(hwnd_, NULL);
                 return 0;
-            }
             case WM_KEYDOWN:
                 if (OnWindowKeyDown((int)wParam)) return 0;
                 // 菜单打开时：先把按键转发给菜单（导航 / 回车 / Esc / 菜单项快捷键）
@@ -5709,12 +5703,6 @@ class MenuWindowBase;
     }
     inline bool detail::IsPointInActiveMenuPopup(POINT ptScreen) {
         return g_activeMenu && g_activeMenu->IsPointInPopupTree(ptScreen);
-    }
-    inline bool detail::IsHwndOfActiveMenu(HWND h) {
-        if (!h || !g_activeMenu) return false;
-        for (MenuWindowBase* m = g_activeMenu; m; m = m->ChildPopup())
-            if (m->GetHwnd() == h) return true;
-        return false;
     }
 
     // 独立弹出：owner 用进程级隐藏消息窗口（不绑定任何用户窗口），典型用于托盘右键菜单。
