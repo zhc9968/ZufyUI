@@ -3417,6 +3417,42 @@ namespace ZufyUI {
         // 窗口尺寸变化钩子（WM_SIZE）；用于依赖客户区宽度的收尾布局（如弹窗按钮靠右）
         virtual void OnWindowSize() {}
 
+        // ---- 内容绘制（可重写）----
+        // 默认绘制背景之上的元素树；子类可重写以完全自绘（弹出层 / 自定义窗口）。
+        virtual void RenderContent(ID2D1DeviceContext* rt) {
+            D2D1_SIZE_F rsz = rt->GetSize();
+            if (rsz.width <= 0.0f || rsz.height <= 0.0f)
+                rsz = D2D1::SizeF(clientWidthDip_, clientHeightDip_);
+            if (rootElement_ || customTitleBar_) {
+                D2D1_RECT_F full = D2D1::RectF(0, 0, rsz.width, rsz.height);
+                for (auto* e : npBefore_) ComposeImpl(e, rt, full, true);
+                if (rootElement_) ComposeImpl(rootElement_.get(), rt, full, true);
+                for (auto* e : npAfter_) ComposeImpl(e, rt, full, true);
+            }
+        }
+        float GetClientWidthDip()  const { return clientWidthDip_; }
+        float GetClientHeightDip() const { return clientHeightDip_; }
+        float GetDpiScale() const { return (float)dpi_; }
+
+        // ---- 消息拦截（万能入口）----
+        // 在框架默认处理之前调用；返回 true = 已处理/拦截，框架不再处理（result 作为返回值）
+        virtual bool OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* result) {
+            (void)msg; (void)wParam; (void)lParam; (void)result; return false;
+        }
+        // 框架处理之后的旁路观察（不改变结果）；调试/联动用
+        virtual void OnWindowMessageHandled(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT result) {
+            (void)msg; (void)wParam; (void)lParam; (void)result;
+        }
+        // WM_CLOSE：返回 true 取消关闭（与 Closing 信号等效的虚函数形式）
+        virtual bool OnWindowClosing() { return false; }
+
+        // ---- 窗口创建参数（可重写；默认 = 普通顶层窗口）----
+        virtual DWORD GetCreateStyle()   const { return WS_OVERLAPPEDWINDOW; }
+        virtual DWORD GetCreateExStyle() const { return WS_EX_NOREDIRECTIONBITMAP; }
+        virtual void  GetCreatePos(int& x, int& y) const { x = CW_USEDEFAULT; y = CW_USEDEFAULT; }
+        virtual bool  WantDwmChrome()    const { return true; }   // 系统边框/阴影/圆角/非客户区
+        virtual bool  WantBackdrop()     const { return true; }   // 是否应用 Backdrop
+
         // 屏蔽本窗口输入（模态弹窗作为本窗口子窗口时用；不 disable HWND，避免连带影响子弹窗）
         void SetInputBlocked(bool on) { inputBlocked_ = on; }
         bool IsInputBlocked() const { return inputBlocked_; }
@@ -3488,11 +3524,13 @@ namespace ZufyUI {
             // 若先以 nullptr 创建、事后再 SetWindowLongPtr(GWLP_HWNDPARENT)，窗口在创建时
             // 已作为独立顶层窗口登记，会拿到自己的任务栏按钮，且最小化不会随所有者隐藏。
             HWND hwndOwner = owner_ ? owner_->hwnd_ : nullptr;
-            DWORD style = WS_OVERLAPPEDWINDOW;
+            DWORD style = GetCreateStyle();
             if (owner_ && ownedMinimizePolicy_ == OwnedMinimizePolicy::DisableMinimize)
                 style &= ~WS_MINIMIZEBOX;   // 方案4：创建时就置灰最小化按钮
-            hwnd_ = CreateWindowExW(WS_EX_NOREDIRECTIONBITMAP, L"ZufyUIWindowClass", title.c_str(), style,
-                CW_USEDEFAULT, CW_USEDEFAULT, physicalWidth, physicalHeight,
+            int cposX = CW_USEDEFAULT, cposY = CW_USEDEFAULT;
+            GetCreatePos(cposX, cposY);
+            hwnd_ = CreateWindowExW(GetCreateExStyle(), L"ZufyUIWindowClass", title.c_str(), style,
+                cposX, cposY, physicalWidth, physicalHeight,
                 hwndOwner, nullptr, GetModuleHandle(nullptr), this);
             if (!hwnd_) return false;
 
@@ -3508,9 +3546,19 @@ namespace ZufyUI {
 
             id_ = core_->RegisterWindow(this);
 
-            ApplyBackdrop();
-            ApplyTitleBarColors();
-            ApplyWindowCorner();
+            if (WantDwmChrome()) {
+                ApplyBackdrop();
+                ApplyTitleBarColors();
+                ApplyWindowCorner();
+            }
+            else {
+                // 无系统边框/阴影/圆角/非客户区（弹出层 / 无边框窗口）
+                DWMNCRENDERINGPOLICY pol = DWMNCRP_DISABLED;
+                DwmSetWindowAttribute(hwnd_, DWMWA_NCRENDERING_POLICY, &pol, sizeof(pol));
+                MARGINS mg = { 0, 0, 0, 0 };
+                DwmExtendFrameIntoClientArea(hwnd_, &mg);
+                ApplyAccentState(ACCENT_DISABLED);
+            }
 
             // 亚克力参数变化 → 重新加载亚克力（重建 DComp 效果图 + 重绘）
             acrylicReloadConn_ = UIZSignals::ReloadAcrylic.connect([this]() {
@@ -4137,7 +4185,11 @@ namespace ZufyUI {
             else {
                 self = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
             }
-            if (self) return self->HandleMessage(message, wParam, lParam);
+            if (self) {
+                LRESULT r = self->HandleMessage(message, wParam, lParam);
+                self->OnWindowMessageHandled(message, wParam, lParam, r);
+                return r;
+            }
             return DefWindowProc(hwnd, message, wParam, lParam);
         }
 
@@ -4171,6 +4223,11 @@ namespace ZufyUI {
 #endif
 
         LRESULT HandleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+            // 万能消息钩子：返回 true = 已处理/拦截（不再走默认逻辑）
+            {
+                LRESULT hookResult = 0;
+                if (OnWindowMessage(message, wParam, lParam, &hookResult)) return hookResult;
+            }
             // 模态弹窗（子窗口形态）时屏蔽本窗口鼠标/键盘输入
             if (inputBlocked_) {
                 switch (message) {
@@ -4591,6 +4648,7 @@ namespace ZufyUI {
                 }
                 break;
             case WM_CLOSE: {
+                if (OnWindowClosing()) return 0;   // 虚函数形式取消关闭
                 bool cancel = false;
                 Closing.Fire(&cancel);
                 if (cancel) return 0;   // 槽取消关闭（如“关闭前询问保存”）
@@ -5091,16 +5149,7 @@ namespace ZufyUI {
                     renderTarget_->Clear(D2D1::ColorF(r, g, b, a));
                 }
 
-                D2D1_SIZE_F rsz = renderTarget_->GetSize();
-                if (rsz.width <= 0.0f || rsz.height <= 0.0f)
-                    rsz = D2D1::SizeF(clientWidthDip_, clientHeightDip_);
-
-                if (rootElement_ || customTitleBar_) {
-                    D2D1_RECT_F full = D2D1::RectF(0, 0, rsz.width, rsz.height);
-                    for (auto* e : npBefore_) ComposeImpl(e, renderTarget_, full, true);
-                    if (rootElement_) ComposeImpl(rootElement_.get(), renderTarget_, full, true);
-                    for (auto* e : npAfter_) ComposeImpl(e, renderTarget_, full, true);
-                }
+                RenderContent(renderTarget_);
 
                 UIZSignals::DrawOverlay(this, renderTarget_);
                 DrawFocusAndTooltip(renderTarget_);
