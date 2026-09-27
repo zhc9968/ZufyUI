@@ -2653,6 +2653,34 @@ namespace ZufyUI {
         }
 
         // 画进 DIB 后 UpdateLayeredWindow 提交；fade_ 控制整窗不透明度（渐显动画）
+        // 柔阴影 + 菜单本体（画到任意渲染目标；与 DIB/ULW 解耦，便于将来走 Window::RenderContent）
+        void DrawMenuBody(ID2D1RenderTarget* rt) {
+            if (!rt) return;
+            // 柔阴影：像 tooltip、比它厚一点。少量低透明度图层叠加，near-body 总 alpha ~0.18
+            if (!shadowBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0, 0.03f), &shadowBrush_);
+            if (shadowBrush_) {
+                float sd = (float)shadowDip_;
+                D2D1_RECT_F body = D2D1::RectF(sd, sd, sd + (float)windowWidthDip_, sd + (float)windowHeightDip_);
+                int steps = 6;
+                float maxE = sd - 3.0f;            // 外缘留 3 DIP 全透明，避免阴影被窗口边硬裁出黑/灰边
+                if (maxE < 1.0f) maxE = 1.0f;
+                for (int i = steps; i >= 1; --i) {
+                    float e = (float)i * (maxE / (float)steps);
+                    shadowBrush_->SetColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.03f));
+                    rt->FillRoundedRectangle(
+                        D2D1::RoundedRect(
+                            D2D1::RectF(body.left - e, body.top - e, body.right + e, body.bottom + e),
+                            cornerRadiusDip_ + e, cornerRadiusDip_ + e), shadowBrush_);
+                }
+            }
+            // 内容平移到阴影内边距之后绘制
+            D2D1::Matrix3x2F old;
+            rt->GetTransform(&old);
+            rt->SetTransform(D2D1::Matrix3x2F::Translation((FLOAT)shadowDip_, (FLOAT)shadowDip_) * old);
+            DrawMenu(rt);
+            rt->SetTransform(old);
+        }
+
         void RenderLayered() {
             if (!renderTarget_ || !memDC_ || !dib_ || !hwnd_) return;
             RECT dcRect = { 0, 0, dibW_, dibH_ };
@@ -2669,29 +2697,8 @@ namespace ZufyUI {
             renderTarget_->BeginDraw();
             renderTarget_->Clear(D2D1::ColorF(0, 0, 0, 0));
 
-            // 柔阴影：像 tooltip、比它厚一点。少量低透明度图层叠加，near-body 总 alpha ~0.18
-            if (shadowBrush_) {
-                float sd = (float)shadowDip_;
-                D2D1_RECT_F body = D2D1::RectF(sd, sd, sd + (float)windowWidthDip_, sd + (float)windowHeightDip_);
-                int steps = 6;
-                float maxE = sd - 3.0f;            // 外缘留 3 DIP 全透明，避免阴影被窗口边硬裁出黑/灰边
-                if (maxE < 1.0f) maxE = 1.0f;
-                for (int i = steps; i >= 1; --i) {
-                    float e = (float)i * (maxE / (float)steps);
-                    shadowBrush_->SetColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.03f));
-                    renderTarget_->FillRoundedRectangle(
-                        D2D1::RoundedRect(
-                            D2D1::RectF(body.left - e, body.top - e, body.right + e, body.bottom + e),
-                            cornerRadiusDip_ + e, cornerRadiusDip_ + e), shadowBrush_);
-                }
-            }
+            DrawMenuBody(renderTarget_);
 
-            // 内容平移到阴影内边距之后绘制
-            D2D1::Matrix3x2F old;
-            renderTarget_->GetTransform(&old);
-            renderTarget_->SetTransform(D2D1::Matrix3x2F::Translation((FLOAT)shadowDip_, (FLOAT)shadowDip_) * old);
-            DrawMenu();
-            renderTarget_->SetTransform(old);
             renderTarget_->EndDraw();
 
             // 把“可见区”最外圈 2px 强制清成透明：无论边缘线来自阴影/DWM/D2D，都彻底消掉
@@ -2798,13 +2805,13 @@ namespace ZufyUI {
             EndPaint(hwnd_, &ps);
         }
 
-        void DrawMenu() {
-            if (!renderTarget_ || !bgBrush_ || !textFormat_) return;
+        void DrawMenu(ID2D1RenderTarget* rt) {
+            if (!rt || !bgBrush_ || !textFormat_) return;
 
             D2D1_ROUNDED_RECT bgRect = D2D1::RoundedRect(
                 D2D1::RectF(0, 0, (FLOAT)windowWidthDip_, (FLOAT)windowHeightDip_),
                 cornerRadiusDip_, cornerRadiusDip_);
-            renderTarget_->FillRoundedRectangle(bgRect, bgBrush_);
+            rt->FillRoundedRectangle(bgRect, bgBrush_);
 
             float y = (float)paddingDip_;
             for (int i = 0; i < (int)menu_->items.size(); ++i) {
@@ -2812,7 +2819,7 @@ namespace ZufyUI {
                 if (item->type == MenuItem::Type::Separator) {
                     D2D1_POINT_2F p1 = D2D1::Point2F((float)(paddingDip_ + 10), y + separatorHeightDip_ * 0.5f);
                     D2D1_POINT_2F p2 = D2D1::Point2F((float)(windowWidthDip_ - paddingDip_ - 10), y + separatorHeightDip_ * 0.5f);
-                    renderTarget_->DrawLine(p1, p2, separatorBrush_, 1.0f);
+                    rt->DrawLine(p1, p2, separatorBrush_, 1.0f);
                     y += separatorHeightDip_;
                     continue;
                 }
@@ -2822,15 +2829,15 @@ namespace ZufyUI {
                     (float)(windowWidthDip_ - paddingDip_ - 2), y + (float)itemHeightDip_);
                 // 该项自定义背景色（带圆角）—— 先画底色
                 if (item->bgColor && item->bgColor->a > 0.0f) {
-                    if (!itemBgBrush_) renderTarget_->CreateSolidColorBrush(item->bgColor->ToD2D(), &itemBgBrush_);
+                    if (!itemBgBrush_) rt->CreateSolidColorBrush(item->bgColor->ToD2D(), &itemBgBrush_);
                     else itemBgBrush_->SetColor(item->bgColor->ToD2D());
-                    if (itemBgBrush_) renderTarget_->FillRoundedRectangle(
+                    if (itemBgBrush_) rt->FillRoundedRectangle(
                         D2D1::RoundedRect(itemRect, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f), itemBgBrush_);
                 }
                 // 悬停/按下高亮：叠在底色之上（半透明，底色仍可见）
                 bool showHover = item->enabled && (i == hoveredIndex_ || i == pressedIndex_);
                 if (showHover) {
-                    renderTarget_->FillRoundedRectangle(
+                    rt->FillRoundedRectangle(
                         D2D1::RoundedRect(itemRect, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f),
                         hoverBrush_);
                 }
@@ -2844,21 +2851,21 @@ namespace ZufyUI {
                     if (item->radio) {
                         float rx = bx + cb * 0.5f, ry = by + cb * 0.5f;
                         textBrush_->SetColor(D2D1::ColorF(0.0f, 0.47f, 0.84f));
-                        renderTarget_->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.46f, cb * 0.46f), textBrush_, 1.6f);
+                        rt->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.46f, cb * 0.46f), textBrush_, 1.6f);
                         if (item->checked)
-                            renderTarget_->FillEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.22f, cb * 0.22f), textBrush_);
+                            rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.22f, cb * 0.22f), textBrush_);
                     }
                     else if (item->checked) {
                         textBrush_->SetColor(D2D1::ColorF(0.0f, 0.47f, 0.84f));
-                        renderTarget_->FillRoundedRectangle(
+                        rt->FillRoundedRectangle(
                             D2D1::RoundedRect(D2D1::RectF(bx, by, bx + cb, by + cb), cb * 0.28f, cb * 0.28f), textBrush_);
                         textBrush_->SetColor(D2D1::ColorF(1, 1, 1));
                         D2D1_POINT_2F p0 = D2D1::Point2F(bx + cb * 0.24f, by + cb * 0.52f);
                         D2D1_POINT_2F p1 = D2D1::Point2F(bx + cb * 0.43f, by + cb * 0.70f);
                         D2D1_POINT_2F p2 = D2D1::Point2F(bx + cb * 0.76f, by + cb * 0.30f);
                         ID2D1StrokeStyle* ss = roundStroke_;
-                        renderTarget_->DrawLine(p0, p1, textBrush_, lw, ss);
-                        renderTarget_->DrawLine(p1, p2, textBrush_, lw, ss);
+                        rt->DrawLine(p0, p1, textBrush_, lw, ss);
+                        rt->DrawLine(p1, p2, textBrush_, lw, ss);
                     }
                 }
 
@@ -2878,12 +2885,12 @@ namespace ZufyUI {
                 textBrush_->SetColor(tcol);
                 if (!item->text.empty()) {
                     IDWriteTextFormat* tf = (item->isDefault && boldFormat_) ? boldFormat_ : textFormat_;
-                    renderTarget_->DrawText(item->text.c_str(), (UINT32)item->text.length(), tf, textRect, textBrush_);
+                    rt->DrawText(item->text.c_str(), (UINT32)item->text.length(), tf, textRect, textBrush_);
                 }
                 if (!item->shortcut.empty() && shortcutFormat_) {
                     D2D1_RECT_F srect = D2D1::RectF(itemRect.right - 108.0f, y, itemRect.right - 8.0f, y + itemHeightDip_);
                     textBrush_->SetColor(D2D1::ColorF(0.45f, 0.45f, 0.45f));
-                    renderTarget_->DrawText(item->shortcut.c_str(), (UINT32)item->shortcut.length(), shortcutFormat_, srect, textBrush_);
+                    rt->DrawText(item->shortcut.c_str(), (UINT32)item->shortcut.length(), shortcutFormat_, srect, textBrush_);
                 }
 
                 if (item->type == MenuItem::Type::Submenu) {
@@ -2893,9 +2900,9 @@ namespace ZufyUI {
                     D2D1_POINT_2F p1 = D2D1::Point2F(arrowCenter.x - 3, arrowCenter.y - 5);
                     D2D1_POINT_2F p2 = D2D1::Point2F(arrowCenter.x - 3, arrowCenter.y + 5);
                     D2D1_POINT_2F p3 = D2D1::Point2F(arrowCenter.x + 2, arrowCenter.y);
-                    renderTarget_->DrawLine(p1, p2, textBrush_, 1.0f);
-                    renderTarget_->DrawLine(p2, p3, textBrush_, 1.0f);
-                    renderTarget_->DrawLine(p3, p1, textBrush_, 1.0f);
+                    rt->DrawLine(p1, p2, textBrush_, 1.0f);
+                    rt->DrawLine(p2, p3, textBrush_, 1.0f);
+                    rt->DrawLine(p3, p1, textBrush_, 1.0f);
                 }
                 y += itemHeightDip_;
             }
@@ -4915,31 +4922,51 @@ namespace ZufyUI {
             IDWriteFactory* factory = FontManager::Instance().GetFactory();
             if (!fmt || !factory) return;
             alpha = clamp(alpha, 0.0f, 1.0f);
-            const float maxTextWidth = 320.0f;
+
+            D2D1_SIZE_F sz = rt->GetSize();
+            const float pad = 8.0f;
+            const float margin = 4.0f;
+            // 文本布局的宽/高都夹到“当前渲染目标可容纳的范围”，避免文字超出 tooltip 框 / 窗口
+            float maxTextWidth = min(320.0f, sz.width - margin * 2.0f - pad * 2.0f);
+            if (maxTextWidth < 40.0f) maxTextWidth = 40.0f;
+            float maxTextHeight = sz.height - margin * 2.0f - pad * 2.0f;
+            if (maxTextHeight < 20.0f) maxTextHeight = 20.0f;
+
             ComPtr<IDWriteTextLayout> layout;
-            // maxHeight=0 表示不约束高度，避免段落对齐导致文字被画到布局中部
-            factory->CreateTextLayout(text.c_str(), (UINT32)text.length(), fmt, maxTextWidth, 0.0f, &layout);
+            factory->CreateTextLayout(text.c_str(), (UINT32)text.length(), fmt,
+                                      maxTextWidth, maxTextHeight, &layout);
             if (layout) {
                 layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
                 layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
                 layout->SetWordWrapping(DWRITE_WORD_WRAPPING_WRAP);
+                // 放不下就省略号，绝不溢出
+                DWRITE_TRIMMING trimming{ DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
+                ComPtr<IDWriteInlineObject> ellipsis;
+                if (SUCCEEDED(factory->CreateEllipsisTrimmingSign(fmt, &ellipsis))) {
+                    layout->SetTrimming(&trimming, ellipsis.Get());
+                }
+                layout->SetMaxWidth(maxTextWidth);
+                layout->SetMaxHeight(maxTextHeight);
             }
+
             DWRITE_TEXT_METRICS tm{};
             if (layout) layout->GetMetrics(&tm);
-            float pad = 8.0f;
             float tw = (tm.width > 0.0f ? tm.width : 20.0f);
             float th = (tm.height > 0.0f ? tm.height : 16.0f);
-            if (th > 400.0f) th = 400.0f;
+            if (tw > maxTextWidth) tw = maxTextWidth;      // 度量也可能略超，兜一下
+            if (th > maxTextHeight) th = maxTextHeight;
             float w = tw + pad * 2.0f, h = th + pad * 2.0f;
-            D2D1_SIZE_F sz = rt->GetSize();
+
             // 固定在“显示时的鼠标位置”上方，带固定偏移（不跟随鼠标移动）
             float x = anchorPt.x - w / 2.0f;
             float y = anchorPt.y - h - 14.0f;
-            if (x < 4.0f) x = 4.0f;
-            if (x + w > sz.width - 4.0f) x = sz.width - w - 4.0f;
-            if (y < 4.0f) y = anchorPt.y + 18.0f;      // 上方空间不足则放到鼠标下方
-            if (y + h > sz.height - 4.0f) y = sz.height - h - 4.0f;
-            if (x < 4.0f) x = 4.0f;
+            if (x < margin) x = margin;
+            if (x + w > sz.width - margin) x = sz.width - w - margin;
+            if (x < margin) x = margin;
+            if (y < margin) y = anchorPt.y + 18.0f;      // 上方空间不足则放到鼠标下方
+            if (y + h > sz.height - margin) y = sz.height - h - margin;
+            if (y < margin) y = margin;                  // 兜底
+
             D2D1_RECT_F rr = D2D1::RectF(x, y, x + w, y + h);
             // 柔和阴影（与元素阴影同一套高斯 CDF 分层，ToolTip 每帧绘制用较少层数）
             DrawSoftShadow(rt, rr, 6.0f, 0.5f, 2.0f, 5.0f, D2D1::ColorF(0, 0, 0, 0.30f), 20, alpha);
@@ -4947,7 +4974,13 @@ namespace ZufyUI {
             rt->CreateSolidColorBrush(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.98f * alpha), bg.GetAddressOf());
             rt->CreateSolidColorBrush(D2D1::ColorF(0.10f, 0.10f, 0.10f, alpha), fg.GetAddressOf());
             if (bg) rt->FillRoundedRectangle(D2D1::RoundedRect(rr, 6, 6), bg.Get());
-            if (layout && fg) rt->DrawTextLayout(D2D1::Point2F(x + pad, y + pad), layout.Get(), fg.Get());
+            if (layout && fg) {
+                // 裁剪到 tooltip 框内 —— 彻底保证文字不会画到外面
+                rt->PushAxisAlignedClip(D2D1::RectF(x + pad, y + pad, x + w - pad, y + h - pad),
+                                        D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+                rt->DrawTextLayout(D2D1::Point2F(x + pad, y + pad), layout.Get(), fg.Get());
+                rt->PopAxisAlignedClip();
+            }
         }
         void CollectFocusable(UIElement* elem, std::vector<UIElement*>& out) {
             if (!elem || !elem->IsVisible() || !elem->IsEffectivelyEnabled()) return;
