@@ -291,7 +291,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-99a4ff53', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-8282010b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuItem</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
@@ -314,7 +314,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span><span class="w">    </span><span class="c1">// 该项自定义字体（缺省=Menu::font）</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-99a4ff53" style="display: none;">class MenuItem {
+<pre id="code-8282010b" style="display: none;">class MenuItem {
     enum class Type { Normal, Separator, Submenu };
     std::wstring text;
     std::function&lt;void()&gt; callback;
@@ -339,7 +339,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b574b833', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-6a8ea1dd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Menu</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">{};</span><span class="w">              </span><span class="c1">// 全局默认菜单字体</span>
@@ -359,7 +359,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">                    </span><span class="c1">// 在鼠标当前位置弹出</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-b574b833" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
+<pre id="code-6a8ea1dd" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
     inline static FontSpec DefaultFont{};              // 全局默认菜单字体
     void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
     void AddCheckItem(const std::wstring&amp; text, bool checked,
@@ -389,7 +389,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c87a1e65', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b0bca738', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// 弹出层基类：只负责弹出层的系统交互，不含任何“菜单项”概念</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MenuWindowBase</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
@@ -415,7 +415,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuWindow</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">StandaloneHolder</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-c87a1e65" style="display: none;">// 弹出层基类：只负责弹出层的系统交互，不含任何“菜单项”概念
+<pre id="code-b0bca738" style="display: none;">// 弹出层基类：只负责弹出层的系统交互，不含任何“菜单项”概念
 class MenuWindowBase : public Window {
     bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // 内容尺寸(DIP)；窗口自动加阴影边距
     void ShowAtPoint(int screenX, int screenY);   // 屏幕坐标弹出（自动按工作区避让，避免出屏）
