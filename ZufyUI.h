@@ -3650,7 +3650,12 @@ namespace ZufyUI {
         void SetContentOpacity(float opacity) {
             if (opacity < 0.0f) opacity = 0.0f;
             if (opacity > 1.0f) opacity = 1.0f;
-            if (contentVisual_) contentVisual_->put_Opacity(opacity);
+            if (!contentVisual_) return;
+            IVisual* v = nullptr;   // put_Opacity 在 IVisual 上，ISpriteVisual 未直接暴露
+            if (SUCCEEDED(contentVisual_->QueryInterface(IID_PPV_ARGS(&v))) && v) {
+                v->put_Opacity(opacity);
+                v->Release();
+            }
         }
 
         // 父子（owned）窗口：设置所有者后，本窗口会始终位于所有者之上，并随所有者最小化。
