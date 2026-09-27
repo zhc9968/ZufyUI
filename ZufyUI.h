@@ -241,6 +241,7 @@ namespace ZufyUI {
     class Label;
     class Menu;
     class MenuWindow;
+class MenuWindowBase;
     class ComboBox;
     class Window;
 
@@ -258,7 +259,8 @@ namespace ZufyUI {
         inline HWND g_uiDispatcherWindow = nullptr;
         inline constexpr UINT WM_UI_TASK = WM_APP + 1;
         inline void CloseAllOpenMenus();   // 定义在文件后部（需要 Window 完整类型）
-        inline MenuWindow* g_activeMenu = nullptr;   // 当前打开的菜单（根）；窗口把键盘转发给它
+        inline MenuWindowBase* g_activeMenu = nullptr;   // 当前打开的菜单（根）；窗口把键盘转发给它
+        inline bool ForwardKeyToActiveMenu(int vk);      // 定义在 MenuWindow 之后（需要完整类型）
 
         inline void InitializeUIThread() {
             g_uiThreadId = std::this_thread::get_id();
@@ -2245,949 +2247,6 @@ namespace ZufyUI {
         void ShowAtCursor();
     };
 
-    class MenuWindow {
-    public:
-        MenuWindow(std::shared_ptr<Menu> menu, HWND owner, int x, int y)
-            : menu_(menu), owner_(owner), screenX_(x), screenY_(y) {
-            dpi_ = GetDpiForWindow(owner_);
-            if (dpi_ == 0) dpi_ = GetDpiForSystem();
-            if (dpi_ == 0) dpi_ = 96;
-            CreateWindowResources();
-        }
-
-        ~MenuWindow() {
-            if (hwnd_ && IsWindow(hwnd_))
-                DestroyWindow(hwnd_);
-            DiscardDeviceResources();
-        }
-
-        void Show(int x, int y) {
-            if (!hwnd_) return;
-            if (visible_) return;
-
-            AdjustPositionToScreen(x, y, contentWidthPx_, contentHeightPx_);
-            screenX_ = x;
-            screenY_ = y;
-            winX_ = x - shadowPx_;
-            winY_ = y - shadowPx_;
-
-            if (animating_) {
-                KillTimer(hwnd_, animTimerId_);
-                animating_ = false;
-            }
-
-            ShowWindow(hwnd_, SW_SHOWNA);   // 分层窗口：可见性用 ShowWindow，位置/尺寸由 ULW 设置
-
-            animating_ = true;
-            fade_ = 0.0f;                   // 渐显：透明度 0 → 1
-            visible_ = true;
-            if (!parent_) detail::g_activeMenu = this;   // 根菜单登记，供窗口转发键盘
-            openedTick_ = GetTickCount();
-            prevLButtonDown_ = true;
-            RenderLayered();
-
-            SetTimer(hwnd_, animTimerId_, 10, nullptr);
-            if (standalone_) SetTimer(hwnd_, kStandalonePollTimerId, 30, nullptr);
-        }
-
-        void Hide() {
-            if (!hwnd_ || !IsWindow(hwnd_)) return;
-            if (animating_) {
-                KillTimer(hwnd_, animTimerId_);
-                animating_ = false;
-            }
-            ShowWindow(hwnd_, SW_HIDE);
-            visible_ = false;
-            KillTimer(hwnd_, kSubmenuTimerId);
-            KillTimer(hwnd_, kSubmenuHideTimerId);
-            if (childMenu_) childMenu_->Hide();
-        }
-
-        void CloseAll() {
-            if (!parent_ && detail::g_activeMenu == this) detail::g_activeMenu = nullptr;
-            if (animating_) {
-                KillTimer(hwnd_, animTimerId_);
-                animating_ = false;
-            }
-            visible_ = false;
-            if (standalone_ && hwnd_) KillTimer(hwnd_, kStandalonePollTimerId);
-            if (childMenu_) {
-                childMenu_->CloseAll();
-                childMenu_.reset();
-            }
-            if (hwnd_ && IsWindow(hwnd_)) {
-                DestroyWindow(hwnd_);
-                hwnd_ = nullptr;
-            }
-        }
-
-        // 独立模式：没有 owner 窗口帮忙关闭菜单，靠自身轮询（点菜单外/按 Esc）关闭。
-        // 注意：不使用 Win32 SetCapture。
-        void SetStandalone(bool on) { standalone_ = on; }
-        static std::shared_ptr<MenuWindow>& StandaloneHolder() {
-            static std::shared_ptr<MenuWindow> s;
-            return s;
-        }
-
-        // 键盘转发目标：菜单打开时由窗口把按键转来（导航 / 回车 / Esc / 菜单项快捷键）。
-        // 返回 true 表示已处理（调用方应吞掉该键）。
-        bool OnMenuKeyDown(int vk) {
-            if (!hwnd_ || !menu_) return false;
-            // Esc：关闭整棵菜单树
-            if (vk == VK_ESCAPE) { MenuWindow* r = this; while (r->parent_) r = r->parent_; r->CloseAll(); return true; }
-            // 回车：激活当前悬停项；没有悬停项则触发默认项（isDefault）
-            if (vk == VK_RETURN) {
-                int idx = hoveredIndex_;
-                if (idx < 0)
-                    for (int i = 0; i < (int)menu_->items.size(); ++i)
-                        if (menu_->items[i]->isDefault && menu_->items[i]->enabled) { idx = i; break; }
-                if (idx >= 0 && idx < (int)menu_->items.size()) { ActivateItem(idx); return true; }
-                return true;
-            }
-            // 上/下/Home/End：移动悬停（跳过分隔符与禁用项）
-            if (vk == VK_UP || vk == VK_DOWN || vk == VK_HOME || vk == VK_END) {
-                int n = (int)menu_->items.size();
-                if (n == 0) return true;
-                int i = hoveredIndex_;
-                if (vk == VK_HOME) i = -1;
-                else if (vk == VK_END) i = n;
-                int step = (vk == VK_UP || vk == VK_HOME) ? -1 : 1;
-                for (int k = 0; k < n; ++k) {
-                    i += step;
-                    if (i < 0) i = n - 1;
-                    else if (i >= n) i = 0;
-                    auto& it = menu_->items[i];
-                    if (it->type != MenuItem::Type::Separator && it->enabled) { hoveredIndex_ = i; break; }
-                }
-                if (submenuPendingIndex_ >= 0) { KillTimer(hwnd_, kSubmenuTimerId); submenuPendingIndex_ = -1; }
-                if (childMenu_) { KillTimer(hwnd_, kSubmenuHideTimerId); SetTimer(hwnd_, kSubmenuHideTimerId, kSubmenuHideDelayMs, nullptr); }
-                InvalidateRect(hwnd_, nullptr, FALSE);
-                return true;
-            }
-            // 右：打开悬停项的子菜单；左：关闭本层子菜单
-            if (vk == VK_RIGHT) {
-                if (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()
-                    && menu_->items[hoveredIndex_]->type == MenuItem::Type::Submenu) { OpenSubmenu(hoveredIndex_); return true; }
-                return false;
-            }
-            if (vk == VK_LEFT) {
-                if (childMenu_) { childMenu_->CloseAll(); childMenu_.reset(); return true; }
-                return false;
-            }
-            // 菜单项快捷键（Ctrl/Shift/Alt + 键）
-            int idx = MatchShortcut(vk);
-            if (idx >= 0) { ActivateItem(idx); return true; }
-            return false;
-        }
-
-    private:
-        static constexpr int kSubmenuDelayMs = 300;
-        static constexpr int kSubmenuHideDelayMs = 300;
-        static constexpr UINT_PTR kSubmenuTimerId = 1;
-        static constexpr UINT_PTR kSubmenuHideTimerId = 3;
-        static constexpr UINT_PTR animTimerId_ = 4;
-        static constexpr UINT_PTR kStandalonePollTimerId = 6;
-
-        int itemHeightDip_ = 30;
-        int separatorHeightDip_ = 9;
-        int paddingDip_ = 6;
-        int arrowWidthDip_ = 20;
-        int checkWidthDip_ = 0;
-        float cornerRadiusDip_ = 12.0f;
-
-        bool animating_ = false;
-        int currentHeightPx_ = 0;
-        int targetHeightPx_ = 0;
-        bool visible_ = false;
-
-        static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-            MenuWindow* self = nullptr;
-            if (msg == WM_NCCREATE) {
-                CREATESTRUCT* cs = reinterpret_cast<CREATESTRUCT*>(lParam);
-                self = reinterpret_cast<MenuWindow*>(cs->lpCreateParams);
-                self->hwnd_ = hwnd;
-                SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
-            }
-            else {
-                self = reinterpret_cast<MenuWindow*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
-            }
-            if (self) return self->HandleMessage(msg, wParam, lParam);
-            return DefWindowProc(hwnd, msg, wParam, lParam);
-        }
-
-        LRESULT HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
-            switch (msg) {
-            case WM_PAINT: OnPaint(); return 0;
-            case WM_ERASEBKGND: return 1;
-            case WM_MOUSEMOVE: OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)); return 0;
-            case WM_LBUTTONDOWN: {
-                POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-                RECT client;
-                GetClientRect(hwnd_, &client);
-                if (!PtInRect(&client, pt)) {
-                    POINT screenPt = pt;
-                    ClientToScreen(hwnd_, &screenPt);
-                    CloseAll();
-                    ScreenToClient(owner_, &screenPt);
-                    SendMessage(owner_, WM_LBUTTONDOWN, wParam, MAKELPARAM(screenPt.x, screenPt.y));
-                    SendMessage(owner_, WM_LBUTTONUP, wParam, MAKELPARAM(screenPt.x, screenPt.y));
-                    return 0;
-                }
-                OnMouseDown(pt.x, pt.y);
-                return 0;
-            }
-            case WM_LBUTTONUP: OnMouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)); return 0;
-            case WM_MOUSELEAVE: OnMouseLeave(); return 0;
-            case WM_CAPTURECHANGED: pressedIndex_ = -1; return 0;
-            case WM_MOUSEACTIVATE: return MA_NOACTIVATE;
-            case WM_NCACTIVATE: return FALSE;
-            case WM_TIMER:
-                if (wParam == kSubmenuTimerId) {
-                    KillTimer(hwnd_, kSubmenuTimerId);
-                    if (submenuPendingIndex_ >= 0) {
-                        OpenSubmenu(submenuPendingIndex_);
-                        submenuPendingIndex_ = -1;
-                    }
-                }
-                else if (wParam == kSubmenuHideTimerId) {
-                    KillTimer(hwnd_, kSubmenuHideTimerId);
-                    POINT pt;
-                    GetCursorPos(&pt);
-                    if (!IsPointInMenuTree(pt)) {
-                        if (childMenu_) childMenu_->Hide();
-                    }
-                    else {
-                        SetTimer(hwnd_, kSubmenuHideTimerId, kSubmenuHideDelayMs, nullptr);
-                    }
-                }
-                else if (wParam == animTimerId_) {
-                    HandleAnimationTimer();
-                }
-                else if (wParam == kStandalonePollTimerId) {
-                    // 独立菜单：轮询检测「点菜单外」或「Esc」来关闭（不用 SetCapture）
-                    if (!standalone_) return 0;
-                    if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) { CloseAll(); return 0; }
-                    bool down = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
-                    // 弹出后 250ms 内不判定；且只在“按下那一下”判定——否则开菜单的那次点击会把它自己关掉
-                    if (GetTickCount() - openedTick_ < 250) { prevLButtonDown_ = down; return 0; }
-                    if (down && !prevLButtonDown_) {
-                        POINT pt;
-                        GetCursorPos(&pt);
-                        if (!IsPointInMenuTree(pt)) { CloseAll(); return 0; }
-                    }
-                    prevLButtonDown_ = down;
-                }
-                return 0;
-            case WM_DPICHANGED:
-                dpi_ = HIWORD(wParam);
-                if (dpi_ == 0) dpi_ = 96;
-                DiscardDeviceResources();
-                CreateWindowResources();   // 重新计算 winX_/winY_/windowWidthPx_/windowHeightPx_
-                // 用 winX_/winY_（含阴影偏移），不是内容坐标 screenX_/screenY_，否则会整体偏移
-                SetWindowPos(hwnd_, nullptr, winX_, winY_, windowWidthPx_, windowHeightPx_, SWP_NOZORDER);
-                RenderLayered();
-                return 0;
-            case WM_DESTROY:
-                if (animating_) {
-                    KillTimer(hwnd_, animTimerId_);
-                    animating_ = false;
-                }
-                KillTimer(hwnd_, kSubmenuTimerId);
-                KillTimer(hwnd_, kSubmenuHideTimerId);
-                DiscardDeviceResources();
-                return 0;
-            }
-            return DefWindowProc(hwnd_, msg, wParam, lParam);
-        }
-
-        void HandleAnimationTimer() {
-            if (!animating_) { KillTimer(hwnd_, animTimerId_); return; }
-            fade_ += 0.18f;
-            if (fade_ >= 1.0f) {
-                fade_ = 1.0f;
-                animating_ = false;
-                KillTimer(hwnd_, animTimerId_);
-            }
-            RenderLayered();
-        }
-
-        bool IsPointInMenuTree(POINT ptScreen) {
-            RECT rc;
-            GetWindowRect(hwnd_, &rc);
-            if (PtInRect(&rc, ptScreen)) return true;
-            if (childMenu_ && childMenu_->IsPointInMenuTree(ptScreen)) return true;
-            return false;
-        }
-
-        void CreateWindowResources() {
-            static bool classRegistered = false;
-            if (!classRegistered) {
-                WNDCLASSEXW wc = {};
-                wc.cbSize = sizeof(WNDCLASSEXW);
-                wc.lpfnWndProc = MenuWindow::WndProc;
-                wc.hInstance = GetModuleHandle(nullptr);
-                wc.lpszClassName = L"ZufyUI_MenuWindow_v2";
-                wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-                wc.hbrBackground = nullptr;
-                // 注意：不要 CS_DROPSHADOW —— 它是系统按“窗口矩形”另画的投影，会和本窗口
-                // 自绘的柔阴影（UpdateLayeredWindow 逐像素 alpha）叠加，在窗口边缘露出细黑边。
-                wc.style = 0;
-                RegisterClassExW(&wc);
-                classRegistered = true;
-            }
-
-            if (!sharedDWriteFactory_) {
-                DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &sharedDWriteFactory_);
-            }
-            if (sharedDWriteFactory_) {
-                const FontSpec& fs = menu_->font;
-                const wchar_t* fam = fs.familyName.empty() ? L"Segoe UI" : fs.familyName.c_str();
-                const wchar_t* loc = fs.locale.empty() ? L"en-us" : fs.locale.c_str();
-                float fsz = fs.size > 0 ? fs.size : 14.0f;
-                sharedDWriteFactory_->CreateTextFormat(
-                    fam, nullptr, fs.weight, fs.style, fs.stretch, fsz, loc, &textFormat_);
-                if (textFormat_) {
-                    textFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-                    textFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-                    textFormat_->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-                }
-                sharedDWriteFactory_->CreateTextFormat(fam, nullptr, DWRITE_FONT_WEIGHT_BOLD,
-                    fs.style, fs.stretch, fsz, loc, &boldFormat_);
-                if (boldFormat_) {
-                    boldFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-                    boldFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-                    boldFormat_->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-                }
-                sharedDWriteFactory_->CreateTextFormat(fam, nullptr, DWRITE_FONT_WEIGHT_NORMAL,
-                    fs.style, fs.stretch, fsz * 0.8f, loc, &shortcutFormat_);
-                if (shortcutFormat_) {
-                    shortcutFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
-                    shortcutFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-                    shortcutFormat_->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-                }
-            }
-
-            if (menu_ && menu_->onOpening) menu_->onOpening(*menu_);   // 弹出前回调
-            CalculateWindowSizeDip();
-            contentWidthPx_ = MulDiv(windowWidthDip_, dpi_, 96);
-            contentHeightPx_ = MulDiv(windowHeightDip_, dpi_, 96);
-            shadowPx_ = MulDiv(shadowDip_, dpi_, 96);
-            windowWidthPx_ = contentWidthPx_ + shadowPx_ * 2;
-            windowHeightPx_ = contentHeightPx_ + shadowPx_ * 2;
-
-            // 按“菜单本体”避让屏幕边缘，再整体左上偏移阴影厚度
-            {
-                int px = screenX_, py = screenY_;
-                AdjustPositionToScreen(px, py, contentWidthPx_, contentHeightPx_);
-                screenX_ = px;
-                screenY_ = py;
-                winX_ = px - shadowPx_;
-                winY_ = py - shadowPx_;
-            }
-
-            // 分层窗口：逐像素 alpha，才能自绘柔阴影 + 圆角（不再用 SetWindowRgn）
-            hwnd_ = CreateWindowExW(
-                WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
-                L"ZufyUI_MenuWindow_v2", L"",
-                WS_POPUP,
-                winX_, winY_, windowWidthPx_, windowHeightPx_,
-                owner_, nullptr, GetModuleHandle(nullptr), this);
-            if (!hwnd_) return;
-
-            {   // DWM 非客户区渲染禁用 + 不画任何 DWM 边框/阴影（自绘阴影已足够）
-                DWMNCRENDERINGPOLICY pol = DWMNCRP_DISABLED;
-                DwmSetWindowAttribute(hwnd_, DWMWA_NCRENDERING_POLICY, &pol, sizeof(pol));
-                MARGINS mg = { 0, 0, 0, 0 };
-                DwmExtendFrameIntoClientArea(hwnd_, &mg);
-            }
-
-            D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2dFactory_);
-            if (d2dFactory_) {
-                D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-                    D2D1_RENDER_TARGET_TYPE_DEFAULT,
-                    D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-                    (FLOAT)dpi_, (FLOAT)dpi_);
-                ID2D1DCRenderTarget* dcRT = nullptr;
-                if (SUCCEEDED(d2dFactory_->CreateDCRenderTarget(&props, &dcRT))) {
-                    renderTarget_ = dcRT;
-                    renderTarget_->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-                    renderTarget_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
-                }
-            }
-
-            EnsureDib(windowWidthPx_ + 8, windowHeightPx_ + 8);   // 位图比 ULW 尺寸大一圈，避免读到边界外内存（右/下出现黑边）
-
-            if (renderTarget_) {
-                renderTarget_->CreateSolidColorBrush(D2D1::ColorF(1.0f, 1.0f, 1.0f), &bgBrush_);
-                renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.12f), &hoverBrush_);
-                renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f), &textBrush_);
-                renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.8f, 0.8f, 0.8f), &separatorBrush_);
-                renderTarget_->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.12f), &shadowBrush_);
-            }
-            if (d2dFactory_) {
-                D2D1_STROKE_STYLE_PROPERTIES rsp = D2D1::StrokeStyleProperties(
-                    D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND,
-                    D2D1_LINE_JOIN_ROUND, 1.0f, D2D1_DASH_STYLE_SOLID, 0.0f);
-                d2dFactory_->CreateStrokeStyle(rsp, nullptr, 0, &roundStroke_);
-            }
-        }
-
-        // 与窗口像素尺寸一致的自上而下 32bpp DIB + 内存 DC
-        void EnsureDib(int w, int h) {
-            if (w <= 0 || h <= 0) return;
-            if (dib_ && dibW_ == w && dibH_ == h) return;
-            if (dib_) { DeleteObject(dib_); dib_ = nullptr; dibBits_ = nullptr; }
-            if (memDC_) { DeleteDC(memDC_); memDC_ = nullptr; }
-
-            BITMAPINFO bi = {};
-            bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-            bi.bmiHeader.biWidth = w;
-            bi.bmiHeader.biHeight = -h;              // 负数 = 自上而下
-            bi.bmiHeader.biPlanes = 1;
-            bi.bmiHeader.biBitCount = 32;
-            bi.bmiHeader.biCompression = BI_RGB;
-            dib_ = CreateDIBSection(nullptr, &bi, DIB_RGB_COLORS, &dibBits_, nullptr, 0);
-            memDC_ = CreateCompatibleDC(nullptr);
-            if (memDC_ && dib_) SelectObject(memDC_, dib_);
-            dibW_ = w; dibH_ = h;
-        }
-
-        // 画进 DIB 后 UpdateLayeredWindow 提交；fade_ 控制整窗不透明度（渐显动画）
-        // 柔阴影 + 菜单本体（画到任意渲染目标；与 DIB/ULW 解耦，便于将来走 Window::RenderContent）
-        void DrawMenuBody(ID2D1RenderTarget* rt) {
-            if (!rt) return;
-            // 柔阴影：像 tooltip、比它厚一点。少量低透明度图层叠加，near-body 总 alpha ~0.18
-            if (!shadowBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0, 0.03f), &shadowBrush_);
-            if (shadowBrush_) {
-                float sd = (float)shadowDip_;
-                D2D1_RECT_F body = D2D1::RectF(sd, sd, sd + (float)windowWidthDip_, sd + (float)windowHeightDip_);
-                int steps = 6;
-                float maxE = sd - 3.0f;            // 外缘留 3 DIP 全透明，避免阴影被窗口边硬裁出黑/灰边
-                if (maxE < 1.0f) maxE = 1.0f;
-                for (int i = steps; i >= 1; --i) {
-                    float e = (float)i * (maxE / (float)steps);
-                    shadowBrush_->SetColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.03f));
-                    rt->FillRoundedRectangle(
-                        D2D1::RoundedRect(
-                            D2D1::RectF(body.left - e, body.top - e, body.right + e, body.bottom + e),
-                            cornerRadiusDip_ + e, cornerRadiusDip_ + e), shadowBrush_);
-                }
-            }
-            // 内容平移到阴影内边距之后绘制
-            D2D1::Matrix3x2F old;
-            rt->GetTransform(&old);
-            rt->SetTransform(D2D1::Matrix3x2F::Translation((FLOAT)shadowDip_, (FLOAT)shadowDip_) * old);
-            DrawMenu(rt);
-            rt->SetTransform(old);
-        }
-
-        void RenderLayered() {
-            if (!renderTarget_ || !memDC_ || !dib_ || !hwnd_) return;
-            RECT dcRect = { 0, 0, dibW_, dibH_ };
-
-            // 强制把 DIB 清零为纯透明：D2D 的 DC 渲染目标在预乘 alpha 下不保证覆盖到最后一行/列，
-            // 不清会导致 ULW 把右/下边缘的未初始化内存当不透明黑像素显示（黑边）。
-            if (dibBits_ && dibW_ > 0 && dibH_ > 0) {
-                memset(dibBits_, 0, (size_t)dibW_ * dibH_ * 4);
-            }
-
-            if (FAILED(renderTarget_->BindDC(memDC_, &dcRect))) return;
-
-            SetGlobalDpiScale(dpi_ / 96.0f);
-            renderTarget_->BeginDraw();
-            renderTarget_->Clear(D2D1::ColorF(0, 0, 0, 0));
-
-            DrawMenuBody(renderTarget_);
-
-            renderTarget_->EndDraw();
-
-            // 把“可见区”最外圈 2px 强制清成透明：无论边缘线来自阴影/DWM/D2D，都彻底消掉
-            if (dibBits_) {
-                uint32_t* px = (uint32_t*)dibBits_;
-                int W = windowWidthPx_, H = windowHeightPx_;
-                if (W > 4 && H > 4 && dibW_ >= W && dibH_ >= H) {
-                    for (int k = 0; k < 2; ++k) {
-                        for (int x = 0; x < W; ++x) { px[(size_t)k * dibW_ + x] = 0; px[(size_t)(H - 1 - k) * dibW_ + x] = 0; }
-                        for (int y = 0; y < H; ++y) { px[(size_t)y * dibW_ + k] = 0; px[(size_t)y * dibW_ + (W - 1 - k)] = 0; }
-                    }
-                }
-            }
-
-            HDC screenDC = GetDC(nullptr);
-            POINT dst = { winX_, winY_ };
-            POINT src = { 0, 0 };
-            SIZE size = { windowWidthPx_, windowHeightPx_ };
-            BYTE a = (BYTE)(fade_ * 255.0f + 0.5f);
-            BLENDFUNCTION bf = { AC_SRC_OVER, 0, a, AC_SRC_ALPHA };
-            UpdateLayeredWindow(hwnd_, screenDC, &dst, &size, memDC_, &src, 0, &bf, ULW_ALPHA);
-            ReleaseDC(nullptr, screenDC);
-        }
-
-        void DiscardDeviceResources() {
-            if (shadowBrush_) { shadowBrush_->Release(); shadowBrush_ = nullptr; }
-            if (renderTarget_) { renderTarget_->Release(); renderTarget_ = nullptr; }
-            if (bgBrush_) { bgBrush_->Release(); bgBrush_ = nullptr; }
-            if (itemBgBrush_) { itemBgBrush_->Release(); itemBgBrush_ = nullptr; }
-            if (hoverBrush_) { hoverBrush_->Release(); hoverBrush_ = nullptr; }
-            if (textBrush_) { textBrush_->Release(); textBrush_ = nullptr; }
-            if (separatorBrush_) { separatorBrush_->Release(); separatorBrush_ = nullptr; }
-            if (textFormat_) { textFormat_->Release(); textFormat_ = nullptr; }
-            if (boldFormat_) { boldFormat_->Release(); boldFormat_ = nullptr; }
-            if (shortcutFormat_) { shortcutFormat_->Release(); shortcutFormat_ = nullptr; }
-            if (roundStroke_) { roundStroke_->Release(); roundStroke_ = nullptr; }
-            if (d2dFactory_) { d2dFactory_->Release(); d2dFactory_ = nullptr; }
-            if (memDC_) { DeleteDC(memDC_); memDC_ = nullptr; }
-            if (dib_) { DeleteObject(dib_); dib_ = nullptr; dibBits_ = nullptr; }
-            dibW_ = dibH_ = 0;
-        }
-
-        void CalculateWindowSizeDip() {
-            int maxTextWidth = 0;
-            int maxShortcutWidth = 0;
-            bool hasCheck = false;
-            windowHeightDip_ = paddingDip_ * 2;
-            for (auto& item : menu_->items) {
-                if (item->type == MenuItem::Type::Separator) {
-                    windowHeightDip_ += separatorHeightDip_;
-                    continue;
-                }
-                if (item->checkable) hasCheck = true;
-                ComPtr<IDWriteTextLayout> layout;
-                if (sharedDWriteFactory_ && textFormat_) {
-                    sharedDWriteFactory_->CreateTextLayout(
-                        item->text.c_str(), (UINT32)item->text.length(),
-                        textFormat_, 10000.0f, 10000.0f, &layout);
-                    if (layout) {
-                        DWRITE_TEXT_METRICS metrics;
-                        layout->GetMetrics(&metrics);
-                        int width = static_cast<int>(metrics.width + 0.5f);
-                        if (item->type == MenuItem::Type::Submenu) width += arrowWidthDip_;
-                        maxTextWidth = max(maxTextWidth, width);
-                    }
-                }
-                if (!item->shortcut.empty() && sharedDWriteFactory_ && shortcutFormat_) {
-                    ComPtr<IDWriteTextLayout> sl;
-                    if (SUCCEEDED(sharedDWriteFactory_->CreateTextLayout(
-                        item->shortcut.c_str(), (UINT32)item->shortcut.length(),
-                        shortcutFormat_, 10000.0f, 10000.0f, &sl)) && sl) {
-                        DWRITE_TEXT_METRICS m;
-                        sl->GetMetrics(&m);
-                        maxShortcutWidth = max(maxShortcutWidth, (int)(m.width + 0.5f));
-                    }
-                }
-                windowHeightDip_ += itemHeightDip_;
-            }
-            checkWidthDip_ = hasCheck ? 33 : 0;
-            windowWidthDip_ = paddingDip_ * 2 + checkWidthDip_ + maxTextWidth
-                + (maxShortcutWidth > 0 ? maxShortcutWidth + 28 : 0) + 24;
-            windowWidthDip_ = max(windowWidthDip_, 60);
-            windowHeightDip_ = max(windowHeightDip_, 34);
-        }
-
-        void AdjustPositionToScreen(int& x, int& y, int width, int height) {
-            // 用“该点所在（或最近）显示器”的工作区，多显示器下才精确
-            POINT pt = { x, y };
-            HMONITOR mon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
-            MONITORINFO mi = { sizeof(MONITORINFO) };
-            RECT workArea;
-            if (GetMonitorInfoW(mon, &mi)) workArea = mi.rcWork;
-            else SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-            if (x + width > workArea.right) x = workArea.right - width;
-            if (y + height > workArea.bottom) y = workArea.bottom - height;
-            if (x < workArea.left) x = workArea.left;
-            if (y < workArea.top) y = workArea.top;
-        }
-
-        void OnPaint() {
-            PAINTSTRUCT ps;
-            BeginPaint(hwnd_, &ps);
-            RenderLayered();
-            EndPaint(hwnd_, &ps);
-        }
-
-        void DrawMenu(ID2D1RenderTarget* rt) {
-            if (!rt || !bgBrush_ || !textFormat_) return;
-
-            D2D1_ROUNDED_RECT bgRect = D2D1::RoundedRect(
-                D2D1::RectF(0, 0, (FLOAT)windowWidthDip_, (FLOAT)windowHeightDip_),
-                cornerRadiusDip_, cornerRadiusDip_);
-            rt->FillRoundedRectangle(bgRect, bgBrush_);
-
-            float y = (float)paddingDip_;
-            for (int i = 0; i < (int)menu_->items.size(); ++i) {
-                auto& item = menu_->items[i];
-                if (item->type == MenuItem::Type::Separator) {
-                    D2D1_POINT_2F p1 = D2D1::Point2F((float)(paddingDip_ + 10), y + separatorHeightDip_ * 0.5f);
-                    D2D1_POINT_2F p2 = D2D1::Point2F((float)(windowWidthDip_ - paddingDip_ - 10), y + separatorHeightDip_ * 0.5f);
-                    rt->DrawLine(p1, p2, separatorBrush_, 1.0f);
-                    y += separatorHeightDip_;
-                    continue;
-                }
-
-                D2D1_RECT_F itemRect = D2D1::RectF(
-                    (float)(paddingDip_ + 2), y,
-                    (float)(windowWidthDip_ - paddingDip_ - 2), y + (float)itemHeightDip_);
-                // 该项自定义背景色（带圆角）—— 先画底色
-                if (item->bgColor && item->bgColor->a > 0.0f) {
-                    if (!itemBgBrush_) rt->CreateSolidColorBrush(item->bgColor->ToD2D(), &itemBgBrush_);
-                    else itemBgBrush_->SetColor(item->bgColor->ToD2D());
-                    if (itemBgBrush_) rt->FillRoundedRectangle(
-                        D2D1::RoundedRect(itemRect, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f), itemBgBrush_);
-                }
-                // 悬停/按下高亮：叠在底色之上（半透明，底色仍可见）
-                bool showHover = item->enabled && (i == hoveredIndex_ || i == pressedIndex_);
-                if (showHover) {
-                    rt->FillRoundedRectangle(
-                        D2D1::RoundedRect(itemRect, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f),
-                        hoverBrush_);
-                }
-
-                // 勾选列：完全模仿 CheckBox —— 蓝底圆角方块 + 白勾；单选为圆环 + 圆点
-                if (item->checkable) {
-                    float cb = 15.0f;
-                    float bx = (float)paddingDip_ + 10.0f;   // 对齐分割线内侧（不是贴窗口外缘）
-                    float by = y + (itemHeightDip_ - cb) * 0.5f;
-                    float lw = max(1.6f, cb * 0.16f);
-                    if (item->radio) {
-                        float rx = bx + cb * 0.5f, ry = by + cb * 0.5f;
-                        textBrush_->SetColor(D2D1::ColorF(0.0f, 0.47f, 0.84f));
-                        rt->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.46f, cb * 0.46f), textBrush_, 1.6f);
-                        if (item->checked)
-                            rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.22f, cb * 0.22f), textBrush_);
-                    }
-                    else if (item->checked) {
-                        textBrush_->SetColor(D2D1::ColorF(0.0f, 0.47f, 0.84f));
-                        rt->FillRoundedRectangle(
-                            D2D1::RoundedRect(D2D1::RectF(bx, by, bx + cb, by + cb), cb * 0.28f, cb * 0.28f), textBrush_);
-                        textBrush_->SetColor(D2D1::ColorF(1, 1, 1));
-                        D2D1_POINT_2F p0 = D2D1::Point2F(bx + cb * 0.24f, by + cb * 0.52f);
-                        D2D1_POINT_2F p1 = D2D1::Point2F(bx + cb * 0.43f, by + cb * 0.70f);
-                        D2D1_POINT_2F p2 = D2D1::Point2F(bx + cb * 0.76f, by + cb * 0.30f);
-                        ID2D1StrokeStyle* ss = roundStroke_;
-                        rt->DrawLine(p0, p1, textBrush_, lw, ss);
-                        rt->DrawLine(p1, p2, textBrush_, lw, ss);
-                    }
-                }
-
-                float textX = (float)paddingDip_ + (checkWidthDip_ > 0 ? (float)checkWidthDip_ : 14.0f);
-                if (item->icon) textX += 20;
-                float textRight = itemRect.right - 4;
-                if (item->type == MenuItem::Type::Submenu) {
-                    textRight = itemRect.right - arrowWidthDip_ - 2;
-                }
-                if (!item->shortcut.empty()) textRight -= 104.0f;
-                D2D1_RECT_F textRect = D2D1::RectF(textX, y, textRight, y + itemHeightDip_);
-
-                D2D1_COLOR_F tcol = D2D1::ColorF(0, 0, 0);
-                if (item->textColor) tcol = item->textColor->ToD2D();
-                else if (!item->enabled) tcol = D2D1::ColorF(0.6f, 0.6f, 0.6f);
-                else if (item->danger) tcol = D2D1::ColorF(0.86f, 0.2f, 0.2f);
-                textBrush_->SetColor(tcol);
-                if (!item->text.empty()) {
-                    IDWriteTextFormat* tf = (item->isDefault && boldFormat_) ? boldFormat_ : textFormat_;
-                    rt->DrawText(item->text.c_str(), (UINT32)item->text.length(), tf, textRect, textBrush_);
-                }
-                if (!item->shortcut.empty() && shortcutFormat_) {
-                    D2D1_RECT_F srect = D2D1::RectF(itemRect.right - 108.0f, y, itemRect.right - 8.0f, y + itemHeightDip_);
-                    textBrush_->SetColor(D2D1::ColorF(0.45f, 0.45f, 0.45f));
-                    rt->DrawText(item->shortcut.c_str(), (UINT32)item->shortcut.length(), shortcutFormat_, srect, textBrush_);
-                }
-
-                if (item->type == MenuItem::Type::Submenu) {
-                    float arrowRight = itemRect.right - 8;
-                    D2D1_POINT_2F arrowCenter = D2D1::Point2F(
-                        arrowRight - arrowWidthDip_ / 2 + 2, y + itemHeightDip_ / 2);
-                    D2D1_POINT_2F p1 = D2D1::Point2F(arrowCenter.x - 3, arrowCenter.y - 5);
-                    D2D1_POINT_2F p2 = D2D1::Point2F(arrowCenter.x - 3, arrowCenter.y + 5);
-                    D2D1_POINT_2F p3 = D2D1::Point2F(arrowCenter.x + 2, arrowCenter.y);
-                    rt->DrawLine(p1, p2, textBrush_, 1.0f);
-                    rt->DrawLine(p2, p3, textBrush_, 1.0f);
-                    rt->DrawLine(p3, p1, textBrush_, 1.0f);
-                }
-                y += itemHeightDip_;
-            }
-        }
-
-        void OnMouseMove(int x, int y) {
-            if (!hwnd_) return;
-            int dipX = MulDiv(x, 96, dpi_) - shadowDip_;
-            int dipY = MulDiv(y, 96, dpi_) - shadowDip_;
-            int oldHover = hoveredIndex_;
-            hoveredIndex_ = HitTestDip(dipX, dipY);
-
-            if (hoveredIndex_ != oldHover) {
-                if (submenuPendingIndex_ >= 0) {
-                    KillTimer(hwnd_, kSubmenuTimerId);
-                    submenuPendingIndex_ = -1;
-                }
-
-                if (childMenu_) {
-                    bool hoverOnSubmenuItem = (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()
-                        && menu_->items[hoveredIndex_]->type == MenuItem::Type::Submenu);
-                    if (!hoverOnSubmenuItem) {
-                        KillTimer(hwnd_, kSubmenuHideTimerId);
-                        SetTimer(hwnd_, kSubmenuHideTimerId, kSubmenuHideDelayMs, nullptr);
-                    }
-                    else {
-                        KillTimer(hwnd_, kSubmenuHideTimerId);
-                    }
-                }
-
-                if (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()) {
-                    auto& item = menu_->items[hoveredIndex_];
-                    if (item->type == MenuItem::Type::Submenu && item->submenu) {
-                        submenuPendingIndex_ = hoveredIndex_;
-                        SetTimer(hwnd_, kSubmenuTimerId, kSubmenuDelayMs, nullptr);
-                    }
-                }
-
-                InvalidateRect(hwnd_, nullptr, FALSE);
-            }
-
-            TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE, hwnd_, 0 };
-            TrackMouseEvent(&tme);
-        }
-
-        void OnMouseLeave() {
-            if (!hwnd_) return;
-            hoveredIndex_ = -1;
-            pressedIndex_ = -1;
-            InvalidateRect(hwnd_, nullptr, FALSE);
-        }
-
-        void OnMouseDown(int x, int y) {
-            if (!hwnd_) return;
-            int dipX = MulDiv(x, 96, dpi_) - shadowDip_;
-            int dipY = MulDiv(y, 96, dpi_) - shadowDip_;
-            pressedIndex_ = HitTestDip(dipX, dipY);
-            if (pressedIndex_ >= 0) {
-                SetCapture(hwnd_);
-            }
-            InvalidateRect(hwnd_, nullptr, FALSE);
-        }
-
-        void OnMouseUp(int x, int y) {
-            if (!hwnd_) return;
-            int dipX = MulDiv(x, 96, dpi_) - shadowDip_;
-            int dipY = MulDiv(y, 96, dpi_) - shadowDip_;
-            int idx = HitTestDip(dipX, dipY);
-            int pressed = pressedIndex_;
-            pressedIndex_ = -1;
-            ReleaseCapture();
-            if (idx >= 0 && idx == pressed) {
-                ActivateItem(idx);
-                return;
-            }
-            InvalidateRect(hwnd_, nullptr, FALSE);
-        }
-
-        // 激活第 idx 项（鼠标点击与键盘回车/快捷键共用）
-        void ActivateItem(int idx) {
-            if (idx < 0 || idx >= (int)menu_->items.size()) return;
-            auto& item = menu_->items[idx];
-            if (item->type == MenuItem::Type::Normal) {
-                if (!item->enabled) return;
-                if (item->checkable) {   // 勾选/单选切换
-                    bool ns = !item->checked;
-                    if (item->radio && ns)
-                        for (auto& o : menu_->items) if (o.get() != item.get() && o->radio) o->checked = false;
-                    item->checked = ns;
-                }
-                int selId = item->id;
-                auto clicked = item;                 // 先保活，避免 Fire 里回调销毁菜单
-                // 关整棵树；ItemSelected 回传到“根菜单”，这样应用连根菜单就能收到子菜单的点击
-                MenuWindow* root = this;
-                while (root->parent_) root = root->parent_;
-                Menu* rootMenu = root ? root->menu_.get() : nullptr;
-                root->CloseAll();
-                if (rootMenu) rootMenu->ItemSelected.Fire(selId);
-                clicked->Clicked.Fire();
-            }
-            else if (item->type == MenuItem::Type::Submenu) {
-                OpenSubmenu(idx);
-            }
-        }
-
-        // 菜单项快捷键文本 -> VK：支持 "Ctrl+C" / "Shift+F10" / "Alt+Enter" / "F5" / "Delete" 等
-        static int ShortcutKeyToVk(const std::wstring& t) {
-            if (t.empty()) return 0;
-            if (t.size() == 1) {
-                wchar_t c = t[0];
-                if (c >= L'A' && c <= L'Z') return (int)c;
-                if (c >= L'a' && c <= L'z') return (int)(c - L'a' + L'A');
-                if (c >= L'0' && c <= L'9') return (int)c;
-            }
-            if (t[0] == L'F' || t[0] == L'f') {
-                int n = 0; bool ok = t.size() > 1;
-                for (size_t i = 1; i < t.size(); ++i) { if (t[i] < L'0' || t[i] > L'9') { ok = false; break; } n = n * 10 + (t[i] - L'0'); }
-                if (ok && n >= 1 && n <= 24) return VK_F1 + n - 1;
-            }
-            if (t == L"Enter" || t == L"Return") return VK_RETURN;
-            if (t == L"Esc" || t == L"Escape") return VK_ESCAPE;
-            if (t == L"Space") return VK_SPACE;
-            if (t == L"Tab") return VK_TAB;
-            if (t == L"Del" || t == L"Delete") return VK_DELETE;
-            if (t == L"Ins" || t == L"Insert") return VK_INSERT;
-            if (t == L"Home") return VK_HOME;
-            if (t == L"End") return VK_END;
-            if (t == L"PgUp" || t == L"PageUp") return VK_PRIOR;
-            if (t == L"PgDn" || t == L"PageDown") return VK_NEXT;
-            if (t == L"Left") return VK_LEFT;
-            if (t == L"Right") return VK_RIGHT;
-            if (t == L"Up") return VK_UP;
-            if (t == L"Down") return VK_DOWN;
-            return 0;
-        }
-        static bool ShortcutMatches(const std::wstring& sc, int vk, bool ctrl, bool alt, bool shift) {
-            bool wantCtrl = false, wantAlt = false, wantShift = false; int wantVk = 0;
-            size_t start = 0;
-            for (;;) {
-                size_t p = sc.find(L'+', start);
-                std::wstring tok = sc.substr(start, p == std::wstring::npos ? std::wstring::npos : p - start);
-                while (!tok.empty() && tok.front() == L' ') tok.erase(tok.begin());
-                while (!tok.empty() && tok.back() == L' ') tok.pop_back();
-                if (tok == L"Ctrl" || tok == L"Control") wantCtrl = true;
-                else if (tok == L"Shift") wantShift = true;
-                else if (tok == L"Alt") wantAlt = true;
-                else { int k = ShortcutKeyToVk(tok); if (k) wantVk = k; }
-                if (p == std::wstring::npos) break;
-                start = p + 1;
-            }
-            if (!wantVk) return false;
-            return wantVk == vk && wantCtrl == ctrl && wantAlt == alt && wantShift == shift;
-        }
-        int MatchShortcut(int vk) {
-            bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-            bool alt = (GetKeyState(VK_MENU) & 0x8000) != 0;
-            bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-            for (int i = 0; i < (int)menu_->items.size(); ++i) {
-                auto& it = menu_->items[i];
-                if (it->type != MenuItem::Type::Normal || !it->enabled || it->shortcut.empty()) continue;
-                if (ShortcutMatches(it->shortcut, vk, ctrl, alt, shift)) return i;
-            }
-            return -1;
-        }
-
-        int HitTestDip(int x, int y) {
-            if (x < 0 || x >= windowWidthDip_ || y < 0 || y >= windowHeightDip_)
-                return -1;
-            float fy = (float)y;
-            float curY = (float)paddingDip_;
-            for (int i = 0; i < (int)menu_->items.size(); ++i) {
-                auto& item = menu_->items[i];
-                if (item->type == MenuItem::Type::Separator) {
-                    curY += separatorHeightDip_;
-                    continue;
-                }
-                if (fy >= curY && fy < curY + itemHeightDip_) {
-                    return i;
-                }
-                curY += itemHeightDip_;
-            }
-            return -1;
-        }
-
-        void OpenSubmenu(int index) {
-            if (index < 0 || index >= (int)menu_->items.size()) return;
-            auto& item = menu_->items[index];
-            if (item->type != MenuItem::Type::Submenu || !item->submenu) return;
-
-            POINT pt;
-            RECT rc;
-            GetWindowRect(hwnd_, &rc);
-            float curY = (float)paddingDip_;
-            for (int i = 0; i < index; ++i) {
-                if (menu_->items[i]->type == MenuItem::Type::Separator)
-                    curY += separatorHeightDip_;
-                else
-                    curY += itemHeightDip_;
-            }
-            pt.x = rc.right - shadowPx_;
-            pt.y = rc.top + shadowPx_ + MulDiv((int)curY, dpi_, 96);
-
-            if (childMenu_ && childMenu_->menu_ == item->submenu) {
-                if (childMenu_->visible_) return;
-                else {
-                    childMenu_->Show(pt.x, pt.y);
-                    return;
-                }
-            }
-
-            if (childMenu_) {
-                childMenu_->CloseAll();
-                childMenu_.reset();
-            }
-
-            childMenu_ = std::make_unique<MenuWindow>(item->submenu, owner_, pt.x, pt.y);
-            childMenu_->parent_ = this;
-            childMenu_->Show(pt.x, pt.y);
-        }
-
-        std::shared_ptr<Menu> menu_;
-        HWND hwnd_ = nullptr;
-        HWND owner_ = nullptr;
-        int screenX_, screenY_;
-        UINT dpi_ = 96;
-        int windowWidthDip_ = 0, windowHeightDip_ = 0;
-        int windowWidthPx_ = 0, windowHeightPx_ = 0;
-
-        int hoveredIndex_ = -1;
-        int pressedIndex_ = -1;
-        bool isClosing_ = false;
-        bool standalone_ = false;
-        DWORD openedTick_ = 0;          // 独立菜单：弹出时刻（防误关）
-        bool prevLButtonDown_ = true;   // 独立菜单：上一帧左键状态（只在按下那一下判定）
-
-        std::unique_ptr<MenuWindow> childMenu_;
-        MenuWindow* parent_ = nullptr;
-        int submenuPendingIndex_ = -1;
-
-        ID2D1Factory* d2dFactory_ = nullptr;
-        ID2D1DCRenderTarget* renderTarget_ = nullptr;   // 分层窗口用 DC 渲染目标
-
-        // 分层窗口（UpdateLayeredWindow）：DIB + 内存 DC，用于逐像素 alpha → 自绘柔阴影 + 圆角
-        HDC memDC_ = nullptr;
-        HBITMAP dib_ = nullptr;
-        void* dibBits_ = nullptr;
-        int dibW_ = 0, dibH_ = 0;
-        int shadowDip_ = 10;                          // 自绘柔阴影厚度（DIP，比 tooltip 稍厚）
-        int shadowPx_ = 0;
-        float fade_ = 1.0f;                           // 渐显动画：整窗不透明度
-        int contentWidthPx_ = 0, contentHeightPx_ = 0;
-        int winX_ = 0, winY_ = 0;                     // 窗口（含阴影）左上角屏幕坐标
-        ID2D1SolidColorBrush* shadowBrush_ = nullptr;
-        ID2D1SolidColorBrush* bgBrush_ = nullptr;
-        ID2D1SolidColorBrush* itemBgBrush_ = nullptr;
-        ID2D1SolidColorBrush* hoverBrush_ = nullptr;
-        ID2D1SolidColorBrush* textBrush_ = nullptr;
-        ID2D1SolidColorBrush* separatorBrush_ = nullptr;
-        IDWriteTextFormat* textFormat_ = nullptr;
-        IDWriteTextFormat* boldFormat_ = nullptr;
-        IDWriteTextFormat* shortcutFormat_ = nullptr;
-        ID2D1StrokeStyle* roundStroke_ = nullptr;   // 勾选对勾的圆头描边（必须随本实例工厂创建，不能 static 跨工厂复用）
-
-        static ComPtr<IDWriteFactory> sharedDWriteFactory_;
-    };
-
-    inline ComPtr<IDWriteFactory> MenuWindow::sharedDWriteFactory_ = nullptr;
-
-    // 独立弹出：owner 用进程级隐藏消息窗口（不绑定任何用户窗口），典型用于托盘右键菜单。
-    inline void Menu::ShowAt(int screenX, int screenY) {
-        detail::InitializeUIThread();
-        detail::CloseAllOpenMenus();   // 先关掉其它已打开的菜单（避免同时存在多个）
-        HWND owner = detail::g_uiDispatcherWindow ? detail::g_uiDispatcherWindow : GetDesktopWindow();
-        auto& holder = MenuWindow::StandaloneHolder();
-        holder = std::make_shared<MenuWindow>(shared_from_this(), owner, screenX, screenY);
-        holder->SetStandalone(true);
-        holder->Show(screenX, screenY);
-    }
-
-    inline void Menu::ShowAtCursor() {
-        POINT pt{};
-        GetCursorPos(&pt);
-        ShowAt(pt.x, pt.y);
-    }
-
     // ---------- 应用核心（进程 / UI 线程级单例） ----------
     namespace detail {
         class AppCore {
@@ -4576,7 +3635,7 @@ namespace ZufyUI {
             case WM_KEYDOWN:
                 if (OnWindowKeyDown((int)wParam)) return 0;
                 // 菜单打开时：先把按键转发给菜单（导航 / 回车 / Esc / 菜单项快捷键）
-                if (detail::g_activeMenu && detail::g_activeMenu->OnMenuKeyDown((int)wParam)) return 0;
+                if (detail::ForwardKeyToActiveMenu((int)wParam)) return 0;
                 // 键盘弹出右键菜单：菜单键 / Shift+F10
                 if (wParam == VK_APPS || (wParam == VK_F10 && (GetKeyState(VK_SHIFT) & 0x8000))) {
                     UIElement* t = focusedElement_ ? focusedElement_ : currentHovered_;
@@ -5324,26 +4383,7 @@ namespace ZufyUI {
             if (cmd) PostMessageW(hwnd_, WM_SYSCOMMAND, (WPARAM)cmd, 0);
         }
 
-        void OnContextMenu(float x, float y) {
-            // 自定义边框下，标题栏区域右键 → 系统菜单
-            if (customFrame_ && y <= customTitleBarHeight_) { ShowSystemMenu(); return; }
-            if (!rootElement_ && !customTitleBar_) return;
-            UIElement* hit = HitTestElement(x, y);
-            if (hit && hit->OnContextMenu(x, y)) return;   // 控件已处理右键
-            std::shared_ptr<Menu> menu;
-            if (hit && hit->IsContextMenuEnabled()) menu = hit->BuildContextMenu();   // 固定菜单或动态工厂
-            if (!menu && windowContextMenu_) menu = windowContextMenu_;
-            if (menu) {
-                POINT pt;
-                pt.x = static_cast<LONG>(MulDiv(static_cast<int>(x), static_cast<int>(dpi_), 96));
-                pt.y = static_cast<LONG>(MulDiv(static_cast<int>(y), static_cast<int>(dpi_), 96));
-                ClientToScreen(hwnd_, &pt);
-            CloseActiveMenuWindow();
-            detail::CloseAllOpenMenus();   // 关掉可能已打开的独立菜单
-            activeMenuRoot_ = std::make_unique<MenuWindow>(menu, hwnd_, pt.x, pt.y);
-                activeMenuRoot_->Show(pt.x, pt.y);
-            }
-        }
+        void OnContextMenu(float x, float y);   // 定义在文件后部（需要 MenuWindow 完整类型）
 
         void UpdateHover(float x, float y) {
             if (!rootElement_ && !customTitleBar_) return;
@@ -5358,12 +4398,7 @@ namespace ZufyUI {
             if (hit) hit->OnMouseMove(x, y);
         }
 
-        void CloseActiveMenuWindow() {
-            if (activeMenuRoot_) {
-                activeMenuRoot_->CloseAll();
-                activeMenuRoot_.reset();
-            }
-        }
+        void CloseActiveMenuWindow();   // 定义在文件后部（需要 MenuWindow 完整类型）
 
         void OnMouseWheel(float x, float y, float deltaX, float deltaY) {
             tooltipTarget_ = nullptr; tooltipProgress_ = 0.0f;
@@ -5974,7 +5009,7 @@ namespace ZufyUI {
         Connection acrylicReloadConn_;   // ReloadAcrylic 信号的连接
         bool animationTimerActive_;   // 常驻定时器，始终 true
         std::shared_ptr<Menu> windowContextMenu_;
-        std::unique_ptr<MenuWindow> activeMenuRoot_;
+        std::shared_ptr<MenuWindow> activeMenuRoot_;   // 右键菜单（MenuWindow 定义在 Window 之后，用前向声明 + shared_ptr）
         ComPtr<ITaskbarList3> taskbarList_;
         std::mutex taskbarMtx_;
         HIMAGELIST thumbImageList_ = nullptr;
@@ -6056,6 +5091,605 @@ namespace ZufyUI {
         for (UIElement* p = parent_; p; p = p->parent_) { p->measureDirty_ = true; p->subtreeDirty_ = true; }
         if (Window* w = GetWindow()) w->MarkLayoutInvalidated();
         else UIZSignals::LayoutInvalidated(nullptr);
+    }
+
+    // ============================================================================
+    // MenuWindowBase —— 弹出层基类（继承 Window，走 DComp 共享设备）
+    //   只负责弹出层的“系统/底层交互”：无系统边框/阴影/圆角、不抢焦点、不占任务栏、置顶；
+    //   按屏幕坐标弹出、渐显、点外/Esc 关闭、整棵弹出层树关闭。不含任何“菜单项”概念，
+    //   因此用户可继承它做自定义浮层（flyout / 自定义面板）。
+    // ============================================================================
+    class MenuWindowBase : public Window {
+    public:
+        MenuWindowBase() = default;
+
+        // 以弹出层创建：width/height 为 DIP 的“内容尺寸”（窗口另加阴影边距）
+        bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY) {
+            screenX_ = screenX; screenY_ = screenY;
+            contentWidthDip_ = widthDip; contentHeightDip_ = heightDip;
+            SetBackdrop(Backdrop::None, 0x00000000);   // 背景全透明
+            SetContentOpacity(1.0f);
+            return Window::Create(widthDip + shadowDip_ * 2, heightDip + shadowDip_ * 2, L"");
+        }
+
+        // 在屏幕 (screenX,screenY)（内容左上角）处弹出
+        void ShowAtPoint(int screenX, int screenY) {
+            screenX_ = screenX; screenY_ = screenY;
+            HWND h = GetHwnd();
+            if (h) SetWindowPos(h, HWND_TOPMOST, screenX - shadowDip_, screenY - shadowDip_, 0, 0,
+                                SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+            ShowNoActivate();
+            if (!parent_) detail::g_activeMenu = this;   // 根弹出层登记，供窗口转发键盘
+            SetContentOpacity(0.0f);
+            StartFade();
+            openedTick_ = GetTickCount();
+            prevLButtonDown_ = true;
+            if (standalone_ && h) SetTimer(h, kPollTimerId, 30, nullptr);
+        }
+        void Hide() {
+            StopFade();
+            HWND h = GetHwnd();
+            if (h) { KillTimer(h, kPollTimerId); ShowWindow(h, SW_HIDE); }
+            if (childPopup_) childPopup_->Hide();
+        }
+        void CloseAll() {
+            if (!parent_ && detail::g_activeMenu == this) detail::g_activeMenu = nullptr;
+            StopFade();
+            HWND h = GetHwnd();
+            if (h) { KillTimer(h, kPollTimerId); DestroyWindow(h); }
+            if (childPopup_) { childPopup_->CloseAll(); childPopup_.reset(); }
+        }
+        void SetStandalone(bool on) { standalone_ = on; }
+        MenuWindowBase* ParentPopup() const { return parent_; }
+        MenuWindowBase* ChildPopup() const { return childPopup_.get(); }
+
+        // 键盘转发（Base 默认不处理；MenuWindow 覆盖）
+        virtual bool OnMenuKeyDown(int vk) { (void)vk; return false; }
+
+    protected:
+        // ---- Window 底层配置：弹出层 ----
+        DWORD GetCreateStyle()   const override { return WS_POPUP; }
+        DWORD GetCreateExStyle() const override {
+            return WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST;
+        }
+        void GetCreatePos(int& x, int& y) const override { x = screenX_ - shadowDip_; y = screenY_ - shadowDip_; }
+        bool WantDwmChrome() const override { return false; }
+        bool WantBackdrop()  const override { return false; }
+
+        bool OnWindowTimer(int id) override {
+            if (id == (int)animTimerId_) {
+                if (!animating_) { HWND h = GetHwnd(); if (h) KillTimer(h, animTimerId_); return true; }
+                fade_ += 0.18f;
+                if (fade_ >= 1.0f) { fade_ = 1.0f; animating_ = false; HWND h = GetHwnd(); if (h) KillTimer(h, animTimerId_); }
+                SetContentOpacity(fade_);
+                return true;
+            }
+            if (id == (int)kPollTimerId) {
+                if (!standalone_) return true;
+                if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) { CloseAll(); return true; }
+                bool down = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+                if (GetTickCount() - openedTick_ < 250) { prevLButtonDown_ = down; return true; }
+                if (down && !prevLButtonDown_) {
+                    POINT pt; GetCursorPos(&pt);
+                    if (!IsPointInPopupTree(pt)) { CloseAll(); return true; }
+                }
+                prevLButtonDown_ = down;
+                return true;
+            }
+            return OnPopupTimer(id);
+        }
+        virtual bool OnPopupTimer(int id) { (void)id; return false; }
+
+        bool IsPointInPopupTree(POINT ptScreen) {
+            HWND h = GetHwnd();
+            if (h) { RECT rc; GetWindowRect(h, &rc); if (PtInRect(&rc, ptScreen)) return true; }
+            if (childPopup_ && childPopup_->IsPointInPopupTree(ptScreen)) return true;
+            return false;
+        }
+        void StartFade() { animating_ = true; fade_ = 0.0f; HWND h = GetHwnd(); if (h) SetTimer(h, animTimerId_, 10, nullptr); }
+        void StopFade() { animating_ = false; HWND h = GetHwnd(); if (h) KillTimer(h, animTimerId_); }
+        void SetChildPopup(std::unique_ptr<MenuWindowBase> c) {
+            if (childPopup_) { childPopup_->CloseAll(); childPopup_.reset(); }
+            childPopup_ = std::move(c);
+            if (childPopup_) childPopup_->parent_ = this;
+        }
+        int  ShadowDip() const { return shadowDip_; }
+        int  ContentWidthDip()  const { return contentWidthDip_; }
+        int  ContentHeightDip() const { return contentHeightDip_; }
+        int  PopupDpi() const { return (int)GetDpiScale(); }
+        static constexpr UINT_PTR kAnimTimerId = 4;
+        static constexpr UINT_PTR kPollTimerId = 6;
+
+        int contentWidthDip_ = 0, contentHeightDip_ = 0;
+        int screenX_ = 0, screenY_ = 0;
+        int shadowDip_ = 10;
+        bool standalone_ = false;
+        bool animating_ = false;
+        float fade_ = 1.0f;
+        DWORD openedTick_ = 0;
+        bool prevLButtonDown_ = true;
+
+        std::unique_ptr<MenuWindowBase> childPopup_;
+        MenuWindowBase* parent_ = nullptr;
+
+    private:
+        static constexpr UINT_PTR animTimerId_ = 4;
+    };
+
+    // ============================================================================
+    // MenuWindow —— 菜单弹出层（继承 MenuWindowBase）：绘制菜单项 + 提供菜单相关接口
+    // ============================================================================
+    class MenuWindow : public MenuWindowBase {
+    public:
+        MenuWindow(std::shared_ptr<Menu> menu, HWND ownerHwnd, int x, int y) : menu_(menu) {
+            ownerHwnd_ = ownerHwnd;
+            CalculateWindowSizeDip();
+            CreatePopup(windowWidthDip_, windowHeightDip_, x, y);
+        }
+
+        static std::shared_ptr<MenuWindow>& StandaloneHolder() {
+            static std::shared_ptr<MenuWindow> s;
+            return s;
+        }
+
+        bool OnMenuKeyDown(int vk) override {
+            if (!GetHwnd() || !menu_) return false;
+            // Esc：关闭整棵菜单树
+            if (vk == VK_ESCAPE) { MenuWindow* r = this; while (r->parentMenu_) r = r->parentMenu_; r->CloseAll(); return true; }
+            // 回车：激活悬停项；没有则触发默认项
+            if (vk == VK_RETURN) {
+                int idx = hoveredIndex_;
+                if (idx < 0)
+                    for (int i = 0; i < (int)menu_->items.size(); ++i)
+                        if (menu_->items[i]->isDefault && menu_->items[i]->enabled) { idx = i; break; }
+                if (idx >= 0 && idx < (int)menu_->items.size()) { ActivateItem(idx); return true; }
+                return true;
+            }
+            // 上/下/Home/End：移动悬停（跳过分隔符与禁用项）
+            if (vk == VK_UP || vk == VK_DOWN || vk == VK_HOME || vk == VK_END) {
+                int n = (int)menu_->items.size();
+                if (n == 0) return true;
+                int i = hoveredIndex_;
+                if (vk == VK_HOME) i = -1;
+                else if (vk == VK_END) i = n;
+                int step = (vk == VK_UP || vk == VK_HOME) ? -1 : 1;
+                for (int k = 0; k < n; ++k) {
+                    i += step;
+                    if (i < 0) i = n - 1; else if (i >= n) i = 0;
+                    auto& it = menu_->items[i];
+                    if (it->type != MenuItem::Type::Separator && it->enabled) { hoveredIndex_ = i; break; }
+                }
+                InvalidateRect(GetHwnd(), nullptr, FALSE);
+                return true;
+            }
+            if (vk == VK_RIGHT) {
+                if (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()
+                    && menu_->items[hoveredIndex_]->type == MenuItem::Type::Submenu) { OpenSubmenu(hoveredIndex_); return true; }
+                return false;
+            }
+            if (vk == VK_LEFT) {
+                if (MenuWindow* p = ParentMenu()) { p->CloseChildMenu(); return true; }
+                return false;
+            }
+            int idx = MatchShortcut(vk);
+            if (idx >= 0) { ActivateItem(idx); return true; }
+            return false;
+        }
+
+    protected:
+        void RenderContent(ID2D1DeviceContext* rt) override { DrawMenuBody(rt); }
+
+        bool OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* result) override {
+            (void)result;
+            switch (msg) {
+            case WM_MOUSEMOVE:   OnMenuMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)); return true;
+            case WM_MOUSELEAVE:  OnMenuMouseLeave(); return true;
+            case WM_LBUTTONDOWN: OnMenuMouseDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)); return true;
+            case WM_LBUTTONUP:   OnMenuMouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)); return true;
+            case WM_CAPTURECHANGED: pressedIndex_ = -1; return true;
+            default: break;
+            }
+            return false;
+        }
+        bool OnPopupTimer(int id) override {
+            if (id == (int)kSubmenuTimerId) {
+                KillTimer(GetHwnd(), kSubmenuTimerId);
+                if (submenuPendingIndex_ >= 0) { OpenSubmenu(submenuPendingIndex_); submenuPendingIndex_ = -1; }
+                return true;
+            }
+            return false;
+        }
+
+    private:
+        static constexpr UINT_PTR kSubmenuTimerId = 1;
+        static constexpr int kSubmenuDelayMs = 300;
+
+        MenuWindow* ParentMenu() const { return static_cast<MenuWindow*>(ParentPopup()); }
+        void CloseChildMenu() {
+            if (MenuWindowBase* c = ChildPopup()) c->CloseAll();
+            SetChildPopup(nullptr);
+        }
+        int  Dpi() const { return PopupDpi(); }
+        int  ShadowPx() const { return MulDiv(ShadowDip(), Dpi(), 96); }
+        HWND H() const { return GetHwnd(); }
+
+        void CalculateWindowSizeDip() {
+            int maxTextWidth = 0, maxShortcutWidth = 0;
+            bool hasCheck = false;
+            windowHeightDip_ = paddingDip_ * 2;
+            for (auto& item : menu_->items) {
+                if (item->type == MenuItem::Type::Separator) { windowHeightDip_ += separatorHeightDip_; continue; }
+                if (item->checkable) hasCheck = true;
+                if (auto f = sharedDWriteFactory_) {
+                    if (textFormat_) {
+                        ComPtr<IDWriteTextLayout> layout;
+                        f->CreateTextLayout(item->text.c_str(), (UINT32)item->text.length(), textFormat_, 10000.0f, 10000.0f, &layout);
+                        if (layout) { DWRITE_TEXT_METRICS m; layout->GetMetrics(&m); int w = (int)(m.width + 0.5f); if (item->type == MenuItem::Type::Submenu) w += arrowWidthDip_; maxTextWidth = max(maxTextWidth, w); }
+                    }
+                    if (!item->shortcut.empty() && shortcutFormat_) {
+                        ComPtr<IDWriteTextLayout> sl;
+                        if (SUCCEEDED(f->CreateTextLayout(item->shortcut.c_str(), (UINT32)item->shortcut.length(), shortcutFormat_, 10000.0f, 10000.0f, &sl)) && sl) {
+                            DWRITE_TEXT_METRICS m; sl->GetMetrics(&m); maxShortcutWidth = max(maxShortcutWidth, (int)(m.width + 0.5f));
+                        }
+                    }
+                }
+                windowHeightDip_ += itemHeightDip_;
+            }
+            checkWidthDip_ = hasCheck ? 33 : 0;
+            windowWidthDip_ = paddingDip_ * 2 + checkWidthDip_ + maxTextWidth
+                + (maxShortcutWidth > 0 ? maxShortcutWidth + 28 : 0) + 24;
+            windowWidthDip_ = max(windowWidthDip_, 60);
+            windowHeightDip_ = max(windowHeightDip_, 34);
+        }
+
+        void EnsureBrushes(ID2D1RenderTarget* rt) {
+            if (!bgBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(1, 1, 1), &bgBrush_);
+            if (!hoverBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0, 0.12f), &hoverBrush_);
+            if (!textBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0), &textBrush_);
+            if (!separatorBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0.8f, 0.8f, 0.8f), &separatorBrush_);
+            if (!shadowBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0, 0.03f), &shadowBrush_);
+            if (!roundStroke_) {
+                ID2D1Factory* f = nullptr; rt->GetFactory(&f);
+                if (!f) { f = sharedDWriteFactory_ ? nullptr : nullptr; }
+                if (f) {
+                    D2D1_STROKE_STYLE_PROPERTIES sp = D2D1::StrokeStyleProperties(
+                        D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND,
+                        D2D1_LINE_JOIN_ROUND, 1.0f, D2D1_DASH_STYLE_SOLID, 0.0f);
+                    f->CreateStrokeStyle(sp, nullptr, 0, &roundStroke_);
+                }
+            }
+        }
+
+        void DrawMenuBody(ID2D1RenderTarget* rt) {
+            if (!rt) return;
+            EnsureTextFormats();
+            EnsureBrushes(rt);
+            // 柔阴影（内容外扩）
+            if (shadowBrush_) {
+                float sd = (float)ShadowDip();
+                D2D1_RECT_F body = D2D1::RectF(sd, sd, sd + (float)windowWidthDip_, sd + (float)windowHeightDip_);
+                int steps = 6; float maxE = sd - 3.0f; if (maxE < 1.0f) maxE = 1.0f;
+                for (int i = steps; i >= 1; --i) {
+                    float e = (float)i * (maxE / (float)steps);
+                    shadowBrush_->SetColor(D2D1::ColorF(0, 0, 0, 0.03f));
+                    rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(body.left - e, body.top - e, body.right + e, body.bottom + e),
+                        cornerRadiusDip_ + e, cornerRadiusDip_ + e), shadowBrush_);
+                }
+            }
+            D2D1::Matrix3x2F old; rt->GetTransform(&old);
+            rt->SetTransform(D2D1::Matrix3x2F::Translation((FLOAT)ShadowDip(), (FLOAT)ShadowDip()) * old);
+            DrawMenu(rt);
+            rt->SetTransform(old);
+        }
+
+        void DrawMenu(ID2D1RenderTarget* rt) {
+            if (!rt || !bgBrush_ || !textFormat_) return;
+            rt->FillRoundedRectangle(D2D1::RoundedRect(
+                D2D1::RectF(0, 0, (FLOAT)windowWidthDip_, (FLOAT)windowHeightDip_), cornerRadiusDip_, cornerRadiusDip_), bgBrush_);
+            float y = (float)paddingDip_;
+            for (int i = 0; i < (int)menu_->items.size(); ++i) {
+                auto& item = menu_->items[i];
+                if (item->type == MenuItem::Type::Separator) {
+                    rt->DrawLine(D2D1::Point2F((float)(paddingDip_ + 10), y + separatorHeightDip_ * 0.5f),
+                                 D2D1::Point2F((float)(windowWidthDip_ - paddingDip_ - 10), y + separatorHeightDip_ * 0.5f),
+                                 separatorBrush_, 1.0f);
+                    y += separatorHeightDip_; continue;
+                }
+                D2D1_RECT_F itemRect = D2D1::RectF((float)(paddingDip_ + 2), y, (float)(windowWidthDip_ - paddingDip_ - 2), y + (float)itemHeightDip_);
+                if (item->bgColor && item->bgColor->a > 0.0f) {
+                    if (!itemBgBrush_) rt->CreateSolidColorBrush(item->bgColor->ToD2D(), &itemBgBrush_);
+                    else itemBgBrush_->SetColor(item->bgColor->ToD2D());
+                    if (itemBgBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(itemRect, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f), itemBgBrush_);
+                }
+                if (item->enabled && (i == hoveredIndex_ || i == pressedIndex_))
+                    rt->FillRoundedRectangle(D2D1::RoundedRect(itemRect, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f), hoverBrush_);
+                if (item->checkable) {
+                    float cb = 15.0f, bx = (float)paddingDip_ + 10.0f, by = y + (itemHeightDip_ - cb) * 0.5f, lw = max(1.6f, cb * 0.16f);
+                    if (item->radio) {
+                        float rx = bx + cb * 0.5f, ry = by + cb * 0.5f;
+                        textBrush_->SetColor(D2D1::ColorF(0.0f, 0.47f, 0.84f));
+                        rt->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.46f, cb * 0.46f), textBrush_, 1.6f);
+                        if (item->checked) rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.22f, cb * 0.22f), textBrush_);
+                    }
+                    else if (item->checked) {
+                        textBrush_->SetColor(D2D1::ColorF(0.0f, 0.47f, 0.84f));
+                        rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(bx, by, bx + cb, by + cb), cb * 0.28f, cb * 0.28f), textBrush_);
+                        textBrush_->SetColor(D2D1::ColorF(1, 1, 1));
+                        if (roundStroke_) {
+                            rt->DrawLine(D2D1::Point2F(bx + cb * 0.24f, by + cb * 0.52f), D2D1::Point2F(bx + cb * 0.43f, by + cb * 0.70f), textBrush_, lw, roundStroke_);
+                            rt->DrawLine(D2D1::Point2F(bx + cb * 0.43f, by + cb * 0.70f), D2D1::Point2F(bx + cb * 0.76f, by + cb * 0.30f), textBrush_, lw, roundStroke_);
+                        }
+                    }
+                }
+                float textX = (float)paddingDip_ + (checkWidthDip_ > 0 ? (float)checkWidthDip_ : 14.0f);
+                if (item->icon) textX += 20;
+                float textRight = itemRect.right - 4;
+                if (item->type == MenuItem::Type::Submenu) textRight = itemRect.right - arrowWidthDip_ - 2;
+                if (!item->shortcut.empty()) textRight -= 104.0f;
+                D2D1_RECT_F textRect = D2D1::RectF(textX, y, textRight, y + itemHeightDip_);
+                D2D1_COLOR_F tcol = D2D1::ColorF(0, 0, 0);
+                if (item->textColor) tcol = item->textColor->ToD2D();
+                else if (!item->enabled) tcol = D2D1::ColorF(0.6f, 0.6f, 0.6f);
+                else if (item->danger) tcol = D2D1::ColorF(0.86f, 0.2f, 0.2f);
+                textBrush_->SetColor(tcol);
+                if (!item->text.empty()) {
+                    IDWriteTextFormat* tf = (item->isDefault && boldFormat_) ? boldFormat_ : textFormat_;
+                    rt->DrawText(item->text.c_str(), (UINT32)item->text.length(), tf, textRect, textBrush_);
+                }
+                if (!item->shortcut.empty() && shortcutFormat_) {
+                    textBrush_->SetColor(D2D1::ColorF(0.45f, 0.45f, 0.45f));
+                    rt->DrawText(item->shortcut.c_str(), (UINT32)item->shortcut.length(), shortcutFormat_,
+                                 D2D1::RectF(itemRect.right - 108.0f, y, itemRect.right - 8.0f, y + itemHeightDip_), textBrush_);
+                }
+                if (item->type == MenuItem::Type::Submenu) {
+                    float ar = itemRect.right - 8;
+                    float acx = ar - arrowWidthDip_ / 2 + 2, acy = y + itemHeightDip_ / 2;
+                    rt->DrawLine(D2D1::Point2F(acx - 3, acy - 5), D2D1::Point2F(acx - 3, acy + 5), textBrush_, 1.0f);
+                    rt->DrawLine(D2D1::Point2F(acx - 3, acy + 5), D2D1::Point2F(acx + 2, acy), textBrush_, 1.0f);
+                    rt->DrawLine(D2D1::Point2F(acx + 2, acy), D2D1::Point2F(acx - 3, acy - 5), textBrush_, 1.0f);
+                }
+                y += itemHeightDip_;
+            }
+        }
+
+        void EnsureTextFormats() {
+            if (!sharedDWriteFactory_) DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &sharedDWriteFactory_);
+            if (!sharedDWriteFactory_ || textFormat_) return;
+            const FontSpec& fs = menu_->font;
+            const wchar_t* fam = fs.familyName.empty() ? L"Segoe UI" : fs.familyName.c_str();
+            const wchar_t* loc = fs.locale.empty() ? L"en-us" : fs.locale.c_str();
+            float fsz = fs.size > 0 ? fs.size : 14.0f;
+            sharedDWriteFactory_->CreateTextFormat(fam, nullptr, fs.weight, fs.style, fs.stretch, fsz, loc, &textFormat_);
+            if (textFormat_) { textFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING); textFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER); textFormat_->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP); }
+            sharedDWriteFactory_->CreateTextFormat(fam, nullptr, DWRITE_FONT_WEIGHT_BOLD, fs.style, fs.stretch, fsz, loc, &boldFormat_);
+            if (boldFormat_) { boldFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING); boldFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER); boldFormat_->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP); }
+            sharedDWriteFactory_->CreateTextFormat(fam, nullptr, DWRITE_FONT_WEIGHT_NORMAL, fs.style, fs.stretch, fsz * 0.8f, loc, &shortcutFormat_);
+            if (shortcutFormat_) { shortcutFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING); shortcutFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER); shortcutFormat_->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP); }
+        }
+
+        int HitTestDip(int x, int y) {
+            if (x < 0 || x >= windowWidthDip_ || y < 0 || y >= windowHeightDip_) return -1;
+            float fy = (float)y, curY = (float)paddingDip_;
+            for (int i = 0; i < (int)menu_->items.size(); ++i) {
+                auto& item = menu_->items[i];
+                if (item->type == MenuItem::Type::Separator) { curY += separatorHeightDip_; continue; }
+                if (fy >= curY && fy < curY + itemHeightDip_) return i;
+                curY += itemHeightDip_;
+            }
+            return -1;
+        }
+
+        void ActivateItem(int idx) {
+            if (idx < 0 || idx >= (int)menu_->items.size()) return;
+            auto& item = menu_->items[idx];
+            if (item->type == MenuItem::Type::Normal) {
+                if (!item->enabled) return;
+                if (item->checkable) {
+                    bool ns = !item->checked;
+                    if (item->radio && ns) for (auto& o : menu_->items) if (o.get() != item.get() && o->radio) o->checked = false;
+                    item->checked = ns;
+                }
+                int selId = item->id;
+                auto clicked = item;
+                MenuWindow* root = this; while (root->parentMenu_) root = root->parentMenu_;
+                Menu* rootMenu = root ? root->menu_.get() : nullptr;
+                root->CloseAll();
+                if (rootMenu) rootMenu->ItemSelected.Fire(selId);
+                clicked->Clicked.Fire();
+            }
+            else if (item->type == MenuItem::Type::Submenu) {
+                OpenSubmenu(idx);
+            }
+        }
+
+        static int ShortcutKeyToVk(const std::wstring& t) {
+            if (t.empty()) return 0;
+            if (t.size() == 1) {
+                wchar_t c = t[0];
+                if (c >= L'A' && c <= L'Z') return (int)c;
+                if (c >= L'a' && c <= L'z') return (int)(c - L'a' + L'A');
+                if (c >= L'0' && c <= L'9') return (int)c;
+            }
+            if (t[0] == L'F' || t[0] == L'f') { int n = 0; bool ok = t.size() > 1; for (size_t i = 1; i < t.size(); ++i) { if (t[i] < L'0' || t[i] > L'9') { ok = false; break; } n = n * 10 + (t[i] - L'0'); } if (ok && n >= 1 && n <= 24) return VK_F1 + n - 1; }
+            if (t == L"Enter" || t == L"Return") return VK_RETURN;
+            if (t == L"Esc" || t == L"Escape") return VK_ESCAPE;
+            if (t == L"Space") return VK_SPACE;
+            if (t == L"Tab") return VK_TAB;
+            if (t == L"Del" || t == L"Delete") return VK_DELETE;
+            if (t == L"Ins" || t == L"Insert") return VK_INSERT;
+            if (t == L"Home") return VK_HOME;
+            if (t == L"End") return VK_END;
+            if (t == L"PgUp" || t == L"PageUp") return VK_PRIOR;
+            if (t == L"PgDn" || t == L"PageDown") return VK_NEXT;
+            if (t == L"Left") return VK_LEFT;
+            if (t == L"Right") return VK_RIGHT;
+            if (t == L"Up") return VK_UP;
+            if (t == L"Down") return VK_DOWN;
+            return 0;
+        }
+        static bool ShortcutMatches(const std::wstring& sc, int vk, bool ctrl, bool alt, bool shift) {
+            bool wc = false, wa = false, ws = false; int wv = 0; size_t start = 0;
+            for (;;) {
+                size_t p = sc.find(L'+', start);
+                std::wstring tok = sc.substr(start, p == std::wstring::npos ? std::wstring::npos : p - start);
+                while (!tok.empty() && tok.front() == L' ') tok.erase(tok.begin());
+                while (!tok.empty() && tok.back() == L' ') tok.pop_back();
+                if (tok == L"Ctrl" || tok == L"Control") wc = true;
+                else if (tok == L"Shift") ws = true;
+                else if (tok == L"Alt") wa = true;
+                else { int k = ShortcutKeyToVk(tok); if (k) wv = k; }
+                if (p == std::wstring::npos) break;
+                start = p + 1;
+            }
+            if (!wv) return false;
+            return wv == vk && wc == ctrl && wa == alt && ws == shift;
+        }
+        int MatchShortcut(int vk) {
+            bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0, alt = (GetKeyState(VK_MENU) & 0x8000) != 0, shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+            for (int i = 0; i < (int)menu_->items.size(); ++i) {
+                auto& it = menu_->items[i];
+                if (it->type != MenuItem::Type::Normal || !it->enabled || it->shortcut.empty()) continue;
+                if (ShortcutMatches(it->shortcut, vk, ctrl, alt, shift)) return i;
+            }
+            return -1;
+        }
+
+        void OnMenuMouseMove(int x, int y) {
+            if (!GetHwnd()) return;
+            int dipX = MulDiv(x, 96, Dpi()) - ShadowDip();
+            int dipY = MulDiv(y, 96, Dpi()) - ShadowDip();
+            int oldHover = hoveredIndex_;
+            hoveredIndex_ = HitTestDip(dipX, dipY);
+            if (hoveredIndex_ != oldHover) {
+                if (submenuPendingIndex_ >= 0) { KillTimer(GetHwnd(), kSubmenuTimerId); submenuPendingIndex_ = -1; }
+                if (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()) {
+                    auto& it = menu_->items[hoveredIndex_];
+                    if (it->type == MenuItem::Type::Submenu && it->submenu) {
+                        submenuPendingIndex_ = hoveredIndex_;
+                        SetTimer(GetHwnd(), kSubmenuTimerId, kSubmenuDelayMs, nullptr);
+                    }
+                }
+                InvalidateRect(GetHwnd(), nullptr, FALSE);
+            }
+            TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE, GetHwnd(), 0 };
+            TrackMouseEvent(&tme);
+        }
+        void OnMenuMouseLeave() {
+            if (!GetHwnd()) return;
+            hoveredIndex_ = -1; pressedIndex_ = -1;
+            InvalidateRect(GetHwnd(), nullptr, FALSE);
+        }
+        void OnMenuMouseDown(int x, int y) {
+            if (!GetHwnd()) return;
+            int dipX = MulDiv(x, 96, Dpi()) - ShadowDip();
+            int dipY = MulDiv(y, 96, Dpi()) - ShadowDip();
+            pressedIndex_ = HitTestDip(dipX, dipY);
+            if (pressedIndex_ >= 0) SetCapture(GetHwnd());
+            InvalidateRect(GetHwnd(), nullptr, FALSE);
+        }
+        void OnMenuMouseUp(int x, int y) {
+            if (!GetHwnd()) return;
+            int dipX = MulDiv(x, 96, Dpi()) - ShadowDip();
+            int dipY = MulDiv(y, 96, Dpi()) - ShadowDip();
+            int idx = HitTestDip(dipX, dipY);
+            int pressed = pressedIndex_;
+            pressedIndex_ = -1;
+            ReleaseCapture();
+            if (idx >= 0 && idx == pressed) { ActivateItem(idx); return; }
+            InvalidateRect(GetHwnd(), nullptr, FALSE);
+        }
+
+        void OpenSubmenu(int index) {
+            if (index < 0 || index >= (int)menu_->items.size()) return;
+            auto& item = menu_->items[index];
+            if (item->type != MenuItem::Type::Submenu || !item->submenu) return;
+            HWND h = GetHwnd();
+            if (!h) return;
+            RECT rc; GetWindowRect(h, &rc);
+            float curY = (float)paddingDip_;
+            for (int i = 0; i < index; ++i) curY += (menu_->items[i]->type == MenuItem::Type::Separator) ? separatorHeightDip_ : itemHeightDip_;
+            int px = rc.right - ShadowPx();
+            int py = rc.top + ShadowPx() + MulDiv((int)curY, Dpi(), 96);
+            if (MenuWindow* c = static_cast<MenuWindow*>(ChildPopup())) {
+                if (c->menu_ == item->submenu) { c->ShowAtPoint(px, py); return; }
+            }
+            auto child = std::make_unique<MenuWindow>(item->submenu, ownerHwnd_, px, py);
+            child->parentMenu_ = this;
+            child->standalone_ = false;
+            SetChildPopup(std::move(child));
+            static_cast<MenuWindow*>(ChildPopup())->ShowAtPoint(px, py);
+        }
+
+        std::shared_ptr<Menu> menu_;
+        HWND ownerHwnd_ = nullptr;
+        MenuWindow* parentMenu_ = nullptr;
+        int windowWidthDip_ = 0, windowHeightDip_ = 0;
+        int itemHeightDip_ = 30, separatorHeightDip_ = 9, paddingDip_ = 6, arrowWidthDip_ = 20, checkWidthDip_ = 0;
+        float cornerRadiusDip_ = 12.0f;
+        int hoveredIndex_ = -1, pressedIndex_ = -1, submenuPendingIndex_ = -1;
+        ID2D1SolidColorBrush* shadowBrush_ = nullptr;
+        ID2D1SolidColorBrush* bgBrush_ = nullptr;
+        ID2D1SolidColorBrush* itemBgBrush_ = nullptr;
+        ID2D1SolidColorBrush* hoverBrush_ = nullptr;
+        ID2D1SolidColorBrush* textBrush_ = nullptr;
+        ID2D1SolidColorBrush* separatorBrush_ = nullptr;
+        IDWriteTextFormat* textFormat_ = nullptr;
+        IDWriteTextFormat* boldFormat_ = nullptr;
+        IDWriteTextFormat* shortcutFormat_ = nullptr;
+        ID2D1StrokeStyle* roundStroke_ = nullptr;
+        static ComPtr<IDWriteFactory> sharedDWriteFactory_;
+
+        friend class MenuWindowBase;
+    };
+
+    inline ComPtr<IDWriteFactory> MenuWindow::sharedDWriteFactory_ = nullptr;
+
+    inline bool detail::ForwardKeyToActiveMenu(int vk) {
+        return g_activeMenu && g_activeMenu->OnMenuKeyDown(vk);
+    }
+
+    // 独立弹出：owner 用进程级隐藏消息窗口（不绑定任何用户窗口），典型用于托盘右键菜单。
+    inline void Menu::ShowAt(int screenX, int screenY) {
+        detail::InitializeUIThread();
+        detail::CloseAllOpenMenus();
+        HWND owner = detail::g_uiDispatcherWindow ? detail::g_uiDispatcherWindow : GetDesktopWindow();
+        auto& holder = MenuWindow::StandaloneHolder();
+        holder = std::make_shared<MenuWindow>(shared_from_this(), owner, screenX, screenY);
+        holder->SetStandalone(true);
+        holder->ShowAtPoint(screenX, screenY);
+    }
+
+    inline void Menu::ShowAtCursor() {
+        POINT pt{};
+        GetCursorPos(&pt);
+        ShowAt(pt.x, pt.y);
+    }
+
+    // Window::OnContextMenu / CloseActiveMenuWindow（定义在 MenuWindow 之后）
+    inline void Window::OnContextMenu(float x, float y) {
+        if (customFrame_ && y <= customTitleBarHeight_) { ShowSystemMenu(); return; }
+        if (!rootElement_ && !customTitleBar_) return;
+        UIElement* hit = HitTestElement(x, y);
+        if (hit && hit->OnContextMenu(x, y)) return;
+        std::shared_ptr<Menu> menu;
+        if (hit && hit->IsContextMenuEnabled()) menu = hit->BuildContextMenu();
+        if (!menu && windowContextMenu_) menu = windowContextMenu_;
+        if (menu) {
+            POINT pt;
+            pt.x = static_cast<LONG>(MulDiv(static_cast<int>(x), static_cast<int>(dpi_), 96));
+            pt.y = static_cast<LONG>(MulDiv(static_cast<int>(y), static_cast<int>(dpi_), 96));
+            ClientToScreen(hwnd_, &pt);
+            CloseActiveMenuWindow();
+            detail::CloseAllOpenMenus();
+            activeMenuRoot_ = std::make_shared<MenuWindow>(menu, hwnd_, pt.x, pt.y);
+            activeMenuRoot_->ShowAtPoint(pt.x, pt.y);
+        }
+    }
+    inline void Window::CloseActiveMenuWindow() {
+        if (activeMenuRoot_) {
+            activeMenuRoot_->CloseAll();
+            activeMenuRoot_.reset();
+        }
     }
 
     // ---------- 应用（Qt 风格：app.CreateWindow(...) -> app.Run()） ----------
