@@ -82,8 +82,8 @@
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 10
-#define ZufyUI_VERSION_PATCH 2
-#define ZufyUI_VERSION_STRING L"1.10.2"
+#define ZufyUI_VERSION_PATCH 3
+#define ZufyUI_VERSION_STRING L"1.10.3"
 
 #ifndef DWMWA_BORDER_COLOR
 #define DWMWA_BORDER_COLOR 34
@@ -1005,7 +1005,8 @@ class MenuWindowBase;
 
         // ---------- 父子关系 ----------
         void SetParent(UIElement* parent) {
-            if (parent) parent->childrenDirty_ = true;   // 新挂载 → 父的子元素列表缓存失效
+            if (parent_) parent_->childrenDirty_ = true;   // 旧父：我的槽位没了（解绑到 nullptr 时旧父同样要失效）
+            if (parent)  parent->childrenDirty_ = true;    // 新父：多了我
             parent_ = parent;
             // 挂到已属于某窗口的父级时，立即把自己的子树也归属到该窗口；
             // 若父级尚未挂载，则等父级挂载时由 AttachWindowRecursive 统一传播。
@@ -1019,8 +1020,11 @@ class MenuWindowBase;
         //       从根本上避免“元素持有已销毁窗口指针”导致的悬垂崩溃。
         Window* GetWindow() const;
         static int WindowIdOf(Window* w);
-        // 把“所属窗口”沿子树传播；容器需重写以递归自己的子元素
-        virtual void AttachWindowRecursive(Window* w) { windowId_ = WindowIdOf(w); }
+        // 把“所属窗口”沿子树传播：默认递归自己的子元素（重写者请自行递归，或调用基类）
+        virtual void AttachWindowRecursive(Window* w) {
+            windowId_ = WindowIdOf(w);
+            for (auto* c : GetChildren()) if (c) c->AttachWindowRecursive(w);
+        }
         void SetVisible(bool visible) {
             if (visible_ != visible) {
                 visible_ = visible;
@@ -3371,8 +3375,11 @@ class MenuWindowBase;
             if (self) {
                 LRESULT r = self->HandleMessage(message, wParam, lParam);
                 // 自毁保护：HandleMessage 期间 self 可能已被析构（如菜单在嵌套消息循环里被销毁）。
-                // 只用 HWND 值判断（不碰 self），窗口销毁后 IsWindow 返回 false，避免访问已释放的 this/vtable。
-                if (IsWindow(hwnd)) self->OnWindowMessageHandled(message, wParam, lParam, r);
+                // 判据完全不碰 self：窗口已销毁（IsWindow 假），或 GWLP_USERDATA 已不再等于 self
+                //（WM_NCDESTROY 会清空；HWND 号被复用时也会指向新对象）——两种情况都不能再访问 self。
+                if (IsWindow(hwnd) && GetWindowLongPtr(hwnd, GWLP_USERDATA) == reinterpret_cast<LONG_PTR>(self))
+                    self->OnWindowMessageHandled(message, wParam, lParam, r);
+                if (message == WM_NCDESTROY) SetWindowLongPtr(hwnd, GWLP_USERDATA, 0);
                 return r;
             }
             return DefWindowProc(hwnd, message, wParam, lParam);
@@ -5782,6 +5789,17 @@ class MenuWindowBase;
             static_cast<MenuWindow*>(ChildPopup())->ShowAtPoint(px, py);
         }
 
+    public:
+        // 本类的画笔/文本格式是裸指针成员，不挂在 rootElement_ 链上，
+        // 必须在析构里显式 Release，否则每打开一次菜单就泄漏一套 D2D/DWrite 资源。
+        ~MenuWindow() override {
+            auto rel = [](auto*& p) { if (p) { p->Release(); p = nullptr; } };
+            rel(shadowBrush_); rel(bgBrush_); rel(itemBgBrush_); rel(hoverBrush_);
+            rel(textBrush_); rel(separatorBrush_);
+            rel(textFormat_); rel(boldFormat_); rel(shortcutFormat_); rel(roundStroke_);
+        }
+
+    private:
         std::shared_ptr<Menu> menu_;
         HWND ownerHwnd_ = nullptr;
         MenuWindow* parentMenu_ = nullptr;

@@ -181,6 +181,13 @@ win.SetCustomTitleBar(bar);
 - **文本布局缓存返回值从裸指针改为强引用 `ComPtr`**。`GetRawLayout` / `GetDisplayLayout` / `GetStyledLayout` / `GetStyledDisplayLayout` 之前返回缓存内部的**裸借用指针**，而有界 FIFO（上限 400、一次淘汰 1/4）可能在"取到指针"与"使用"之间把条目释放 → 悬垂（大规模表格 + 高频刷新时表现为 `Label::MeasureOverride` → `GetMetrics` 的访问冲突）。现在调用方持有强引用，条目即使被淘汰、对象也不会失效。
 - `FontManager` 的工厂初始化、`formatCache_`、`layoutCache_` / `layoutFifo_` 统一加 `std::mutex` 保护（防御未来可能的跨线程调用）。
 
+**稳定性 / 健壮性修复（v1.10.3）**
+- **`MenuWindow` 资源泄漏**：其画笔 / 文本格式 / 描边样式是裸指针成员（不走 `rootElement_` 链），每次打开菜单都会漏一套 D2D/DWrite 资源；新增 `~MenuWindow()` 显式 `Release()` 全部。
+- **`UIElement::SetParent`**：解绑到 `nullptr` 时旧父的 `childrenDirty_` 不置脏 → 旧父子元素列表缓存不失效；现在旧父、新父都置脏。
+- **`UIElement::AttachWindowRecursive`（基类）**：默认递归 `GetChildren()`，修复普通控件被移动后子树 `windowId_` 不更新的问题（此前只有容器 override 才递归）。
+- **`WndProc` 自毁保护**：判据补充 `GWLP_USERDATA == self`，并在 `WM_NCDESTROY` 清空 `GWLP_USERDATA`，覆盖 HWND 号被复用的情形。
+- **`TableView` / `TreeView` 子元素缓存**：列宽校验从"列宽总和"改为**顺序敏感哈希**，修复交换两列宽度后缓存不失效（单元格文字停在旧位置）。
+
 ### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
 
 **菜单**

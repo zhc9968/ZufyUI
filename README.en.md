@@ -181,6 +181,13 @@ A tour of the widgets (first page of the demo):
 - **Text-layout cache accessors now return a strong `ComPtr` instead of a raw pointer.** `GetRawLayout` / `GetDisplayLayout` / `GetStyledLayout` / `GetStyledDisplayLayout` used to hand back a **raw borrow** into the cache, and the bounded FIFO (cap 400, drops 1/4 at a time) could free that entry between "got the pointer" and "used it" -> dangling (surfaced as an access violation in `Label::MeasureOverride` -> `GetMetrics` under large tables + frequent refresh). The caller now holds a strong reference, so an evicted entry cannot invalidate the object.
 - `FontManager`'s factory init, `formatCache_`, and `layoutCache_` / `layoutFifo_` are now guarded by a `std::mutex` (defends against any future cross-thread call).
 
+**Stability / robustness fixes (v1.10.3)**
+- **`MenuWindow` resource leak**: its brushes / text formats / stroke style are raw-pointer members (they do not live on the `rootElement_` chain), so every menu open leaked a full set of D2D/DWrite resources; added `~MenuWindow()` to `Release()` them all.
+- **`UIElement::SetParent`**: detaching to `nullptr` never marked the old parent's `childrenDirty_`, so its child view cache stayed stale; now both the old and new parent are marked.
+- **`UIElement::AttachWindowRecursive` (base)**: now recurses `GetChildren()` by default, fixing stale subtree `windowId_` when an ordinary control is moved (previously only containers that overrode it recursed).
+- **`WndProc` self-destruct guard**: now also checks `GWLP_USERDATA == self` and clears `GWLP_USERDATA` on `WM_NCDESTROY`, covering HWND-handle reuse.
+- **`TableView` / `TreeView` child cache**: the column check changed from a width *sum* to an **order-sensitive hash**, fixing a stale layout after swapping two column widths (cell text stayed at the old positions).
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**

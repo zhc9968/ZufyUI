@@ -1655,20 +1655,24 @@ namespace ZufyUI {
 
         // Label 化：可见单元格 Label 作为子元素进入 Window 合成流程（就地摆到滚动后的位置）
         const std::vector<UIElement*>& GetChildren() const override {
-            // 命中缓存必须覆盖“所有影响单元格布局的几何”：滚动量、列宽和、行高总和、行列数、控件矩形。
-            // SetColumnHidden/SetColumnWidth 等不一定会触发 ArrangeOverride，只比滚动量会在改列后留下旧布局。
-            float sumW = 0.0f;
-            for (int c = 0; c < colCount_; ++c) sumW += GetEffectiveColumnWidth(c);
+            // 命中缓存必须覆盖“所有影响单元格布局的几何”：滚动量、列宽（**顺序敏感**）、行高总和、行列数、控件矩形。
+            // 不能只比列宽总和：交换两列宽度时总和不变，但每列的 x 位置全变。
+            unsigned long long colSig = 1469598103934665603ull;
+            for (int c = 0; c < colCount_; ++c) {
+                float w = GetEffectiveColumnWidth(c);
+                unsigned bits = 0; std::memcpy(&bits, &w, sizeof(bits));
+                colSig = (colSig ^ (unsigned long long)bits) * 1099511628211ull;
+            }
             float totalH = TotalRowsHeight();
             float sx = Snap(scrollOffsetX_), sy = Snap(scrollOffsetY_);
             if (!childrenDirty_ &&
-                sx == lastScrollX_ && sy == lastScrollY_ && sumW == lastSumW_ && totalH == lastTotalH_ &&
+                sx == lastScrollX_ && sy == lastScrollY_ && colSig == lastColSig_ && totalH == lastTotalH_ &&
                 rowCount_ == lastRowCount_ && colCount_ == lastColCount_ &&
                 arrangedRect_.x == lastArrX_ && arrangedRect_.y == lastArrY_ &&
                 arrangedRect_.width == lastArrW_ && arrangedRect_.height == lastArrH_)
                 return childrenView_;
             childrenDirty_ = false;
-            lastScrollX_ = sx; lastScrollY_ = sy; lastSumW_ = sumW; lastTotalH_ = totalH;
+            lastScrollX_ = sx; lastScrollY_ = sy; lastColSig_ = colSig; lastTotalH_ = totalH;
             lastRowCount_ = rowCount_; lastColCount_ = colCount_;
             lastArrX_ = arrangedRect_.x; lastArrY_ = arrangedRect_.y;
             lastArrW_ = arrangedRect_.width; lastArrH_ = arrangedRect_.height;
@@ -1713,7 +1717,8 @@ namespace ZufyUI {
             return D2D1::RectF(arrangedRect_.x - 2.0f, arrangedRect_.y - 2.0f,
                 arrangedRect_.x + arrangedRect_.width + 2.0f, arrangedRect_.y + arrangedRect_.height + 2.0f);
         }
-        mutable float lastScrollX_ = -1e30f, lastScrollY_ = -1e30f, lastSumW_ = -1e30f, lastTotalH_ = -1e30f;
+        mutable float lastScrollX_ = -1e30f, lastScrollY_ = -1e30f, lastTotalH_ = -1e30f;
+        mutable unsigned long long lastColSig_ = 0;
         mutable float lastArrX_ = -1e30f, lastArrY_ = -1e30f, lastArrW_ = -1e30f, lastArrH_ = -1e30f;
         mutable int lastRowCount_ = -1, lastColCount_ = -1;
 
@@ -3328,20 +3333,24 @@ namespace ZufyUI {
 
         // Label 化：可见节点的单元格 Label 作为子元素进入 Window 合成/事件/裁剪流程（就地摆到滚动后的位置）
         const std::vector<UIElement*>& GetChildren() const override {
-            // 命中缓存要覆盖所有影响单元格布局的几何（滚动量/列宽和/行高/缩进/列数/可见节点数/控件矩形）；
-            // SetColumnWidth/SetRowHeight/SetIndent/BuildVisibleList 等不一定触发 ArrangeOverride。
-            float sumW = 0.0f;
-            for (int c = 0; c < columnCount_; ++c) sumW += GetEffectiveColumnWidth(c);
+            // 命中缓存要覆盖所有影响单元格布局的几何（滚动量/列宽**顺序敏感**/行高/缩进/列数/可见节点数/控件矩形）；
+            // 不能只比列宽总和：交换两列宽度时总和不变，但每列的 x 位置全变。
+            unsigned long long colSig = 1469598103934665603ull;
+            for (int c = 0; c < columnCount_; ++c) {
+                float w = GetEffectiveColumnWidth(c);
+                unsigned bits = 0; std::memcpy(&bits, &w, sizeof(bits));
+                colSig = (colSig ^ (unsigned long long)bits) * 1099511628211ull;
+            }
             float sx = Snap(scrollOffsetX_), sy = Snap(scrollOffsetY_);
             if (!childrenDirty_ &&
-                sx == lastScrollX_ && sy == lastScrollY_ && sumW == lastSumW_ &&
+                sx == lastScrollX_ && sy == lastScrollY_ && colSig == lastColSig_ &&
                 rowHeight_ == lastRowHeight_ && columnCount_ == lastColCount_ && indent_ == lastIndent_ &&
                 (int)visibleNodes_.size() == lastVisibleCount_ &&
                 arrangedRect_.x == lastArrX_ && arrangedRect_.y == lastArrY_ &&
                 arrangedRect_.width == lastArrW_ && arrangedRect_.height == lastArrH_)
                 return childrenView_;
             childrenDirty_ = false;
-            lastScrollX_ = sx; lastScrollY_ = sy; lastSumW_ = sumW;
+            lastScrollX_ = sx; lastScrollY_ = sy; lastColSig_ = colSig;
             lastRowHeight_ = rowHeight_; lastColCount_ = columnCount_; lastIndent_ = indent_;
             lastVisibleCount_ = (int)visibleNodes_.size();
             lastArrX_ = arrangedRect_.x; lastArrY_ = arrangedRect_.y;
@@ -3393,7 +3402,8 @@ namespace ZufyUI {
             return D2D1::RectF(arrangedRect_.x - 2.0f, arrangedRect_.y - 2.0f,
                 arrangedRect_.x + arrangedRect_.width + 2.0f, arrangedRect_.y + arrangedRect_.height + 2.0f);
         }
-        mutable float lastScrollX_ = -1e30f, lastScrollY_ = -1e30f, lastSumW_ = -1e30f, lastRowHeight_ = -1e30f, lastIndent_ = -1e30f;
+        mutable float lastScrollX_ = -1e30f, lastScrollY_ = -1e30f, lastRowHeight_ = -1e30f, lastIndent_ = -1e30f;
+        mutable unsigned long long lastColSig_ = 0;
         mutable float lastArrX_ = -1e30f, lastArrY_ = -1e30f, lastArrW_ = -1e30f, lastArrH_ = -1e30f;
         mutable int lastColCount_ = -1, lastVisibleCount_ = -1;
 
