@@ -258,6 +258,7 @@ namespace ZufyUI {
         inline HWND g_uiDispatcherWindow = nullptr;
         inline constexpr UINT WM_UI_TASK = WM_APP + 1;
         inline void CloseAllOpenMenus();   // 定义在文件后部（需要 Window 完整类型）
+        inline MenuWindow* g_activeMenu = nullptr;   // 当前打开的菜单（根）；窗口把键盘转发给它
 
         inline void InitializeUIThread() {
             g_uiThreadId = std::this_thread::get_id();
@@ -2280,6 +2281,7 @@ namespace ZufyUI {
             animating_ = true;
             fade_ = 0.0f;                   // 渐显：透明度 0 → 1
             visible_ = true;
+            if (!parent_) detail::g_activeMenu = this;   // 根菜单登记，供窗口转发键盘
             openedTick_ = GetTickCount();
             prevLButtonDown_ = true;
             RenderLayered();
@@ -2302,6 +2304,7 @@ namespace ZufyUI {
         }
 
         void CloseAll() {
+            if (!parent_ && detail::g_activeMenu == this) detail::g_activeMenu = nullptr;
             if (animating_) {
                 KillTimer(hwnd_, animTimerId_);
                 animating_ = false;
@@ -2324,6 +2327,57 @@ namespace ZufyUI {
         static std::shared_ptr<MenuWindow>& StandaloneHolder() {
             static std::shared_ptr<MenuWindow> s;
             return s;
+        }
+
+        // 键盘转发目标：菜单打开时由窗口把按键转来（导航 / 回车 / Esc / 菜单项快捷键）。
+        // 返回 true 表示已处理（调用方应吞掉该键）。
+        bool OnMenuKeyDown(int vk) {
+            if (!hwnd_ || !menu_) return false;
+            // Esc：关闭整棵菜单树
+            if (vk == VK_ESCAPE) { MenuWindow* r = this; while (r->parent_) r = r->parent_; r->CloseAll(); return true; }
+            // 回车：激活当前悬停项；没有悬停项则触发默认项（isDefault）
+            if (vk == VK_RETURN) {
+                int idx = hoveredIndex_;
+                if (idx < 0)
+                    for (int i = 0; i < (int)menu_->items.size(); ++i)
+                        if (menu_->items[i]->isDefault && menu_->items[i]->enabled) { idx = i; break; }
+                if (idx >= 0 && idx < (int)menu_->items.size()) { ActivateItem(idx); return true; }
+                return true;
+            }
+            // 上/下/Home/End：移动悬停（跳过分隔符与禁用项）
+            if (vk == VK_UP || vk == VK_DOWN || vk == VK_HOME || vk == VK_END) {
+                int n = (int)menu_->items.size();
+                if (n == 0) return true;
+                int i = hoveredIndex_;
+                if (vk == VK_HOME) i = -1;
+                else if (vk == VK_END) i = n;
+                int step = (vk == VK_UP || vk == VK_HOME) ? -1 : 1;
+                for (int k = 0; k < n; ++k) {
+                    i += step;
+                    if (i < 0) i = n - 1;
+                    else if (i >= n) i = 0;
+                    auto& it = menu_->items[i];
+                    if (it->type != MenuItem::Type::Separator && it->enabled) { hoveredIndex_ = i; break; }
+                }
+                if (submenuPendingIndex_ >= 0) { KillTimer(hwnd_, kSubmenuTimerId); submenuPendingIndex_ = -1; }
+                if (childMenu_) { KillTimer(hwnd_, kSubmenuHideTimerId); SetTimer(hwnd_, kSubmenuHideTimerId, kSubmenuHideDelayMs, nullptr); }
+                InvalidateRect(hwnd_, nullptr, FALSE);
+                return true;
+            }
+            // 右：打开悬停项的子菜单；左：关闭本层子菜单
+            if (vk == VK_RIGHT) {
+                if (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()
+                    && menu_->items[hoveredIndex_]->type == MenuItem::Type::Submenu) { OpenSubmenu(hoveredIndex_); return true; }
+                return false;
+            }
+            if (vk == VK_LEFT) {
+                if (childMenu_) { childMenu_->CloseAll(); childMenu_.reset(); return true; }
+                return false;
+            }
+            // 菜单项快捷键（Ctrl/Shift/Alt + 键）
+            int idx = MatchShortcut(vk);
+            if (idx >= 0) { ActivateItem(idx); return true; }
+            return false;
         }
 
     private:
@@ -2910,39 +2964,101 @@ namespace ZufyUI {
             int dipX = MulDiv(x, 96, dpi_) - shadowDip_;
             int dipY = MulDiv(y, 96, dpi_) - shadowDip_;
             int idx = HitTestDip(dipX, dipY);
-            if (idx >= 0 && idx == pressedIndex_) {
-                auto& item = menu_->items[idx];
-                if (item->type == MenuItem::Type::Normal) {
-                    if (!item->enabled) { pressedIndex_ = -1; ReleaseCapture(); InvalidateRect(hwnd_, nullptr, FALSE); return; }
-                    if (item->checkable) {   // 勾选/单选切换
-                        bool ns = !item->checked;
-                        if (item->radio && ns)
-                            for (auto& o : menu_->items) if (o.get() != item.get() && o->radio) o->checked = false;
-                        item->checked = ns;
-                    }
-                    int selId = item->id;
-                    auto clicked = item;                 // 先保活，避免 Fire 里回调销毁菜单
-                    pressedIndex_ = -1;
-                    ReleaseCapture();
-                    // 关整棵树；ItemSelected 回传到“根菜单”，这样应用连根菜单就能收到子菜单的点击
-                    MenuWindow* root = this;
-                    while (root->parent_) root = root->parent_;
-                    Menu* rootMenu = root ? root->menu_.get() : nullptr;
-                    root->CloseAll();
-                    if (rootMenu) rootMenu->ItemSelected.Fire(selId);
-                    clicked->Clicked.Fire();
-                    return;
-                }
-                else if (item->type == MenuItem::Type::Submenu) {
-                    pressedIndex_ = -1;
-                    ReleaseCapture();
-                    OpenSubmenu(idx);
-                    return;
-                }
-            }
+            int pressed = pressedIndex_;
             pressedIndex_ = -1;
             ReleaseCapture();
+            if (idx >= 0 && idx == pressed) {
+                ActivateItem(idx);
+                return;
+            }
             InvalidateRect(hwnd_, nullptr, FALSE);
+        }
+
+        // 激活第 idx 项（鼠标点击与键盘回车/快捷键共用）
+        void ActivateItem(int idx) {
+            if (idx < 0 || idx >= (int)menu_->items.size()) return;
+            auto& item = menu_->items[idx];
+            if (item->type == MenuItem::Type::Normal) {
+                if (!item->enabled) return;
+                if (item->checkable) {   // 勾选/单选切换
+                    bool ns = !item->checked;
+                    if (item->radio && ns)
+                        for (auto& o : menu_->items) if (o.get() != item.get() && o->radio) o->checked = false;
+                    item->checked = ns;
+                }
+                int selId = item->id;
+                auto clicked = item;                 // 先保活，避免 Fire 里回调销毁菜单
+                // 关整棵树；ItemSelected 回传到“根菜单”，这样应用连根菜单就能收到子菜单的点击
+                MenuWindow* root = this;
+                while (root->parent_) root = root->parent_;
+                Menu* rootMenu = root ? root->menu_.get() : nullptr;
+                root->CloseAll();
+                if (rootMenu) rootMenu->ItemSelected.Fire(selId);
+                clicked->Clicked.Fire();
+            }
+            else if (item->type == MenuItem::Type::Submenu) {
+                OpenSubmenu(idx);
+            }
+        }
+
+        // 菜单项快捷键文本 -> VK：支持 "Ctrl+C" / "Shift+F10" / "Alt+Enter" / "F5" / "Delete" 等
+        static int ShortcutKeyToVk(const std::wstring& t) {
+            if (t.empty()) return 0;
+            if (t.size() == 1) {
+                wchar_t c = t[0];
+                if (c >= L'A' && c <= L'Z') return (int)c;
+                if (c >= L'a' && c <= L'z') return (int)(c - L'a' + L'A');
+                if (c >= L'0' && c <= L'9') return (int)c;
+            }
+            if (t[0] == L'F' || t[0] == L'f') {
+                int n = 0; bool ok = t.size() > 1;
+                for (size_t i = 1; i < t.size(); ++i) { if (t[i] < L'0' || t[i] > L'9') { ok = false; break; } n = n * 10 + (t[i] - L'0'); }
+                if (ok && n >= 1 && n <= 24) return VK_F1 + n - 1;
+            }
+            if (t == L"Enter" || t == L"Return") return VK_RETURN;
+            if (t == L"Esc" || t == L"Escape") return VK_ESCAPE;
+            if (t == L"Space") return VK_SPACE;
+            if (t == L"Tab") return VK_TAB;
+            if (t == L"Del" || t == L"Delete") return VK_DELETE;
+            if (t == L"Ins" || t == L"Insert") return VK_INSERT;
+            if (t == L"Home") return VK_HOME;
+            if (t == L"End") return VK_END;
+            if (t == L"PgUp" || t == L"PageUp") return VK_PRIOR;
+            if (t == L"PgDn" || t == L"PageDown") return VK_NEXT;
+            if (t == L"Left") return VK_LEFT;
+            if (t == L"Right") return VK_RIGHT;
+            if (t == L"Up") return VK_UP;
+            if (t == L"Down") return VK_DOWN;
+            return 0;
+        }
+        static bool ShortcutMatches(const std::wstring& sc, int vk, bool ctrl, bool alt, bool shift) {
+            bool wantCtrl = false, wantAlt = false, wantShift = false; int wantVk = 0;
+            size_t start = 0;
+            for (;;) {
+                size_t p = sc.find(L'+', start);
+                std::wstring tok = sc.substr(start, p == std::wstring::npos ? std::wstring::npos : p - start);
+                while (!tok.empty() && tok.front() == L' ') tok.erase(tok.begin());
+                while (!tok.empty() && tok.back() == L' ') tok.pop_back();
+                if (tok == L"Ctrl" || tok == L"Control") wantCtrl = true;
+                else if (tok == L"Shift") wantShift = true;
+                else if (tok == L"Alt") wantAlt = true;
+                else { int k = ShortcutKeyToVk(tok); if (k) wantVk = k; }
+                if (p == std::wstring::npos) break;
+                start = p + 1;
+            }
+            if (!wantVk) return false;
+            return wantVk == vk && wantCtrl == ctrl && wantAlt == alt && wantShift == shift;
+        }
+        int MatchShortcut(int vk) {
+            bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+            bool alt = (GetKeyState(VK_MENU) & 0x8000) != 0;
+            bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+            for (int i = 0; i < (int)menu_->items.size(); ++i) {
+                auto& it = menu_->items[i];
+                if (it->type != MenuItem::Type::Normal || !it->enabled || it->shortcut.empty()) continue;
+                if (ShortcutMatches(it->shortcut, vk, ctrl, alt, shift)) return i;
+            }
+            return -1;
         }
 
         int HitTestDip(int x, int y) {
@@ -4377,12 +4493,14 @@ namespace ZufyUI {
                 return 0;
             case WM_KILLFOCUS:
                 UpdateTimerState();
-                CloseActiveMenuWindow();
+                detail::CloseAllOpenMenus();
                 if (focusedElement_) focusedElement_->OnBlur();
                 ImmAssociateContext(hwnd_, NULL);
                 return 0;
             case WM_KEYDOWN:
                 if (OnWindowKeyDown((int)wParam)) return 0;
+                // 菜单打开时：先把按键转发给菜单（导航 / 回车 / Esc / 菜单项快捷键）
+                if (detail::g_activeMenu && detail::g_activeMenu->OnMenuKeyDown((int)wParam)) return 0;
                 // 键盘弹出右键菜单：菜单键 / Shift+F10
                 if (wParam == VK_APPS || (wParam == VK_F10 && (GetKeyState(VK_SHIFT) & 0x8000))) {
                     UIElement* t = focusedElement_ ? focusedElement_ : currentHovered_;
@@ -4392,7 +4510,7 @@ namespace ZufyUI {
                         return 0;
                     }
                 }
-                if (wParam == VK_TAB) { MoveFocusByTab((GetKeyState(VK_SHIFT) & 0x8000) != 0); return 0; }
+                if (wParam == VK_TAB) { detail::CloseAllOpenMenus(); MoveFocusByTab((GetKeyState(VK_SHIFT) & 0x8000) != 0); return 0; }
                 if (focusedElement_ && focusedElement_->IsEffectivelyEnabled()) focusedElement_->OnKeyDown(wParam, lParam);
                 return 0;
             case WM_KEYUP: if (focusedElement_) focusedElement_->OnKeyUp(wParam, lParam); return 0;
