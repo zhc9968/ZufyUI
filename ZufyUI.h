@@ -51,6 +51,7 @@
 #include <unordered_map>
 #include <deque>
 #include <array>
+#include <cstdio>
 #include "ZufyUIAcrylic.h"   // 手写 DComp 效果类 + 官方亚克力/云母配方（需放在 namespace ZufyUI 之前）
 
 // 调试输出宏：默认关闭，定义 ZufyUI_DEBUG 后启用（不删除调试代码）
@@ -261,6 +262,7 @@ class MenuWindowBase;
         inline void CloseAllOpenMenus();   // 定义在文件后部（需要 Window 完整类型）
         inline MenuWindowBase* g_activeMenu = nullptr;   // 当前打开的菜单（根）；窗口把键盘转发给它
         inline bool ForwardKeyToActiveMenu(int vk);      // 定义在 MenuWindow 之后（需要完整类型）
+        inline bool IsPointInActiveMenuPopup(POINT ptScreen);   // 同上
 
         inline void InitializeUIThread() {
             g_uiThreadId = std::this_thread::get_id();
@@ -3612,10 +3614,15 @@ class MenuWindowBase;
                 OnMouseMove(PixelToDipX(GET_X_LPARAM(lParam)), PixelToDipY(GET_Y_LPARAM(lParam)));
                 return 0;
             case WM_MOUSELEAVE: OnMouseLeave(); return 0;
-            case WM_LBUTTONDOWN:
+            case WM_LBUTTONDOWN: {
+                POINT spt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+                ClientToScreen(hwnd_, &spt);
+                // 点在已打开的菜单（独立菜单 / 右键菜单 / 子菜单）里 → 交给菜单自己处理，主窗口不插手、也不关菜单
+                if (detail::IsPointInActiveMenuPopup(spt)) return 0;
                 if (activeMenuRoot_) { CloseActiveMenuWindow(); }
                 OnMouseDown(PixelToDipX(GET_X_LPARAM(lParam)), PixelToDipY(GET_Y_LPARAM(lParam)));
                 return 0;
+            }
             case WM_LBUTTONUP:
                 OnMouseUp(PixelToDipX(GET_X_LPARAM(lParam)), PixelToDipY(GET_Y_LPARAM(lParam)));
                 return 0;
@@ -5150,6 +5157,14 @@ class MenuWindowBase;
         // 键盘转发（Base 默认不处理；MenuWindow 覆盖）
         virtual bool OnMenuKeyDown(int vk) { (void)vk; return false; }
 
+        // 屏幕点是否在“本弹出层 + 其子弹出层”的窗口矩形内（供主窗口判断“只有点菜单外才关菜单”）
+        bool IsPointInPopupTree(POINT ptScreen) {
+            HWND h = GetHwnd();
+            if (h) { RECT rc; GetWindowRect(h, &rc); if (PtInRect(&rc, ptScreen)) return true; }
+            if (childPopup_ && childPopup_->IsPointInPopupTree(ptScreen)) return true;
+            return false;
+        }
+
     protected:
         // ---- Window 底层配置：弹出层 ----
         DWORD GetCreateStyle()   const override { return WS_POPUP; }
@@ -5184,12 +5199,6 @@ class MenuWindowBase;
         }
         virtual bool OnPopupTimer(int id) { (void)id; return false; }
 
-        bool IsPointInPopupTree(POINT ptScreen) {
-            HWND h = GetHwnd();
-            if (h) { RECT rc; GetWindowRect(h, &rc); if (PtInRect(&rc, ptScreen)) return true; }
-            if (childPopup_ && childPopup_->IsPointInPopupTree(ptScreen)) return true;
-            return false;
-        }
         void StartFade() { animating_ = true; fade_ = 0.0f; HWND h = GetHwnd(); if (h) SetTimer(h, animTimerId_, 10, nullptr); }
         void StopFade() { animating_ = false; HWND h = GetHwnd(); if (h) KillTimer(h, animTimerId_); }
         void SetChildPopup(std::unique_ptr<MenuWindowBase> c) {
@@ -5621,7 +5630,9 @@ class MenuWindowBase;
             int dipX = MulDiv(x, 96, Dpi()) - ShadowDip();
             int dipY = MulDiv(y, 96, Dpi()) - ShadowDip();
             pressedIndex_ = HitTestDip(dipX, dipY);
-            if (pressedIndex_ >= 0) SetCapture(GetHwnd());
+            // 只要落在内容区内就捕获（哪怕没命中小项/点在空白），避免消息漏给主窗口
+            if (dipX >= 0 && dipX < windowWidthDip_ && dipY >= 0 && dipY < windowHeightDip_)
+                SetCapture(GetHwnd());
             InvalidateRect(GetHwnd(), nullptr, FALSE);
         }
         void OnMenuMouseUp(int x, int y) {
@@ -5683,6 +5694,9 @@ class MenuWindowBase;
 
     inline bool detail::ForwardKeyToActiveMenu(int vk) {
         return g_activeMenu && g_activeMenu->OnMenuKeyDown(vk);
+    }
+    inline bool detail::IsPointInActiveMenuPopup(POINT ptScreen) {
+        return g_activeMenu && g_activeMenu->IsPointInPopupTree(ptScreen);
     }
 
     // 独立弹出：owner 用进程级隐藏消息窗口（不绑定任何用户窗口），典型用于托盘右键菜单。
