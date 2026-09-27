@@ -311,7 +311,7 @@ int WINAPI WinMain(...) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-45dff108', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-084d79e0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Application</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateWindow</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span>
@@ -325,7 +325,7 @@ int WINAPI WinMain(...) {
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Application</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-45dff108" style="display: none;">class Application {
+<pre id="code-084d79e0" style="display: none;">class Application {
     std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title);
     std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title, Window* owner); // owned 子窗口
     void AddWindow(const std::shared_ptr&lt;Window&gt;&amp; w);
@@ -341,7 +341,7 @@ int WINAPI WinMain(...) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e169d387', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-390a837f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="nf">WinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">Application</span><span class="w"> </span><span class="n">app</span><span class="p">;</span>
@@ -351,7 +351,7 @@ int WINAPI WinMain(...) {
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span><span class="w">                    </span><span class="c1">// 单一消息循环，所有窗口共用</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-e169d387" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+<pre id="code-390a837f" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     ZufyUI::Application app;
     auto w1 = app.CreateWindow(1000, 700, L"主窗口");
     auto w2 = app.CreateWindow(640, 480, L"工具窗口");
@@ -372,7 +372,7 @@ int WINAPI WinMain(...) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f0081109', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-8eac0040', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">AppInfo</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">displayName</span><span class="p">;</span><span class="w">      </span><span class="c1">// 显示名称（toast / 跳转列表 / 任务栏分组）</span>
@@ -383,7 +383,7 @@ int WINAPI WinMain(...) {
 <span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">                 </span><span class="c1">// 自由函数</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">Application::RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">    </span><span class="c1">// 转发到上面（两者等价）</span>
 </pre></div>
-<pre id="code-f0081109" style="display: none;">struct AppInfo {
+<pre id="code-8eac0040" style="display: none;">struct AppInfo {
     std::wstring displayName;      // 显示名称（toast / 跳转列表 / 任务栏分组）
     std::wstring aumid;            // 唯一 ID；留空=由 displayName 自动派生
     std::shared_ptr&lt;Image&gt; icon;   // 图标（可空）
@@ -396,11 +396,11 @@ bool Application::RegisterApp(const AppInfo&amp; info);    // 转发到上面（
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b45ff1ef', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-bc108bf6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION</span>
 </pre></div>
-<pre id="code-b45ff1ef" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION</pre>
+<pre id="code-bc108bf6" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION</pre>
 </div>
 <p>未定义该宏时：<code>RegisterApp</code> 只设置进程 AUMID（<strong>无副作用</strong>），不写注册表、不落文件。</p>
 <p><strong>授权后库会做什么</strong>：</p>
@@ -414,7 +414,7 @@ bool Application::RegisterApp(const AppInfo&amp; info);    // 转发到上面（
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5aa2b737', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-4d2826fe', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION   </span><span class="c1">// 需在 include 之前</span>
 <span class="p">...</span>
@@ -425,7 +425,7 @@ bool Application::RegisterApp(const AppInfo&amp; info);    // 转发到上面（
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">().</span><span class="n">Run</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-5aa2b737" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION   // 需在 include 之前
+<pre id="code-4d2826fe" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION   // 需在 include 之前
 ...
 int WINAPI WinMain(...) {
     RegisterApp(AppInfo{ L"我的应用", L"ZufyUI.MyApp", myIcon });   // aumid 可留空自动派生

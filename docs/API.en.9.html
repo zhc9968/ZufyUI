@@ -197,7 +197,7 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class="active"><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Appendix</a></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class="active"><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="openable-window-internals-overridable-and-message-interception"><div class="toc-row"><a href="#openable-window-internals-overridable-and-message-interception" data-target="openable-window-internals-overridable-and-message-interception">Openable Window internals (overridable) and message interception</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>```cpp
@@ -341,12 +341,45 @@ class Window {
   - Parameters follow the "**4-layer model**" (Blur / Luminosity / Tint / Noise): `SetBackgroundParams(layer, BackgroundParams)` to set all of them, or `SetBackgroundParams(layer, AcrylicPreset)` for an official preset (`Legacy / Luminosity / Base / Thin`). `AcrylicParams` / `MicaParams` hold the defaults (the latter is a tuned look).
   - If the requested effect cannot be realized on the current system, `BackdropUnsupported` fires and it does **not** substitute another effect.
 - **Rendering (1.8.0)**: Direct2D 1.1 + DXGI flip SwapChain + DirectComposition (`WS_EX_NOREDIRECTIONBITMAP`), per-pixel transparent; a process-wide shared D3D11/D2D device and WinRT `ICompositor`. `Create` **no longer shows the window**; call `Show()` explicitly.
-- **Border / resize / corners**: `SetResizable` controls edge resizing; when snapped, the DWM border/shadow is preserved (`WM_NCCALCSIZE` only insets the snapped edges), and maximizing does not inset. `SetWindowCorner` maps to `DWMWA_WINDOW_CORNER_PREFERENCE`.</pre></div></div>
+- **Border / resize / corners**: `SetResizable` controls edge resizing; when snapped, the DWM border/shadow is preserved (`WM_NCCALCSIZE` only insets the snapped edges), and maximizing does not inset. `SetWindowCorner` maps to `DWMWA_WINDOW_CORNER_PREFERENCE`.
+
+## Openable Window internals (overridable) and message interception
+
+`Window`'s **creation parameters, message handling and drawing** are all overridable by subclasses — this is what lets `MenuWindowBase` reuse the Window rendering path (and lets users build custom windows / popups).
+
+```cpp
+class Window {
+    // -- creation parameters (overridable; default = a normal top-level window)
+    virtual DWORD GetCreateStyle()   const;   // default WS_OVERLAPPEDWINDOW
+    virtual DWORD GetCreateExStyle() const;   // default WS_EX_NOREDIRECTIONBITMAP
+    virtual void  GetCreatePos(int&amp; x, int&amp; y) const;   // default CW_USEDEFAULT
+    virtual bool  WantDwmChrome()    const;   // default true; false = no system frame/shadow/corner/non-client
+    virtual bool  WantBackdrop()     const;   // default true
+
+    // -- message interception (single entry point)
+    // called before the framework's default handling; return true = handled/swallowed, *result is returned
+    virtual bool OnWindowMessage(UINT msg, WPARAM, LPARAM, LRESULT* result);
+    virtual void OnWindowMessageHandled(UINT, WPARAM, LPARAM, LRESULT);  // observe only
+    virtual bool OnWindowClosing();           // WM_CLOSE; return true to cancel
+    virtual bool OnWindowKeyDown(int vk);     // keyboard (before dispatch to the focused element)
+    virtual bool OnWindowTimer(int id);       // WM_TIMER
+
+    // -- self-draw
+    virtual void RenderContent(ID2D1DeviceContext* rt);   // default: draw the element tree; override to draw fully
+    float GetClientWidthDip() const; float GetClientHeightDip() const; float GetDpiScale() const;
+
+    void SetContentOpacity(float opacity);    // whole-window content opacity (0..1), for popup fade
+};
+```
+
+- **Intercept any message** via `OnWindowMessage` (the only entry, before default handling); return true to swallow it. Default returns false → unchanged behavior.
+- **Self-drawn windows / popups**: override `RenderContent(rt)` (you get the shared `ID2D1DeviceContext`); combine with `GetCreateStyle/GetCreateExStyle/WantDwmChrome/WantBackdrop` for borderless / transparent / popup windows.
+- `OnWindowMessageHandled` is observe-only (debugging / chaining).</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 9 · Window</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 9</span><h1>Window</h1><p class="chapter-summary">Creation, backdrop, title bar, and root layout</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-25fa69b5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-72830028', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Backdrop</span><span class="w"> </span><span class="n">DefaultBackdrop</span><span class="p">;</span><span class="w">              </span><span class="c1">// None</span>
@@ -466,7 +499,7 @@ class Window {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ReleaseMouseCapture</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">elem</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-25fa69b5" style="display: none;">class Window {
+<pre id="code-72830028" style="display: none;">class Window {
     static Backdrop DefaultBackdrop;              // None
     static DWORD DefaultBackdropColor;            // 0
     static Color DefaultBackgroundColor;          // transparent
@@ -605,6 +638,64 @@ class Window {
 <li>If the requested effect cannot be realized on the current system, <code>BackdropUnsupported</code> fires and it does <strong>not</strong> substitute another effect.</li>
 <li><strong>Rendering (1.8.0)</strong>: Direct2D 1.1 + DXGI flip SwapChain + DirectComposition (<code>WS_EX_NOREDIRECTIONBITMAP</code>), per-pixel transparent; a process-wide shared D3D11/D2D device and WinRT <code>ICompositor</code>. <code>Create</code> <strong>no longer shows the window</strong>; call <code>Show()</code> explicitly.</li>
 <li><strong>Border / resize / corners</strong>: <code>SetResizable</code> controls edge resizing; when snapped, the DWM border/shadow is preserved (<code>WM_NCCALCSIZE</code> only insets the snapped edges), and maximizing does not inset. <code>SetWindowCorner</code> maps to <code>DWMWA_WINDOW_CORNER_PREFERENCE</code>.</li>
+</ul>
+<h2 id="openable-window-internals-overridable-and-message-interception">Openable Window internals (overridable) and message interception</h2>
+<p><code>Window</code>'s <strong>creation parameters, message handling and drawing</strong> are all overridable by subclasses — this is what lets <code>MenuWindowBase</code> reuse the Window rendering path (and lets users build custom windows / popups).</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-329103bf', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// -- creation parameters (overridable; default = a normal top-level window)</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="nf">GetCreateStyle</span><span class="p">()</span><span class="w">   </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default WS_OVERLAPPEDWINDOW</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="nf">GetCreateExStyle</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default WS_EX_NOREDIRECTIONBITMAP</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w">  </span><span class="nf">GetCreatePos</span><span class="p">(</span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default CW_USEDEFAULT</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w">  </span><span class="nf">WantDwmChrome</span><span class="p">()</span><span class="w">    </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default true; false = no system frame/shadow/corner/non-client</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w">  </span><span class="nf">WantBackdrop</span><span class="p">()</span><span class="w">     </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default true</span>
+
+<span class="w">    </span><span class="c1">// -- message interception (single entry point)</span>
+<span class="w">    </span><span class="c1">// called before the framework's default handling; return true = handled/swallowed, *result is returned</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowMessage</span><span class="p">(</span><span class="n">UINT</span><span class="w"> </span><span class="n">msg</span><span class="p">,</span><span class="w"> </span><span class="n">WPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LRESULT</span><span class="o">*</span><span class="w"> </span><span class="n">result</span><span class="p">);</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">OnWindowMessageHandled</span><span class="p">(</span><span class="n">UINT</span><span class="p">,</span><span class="w"> </span><span class="n">WPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LRESULT</span><span class="p">);</span><span class="w">  </span><span class="c1">// observe only</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowClosing</span><span class="p">();</span><span class="w">           </span><span class="c1">// WM_CLOSE; return true to cancel</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowKeyDown</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vk</span><span class="p">);</span><span class="w">     </span><span class="c1">// keyboard (before dispatch to the focused element)</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">);</span><span class="w">       </span><span class="c1">// WM_TIMER</span>
+
+<span class="w">    </span><span class="c1">// -- self-draw</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">RenderContent</span><span class="p">(</span><span class="n">ID2D1DeviceContext</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">);</span><span class="w">   </span><span class="c1">// default: draw the element tree; override to draw fully</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetClientWidthDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetClientHeightDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetDpiScale</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetContentOpacity</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">opacity</span><span class="p">);</span><span class="w">    </span><span class="c1">// whole-window content opacity (0..1), for popup fade</span>
+<span class="p">};</span>
+</pre></div>
+<pre id="code-329103bf" style="display: none;">class Window {
+    // -- creation parameters (overridable; default = a normal top-level window)
+    virtual DWORD GetCreateStyle()   const;   // default WS_OVERLAPPEDWINDOW
+    virtual DWORD GetCreateExStyle() const;   // default WS_EX_NOREDIRECTIONBITMAP
+    virtual void  GetCreatePos(int&amp; x, int&amp; y) const;   // default CW_USEDEFAULT
+    virtual bool  WantDwmChrome()    const;   // default true; false = no system frame/shadow/corner/non-client
+    virtual bool  WantBackdrop()     const;   // default true
+
+    // -- message interception (single entry point)
+    // called before the framework's default handling; return true = handled/swallowed, *result is returned
+    virtual bool OnWindowMessage(UINT msg, WPARAM, LPARAM, LRESULT* result);
+    virtual void OnWindowMessageHandled(UINT, WPARAM, LPARAM, LRESULT);  // observe only
+    virtual bool OnWindowClosing();           // WM_CLOSE; return true to cancel
+    virtual bool OnWindowKeyDown(int vk);     // keyboard (before dispatch to the focused element)
+    virtual bool OnWindowTimer(int id);       // WM_TIMER
+
+    // -- self-draw
+    virtual void RenderContent(ID2D1DeviceContext* rt);   // default: draw the element tree; override to draw fully
+    float GetClientWidthDip() const; float GetClientHeightDip() const; float GetDpiScale() const;
+
+    void SetContentOpacity(float opacity);    // whole-window content opacity (0..1), for popup fade
+};</pre>
+</div>
+<ul>
+<li><strong>Intercept any message</strong> via <code>OnWindowMessage</code> (the only entry, before default handling); return true to swallow it. Default returns false → unchanged behavior.</li>
+<li><strong>Self-drawn windows / popups</strong>: override <code>RenderContent(rt)</code> (you get the shared <code>ID2D1DeviceContext</code>); combine with <code>GetCreateStyle/GetCreateExStyle/WantDwmChrome/WantBackdrop</code> for borderless / transparent / popup windows.</li>
+<li><code>OnWindowMessageHandled</code> is observe-only (debugging / chaining).</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.en.8.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Menus</span><span class="nav-desc">MenuItem, Menu, MenuWindow</span></a><a class="next" href="API.en.10.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Application and multiple windows</span><span class="nav-desc">Application and multi-window</span></a></nav>
         </main>

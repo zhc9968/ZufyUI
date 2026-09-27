@@ -654,18 +654,39 @@ class Menu : public std::enable_shared_from_this<Menu> {
 - **信号槽**：项可传 `id`，用 `menu->ItemSelected.connect([](int id){...})` 统一收；`菜单项->Clicked` / `AddItem` 的回调仍可用。`onOpening` 在每次弹出前调用，可现场改勾选/启用/文字。
 - **外观**：`MenuItem::bgColor` / `textColor` / `font` 逐项覆盖；`Menu::font` 整体字体；悬停高亮为半透明叠加（自定义底色上仍可见）。支持 `isDefault`（加粗 + 回车触发）、`danger`（红字）、`shortcut`（右侧快捷键提示）、`enabled=false`（禁用）。
 
-## MenuWindow（弹出菜单窗口，框架内部使用）
+## MenuWindowBase / MenuWindow（弹出层；MenuWindowBase 可继承做自定义浮层）
+
+弹出层现在**继承自 `Window`**（走 DComp + 共享设备，不再每次弹菜单新建一套软件渲染设备）。
 
 ```cpp
-class MenuWindow {
-    MenuWindow(std::shared_ptr<Menu> menu, HWND owner, int x, int y);
-    void Show(int x, int y);
+// 弹出层基类：只负责弹出层的系统交互，不含任何“菜单项”概念
+class MenuWindowBase : public Window {
+    bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // 内容尺寸(DIP)；窗口自动加阴影边距
+    void ShowAtPoint(int screenX, int screenY);   // 屏幕坐标弹出（自动按工作区避让，避免出屏）
     void Hide();
-    void CloseAll();
+    void CloseAll();                              // 关闭整棵弹出层树
+    void SetStandalone(bool on);                  // 独立菜单（点外/Esc 自动关闭）
+    MenuWindowBase* ParentPopup() const;
+    MenuWindowBase* ChildPopup() const;
+    bool IsPointInPopupTree(POINT ptScreen);      // 屏幕点是否在本弹出层(含子)窗口内
+
+    // 可重写：
+    virtual void RenderContent(ID2D1DeviceContext* rt) override;  // 自绘内容（默认画元素树）
+    virtual bool OnWindowMessage(UINT, WPARAM, LPARAM, LRESULT*) override; // 消息拦截
+    virtual bool OnMenuKeyDown(int vk) { return false; }          // 键盘（窗口转发而来）
+    virtual bool OnPopupTimer(int id) { return false; }
+};
+
+// 菜单实现：绘制菜单项 + 子菜单（框架内部）
+class MenuWindow : public MenuWindowBase {
+    MenuWindow(std::shared_ptr<Menu> menu, HWND owner, int x, int y);
+    static std::shared_ptr<MenuWindow>& StandaloneHolder();
 };
 ```
 
-- 一般不需要直接使用；右键时由框架自动创建。
+- 一般不需要直接用；右键 / 独立弹出时由框架自动创建。
+- **自定义浮层**（flyout / 自定义面板）：继承 `MenuWindowBase`，重写 `RenderContent(rt)` 自绘即可——复用同一套共享 D3D/D2D 设备与弹出层机制（逐像素透明、不抢焦点、不占任务栏、置顶、点外关闭、屏幕避让）。
+- 弹出层会 `WM_MOUSEACTIVATE → MA_NOACTIVATE`、`WM_NCACTIVATE → FALSE`，**拒绝激活**，因此点击它们不会让主窗口收到伪 `WM_KILLFOCUS`。
 
 ###chapter: 窗口 Window | 创建、背景、标题栏与根布局
 
@@ -811,6 +832,39 @@ class Window {
   - 所请求效果在当前系统无法实现时触发 `BackdropUnsupported` 信号，**不会**用别的效果凑合。
 - **渲染架构（1.8.0）**：Direct2D 1.1 + DXGI flip SwapChain + DirectComposition（`WS_EX_NOREDIRECTIONBITMAP`），支持逐像素透明；进程级共享 D3D11/D2D 设备与 WinRT `ICompositor`。`Create` **不再自动显示窗口**，需应用显式 `Show()`。
 - **边框/调整/圆角**：`SetResizable` 控制拖边缩放；分屏时会保留 DWM 边框/阴影（`WM_NCCALCSIZE` 只内缩被吸附的边），最大化不做内缩。`SetWindowCorner` 映射到 `DWMWA_WINDOW_CORNER_PREFERENCE`。
+
+## 窗口底层开放（可重写）与消息拦截
+
+`Window` 的**创建参数、消息处理、绘制**都可被子类重写——这是 `MenuWindowBase` 能复用 Window 渲染路径（也让用户可自定义窗口/浮层）的基础。
+
+```cpp
+class Window {
+    // ---- 创建参数（可重写；默认=普通顶层窗口）----
+    virtual DWORD GetCreateStyle()   const;   // 默认 WS_OVERLAPPEDWINDOW
+    virtual DWORD GetCreateExStyle() const;   // 默认 WS_EX_NOREDIRECTIONBITMAP
+    virtual void  GetCreatePos(int& x, int& y) const;   // 默认 CW_USEDEFAULT
+    virtual bool  WantDwmChrome()    const;   // 默认 true；false=无系统边框/阴影/圆角/非客户区
+    virtual bool  WantBackdrop()     const;   // 默认 true
+
+    // ---- 消息拦截（万能入口）----
+    // 在框架默认处理之前调用；返回 true = 已处理/拦截，*result 作为返回值
+    virtual bool OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* result);
+    virtual void OnWindowMessageHandled(UINT, WPARAM, LPARAM, LRESULT);  // 旁路观察（不改结果）
+    virtual bool OnWindowClosing();           // WM_CLOSE，返回 true 取消关闭
+    virtual bool OnWindowKeyDown(int vk);     // 键盘（派发给焦点元素前）
+    virtual bool OnWindowTimer(int id);       // WM_TIMER
+
+    // ---- 自绘 ----
+    virtual void RenderContent(ID2D1DeviceContext* rt);   // 默认画元素树；可重写完全自绘
+    float GetClientWidthDip() const; float GetClientHeightDip() const; float GetDpiScale() const;
+
+    void SetContentOpacity(float opacity);    // 整窗内容不透明度(0..1)，弹出层渐显/淡出用
+};
+```
+
+- **拦截任意消息**：`OnWindowMessage` 是唯一入口（在框架默认处理之前）；返回 true 即吞掉该消息。默认返回 false、行为不变。
+- **自绘窗口/浮层**：重写 `RenderContent(rt)`（拿到共享的 `ID2D1DeviceContext`），配合 `GetCreateStyle/GetCreateExStyle/WantDwmChrome/WantBackdrop` 即可做无边框/透明/弹出层。
+- `OnWindowMessageHandled` 只观察、不改结果（调试/联动用）。
 
 ###chapter: 应用与多窗口 | Application 与多窗口
 

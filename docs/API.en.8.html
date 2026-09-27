@@ -197,7 +197,7 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class="active"><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="menuitem"><div class="toc-row"><a href="#menuitem" data-target="menuitem">MenuItem</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menu"><div class="toc-row"><a href="#menu" data-target="menu">Menu</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menuwindow-popup-framework-internal"><div class="toc-row"><a href="#menuwindow-popup-framework-internal" data-target="menuwindow-popup-framework-internal">MenuWindow (popup, framework-internal)</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class="active"><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="menuitem"><div class="toc-row"><a href="#menuitem" data-target="menuitem">MenuItem</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menu"><div class="toc-row"><a href="#menu" data-target="menu">Menu</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menuwindowbase-menuwindow-popup-layer-subclass-menuwindowbase-for-custom-flyouts"><div class="toc-row"><a href="#menuwindowbase-menuwindow-popup-layer-subclass-menuwindowbase-for-custom-flyouts" data-target="menuwindowbase-menuwindow-popup-layer-subclass-menuwindowbase-for-custom-flyouts">MenuWindowBase / MenuWindow (popup layer; subclass MenuWindowBase for custom flyouts)</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## MenuItem
@@ -253,24 +253,45 @@ class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
 - **Signal-slot**: items may carry an `id`; collect them with `menu-&gt;ItemSelected.connect([](int id){...})`. Per-item `Clicked` / `AddItem` callbacks still work. `onOpening` runs before each popup.
 - **Appearance**: `MenuItem::bgColor` / `textColor` / `font` per item; `Menu::font` overall; the hover highlight is a translucent overlay (still visible over a custom background). Supports `isDefault` (bold + Enter), `danger` (red), `shortcut` (right hint), `enabled=false` (disabled).
 
-## MenuWindow (popup, framework-internal)
+## MenuWindowBase / MenuWindow (popup layer; subclass MenuWindowBase for custom flyouts)
+
+The popup layer now **derives from `Window`** (uses DComp + the shared device, instead of creating a fresh software render device per popup).
 
 ```cpp
-class MenuWindow {
-    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
-    void Show(int x, int y);
+// Popup base: only the popup's system interaction; no notion of "menu items"
+class MenuWindowBase : public Window {
+    bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // content size in DIP; shadow margin added
+    void ShowAtPoint(int screenX, int screenY);   // pop up at a screen point (auto-clamped to the work area)
     void Hide();
-    void CloseAll();
+    void CloseAll();                              // close the whole popup tree
+    void SetStandalone(bool on);                  // standalone (closes on outside-click / Esc)
+    MenuWindowBase* ParentPopup() const;
+    MenuWindowBase* ChildPopup() const;
+    bool IsPointInPopupTree(POINT ptScreen);      // is a screen point inside this popup (or its children)?
+
+    // Overridable:
+    virtual void RenderContent(ID2D1DeviceContext* rt) override;  // draw your content (default: element tree)
+    virtual bool OnWindowMessage(UINT, WPARAM, LPARAM, LRESULT*) override; // message interception
+    virtual bool OnMenuKeyDown(int vk) { return false; }          // keyboard (forwarded by the window)
+    virtual bool OnPopupTimer(int id) { return false; }
+};
+
+// The menu implementation: draws items + submenus (framework-internal)
+class MenuWindow : public MenuWindowBase {
+    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
+    static std::shared_ptr&lt;MenuWindow&gt;&amp; StandaloneHolder();
 };
 ```
 
-- Usually not used directly; created automatically on right-click.</pre></div></div>
+- Usually not used directly; created automatically for right-click / standalone popups.
+- **Custom flyouts / panels**: subclass `MenuWindowBase` and override `RenderContent(rt)` — you reuse the shared D3D/D2D device and the whole popup mechanism (per-pixel transparency, no focus steal, no taskbar button, topmost, outside-click close, screen-edge avoidance).
+- Popups return `WM_MOUSEACTIVATE → MA_NOACTIVATE` and `WM_NCACTIVATE → FALSE` (**refuse activation**), so clicking them never makes the owner window receive a spurious `WM_KILLFOCUS`.</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 8 · Menus</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 8</span><h1>Menus</h1><p class="chapter-summary">MenuItem, Menu, MenuWindow</p></header><h2 id="menuitem">MenuItem</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7f659180', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-6d82c047', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuItem</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
@@ -293,7 +314,7 @@ class MenuWindow {
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span><span class="w">    </span><span class="c1">// per-item font (defaults to Menu::font)</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-7f659180" style="display: none;">class MenuItem {
+<pre id="code-6d82c047" style="display: none;">class MenuItem {
     enum class Type { Normal, Separator, Submenu };
     std::wstring text;
     std::function&lt;void()&gt; callback;
@@ -318,7 +339,7 @@ class MenuWindow {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-48742942', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-44d72a96', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Menu</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">{};</span><span class="w">              </span><span class="c1">// global default menu font</span>
@@ -338,7 +359,7 @@ class MenuWindow {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">                    </span><span class="c1">// pop up at the mouse cursor</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-48742942" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
+<pre id="code-44d72a96" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
     inline static FontSpec DefaultFont{};              // global default menu font
     void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
     void AddCheckItem(const std::wstring&amp; text, bool checked,
@@ -363,28 +384,65 @@ class MenuWindow {
 <li><strong>Signal-slot</strong>: items may carry an <code>id</code>; collect them with <code>menu-&gt;ItemSelected.connect([](int id){...})</code>. Per-item <code>Clicked</code> / <code>AddItem</code> callbacks still work. <code>onOpening</code> runs before each popup.</li>
 <li><strong>Appearance</strong>: <code>MenuItem::bgColor</code> / <code>textColor</code> / <code>font</code> per item; <code>Menu::font</code> overall; the hover highlight is a translucent overlay (still visible over a custom background). Supports <code>isDefault</code> (bold + Enter), <code>danger</code> (red), <code>shortcut</code> (right hint), <code>enabled=false</code> (disabled).</li>
 </ul>
-<h2 id="menuwindow-popup-framework-internal">MenuWindow (popup, framework-internal)</h2>
+<h2 id="menuwindowbase-menuwindow-popup-layer-subclass-menuwindowbase-for-custom-flyouts">MenuWindowBase / MenuWindow (popup layer; subclass MenuWindowBase for custom flyouts)</h2>
+<p>The popup layer now <strong>derives from <code>Window</code></strong> (uses DComp + the shared device, instead of creating a fresh software render device per popup).</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-4846ea41', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-5c828097', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuWindow</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">MenuWindow</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="p">,</span><span class="w"> </span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Show</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<div class="highlight"><pre><span></span><span class="c1">// Popup base: only the popup's system interaction; no notion of "menu items"</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MenuWindowBase</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">CreatePopup</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">widthDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">heightDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w"> </span><span class="c1">// content size in DIP; shadow margin added</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtPoint</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w">   </span><span class="c1">// pop up at a screen point (auto-clamped to the work area)</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Hide</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAll</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAll</span><span class="p">();</span><span class="w">                              </span><span class="c1">// close the whole popup tree</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStandalone</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span><span class="w">                  </span><span class="c1">// standalone (closes on outside-click / Esc)</span>
+<span class="w">    </span><span class="n">MenuWindowBase</span><span class="o">*</span><span class="w"> </span><span class="nf">ParentPopup</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="n">MenuWindowBase</span><span class="o">*</span><span class="w"> </span><span class="nf">ChildPopup</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsPointInPopupTree</span><span class="p">(</span><span class="n">POINT</span><span class="w"> </span><span class="n">ptScreen</span><span class="p">);</span><span class="w">      </span><span class="c1">// is a screen point inside this popup (or its children)?</span>
+
+<span class="w">    </span><span class="c1">// Overridable:</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">RenderContent</span><span class="p">(</span><span class="n">ID2D1DeviceContext</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">  </span><span class="c1">// draw your content (default: element tree)</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowMessage</span><span class="p">(</span><span class="n">UINT</span><span class="p">,</span><span class="w"> </span><span class="n">WPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LRESULT</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w"> </span><span class="c1">// message interception</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnMenuKeyDown</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vk</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">          </span><span class="c1">// keyboard (forwarded by the window)</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnPopupTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="c1">// The menu implementation: draws items + submenus (framework-internal)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MenuWindow</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">MenuWindowBase</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">MenuWindow</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="p">,</span><span class="w"> </span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuWindow</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">StandaloneHolder</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-4846ea41" style="display: none;">class MenuWindow {
-    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
-    void Show(int x, int y);
+<pre id="code-5c828097" style="display: none;">// Popup base: only the popup's system interaction; no notion of "menu items"
+class MenuWindowBase : public Window {
+    bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // content size in DIP; shadow margin added
+    void ShowAtPoint(int screenX, int screenY);   // pop up at a screen point (auto-clamped to the work area)
     void Hide();
-    void CloseAll();
+    void CloseAll();                              // close the whole popup tree
+    void SetStandalone(bool on);                  // standalone (closes on outside-click / Esc)
+    MenuWindowBase* ParentPopup() const;
+    MenuWindowBase* ChildPopup() const;
+    bool IsPointInPopupTree(POINT ptScreen);      // is a screen point inside this popup (or its children)?
+
+    // Overridable:
+    virtual void RenderContent(ID2D1DeviceContext* rt) override;  // draw your content (default: element tree)
+    virtual bool OnWindowMessage(UINT, WPARAM, LPARAM, LRESULT*) override; // message interception
+    virtual bool OnMenuKeyDown(int vk) { return false; }          // keyboard (forwarded by the window)
+    virtual bool OnPopupTimer(int id) { return false; }
+};
+
+// The menu implementation: draws items + submenus (framework-internal)
+class MenuWindow : public MenuWindowBase {
+    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
+    static std::shared_ptr&lt;MenuWindow&gt;&amp; StandaloneHolder();
 };</pre>
 </div>
 <ul>
-<li>Usually not used directly; created automatically on right-click.</li>
+<li>Usually not used directly; created automatically for right-click / standalone popups.</li>
+<li><strong>Custom flyouts / panels</strong>: subclass <code>MenuWindowBase</code> and override <code>RenderContent(rt)</code> — you reuse the shared D3D/D2D device and the whole popup mechanism (per-pixel transparency, no focus steal, no taskbar button, topmost, outside-click close, screen-edge avoidance).</li>
+<li>Popups return <code>WM_MOUSEACTIVATE → MA_NOACTIVATE</code> and <code>WM_NCACTIVATE → FALSE</code> (<strong>refuse activation</strong>), so clicking them never makes the owner window receive a spurious <code>WM_KILLFOCUS</code>.</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.en.7.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Layout</span><span class="nav-desc">Layout, ColumnBox, RowBox, GridLayout, LayoutHost, Card, Page, PageHost</span></a><a class="next" href="API.en.9.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Window</span><span class="nav-desc">Creation, backdrop, title bar, and root layout</span></a></nav>
         </main>

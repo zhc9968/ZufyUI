@@ -645,18 +645,39 @@ class Menu : public std::enable_shared_from_this<Menu> {
 - **Signal-slot**: items may carry an `id`; collect them with `menu->ItemSelected.connect([](int id){...})`. Per-item `Clicked` / `AddItem` callbacks still work. `onOpening` runs before each popup.
 - **Appearance**: `MenuItem::bgColor` / `textColor` / `font` per item; `Menu::font` overall; the hover highlight is a translucent overlay (still visible over a custom background). Supports `isDefault` (bold + Enter), `danger` (red), `shortcut` (right hint), `enabled=false` (disabled).
 
-## MenuWindow (popup, framework-internal)
+## MenuWindowBase / MenuWindow (popup layer; subclass MenuWindowBase for custom flyouts)
+
+The popup layer now **derives from `Window`** (uses DComp + the shared device, instead of creating a fresh software render device per popup).
 
 ```cpp
-class MenuWindow {
-    MenuWindow(std::shared_ptr<Menu> menu, HWND owner, int x, int y);
-    void Show(int x, int y);
+// Popup base: only the popup's system interaction; no notion of "menu items"
+class MenuWindowBase : public Window {
+    bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // content size in DIP; shadow margin added
+    void ShowAtPoint(int screenX, int screenY);   // pop up at a screen point (auto-clamped to the work area)
     void Hide();
-    void CloseAll();
+    void CloseAll();                              // close the whole popup tree
+    void SetStandalone(bool on);                  // standalone (closes on outside-click / Esc)
+    MenuWindowBase* ParentPopup() const;
+    MenuWindowBase* ChildPopup() const;
+    bool IsPointInPopupTree(POINT ptScreen);      // is a screen point inside this popup (or its children)?
+
+    // Overridable:
+    virtual void RenderContent(ID2D1DeviceContext* rt) override;  // draw your content (default: element tree)
+    virtual bool OnWindowMessage(UINT, WPARAM, LPARAM, LRESULT*) override; // message interception
+    virtual bool OnMenuKeyDown(int vk) { return false; }          // keyboard (forwarded by the window)
+    virtual bool OnPopupTimer(int id) { return false; }
+};
+
+// The menu implementation: draws items + submenus (framework-internal)
+class MenuWindow : public MenuWindowBase {
+    MenuWindow(std::shared_ptr<Menu> menu, HWND owner, int x, int y);
+    static std::shared_ptr<MenuWindow>& StandaloneHolder();
 };
 ```
 
-- Usually not used directly; created automatically on right-click.
+- Usually not used directly; created automatically for right-click / standalone popups.
+- **Custom flyouts / panels**: subclass `MenuWindowBase` and override `RenderContent(rt)` — you reuse the shared D3D/D2D device and the whole popup mechanism (per-pixel transparency, no focus steal, no taskbar button, topmost, outside-click close, screen-edge avoidance).
+- Popups return `WM_MOUSEACTIVATE → MA_NOACTIVATE` and `WM_NCACTIVATE → FALSE` (**refuse activation**), so clicking them never makes the owner window receive a spurious `WM_KILLFOCUS`.
 
 ###chapter: Window | Creation, backdrop, title bar, and root layout
 
@@ -802,6 +823,39 @@ class Window {
   - If the requested effect cannot be realized on the current system, `BackdropUnsupported` fires and it does **not** substitute another effect.
 - **Rendering (1.8.0)**: Direct2D 1.1 + DXGI flip SwapChain + DirectComposition (`WS_EX_NOREDIRECTIONBITMAP`), per-pixel transparent; a process-wide shared D3D11/D2D device and WinRT `ICompositor`. `Create` **no longer shows the window**; call `Show()` explicitly.
 - **Border / resize / corners**: `SetResizable` controls edge resizing; when snapped, the DWM border/shadow is preserved (`WM_NCCALCSIZE` only insets the snapped edges), and maximizing does not inset. `SetWindowCorner` maps to `DWMWA_WINDOW_CORNER_PREFERENCE`.
+
+## Openable Window internals (overridable) and message interception
+
+`Window`'s **creation parameters, message handling and drawing** are all overridable by subclasses — this is what lets `MenuWindowBase` reuse the Window rendering path (and lets users build custom windows / popups).
+
+```cpp
+class Window {
+    // -- creation parameters (overridable; default = a normal top-level window)
+    virtual DWORD GetCreateStyle()   const;   // default WS_OVERLAPPEDWINDOW
+    virtual DWORD GetCreateExStyle() const;   // default WS_EX_NOREDIRECTIONBITMAP
+    virtual void  GetCreatePos(int& x, int& y) const;   // default CW_USEDEFAULT
+    virtual bool  WantDwmChrome()    const;   // default true; false = no system frame/shadow/corner/non-client
+    virtual bool  WantBackdrop()     const;   // default true
+
+    // -- message interception (single entry point)
+    // called before the framework's default handling; return true = handled/swallowed, *result is returned
+    virtual bool OnWindowMessage(UINT msg, WPARAM, LPARAM, LRESULT* result);
+    virtual void OnWindowMessageHandled(UINT, WPARAM, LPARAM, LRESULT);  // observe only
+    virtual bool OnWindowClosing();           // WM_CLOSE; return true to cancel
+    virtual bool OnWindowKeyDown(int vk);     // keyboard (before dispatch to the focused element)
+    virtual bool OnWindowTimer(int id);       // WM_TIMER
+
+    // -- self-draw
+    virtual void RenderContent(ID2D1DeviceContext* rt);   // default: draw the element tree; override to draw fully
+    float GetClientWidthDip() const; float GetClientHeightDip() const; float GetDpiScale() const;
+
+    void SetContentOpacity(float opacity);    // whole-window content opacity (0..1), for popup fade
+};
+```
+
+- **Intercept any message** via `OnWindowMessage` (the only entry, before default handling); return true to swallow it. Default returns false → unchanged behavior.
+- **Self-drawn windows / popups**: override `RenderContent(rt)` (you get the shared `ID2D1DeviceContext`); combine with `GetCreateStyle/GetCreateExStyle/WantDwmChrome/WantBackdrop` for borderless / transparent / popup windows.
+- `OnWindowMessageHandled` is observe-only (debugging / chaining).
 
 ###chapter: Application and multiple windows | Application and multi-window
 

@@ -197,7 +197,7 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class="active"><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="menuitem"><div class="toc-row"><a href="#menuitem" data-target="menuitem">MenuItem</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menu"><div class="toc-row"><a href="#menu" data-target="menu">Menu</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menuwindow弹出菜单窗口框架内部使用"><div class="toc-row"><a href="#menuwindow弹出菜单窗口框架内部使用" data-target="menuwindow弹出菜单窗口框架内部使用">MenuWindow（弹出菜单窗口，框架内部使用）</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class="active"><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="menuitem"><div class="toc-row"><a href="#menuitem" data-target="menuitem">MenuItem</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menu"><div class="toc-row"><a href="#menu" data-target="menu">Menu</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menuwindowbase-menuwindow弹出层menuwindowbase-可继承做自定义浮层"><div class="toc-row"><a href="#menuwindowbase-menuwindow弹出层menuwindowbase-可继承做自定义浮层" data-target="menuwindowbase-menuwindow弹出层menuwindowbase-可继承做自定义浮层">MenuWindowBase / MenuWindow（弹出层；MenuWindowBase 可继承做自定义浮层）</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## MenuItem
@@ -253,24 +253,45 @@ class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
 - **信号槽**：项可传 `id`，用 `menu-&gt;ItemSelected.connect([](int id){...})` 统一收；`菜单项-&gt;Clicked` / `AddItem` 的回调仍可用。`onOpening` 在每次弹出前调用，可现场改勾选/启用/文字。
 - **外观**：`MenuItem::bgColor` / `textColor` / `font` 逐项覆盖；`Menu::font` 整体字体；悬停高亮为半透明叠加（自定义底色上仍可见）。支持 `isDefault`（加粗 + 回车触发）、`danger`（红字）、`shortcut`（右侧快捷键提示）、`enabled=false`（禁用）。
 
-## MenuWindow（弹出菜单窗口，框架内部使用）
+## MenuWindowBase / MenuWindow（弹出层；MenuWindowBase 可继承做自定义浮层）
+
+弹出层现在**继承自 `Window`**（走 DComp + 共享设备，不再每次弹菜单新建一套软件渲染设备）。
 
 ```cpp
-class MenuWindow {
-    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
-    void Show(int x, int y);
+// 弹出层基类：只负责弹出层的系统交互，不含任何“菜单项”概念
+class MenuWindowBase : public Window {
+    bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // 内容尺寸(DIP)；窗口自动加阴影边距
+    void ShowAtPoint(int screenX, int screenY);   // 屏幕坐标弹出（自动按工作区避让，避免出屏）
     void Hide();
-    void CloseAll();
+    void CloseAll();                              // 关闭整棵弹出层树
+    void SetStandalone(bool on);                  // 独立菜单（点外/Esc 自动关闭）
+    MenuWindowBase* ParentPopup() const;
+    MenuWindowBase* ChildPopup() const;
+    bool IsPointInPopupTree(POINT ptScreen);      // 屏幕点是否在本弹出层(含子)窗口内
+
+    // 可重写：
+    virtual void RenderContent(ID2D1DeviceContext* rt) override;  // 自绘内容（默认画元素树）
+    virtual bool OnWindowMessage(UINT, WPARAM, LPARAM, LRESULT*) override; // 消息拦截
+    virtual bool OnMenuKeyDown(int vk) { return false; }          // 键盘（窗口转发而来）
+    virtual bool OnPopupTimer(int id) { return false; }
+};
+
+// 菜单实现：绘制菜单项 + 子菜单（框架内部）
+class MenuWindow : public MenuWindowBase {
+    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
+    static std::shared_ptr&lt;MenuWindow&gt;&amp; StandaloneHolder();
 };
 ```
 
-- 一般不需要直接使用；右键时由框架自动创建。</pre></div></div>
+- 一般不需要直接用；右键 / 独立弹出时由框架自动创建。
+- **自定义浮层**（flyout / 自定义面板）：继承 `MenuWindowBase`，重写 `RenderContent(rt)` 自绘即可——复用同一套共享 D3D/D2D 设备与弹出层机制（逐像素透明、不抢焦点、不占任务栏、置顶、点外关闭、屏幕避让）。
+- 弹出层会 `WM_MOUSEACTIVATE → MA_NOACTIVATE`、`WM_NCACTIVATE → FALSE`，**拒绝激活**，因此点击它们不会让主窗口收到伪 `WM_KILLFOCUS`。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 8 章 · 菜单</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 8 章</span><h1>菜单</h1><p class="chapter-summary">MenuItem、Menu 与 MenuWindow</p></header><h2 id="menuitem">MenuItem</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-862b05f9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-9036f240', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuItem</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
@@ -293,7 +314,7 @@ class MenuWindow {
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span><span class="w">    </span><span class="c1">// 该项自定义字体（缺省=Menu::font）</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-862b05f9" style="display: none;">class MenuItem {
+<pre id="code-9036f240" style="display: none;">class MenuItem {
     enum class Type { Normal, Separator, Submenu };
     std::wstring text;
     std::function&lt;void()&gt; callback;
@@ -318,7 +339,7 @@ class MenuWindow {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-317bea06', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-81a4ab7c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Menu</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">{};</span><span class="w">              </span><span class="c1">// 全局默认菜单字体</span>
@@ -338,7 +359,7 @@ class MenuWindow {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">                    </span><span class="c1">// 在鼠标当前位置弹出</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-317bea06" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
+<pre id="code-81a4ab7c" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
     inline static FontSpec DefaultFont{};              // 全局默认菜单字体
     void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
     void AddCheckItem(const std::wstring&amp; text, bool checked,
@@ -363,28 +384,65 @@ class MenuWindow {
 <li><strong>信号槽</strong>：项可传 <code>id</code>，用 <code>menu-&gt;ItemSelected.connect([](int id){...})</code> 统一收；<code>菜单项-&gt;Clicked</code> / <code>AddItem</code> 的回调仍可用。<code>onOpening</code> 在每次弹出前调用，可现场改勾选/启用/文字。</li>
 <li><strong>外观</strong>：<code>MenuItem::bgColor</code> / <code>textColor</code> / <code>font</code> 逐项覆盖；<code>Menu::font</code> 整体字体；悬停高亮为半透明叠加（自定义底色上仍可见）。支持 <code>isDefault</code>（加粗 + 回车触发）、<code>danger</code>（红字）、<code>shortcut</code>（右侧快捷键提示）、<code>enabled=false</code>（禁用）。</li>
 </ul>
-<h2 id="menuwindow弹出菜单窗口框架内部使用">MenuWindow（弹出菜单窗口，框架内部使用）</h2>
+<h2 id="menuwindowbase-menuwindow弹出层menuwindowbase-可继承做自定义浮层">MenuWindowBase / MenuWindow（弹出层；MenuWindowBase 可继承做自定义浮层）</h2>
+<p>弹出层现在<strong>继承自 <code>Window</code></strong>（走 DComp + 共享设备，不再每次弹菜单新建一套软件渲染设备）。</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-92c25822', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-31ff7942', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuWindow</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">MenuWindow</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="p">,</span><span class="w"> </span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Show</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<div class="highlight"><pre><span></span><span class="c1">// 弹出层基类：只负责弹出层的系统交互，不含任何“菜单项”概念</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MenuWindowBase</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">CreatePopup</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">widthDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">heightDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w"> </span><span class="c1">// 内容尺寸(DIP)；窗口自动加阴影边距</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtPoint</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w">   </span><span class="c1">// 屏幕坐标弹出（自动按工作区避让，避免出屏）</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Hide</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAll</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAll</span><span class="p">();</span><span class="w">                              </span><span class="c1">// 关闭整棵弹出层树</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStandalone</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span><span class="w">                  </span><span class="c1">// 独立菜单（点外/Esc 自动关闭）</span>
+<span class="w">    </span><span class="n">MenuWindowBase</span><span class="o">*</span><span class="w"> </span><span class="nf">ParentPopup</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="n">MenuWindowBase</span><span class="o">*</span><span class="w"> </span><span class="nf">ChildPopup</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsPointInPopupTree</span><span class="p">(</span><span class="n">POINT</span><span class="w"> </span><span class="n">ptScreen</span><span class="p">);</span><span class="w">      </span><span class="c1">// 屏幕点是否在本弹出层(含子)窗口内</span>
+
+<span class="w">    </span><span class="c1">// 可重写：</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">RenderContent</span><span class="p">(</span><span class="n">ID2D1DeviceContext</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">  </span><span class="c1">// 自绘内容（默认画元素树）</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowMessage</span><span class="p">(</span><span class="n">UINT</span><span class="p">,</span><span class="w"> </span><span class="n">WPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LRESULT</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w"> </span><span class="c1">// 消息拦截</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnMenuKeyDown</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vk</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">          </span><span class="c1">// 键盘（窗口转发而来）</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnPopupTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="c1">// 菜单实现：绘制菜单项 + 子菜单（框架内部）</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MenuWindow</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">MenuWindowBase</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">MenuWindow</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="p">,</span><span class="w"> </span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuWindow</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">StandaloneHolder</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-92c25822" style="display: none;">class MenuWindow {
-    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
-    void Show(int x, int y);
+<pre id="code-31ff7942" style="display: none;">// 弹出层基类：只负责弹出层的系统交互，不含任何“菜单项”概念
+class MenuWindowBase : public Window {
+    bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // 内容尺寸(DIP)；窗口自动加阴影边距
+    void ShowAtPoint(int screenX, int screenY);   // 屏幕坐标弹出（自动按工作区避让，避免出屏）
     void Hide();
-    void CloseAll();
+    void CloseAll();                              // 关闭整棵弹出层树
+    void SetStandalone(bool on);                  // 独立菜单（点外/Esc 自动关闭）
+    MenuWindowBase* ParentPopup() const;
+    MenuWindowBase* ChildPopup() const;
+    bool IsPointInPopupTree(POINT ptScreen);      // 屏幕点是否在本弹出层(含子)窗口内
+
+    // 可重写：
+    virtual void RenderContent(ID2D1DeviceContext* rt) override;  // 自绘内容（默认画元素树）
+    virtual bool OnWindowMessage(UINT, WPARAM, LPARAM, LRESULT*) override; // 消息拦截
+    virtual bool OnMenuKeyDown(int vk) { return false; }          // 键盘（窗口转发而来）
+    virtual bool OnPopupTimer(int id) { return false; }
+};
+
+// 菜单实现：绘制菜单项 + 子菜单（框架内部）
+class MenuWindow : public MenuWindowBase {
+    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
+    static std::shared_ptr&lt;MenuWindow&gt;&amp; StandaloneHolder();
 };</pre>
 </div>
 <ul>
-<li>一般不需要直接使用；右键时由框架自动创建。</li>
+<li>一般不需要直接用；右键 / 独立弹出时由框架自动创建。</li>
+<li><strong>自定义浮层</strong>（flyout / 自定义面板）：继承 <code>MenuWindowBase</code>，重写 <code>RenderContent(rt)</code> 自绘即可——复用同一套共享 D3D/D2D 设备与弹出层机制（逐像素透明、不抢焦点、不占任务栏、置顶、点外关闭、屏幕避让）。</li>
+<li>弹出层会 <code>WM_MOUSEACTIVATE → MA_NOACTIVATE</code>、<code>WM_NCACTIVATE → FALSE</code>，<strong>拒绝激活</strong>，因此点击它们不会让主窗口收到伪 <code>WM_KILLFOCUS</code>。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.7.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">布局</span><span class="nav-desc">Layout、ColumnBox、RowBox、GridLayout、LayoutHost、Card、Page、PageHost</span></a><a class="next" href="API.9.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">窗口 Window</span><span class="nav-desc">创建、背景、标题栏与根布局</span></a></nav>
         </main>

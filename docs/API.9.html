@@ -197,7 +197,7 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class="active"><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>附录</a></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class="active"><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="窗口底层开放可重写与消息拦截"><div class="toc-row"><a href="#窗口底层开放可重写与消息拦截" data-target="窗口底层开放可重写与消息拦截">窗口底层开放（可重写）与消息拦截</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>```cpp
@@ -341,12 +341,45 @@ class Window {
   - 参数走"**4 层模型**"（Blur / Luminosity / Tint / Noise）：`SetBackgroundParams(背景层, BackgroundParams)` 传整套参数，或 `SetBackgroundParams(背景层, AcrylicPreset)` 传官方预设（`Legacy / Luminosity / Base / Thin`）。`AcrylicParams` / `MicaParams` 是默认值（`MicaParams` 为调好的观感）。
   - 所请求效果在当前系统无法实现时触发 `BackdropUnsupported` 信号，**不会**用别的效果凑合。
 - **渲染架构（1.8.0）**：Direct2D 1.1 + DXGI flip SwapChain + DirectComposition（`WS_EX_NOREDIRECTIONBITMAP`），支持逐像素透明；进程级共享 D3D11/D2D 设备与 WinRT `ICompositor`。`Create` **不再自动显示窗口**，需应用显式 `Show()`。
-- **边框/调整/圆角**：`SetResizable` 控制拖边缩放；分屏时会保留 DWM 边框/阴影（`WM_NCCALCSIZE` 只内缩被吸附的边），最大化不做内缩。`SetWindowCorner` 映射到 `DWMWA_WINDOW_CORNER_PREFERENCE`。</pre></div></div>
+- **边框/调整/圆角**：`SetResizable` 控制拖边缩放；分屏时会保留 DWM 边框/阴影（`WM_NCCALCSIZE` 只内缩被吸附的边），最大化不做内缩。`SetWindowCorner` 映射到 `DWMWA_WINDOW_CORNER_PREFERENCE`。
+
+## 窗口底层开放（可重写）与消息拦截
+
+`Window` 的**创建参数、消息处理、绘制**都可被子类重写——这是 `MenuWindowBase` 能复用 Window 渲染路径（也让用户可自定义窗口/浮层）的基础。
+
+```cpp
+class Window {
+    // ---- 创建参数（可重写；默认=普通顶层窗口）----
+    virtual DWORD GetCreateStyle()   const;   // 默认 WS_OVERLAPPEDWINDOW
+    virtual DWORD GetCreateExStyle() const;   // 默认 WS_EX_NOREDIRECTIONBITMAP
+    virtual void  GetCreatePos(int&amp; x, int&amp; y) const;   // 默认 CW_USEDEFAULT
+    virtual bool  WantDwmChrome()    const;   // 默认 true；false=无系统边框/阴影/圆角/非客户区
+    virtual bool  WantBackdrop()     const;   // 默认 true
+
+    // ---- 消息拦截（万能入口）----
+    // 在框架默认处理之前调用；返回 true = 已处理/拦截，*result 作为返回值
+    virtual bool OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* result);
+    virtual void OnWindowMessageHandled(UINT, WPARAM, LPARAM, LRESULT);  // 旁路观察（不改结果）
+    virtual bool OnWindowClosing();           // WM_CLOSE，返回 true 取消关闭
+    virtual bool OnWindowKeyDown(int vk);     // 键盘（派发给焦点元素前）
+    virtual bool OnWindowTimer(int id);       // WM_TIMER
+
+    // ---- 自绘 ----
+    virtual void RenderContent(ID2D1DeviceContext* rt);   // 默认画元素树；可重写完全自绘
+    float GetClientWidthDip() const; float GetClientHeightDip() const; float GetDpiScale() const;
+
+    void SetContentOpacity(float opacity);    // 整窗内容不透明度(0..1)，弹出层渐显/淡出用
+};
+```
+
+- **拦截任意消息**：`OnWindowMessage` 是唯一入口（在框架默认处理之前）；返回 true 即吞掉该消息。默认返回 false、行为不变。
+- **自绘窗口/浮层**：重写 `RenderContent(rt)`（拿到共享的 `ID2D1DeviceContext`），配合 `GetCreateStyle/GetCreateExStyle/WantDwmChrome/WantBackdrop` 即可做无边框/透明/弹出层。
+- `OnWindowMessageHandled` 只观察、不改结果（调试/联动用）。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 9 章 · 窗口 Window</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 9 章</span><h1>窗口 Window</h1><p class="chapter-summary">创建、背景、标题栏与根布局</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-fcc30779', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-faa6103e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Backdrop</span><span class="w"> </span><span class="n">DefaultBackdrop</span><span class="p">;</span><span class="w">              </span><span class="c1">// None</span>
@@ -466,7 +499,7 @@ class Window {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ReleaseMouseCapture</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">elem</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-fcc30779" style="display: none;">class Window {
+<pre id="code-faa6103e" style="display: none;">class Window {
     static Backdrop DefaultBackdrop;              // None
     static DWORD DefaultBackdropColor;            // 0
     static Color DefaultBackgroundColor;          // 透明
@@ -605,6 +638,64 @@ class Window {
 <li>所请求效果在当前系统无法实现时触发 <code>BackdropUnsupported</code> 信号，<strong>不会</strong>用别的效果凑合。</li>
 <li><strong>渲染架构（1.8.0）</strong>：Direct2D 1.1 + DXGI flip SwapChain + DirectComposition（<code>WS_EX_NOREDIRECTIONBITMAP</code>），支持逐像素透明；进程级共享 D3D11/D2D 设备与 WinRT <code>ICompositor</code>。<code>Create</code> <strong>不再自动显示窗口</strong>，需应用显式 <code>Show()</code>。</li>
 <li><strong>边框/调整/圆角</strong>：<code>SetResizable</code> 控制拖边缩放；分屏时会保留 DWM 边框/阴影（<code>WM_NCCALCSIZE</code> 只内缩被吸附的边），最大化不做内缩。<code>SetWindowCorner</code> 映射到 <code>DWMWA_WINDOW_CORNER_PREFERENCE</code>。</li>
+</ul>
+<h2 id="窗口底层开放可重写与消息拦截">窗口底层开放（可重写）与消息拦截</h2>
+<p><code>Window</code> 的<strong>创建参数、消息处理、绘制</strong>都可被子类重写——这是 <code>MenuWindowBase</code> 能复用 Window 渲染路径（也让用户可自定义窗口/浮层）的基础。</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-50d37c1c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// ---- 创建参数（可重写；默认=普通顶层窗口）----</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="nf">GetCreateStyle</span><span class="p">()</span><span class="w">   </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认 WS_OVERLAPPEDWINDOW</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="nf">GetCreateExStyle</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认 WS_EX_NOREDIRECTIONBITMAP</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w">  </span><span class="nf">GetCreatePos</span><span class="p">(</span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认 CW_USEDEFAULT</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w">  </span><span class="nf">WantDwmChrome</span><span class="p">()</span><span class="w">    </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认 true；false=无系统边框/阴影/圆角/非客户区</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w">  </span><span class="nf">WantBackdrop</span><span class="p">()</span><span class="w">     </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认 true</span>
+
+<span class="w">    </span><span class="c1">// ---- 消息拦截（万能入口）----</span>
+<span class="w">    </span><span class="c1">// 在框架默认处理之前调用；返回 true = 已处理/拦截，*result 作为返回值</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowMessage</span><span class="p">(</span><span class="n">UINT</span><span class="w"> </span><span class="n">msg</span><span class="p">,</span><span class="w"> </span><span class="n">WPARAM</span><span class="w"> </span><span class="n">wParam</span><span class="p">,</span><span class="w"> </span><span class="n">LPARAM</span><span class="w"> </span><span class="n">lParam</span><span class="p">,</span><span class="w"> </span><span class="n">LRESULT</span><span class="o">*</span><span class="w"> </span><span class="n">result</span><span class="p">);</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">OnWindowMessageHandled</span><span class="p">(</span><span class="n">UINT</span><span class="p">,</span><span class="w"> </span><span class="n">WPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LRESULT</span><span class="p">);</span><span class="w">  </span><span class="c1">// 旁路观察（不改结果）</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowClosing</span><span class="p">();</span><span class="w">           </span><span class="c1">// WM_CLOSE，返回 true 取消关闭</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowKeyDown</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vk</span><span class="p">);</span><span class="w">     </span><span class="c1">// 键盘（派发给焦点元素前）</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">);</span><span class="w">       </span><span class="c1">// WM_TIMER</span>
+
+<span class="w">    </span><span class="c1">// ---- 自绘 ----</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">RenderContent</span><span class="p">(</span><span class="n">ID2D1DeviceContext</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">);</span><span class="w">   </span><span class="c1">// 默认画元素树；可重写完全自绘</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetClientWidthDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetClientHeightDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetDpiScale</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetContentOpacity</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">opacity</span><span class="p">);</span><span class="w">    </span><span class="c1">// 整窗内容不透明度(0..1)，弹出层渐显/淡出用</span>
+<span class="p">};</span>
+</pre></div>
+<pre id="code-50d37c1c" style="display: none;">class Window {
+    // ---- 创建参数（可重写；默认=普通顶层窗口）----
+    virtual DWORD GetCreateStyle()   const;   // 默认 WS_OVERLAPPEDWINDOW
+    virtual DWORD GetCreateExStyle() const;   // 默认 WS_EX_NOREDIRECTIONBITMAP
+    virtual void  GetCreatePos(int&amp; x, int&amp; y) const;   // 默认 CW_USEDEFAULT
+    virtual bool  WantDwmChrome()    const;   // 默认 true；false=无系统边框/阴影/圆角/非客户区
+    virtual bool  WantBackdrop()     const;   // 默认 true
+
+    // ---- 消息拦截（万能入口）----
+    // 在框架默认处理之前调用；返回 true = 已处理/拦截，*result 作为返回值
+    virtual bool OnWindowMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* result);
+    virtual void OnWindowMessageHandled(UINT, WPARAM, LPARAM, LRESULT);  // 旁路观察（不改结果）
+    virtual bool OnWindowClosing();           // WM_CLOSE，返回 true 取消关闭
+    virtual bool OnWindowKeyDown(int vk);     // 键盘（派发给焦点元素前）
+    virtual bool OnWindowTimer(int id);       // WM_TIMER
+
+    // ---- 自绘 ----
+    virtual void RenderContent(ID2D1DeviceContext* rt);   // 默认画元素树；可重写完全自绘
+    float GetClientWidthDip() const; float GetClientHeightDip() const; float GetDpiScale() const;
+
+    void SetContentOpacity(float opacity);    // 整窗内容不透明度(0..1)，弹出层渐显/淡出用
+};</pre>
+</div>
+<ul>
+<li><strong>拦截任意消息</strong>：<code>OnWindowMessage</code> 是唯一入口（在框架默认处理之前）；返回 true 即吞掉该消息。默认返回 false、行为不变。</li>
+<li><strong>自绘窗口/浮层</strong>：重写 <code>RenderContent(rt)</code>（拿到共享的 <code>ID2D1DeviceContext</code>），配合 <code>GetCreateStyle/GetCreateExStyle/WantDwmChrome/WantBackdrop</code> 即可做无边框/透明/弹出层。</li>
+<li><code>OnWindowMessageHandled</code> 只观察、不改结果（调试/联动用）。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.8.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">菜单</span><span class="nav-desc">MenuItem、Menu 与 MenuWindow</span></a><a class="next" href="API.10.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">应用与多窗口</span><span class="nav-desc">Application 与多窗口</span></a></nav>
         </main>
