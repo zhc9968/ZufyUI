@@ -530,7 +530,7 @@ class Slider : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e0710be9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-c38511c2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TextHAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="w"> </span><span class="p">};</span>
 
@@ -541,7 +541,7 @@ class Slider : public UIElement {
 <span class="w">    </span><span class="n">IDWriteTextFormat</span><span class="o">*</span><span class="w"> </span><span class="n">textFormat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">forceNoWrap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
 <span class="w">    </span><span class="n">TextHAlign</span><span class="w"> </span><span class="n">align</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TextHAlign</span><span class="o">::</span><span class="n">Left</span><span class="p">);</span>
 </pre></div>
-<pre id="code-e0710be9" style="display: none;">enum class TextHAlign { Left, Center, Right };
+<pre id="code-c38511c2" style="display: none;">enum class TextHAlign { Left, Center, Right };
 
 inline void DrawTextWithEllipsis(ID2D1RenderTarget* rt,
     const std::wstring&amp; text, const D2D1_RECT_F&amp; rect,
@@ -557,7 +557,7 @@ inline void DrawTextWithEllipsis(ID2D1RenderTarget* rt,
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-26d3b799', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-fa1ce95d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TextOverflow</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Wrap</span><span class="p">,</span><span class="w"> </span><span class="n">Ellipsis</span><span class="w"> </span><span class="p">};</span>
 
@@ -597,7 +597,7 @@ inline void DrawTextWithEllipsis(ID2D1RenderTarget* rt,
 <span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">GetChildCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-26d3b799" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
+<pre id="code-fa1ce95d" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
 
 class Label : public UIElement {
     Label(const std::wstring&amp; text = L"Label");
@@ -646,7 +646,7 @@ class Label : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a4d4ca4d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-c45b9441', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Button</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span>
@@ -676,7 +676,7 @@ class Label : public UIElement {
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultSize</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">height</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-a4d4ca4d" style="display: none;">class Button : public UIElement {
+<pre id="code-c45b9441" style="display: none;">class Button : public UIElement {
     ZSignal&lt;&gt; Clicked;
     ZSignal&lt;bool&gt; Toggled;               // only meaningful after SetCheckable(true)
 
@@ -715,7 +715,7 @@ class Label : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b95f3787', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-acb22d04', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TextBox</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span>
@@ -749,7 +749,7 @@ class Label : public UIElement {
 <span class="w">    </span><span class="c1">//         SetHoverBackgroundColor / SetHoverBorderColor / SetCursorBlinkInterval</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-b95f3787" style="display: none;">class TextBox : public UIElement {
+<pre id="code-acb22d04" style="display: none;">class TextBox : public UIElement {
     ZSignal&lt;const std::wstring&amp;&gt; TextChanged;
     ZSignal&lt;&gt; ReturnPressed;
 
@@ -793,7 +793,7 @@ class Label : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e2154be4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-37aa1004', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ComboBox</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span>
@@ -829,7 +829,7 @@ class Label : public UIElement {
 <span class="w">    </span><span class="c1">// styling: SetNormalBgColor / SetHoverBgColor / SetBorderColor / SetIndicatorColor / SetListItemHeight ...</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-e2154be4" style="display: none;">class ComboBox : public UIElement {
+<pre id="code-37aa1004" style="display: none;">class ComboBox : public UIElement {
     ZSignal&lt;int&gt; SelectionChanged;
     ZSignal&lt;&gt; DropDownOpened;
     ZSignal&lt;&gt; DropDownClosed;
@@ -875,7 +875,7 @@ class Label : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d85a1f95', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-1f142e7c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ToggleSwitch</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span>
@@ -888,7 +888,7 @@ class Label : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationSpeed</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">speed</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-d85a1f95" style="display: none;">class ToggleSwitch : public UIElement {
+<pre id="code-1f142e7c" style="display: none;">class ToggleSwitch : public UIElement {
     ZSignal&lt;bool&gt; Toggled;
     ToggleSwitch(bool initialState = false);
     void SetOn(bool on); bool IsOn() const;
@@ -907,7 +907,7 @@ class Label : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-47533fb3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-69443e10', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">State</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Unchecked</span><span class="p">,</span><span class="w"> </span><span class="n">PartiallyChecked</span><span class="p">,</span><span class="w"> </span><span class="n">Checked</span><span class="w"> </span><span class="p">};</span>
 
@@ -933,7 +933,7 @@ class Label : public UIElement {
 <span class="w">                        </span><span class="n">ComPtr</span><span class="o">&lt;</span><span class="n">ID2D1SolidColorBrush</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">brush</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-47533fb3" style="display: none;">enum class State { Unchecked, PartiallyChecked, Checked };
+<pre id="code-69443e10" style="display: none;">enum class State { Unchecked, PartiallyChecked, Checked };
 
 class CheckBox : public UIElement {
     ZSignal&lt;bool&gt; Toggled;
@@ -967,7 +967,7 @@ class CheckBox : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1b878258', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-aff72f5e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ScrollBarVisibility</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Auto</span><span class="p">,</span><span class="w"> </span><span class="n">Always</span><span class="p">,</span><span class="w"> </span><span class="n">Hidden</span><span class="w"> </span><span class="p">};</span>
 
@@ -998,7 +998,7 @@ class CheckBox : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ScrollBy</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">deltaX</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">deltaY</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">animated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-1b878258" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
+<pre id="code-aff72f5e" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
 
 class ScrollViewer : public UIElement {
     ZSignal&lt;float, float&gt; ScrollChanged;     // (offsetX, offsetY)
@@ -1038,7 +1038,7 @@ class ScrollViewer : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a6438835', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-92367aa1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ProgressBar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
@@ -1057,7 +1057,7 @@ class ScrollViewer : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminateBlockWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminateSpeed</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-a6438835" style="display: none;">class ProgressBar : public UIElement {
+<pre id="code-92367aa1" style="display: none;">class ProgressBar : public UIElement {
     ZSignal&lt;float&gt; ValueChanged;
 
     ProgressBar();
@@ -1083,7 +1083,7 @@ class ScrollViewer : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-88c9d997', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-71744d8e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Slider</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
@@ -1099,7 +1099,7 @@ class ScrollViewer : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetThumbSize</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTrackHeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-88c9d997" style="display: none;">class Slider : public UIElement {
+<pre id="code-71744d8e" style="display: none;">class Slider : public UIElement {
     ZSignal&lt;float&gt; ValueChanged;
     ZSignal&lt;&gt; SliderReleased;          // drag ended (or keyboard adjustment ended)
 

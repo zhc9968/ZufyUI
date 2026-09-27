@@ -430,7 +430,7 @@ void SetInputBlocked(bool on);          // block mouse/keyboard input for this w
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e826b772', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-0c614941', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TitleBar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
@@ -477,7 +477,7 @@ void SetInputBlocked(bool on);          // block mouse/keyboard input for this w
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMinimizeVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMaximizeVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCloseVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-e826b772" style="display: none;">class TitleBar : public UIElement {
+<pre id="code-0c614941" style="display: none;">class TitleBar : public UIElement {
     void SetTitle(const std::wstring&amp;);
     const std::wstring&amp; GetTitle() const;
     void SetIcon(std::shared_ptr&lt;Image&gt;);        // reuses the image system
@@ -526,14 +526,14 @@ class DefaultTitleBar : public TitleBar {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-75931c8c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-011c09ff', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">DefaultTitleBar</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetTitle</span><span class="p">(</span><span class="sa">L</span><span class="s">"My Window"</span><span class="p">);</span>
 <span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetIcon</span><span class="p">(</span><span class="n">myImage</span><span class="p">);</span><span class="w">                 </span><span class="c1">// optional</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span><span class="w">            </span><span class="c1">// install; win.SetCustomTitleBar(nullptr) restores the native one</span>
 </pre></div>
-<pre id="code-75931c8c" style="display: none;">auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
+<pre id="code-011c09ff" style="display: none;">auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 bar-&gt;SetTitle(L"My Window");
 bar-&gt;SetIcon(myImage);                 // optional
 win.SetCustomTitleBar(bar);            // install; win.SetCustomTitleBar(nullptr) restores the native one</pre>
@@ -552,7 +552,7 @@ win.SetCustomTitleBar(bar);            // install; win.SetCustomTitleBar(nullptr
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b1de651a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-63d42509', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">FastButton</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="p">{</span><span class="w">   </span><span class="c1">// bit flags, combine with |</span>
 <span class="w">    </span><span class="n">None</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">OK</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Cancel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Apply</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
@@ -586,7 +586,7 @@ win.SetCustomTitleBar(bar);            // install; win.SetCustomTitleBar(nullptr
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">FastButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ButtonClicked</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-b1de651a" style="display: none;">enum class FastButton : unsigned {   // bit flags, combine with |
+<pre id="code-63d42509" style="display: none;">enum class FastButton : unsigned {   // bit flags, combine with |
     None = 0, OK = 1 &lt;&lt; 0, Cancel = 1 &lt;&lt; 1, Apply = 1 &lt;&lt; 2,
     Close = 1 &lt;&lt; 3, Yes = 1 &lt;&lt; 4, No = 1 &lt;&lt; 5, Help = 1 &lt;&lt; 6
 };
@@ -621,13 +621,13 @@ class MessageBox : public Window {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2c829878', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-ccbb0d68', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">MessageBox</span><span class="w"> </span><span class="n">box</span><span class="p">(</span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Title"</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Body"</span><span class="p">,</span><span class="w"> </span><span class="n">MessageBox</span><span class="o">::</span><span class="n">Icon</span><span class="o">::</span><span class="n">Info</span><span class="p">,</span>
 <span class="w">                    </span><span class="n">FastButton</span><span class="o">::</span><span class="n">Yes</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">FastButton</span><span class="o">::</span><span class="n">No</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">FastButton</span><span class="o">::</span><span class="n">Cancel</span><span class="p">);</span>
 <span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">HasFlag</span><span class="p">(</span><span class="n">box</span><span class="p">.</span><span class="n">GetResult</span><span class="p">(),</span><span class="w"> </span><span class="n">FastButton</span><span class="o">::</span><span class="n">Yes</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">}</span>
 </pre></div>
-<pre id="code-2c829878" style="display: none;">ZufyUI::MessageBox box(owner, L"Title", L"Body", MessageBox::Icon::Info,
+<pre id="code-ccbb0d68" style="display: none;">ZufyUI::MessageBox box(owner, L"Title", L"Body", MessageBox::Icon::Info,
                     FastButton::Yes | FastButton::No | FastButton::Cancel);
 if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }</pre>
 </div>
@@ -642,7 +642,7 @@ if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3367edef', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-3c31d18c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// Unified app icon (native big/small + class icons + custom title bar)</span>
@@ -659,7 +659,7 @@ if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }</pre>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">StopFlash</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-3367edef" style="display: none;">class Window {
+<pre id="code-3c31d18c" style="display: none;">class Window {
     // Unified app icon (native big/small + class icons + custom title bar)
     void SetAppIcon(HICON bigIcon, HICON smallIcon);
     void SetAppIcon(std::shared_ptr&lt;Image&gt; big, std::shared_ptr&lt;Image&gt; small = nullptr);  // auto-converts
@@ -684,7 +684,7 @@ if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-fde37432', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-8a876a99', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TrayIcon</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Add</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">icon</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
@@ -714,7 +714,7 @@ if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }</pre>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BalloonClicked</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BalloonDismissed</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BalloonTimeout</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-fde37432" style="display: none;">class TrayIcon {
+<pre id="code-8a876a99" style="display: none;">class TrayIcon {
     bool Add(HICON icon, const std::wstring&amp; tooltip, UINT id = 1);
     bool Add(std::shared_ptr&lt;Image&gt; icon, const std::wstring&amp; tooltip, UINT id = 1);   // auto-converts
     bool AddFromResource(int resId, const std::wstring&amp; tooltip, UINT id = 1);
@@ -753,7 +753,7 @@ if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f5fbeebc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-6681079a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TaskbarProgress</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Indeterminate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Normal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">Paused</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span><span class="w"> </span><span class="p">};</span>
@@ -781,7 +781,7 @@ if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }</pre>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetProcessAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// process-level</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-f5fbeebc" style="display: none;">class Window {
+<pre id="code-6681079a" style="display: none;">class Window {
     enum class TaskbarProgress { None = 0, Indeterminate = 1, Normal = 2, Error = 4, Paused = 8 };
     void SetTaskbarProgress(TaskbarProgress state, ULONGLONG completed = 0, ULONGLONG total = 0);
     void SetTaskbarProgressValue(ULONGLONG completed, ULONGLONG total);
@@ -817,14 +817,14 @@ if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-189c4f05', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-3bb5e657', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowKeyDown</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vk</span><span class="p">);</span><span class="w">   </span><span class="c1">// called before dispatching to the focused element; true = handled</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">);</span><span class="w">     </span><span class="c1">// WM_TIMER</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">OnWindowSize</span><span class="p">();</span><span class="w">            </span><span class="c1">// WM_SIZE (final layout that depends on client width)</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetInputBlocked</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span><span class="w">          </span><span class="c1">// block mouse/keyboard input for this window</span>
 </pre></div>
-<pre id="code-189c4f05" style="display: none;">virtual bool OnWindowKeyDown(int vk);   // called before dispatching to the focused element; true = handled
+<pre id="code-3bb5e657" style="display: none;">virtual bool OnWindowKeyDown(int vk);   // called before dispatching to the focused element; true = handled
 virtual bool OnWindowTimer(int id);     // WM_TIMER
 virtual void OnWindowSize();            // WM_SIZE (final layout that depends on client width)
 void SetInputBlocked(bool on);          // block mouse/keyboard input for this window</pre>
