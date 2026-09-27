@@ -1,0 +1,6 @@
+#include <windows.h>
+#include "resource.h"
+
+// App icon embedded into the exe: it becomes the EXE icon and can also be loaded at runtime via
+// Image::FromResource(IDI_APPICON, RT_GROUP_ICON).
+IDI_APPICON ICON "ZufyUI.ico"

@@ -143,12 +143,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="ZDataViewer.h" />
     <ClInclude Include="ZufyUI.h" />
     <ClInclude Include="ZufyUIAcrylic.h" />
     <ClInclude Include="ZufyUIImages.h" />
     <ClInclude Include="ZufyUIWindowTool.h" />
     <ClInclude Include="ZufyUIWidgets.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ZufyUI.rc" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ZufyUI.cpp" />

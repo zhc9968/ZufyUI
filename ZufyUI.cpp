@@ -1,19 +1,17 @@
 ﻿// main.cpp - ZufyUI 综合自动化布局测试（使用 Connect 自动管理连接）
 #include "pch.h"
+#include "resource.h"
 #include "ZDataViewer.h"
 #include "ZufyUIWindowTool.h"
 
 using namespace ZufyUI;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    // 应用身份自注册（需在包含本库头文件前 #define ZUFYUI_ALLOW_APP_REGISTRATION 授权）：
-    // 统一 AUMID；授权后自动写注册表 + 把图标缓存到本地，进程退出时清缓存。
-    {
-        auto appIcon = Image::FromFile(L"ZufyUI.ico");
-        if (!appIcon || appIcon->IsNull()) appIcon = Image::FromFile(L"..\\..\\ZufyUI.ico");
-        if (!appIcon || appIcon->IsNull()) appIcon = Image::FromFile(L"..\\..\\..\\ZufyUI.ico");
-        RegisterApp(AppInfo{ L"ZufyUI Demo", L"ZufyUI.Demo", appIcon });
-    }
+    // 应用身份（名称 + 图标）统一在开头设置一次：
+    //   图标打进 exe（资源 IDI_APPICON，见 ZufyUI.rc），运行时 Image::FromResource 从资源加载，不依赖外部 .ico 文件。
+    //   RegisterApp 需在包含本库头文件前 #define ZUFYUI_ALLOW_APP_REGISTRATION 授权；授权后自动写注册表 + 缓存图标，退出清缓存。
+    auto appIcon = Image::FromResource(IDI_APPICON, RT_GROUP_ICON);
+    RegisterApp(AppInfo{ L"ZufyUI Demo", L"ZufyUI.Demo", appIcon });
     // 演示程序自己的默认背景：亚克力 + 半透明白色着色。
     // 库的默认是 Backdrop::None（不替应用决定），所以不透明/着色都由应用这里指定。
     Window::SetDefaultBackdrop(Backdrop::Acrylic, 0x80FFFFFF);
@@ -23,6 +21,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         MessageBoxW(nullptr, L"窗口创建失败", L"错误", MB_ICONERROR);
         return 1;
     }
+
+    win.SetAppIcon(appIcon);   // 窗口/任务栏图标也从上面统一的 appIcon 设置
 
     // 主窗口使用自定义标题栏（拖动标题栏移动窗口，右上角三件套与原生一致）
     win.SetWindowCorner(Window::WindowCorner::Round);
@@ -1077,14 +1077,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             if (mbResult) mbResult->SetText(std::wstring(L"通知点击 → 消息框，你点了「") +
                 MessageBox::ButtonLabel(box.GetResult()) + L"」");
             }, ConnectionThread::CurrentThread, nullptr);
-        // 用项目自带的图标（不是系统默认图标）
+        // 应用图标（从 exe 资源加载，不依赖外部文件）
         auto loadAppImage = []() -> std::shared_ptr<Image> {
-            const wchar_t* candidates[] = { L"ZufyUI.ico", L"..\\..\\ZufyUI.ico", L"..\\..\\..\\ZufyUI.ico" };
-            for (auto p : candidates) {
-                auto img = Image::FromFile(p);
-                if (img && !img->IsNull()) return img;
-            }
-            return nullptr;
+            return Image::FromResource(IDI_APPICON, RT_GROUP_ICON);
         };
 
         auto trayBtn = std::make_shared<Button>(L"托盘图标：添加/移除");

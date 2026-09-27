@@ -334,6 +334,15 @@ namespace ZufyUI {
 
     inline std::shared_ptr<Image> Image::FromResource(HMODULE mod, const wchar_t* name, const wchar_t* type) {
         if (!mod) mod = GetModuleHandle(nullptr);
+        // ICON / GROUP_ICON 资源：走 LoadImage(IMAGE_ICON) → HICON → 位图（WIC 不能直接解码“图标组”）
+        if (type == RT_GROUP_ICON ||
+            (type && (_wcsicmp(type, L"ICON") == 0 || _wcsicmp(type, L"GROUP_ICON") == 0))) {
+            HICON ic = (HICON)LoadImageW(mod, name, IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
+            if (!ic) return nullptr;
+            auto img = FromHICON(ic);
+            DestroyIcon(ic);
+            return img;
+        }
         HRSRC res = FindResourceW(mod, name, type);
         if (!res) return nullptr;
         HGLOBAL h = LoadResource(mod, res);
