@@ -369,6 +369,16 @@ win.SetCustomTitleBar(bar);
 - 文档补充「窗口生命周期与语义」（`Show` / `RunModal` / owned / `shared_ptr`）。
 - 版本 **1.9.6 → 1.10.0**。
 
+**内部健壮性 / 性能（v1.10.1）**
+- **进程级 DPI 感知**改到静态初始化阶段（早于 `main`、早于任何窗口）——原先放在 `Window::Create` 里、且忽略返回值，若进程先建过别的窗口就会静默失败、全进程坐标皆错。
+- `Window::Create` 增加 `x` / `y` 位置参数（默认 `CW_USEDEFAULT`；未传时仍可由 `GetCreatePos` 覆盖）。
+- `ListView` 子元素缓存改用**逐字段比较**——原来的浮点 key（`项数×1e6 + 行高×1e5 + …`）字段区间本身就会重叠，上万项时丢精度必撞。
+- `TreeView::TreeNode::parent` 改 `std::weak_ptr`（弱引用断环），勾选沿父链直接 `lock()`，去掉每层一次 `FindNode` 的全树搜索（原 O(n·d)）。
+- 系统噪点贴图缓存 **module 句柄 + 解码后的 WIC 位图**：DPI 变化不再重复 `LoadLibrary` + WIC 解码。
+- `ImageDeviceCache::Get` 把 GPU 上传（`CreateBitmapFromWicBitmap`）移出锁（双检）。
+- `ComboBox` 展开列表改**按需连接**全局 `DrawOverlay`：未展开的 ComboBox 不再每帧空跑。
+- `Label::Draw` / `Label::MeasureOverride` 走 `FontManager` 布局缓存（缓存 key 增加**对齐 / 行距 / 多行**；Ellipsis 的截断结果按**原文本**缓存，命中即跳过整段截断计算）。最高频控件路径，表格里放大收益。
+
 ### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
 
 **菜单**
@@ -666,11 +676,11 @@ win.SetCustomTitleBar(bar);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-38ff9b55', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-92f4f497', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-38ff9b55" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-92f4f497" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> 是一个综合演示程序（左侧导航 + 多个测试页），同时也充当框架的“冒烟测试”。真正要做自己的应用时，只需要包含头文件并写自己的 <code>WinMain</code>。</p>
@@ -679,7 +689,7 @@ win.SetCustomTitleBar(bar);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-0be73925', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-c129b8e7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # 核心：类型 / 信号槽 / 字体 / 元素 / 布局 / 菜单 / 窗口
@@ -692,7 +702,7 @@ win.SetCustomTitleBar(bar);
 └── docs/
     └── API.md         # 完整 API 文档
 </pre></div>
-<pre id="code-0be73925" style="display: none;">ZufyUI/
+<pre id="code-c129b8e7" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # 核心：类型 / 信号槽 / 字体 / 元素 / 布局 / 菜单 / 窗口
 ├── ZufyUIWidgets.h       # 基础控件：Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # 数据视图：ListView / TableView / TreeView
@@ -707,7 +717,7 @@ win.SetCustomTitleBar(bar);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-60f5cc33', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b5076fed', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -743,7 +753,7 @@ win.SetCustomTitleBar(bar);
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-60f5cc33" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-b5076fed" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -791,25 +801,25 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0a7ad841', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-01904414', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// 云母 + 全透明叠加色</span>
 </pre></div>
-<pre id="code-0a7ad841" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 云母 + 全透明叠加色</pre>
+<pre id="code-01904414" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 云母 + 全透明叠加色</pre>
 </div>
 <p><img alt="背景层：手动云母" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>第 3 步：自定义标题栏。</strong> 换个标题栏，窗口立刻不一样：</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2bda73a6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-7dde5e19', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar 在这里</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">DefaultTitleBar</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 </pre></div>
-<pre id="code-2bda73a6" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar 在这里
+<pre id="code-7dde5e19" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar 在这里
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);</pre>
@@ -838,6 +848,15 @@ win.SetCustomTitleBar(bar);</pre>
 - 核对确认：数据变更方法（<code>SetRowCount</code> / <code>SetColumnCount</code> / 增删行列 / <code>SetItem</code> / <code>AddItem</code>…）内部均已自动 <code>InvalidateLayout</code> + <code>RequestRepaint</code>；容器 <code>AddChild</code>/<code>SetParent</code> 自动标脏——<strong>无需手动 <code>MarkChildrenDirty</code></strong>。
 - 文档补充「窗口生命周期与语义」（<code>Show</code> / <code>RunModal</code> / owned / <code>shared_ptr</code>）。
 - 版本 <strong>1.9.6 → 1.10.0</strong>。</p>
+<p><strong>内部健壮性 / 性能（v1.10.1）</strong>
+- <strong>进程级 DPI 感知</strong>改到静态初始化阶段（早于 <code>main</code>、早于任何窗口）——原先放在 <code>Window::Create</code> 里、且忽略返回值，若进程先建过别的窗口就会静默失败、全进程坐标皆错。
+- <code>Window::Create</code> 增加 <code>x</code> / <code>y</code> 位置参数（默认 <code>CW_USEDEFAULT</code>；未传时仍可由 <code>GetCreatePos</code> 覆盖）。
+- <code>ListView</code> 子元素缓存改用<strong>逐字段比较</strong>——原来的浮点 key（<code>项数×1e6 + 行高×1e5 + …</code>）字段区间本身就会重叠，上万项时丢精度必撞。
+- <code>TreeView::TreeNode::parent</code> 改 <code>std::weak_ptr</code>（弱引用断环），勾选沿父链直接 <code>lock()</code>，去掉每层一次 <code>FindNode</code> 的全树搜索（原 O(n·d)）。
+- 系统噪点贴图缓存 <strong>module 句柄 + 解码后的 WIC 位图</strong>：DPI 变化不再重复 <code>LoadLibrary</code> + WIC 解码。
+- <code>ImageDeviceCache::Get</code> 把 GPU 上传（<code>CreateBitmapFromWicBitmap</code>）移出锁（双检）。
+- <code>ComboBox</code> 展开列表改<strong>按需连接</strong>全局 <code>DrawOverlay</code>：未展开的 ComboBox 不再每帧空跑。
+- <code>Label::Draw</code> / <code>Label::MeasureOverride</code> 走 <code>FontManager</code> 布局缓存（缓存 key 增加<strong>对齐 / 行距 / 多行</strong>；Ellipsis 的截断结果按<strong>原文本</strong>缓存，命中即跳过整段截断计算）。最高频控件路径，表格里放大收益。</p>
 <h3 id="2026-09-26-托盘-任务栏-菜单增强-应用身份自注册">2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册</h3>
 <p><strong>菜单</strong>
 - 重做右键菜单为<strong>分层窗口 + 自绘柔阴影 + 圆角 + 渐显</strong>；修复「第二次弹不出」（根因：勾选对勾的 <code>ID2D1StrokeStyle</code> 静态跨工厂复用 → <code>EndDraw</code> 报 <code>D2DERR_WRONG_FACTORY</code>，改为随实例工厂创建/释放）。

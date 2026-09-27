@@ -369,6 +369,16 @@ A tour of the widgets (first page of the demo):
 - Docs: added "Window lifetime and semantics" (`Show` / `RunModal` / owned / `shared_ptr`).
 - Version **1.9.6 -&gt; 1.10.0**.
 
+**Internal robustness / performance (v1.10.1)**
+- **Process DPI awareness** moved to static-initialization time (before `main`, before any window) — it used to live in `Window::Create` with its return value ignored, so if the process created any other window first it would silently fail and every coordinate in the process would be wrong.
+- `Window::Create` gained `x` / `y` position parameters (default `CW_USEDEFAULT`; when omitted it can still be overridden by `GetCreatePos`).
+- `ListView` child cache now uses **field-by-field comparison** — the old float key (`count*1e6 + rowHeight*1e5 + ...`) had overlapping field ranges and lost precision past ~10k items.
+- `TreeView::TreeNode::parent` is now `std::weak_ptr` (weak ref breaks the cycle); checking walks the parent chain with `lock()`, dropping the per-level whole-tree `FindNode` (was O(n·d)).
+- System noise texture now caches the **module handle + decoded WIC bitmap**: a DPI change no longer re-runs `LoadLibrary` + WIC decode.
+- `ImageDeviceCache::Get` moves the GPU upload (`CreateBitmapFromWicBitmap`) out of the lock (double-checked).
+- `ComboBox` dropdown now connects to the global `DrawOverlay` **on demand**: collapsed combo boxes no longer run an empty lambda every frame.
+- `Label::Draw` / `Label::MeasureOverride` go through the `FontManager` layout cache (key now includes **alignment / line spacing / max lines**; the Ellipsis truncation result is cached by **original text**, so a hit skips the whole truncation computation). Highest-frequency widget path — biggest win in tables.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**
@@ -666,11 +676,11 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-02221a25', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-f7e8246f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-02221a25" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-f7e8246f" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own <code>WinMain</code>.</p>
@@ -679,7 +689,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-c064362d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-517ff123', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
@@ -692,7 +702,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 └── docs/
     └── API.en.md      # Full API documentation
 </pre></div>
-<pre id="code-c064362d" style="display: none;">ZufyUI/
+<pre id="code-517ff123" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # Data views: ListView / TableView / TreeView
@@ -707,7 +717,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-8b28f919', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-cae1f570', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -743,7 +753,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-8b28f919" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-cae1f570" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -791,25 +801,25 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ed71bbb7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-7fc732c5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// Mica + fully transparent tint</span>
 </pre></div>
-<pre id="code-ed71bbb7" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
+<pre id="code-7fc732c5" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
 </div>
 <p><img alt="Backdrop: manual Mica" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>Step 3: a custom title bar.</strong></p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0b270b2a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-58041a02', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar lives here</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">DefaultTitleBar</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 </pre></div>
-<pre id="code-0b270b2a" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
+<pre id="code-58041a02" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);</pre>
@@ -838,6 +848,15 @@ win.SetCustomTitleBar(bar);</pre>
 - Audited and confirmed: data-mutating methods (<code>SetRowCount</code> / <code>SetColumnCount</code> / row/column insert/remove / <code>SetItem</code> / <code>AddItem</code>, ...) already auto <code>InvalidateLayout</code> + <code>RequestRepaint</code>; containers' <code>AddChild</code>/<code>SetParent</code> auto-mark dirty — <strong>no manual <code>MarkChildrenDirty</code> needed</strong>.
 - Docs: added "Window lifetime and semantics" (<code>Show</code> / <code>RunModal</code> / owned / <code>shared_ptr</code>).
 - Version <strong>1.9.6 -&gt; 1.10.0</strong>.</p>
+<p><strong>Internal robustness / performance (v1.10.1)</strong>
+- <strong>Process DPI awareness</strong> moved to static-initialization time (before <code>main</code>, before any window) — it used to live in <code>Window::Create</code> with its return value ignored, so if the process created any other window first it would silently fail and every coordinate in the process would be wrong.
+- <code>Window::Create</code> gained <code>x</code> / <code>y</code> position parameters (default <code>CW_USEDEFAULT</code>; when omitted it can still be overridden by <code>GetCreatePos</code>).
+- <code>ListView</code> child cache now uses <strong>field-by-field comparison</strong> — the old float key (<code>count*1e6 + rowHeight*1e5 + ...</code>) had overlapping field ranges and lost precision past ~10k items.
+- <code>TreeView::TreeNode::parent</code> is now <code>std::weak_ptr</code> (weak ref breaks the cycle); checking walks the parent chain with <code>lock()</code>, dropping the per-level whole-tree <code>FindNode</code> (was O(n·d)).
+- System noise texture now caches the <strong>module handle + decoded WIC bitmap</strong>: a DPI change no longer re-runs <code>LoadLibrary</code> + WIC decode.
+- <code>ImageDeviceCache::Get</code> moves the GPU upload (<code>CreateBitmapFromWicBitmap</code>) out of the lock (double-checked).
+- <code>ComboBox</code> dropdown now connects to the global <code>DrawOverlay</code> <strong>on demand</strong>: collapsed combo boxes no longer run an empty lambda every frame.
+- <code>Label::Draw</code> / <code>Label::MeasureOverride</code> go through the <code>FontManager</code> layout cache (key now includes <strong>alignment / line spacing / max lines</strong>; the Ellipsis truncation result is cached by <strong>original text</strong>, so a hit skips the whole truncation computation). Highest-frequency widget path — biggest win in tables.</p>
 <h3 id="2026-09-26-tray-taskbar-menu-enhancements-app-identity-self-registration">2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration</h3>
 <p><strong>Menus</strong>
 - Rebuilt the right-click menu as a <strong>layered window with self-drawn soft shadow, rounded corners, and fade-in</strong>; fixed "menu won't open a second time" (root cause: the checkmark's <code>ID2D1StrokeStyle</code> was a <code>static</code> reused across factories → <code>EndDraw</code> returned <code>D2DERR_WRONG_FACTORY</code>; now created/released per instance).
