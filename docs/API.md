@@ -601,6 +601,51 @@ class PageHost : public UIElement {
 
 ###chapter: 菜单 | MenuItem、Menu 与 MenuWindow
 
+## TabView（页签）
+
+```cpp
+class TabView : public UIElement {
+    ZSignal<int> SelectionChanged;    // 选中页签索引
+    ZSignal<int> TabCloseRequested;   // 点了某页签的 ×（删不删由应用决定）
+
+    int  AddTab(const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
+    void InsertTab(int index, const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
+    void RemoveTab(int index);
+    void ClearTabs();
+    int  GetTabCount() const;
+    void SetTabTitle(int, const std::wstring&); std::wstring GetTabTitle(int) const;
+    void SetTabContent(int, std::shared_ptr<UIElement>); std::shared_ptr<UIElement> GetTabContent(int) const;
+    void SetTabClosable(int, bool);
+
+    void SetSelectedIndex(int); int GetSelectedIndex() const;
+    std::shared_ptr<UIElement> GetSelectedContent() const;
+
+    // ---- 样式 ----
+    void SetTabHeight(float); void SetTabMinWidth(float); void SetTabPadding(float);
+    void SetSelectedTabColor(Color);       // 选中页签浅蓝底（默认 #D6E8FB）
+    void SetIndicatorColor(Color); void SetIndicatorHeight(float);
+    void SetBorder(bool visible, Color = 淡灰, float width = 1.0f); void SetCornerRadius(float);
+    void SetTextColor(Color normal, Color selected);
+    void SetAnimationSpeeds(float indicator, float hover);
+    void SetTabMoveSpeed(float);           // 关闭/增删时页签移动速度
+
+    // 溢出滚动（仅在超出时出现）
+    void SetScrollWheelStep(float); void SetScrollBarThickness(float); void SetShowScrollBar(bool);
+    void SetAutoScrollBarIdleDelay(float);
+
+    // 内容过渡（复用 PageHost）
+    void SetTransitionDirection(PageHost::TransitionDirection);
+    void SetTransitionEasing(PageHost::TransitionEasing);
+    void SetAnimationDuration(float);
+    void SetAutoTransitionDirection(bool); // 切换时按目标在左/右自动选过渡方向
+};
+```
+
+- **内容用内建 `PageHost` 托管**（每个页签一个 `Page`）→ 切换时**复用 PageHost 过渡动画**；`AddTab` 传 `Page` 直接使用，传其它元素自动包一层 `Page`。
+- **键盘**：页签聚焦后 `←/→` 循环、`Home`/`End`、`Delete` 关当前（可关闭时）。
+- **溢出**：超出宽度时才出现 **◀/▶ 按钮**（按能否再往该方向滚显隐）与**底部横向滚动条**（复用 `ScrollBar` 子类）；滚轮**只在页签条上**滚动页签，内容区滚轮交给外层滚动容器。
+- 关闭页签时，后面的页签**平滑移动**过来；选中项指示器随之跟手。
+
 ## MenuItem
 
 ```cpp
@@ -1071,6 +1116,46 @@ class Label : public UIElement {
 - **图标**：`SetImage` 后 Label 在文本左侧绘制图标；`SetIconSize(0,0)` 表示用图像原尺寸。图标可与文字、子控件共存（即使没有文字也会绘制）。
 - **嵌套子控件**：`AddChild` 的子控件与图标、文本**内联横排**，并参与 `GetChildren()` 递归（窗口归属、重绘、布局都按子控件处理）。
 
+## FontIcon（图标系统 · `ZufyUIIcons.h`）
+
+```cpp
+// 图标字体：Win11 = "Segoe Fluent Icons"，Win10 = "Segoe MDL2 Assets"（运行期自动探测回退）
+const std::wstring& IconFontFamily();
+
+enum class Icon : unsigned short {   // 枚举值 = 字体码点本身（不维护平行码点表）
+    None = 0x0000,
+    Add = 0xE710, Remove = 0xE738, Delete = 0xE74D, Edit = 0xE70F, Save = 0xE74E,
+    Open = 0xE8E5, Copy = 0xE8C8, Cut = 0xE8C6, Paste = 0xE77F, Undo = 0xE7A7, Redo = 0xE7A6,
+    Refresh = 0xE72C, Search = 0xE721, Filter = 0xE71C, Settings = 0xE713, More = 0xE712,
+    Close = 0xE8BB, Cancel = 0xE711, Check = 0xE73E, Share = 0xE72D, Download = 0xE896,
+    Upload = 0xE898, Link = 0xE71B, Attach = 0xE723, Send = 0xE724, Pin = 0xE718,
+    Sort = 0xE8CB, Sync = 0xE895,
+    Home = 0xE80F, Back = 0xE72B, Forward = 0xE72A, ChevronDown = 0xE70D, ChevronUp = 0xE70E,
+    ChevronLeft = 0xE76B, ChevronRight = 0xE76C, GlobalNav = 0xE700, AllApps = 0xE71D, Zoom = 0xE71E,
+    Info = 0xE946, Warning = 0xE7BA, Error = 0xE783, Success = 0xE930, Help = 0xE897,
+    Lock = 0xE72E, Unlock = 0xE785, View = 0xE890,
+    Person = 0xE77B, Mail = 0xE715, Phone = 0xE717, Calendar = 0xE787, Clock = 0xE823,
+    Folder = 0xE8B7, File = 0xE7C3, Image = 0xE8B9, Favorite = 0xE734, FavoriteFill = 0xE735,
+    Play = 0xE768, Pause = 0xE769, Stop = 0xE71A, Volume = 0xE767,
+};
+
+std::wstring IconGlyph(Icon);
+
+class FontIcon : public UIElement {
+    FontIcon(Icon icon, float size = 16.0f);
+    FontIcon(Icon icon, float size, Color color);
+    void SetIcon(Icon); Icon GetIcon() const;
+    void SetIconSize(float);          // 字号 = 图标大小
+    void SetColor(Color); Color GetColor() const;
+};
+
+std::shared_ptr<FontIcon> MakeFontIcon(Icon, float size = 16.0f, Color = 黑);
+```
+
+- 用**系统图标字体的字形**当图标；`Icon` 的值就是码点。
+- 字形 layout 走 `FontManager` 全局缓存 → 大量图标不重复建 `IDWriteTextLayout`。
+- 和普通控件一样可放进任意容器；图标 + 文字用 `RowBox` 组合即可。
+
 ## Button
 
 ```cpp
@@ -1266,6 +1351,52 @@ class CheckBox : public UIElement {
 - 键盘 `Space`/`Enter` 切换；禁用时置灰。
 - `DrawBox` 是静态函数，`ListView`/`TableView`/`TreeView` 的行勾选框复用它，因此观感一致。
 
+## RadioButton / RadioGroup
+
+```cpp
+class RadioButton : public UIElement {
+    ZSignal<bool> CheckedChanged;   // 自身勾选态变化
+    ZSignal<> Clicked;
+
+    RadioButton(bool checked = false);
+    RadioButton(const std::wstring& text, bool checked = false);
+
+    void SetChecked(bool); bool IsChecked() const;
+    void SetLabel(const std::wstring&); std::wstring GetLabel() const; void SetLabelColor(Color);
+    void SetSize(float);            // 圆点直径（默认 16）
+    void SetAccentColor(Color);     // 外圈/内点颜色
+    void SetBorderColor(Color);
+    void SetAnimationSpeed(float);
+    // 选中整行高亮（RadioGroup 会自动为子项开启）
+    void SetRowHighlight(bool); void SetRowHighlightColor(Color); void SetAccentBar(bool);
+};
+
+class RadioGroup : public LayoutHost {
+    enum class Orientation { Vertical, Horizontal };  // 纵向 ↑/↓，横向 ←/→
+    ZSignal<int> SelectionChanged;                    // 选中项索引
+    std::function<bool(int newIndex, int oldIndex)> SelectionChanging;  // 返回 false 可否决本次选择
+
+    int  AddItem(const std::wstring& text, bool selected = false);
+    int  AddButton(std::shared_ptr<RadioButton> rb, bool selected = false);
+    std::shared_ptr<RadioButton> GetButton(int index) const;
+    int  GetItemCount() const;
+
+    void SetOrientation(Orientation); Orientation GetOrientation() const;
+    void SetItemSpacing(float);
+    void SetSelectedIndex(int); int GetSelectedIndex() const;
+
+    // 互斥策略（默认组内互斥）
+    void SetMutualExclusion(bool); bool GetMutualExclusion() const;
+};
+```
+
+- **组内互斥由 `RadioGroup` 负责**：显式成组（不靠遍历父容器推断）→ 页面上多个组互不干扰。
+- **组整体键盘导航**：任一子项聚焦时，纵向 `↑/↓`、横向 `←/→`（自动**跳过禁用项**）。
+- 选中项默认画**整行浅蓝底 + 左侧主题色竖条**（`#D6E8FB`）。
+- **需要特殊的互斥/联动关系**时：`SetMutualExclusion(false)` 关掉内置互斥，再用
+  - `SelectionChanging(newIdx, oldIdx)` 返回 `false` **否决**某次选择；
+  - `SelectionChanged(idx)` 信号做联动。
+
 ## ScrollViewer
 
 ```cpp
@@ -1304,6 +1435,27 @@ class ScrollViewer : public UIElement {
 - `ScrollChanged(x,y)` 在偏移变化时触发（含动画过程中）。
 - `SetContentMargin` 给内容加内边距。
 - 内部 `ScrollBar` 类一般无需直接使用。
+
+## ScrollBar（可复用滚动条控件）
+
+```cpp
+class ScrollBar : public UIElement {
+    std::function<void(float value, bool animate)> ValueChanged;  // 用户拖动/点轨道 → (新值, 是否平滑)
+
+    explicit ScrollBar(bool vertical);      // true=纵向, false=横向
+    void SetRange(float value, float maxValue, float viewportSize);  // 宿主每帧推入
+    void SetValue(float); float GetValue() const; bool IsVertical() const;
+
+    void SetBarWidth(float); void SetMinLength(float); void SetHitExtra(float);
+    void SetColors(D2D1_COLOR_F thumb, D2D1_COLOR_F hoverThumb, D2D1_COLOR_F track);
+    void SetIdleDelay(float); void SetAutoShrink(bool); void MarkActive();
+};
+```
+
+- 从 `ScrollViewer` **抽出来的独立可复用控件**（`ScrollViewer`、`TabView` 共用）；不耦合宿主，数值经 `ValueChanged` 回调。
+- **自带** hover 扩张 + **空闲缩小**动画（`SetIdleDelay`，默认 2 秒后缩成细线；鼠标悬停立即恢复并播放悬停动画）。
+- 宿主每帧 `SetRange(value, maxValue, viewport)`；拖动 → `animate=false`（跟手），点轨道 → `animate=true`（平滑）。
+- `ScrollViewer` 对应接口：`SetScrollBarIdleDelay(float)` / `SetScrollBarAutoShrink(bool)` / `SetDefaultScrollBarIdleDelay(float)`。
 
 ## ProgressBar
 

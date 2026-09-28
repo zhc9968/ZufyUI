@@ -90,7 +90,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // ---------- 页面1：基础控件 ----------
     auto page1 = std::make_shared<Page>();
-    auto grid1 = page1->GetLayoutAs<GridLayout>();
+    auto page1Outer = page1->GetLayoutAs<GridLayout>();
+    auto grid1 = std::make_shared<GridLayout>();
+    if (page1Outer) {   // 内容较多：整页纵向滚动
+        auto sv1 = std::make_shared<ScrollViewer>();
+        sv1->SetContentMargin(Thickness(8, 8, 8, 8));
+        sv1->SetContent(grid1);
+        page1Outer->AddChild(sv1, 0, 0);
+    }
     if (grid1) {
         grid1->SetSpacing(10, 10);
 
@@ -190,6 +197,34 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         comboEdit->SetFilterEnabled(true);
         comboEdit->SetPlaceholder(L"输入过滤...");
         grid1->AddChild(comboEdit, 9, 0, 1, 2);
+
+        // 页签（TabView）：故意放很多个，测试溢出时的横向滚动按钮
+        auto tabs = std::make_shared<TabView>();
+        tabs->SetHeight(150.0f);
+        for (int i = 1; i <= 12; ++i) {
+            auto content = std::make_shared<Label>(L"  这里是「页签 " + std::to_wstring(i) + L"」的内容。");
+            tabs->AddTab(L"页签 " + std::to_wstring(i), content, (i % 3 == 0));   // 每 3 个带 ×
+        }
+        tabs->Connect(tabs->TabCloseRequested, [tabs](int idx) { tabs->RemoveTab(idx); });
+        grid1->AddChild(tabs, 10, 0, 1, 2);
+
+        // 单选组（纵向；组内互斥；选中整行浅蓝；↑/↓ 导航）
+        auto radios = std::make_shared<RadioGroup>();
+        radios->AddItem(L"单选 A（默认选中）", true);
+        radios->AddItem(L"单选 B");
+        radios->AddItem(L"单选 C");
+        radios->AddItem(L"单选 D（禁用）");
+        if (auto d = radios->GetButton(3)) d->SetEnabled(false);
+        radios->Connect(radios->SelectionChanged, [](int idx) {});
+        grid1->AddChild(radios, 11, 0, 1, 2);
+
+        // 单选组（横向；←/→ 导航）
+        auto radiosH = std::make_shared<RadioGroup>();
+        radiosH->SetOrientation(RadioGroup::Orientation::Horizontal);
+        radiosH->AddItem(L"甲", true);
+        radiosH->AddItem(L"乙");
+        radiosH->AddItem(L"丙");
+        grid1->AddChild(radiosH, 12, 0, 1, 2);
     }
 
     // ---------- 页面2：输入与滚动 ----------
@@ -868,6 +903,52 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         grid8->AddChild(outer, 2, 0, 1, 4);
 
         grid8->AddChild(std::make_shared<Label>(L"提示：可从文件/资源/DLL/base64 加载，支持缩放、旋转、镜像、裁剪、编码保存。"), 3, 0, 1, 4);
+
+        // ---------- 图标系统：FontIcon ----------
+        // 系统图标字体的字形当图标（Win11 = Segoe Fluent Icons / Win10 = Segoe MDL2 Assets，自动回退）。
+        // Icon 枚举值即字体码点；字号决定图标大小；颜色可设；字形 layout 走 FontManager 全局缓存。
+        const Color kIconText = Color::FromArgb(255, 40, 40, 40);
+        const Color kIconBlue = Color::FromArgb(255, 0, 120, 212);
+        const Color kIconRed = Color::FromArgb(255, 200, 60, 60);
+        const Color kIconGreen = Color::FromArgb(255, 16, 124, 16);
+        const Color kIconAmber = Color::FromArgb(255, 200, 150, 0);
+
+        auto iconRow = std::make_shared<RowBox>();
+        iconRow->SetSpacing(14.0f);
+        iconRow->AddChild(MakeFontIcon(Icon::Home, 16, kIconText));
+        iconRow->AddChild(MakeFontIcon(Icon::Search, 16, kIconBlue));
+        iconRow->AddChild(MakeFontIcon(Icon::Settings, 16, kIconText));
+        iconRow->AddChild(MakeFontIcon(Icon::Favorite, 16, kIconRed));
+        iconRow->AddChild(MakeFontIcon(Icon::Add, 16, kIconGreen));
+        iconRow->AddChild(MakeFontIcon(Icon::Delete, 16, kIconRed));
+        iconRow->AddChild(MakeFontIcon(Icon::Edit, 16, kIconText));
+        iconRow->AddChild(MakeFontIcon(Icon::Copy, 16, kIconText));
+        iconRow->AddChild(MakeFontIcon(Icon::Info, 16, kIconBlue));
+        iconRow->AddChild(MakeFontIcon(Icon::Warning, 16, kIconAmber));
+        iconRow->AddChild(MakeFontIcon(Icon::Error, 16, kIconRed));
+        iconRow->AddChild(MakeFontIcon(Icon::Success, 16, kIconGreen));
+        iconRow->AddChild(MakeFontIcon(Icon::Person, 16, kIconText));
+        iconRow->AddChild(MakeFontIcon(Icon::Folder, 16, kIconAmber));
+        iconRow->AddChild(MakeFontIcon(Icon::Image, 16, kIconBlue));
+        iconRow->AddChild(MakeFontIcon(Icon::ChevronRight, 16, kIconText));
+        grid8->AddChild(iconRow, 4, 0, 1, 4);
+
+        // 同一图标的不同大小（字号 = 图标大小）
+        auto iconSizes = std::make_shared<RowBox>();
+        iconSizes->SetSpacing(18.0f);
+        for (float sz : { 14.0f, 20.0f, 28.0f, 40.0f })
+            iconSizes->AddChild(MakeFontIcon(Icon::Settings, sz, kIconBlue));
+        grid8->AddChild(iconSizes, 5, 0, 1, 4);
+
+        // 图标 + 文字（FontIcon 与普通控件一样，可放进任意容器/与 Label 组合）
+        auto iconWithText = std::make_shared<RowBox>();
+        iconWithText->SetSpacing(6.0f);
+        iconWithText->AddChild(MakeFontIcon(Icon::Folder, 18.0f, kIconAmber));
+        iconWithText->AddChild(std::make_shared<Label>(L"图标 + 文字（RowBox 自由组合）"));
+        grid8->AddChild(iconWithText, 6, 0, 1, 4);
+
+        grid8->AddChild(std::make_shared<Label>(
+            L"图标用系统字体（Win11 Segoe Fluent Icons / Win10 Segoe MDL2 Assets）；Icon 枚举值即码点，字号决定大小。"), 7, 0, 1, 4);
     }
 
     // ---------- 页面9：多窗口（原独立工具窗口的内容） ----------

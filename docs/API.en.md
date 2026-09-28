@@ -592,6 +592,44 @@ class PageHost : public UIElement {
 
 ###chapter: Menus | MenuItem, Menu, MenuWindow
 
+## TabView (tabs)
+
+```cpp
+class TabView : public UIElement {
+    ZSignal<int> SelectionChanged;    // selected tab index
+    ZSignal<int> TabCloseRequested;   // a tab's x was clicked (application decides whether to remove)
+
+    int  AddTab(const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
+    void InsertTab(int index, const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
+    void RemoveTab(int index); void ClearTabs();
+    int  GetTabCount() const;
+    void SetTabTitle(int, const std::wstring&); std::wstring GetTabTitle(int) const;
+    void SetTabContent(int, std::shared_ptr<UIElement>); std::shared_ptr<UIElement> GetTabContent(int) const;
+    void SetTabClosable(int, bool);
+
+    void SetSelectedIndex(int); int GetSelectedIndex() const;
+    std::shared_ptr<UIElement> GetSelectedContent() const;
+
+    void SetTabHeight(float); void SetTabMinWidth(float); void SetTabPadding(float);
+    void SetSelectedTabColor(Color);     // selected tab background (default #D6E8FB)
+    void SetIndicatorColor(Color); void SetIndicatorHeight(float);
+    void SetBorder(bool visible, Color = grey, float width = 1.0f); void SetCornerRadius(float);
+    void SetTextColor(Color normal, Color selected);
+    void SetAnimationSpeeds(float indicator, float hover);
+    void SetTabMoveSpeed(float);
+    void SetScrollWheelStep(float); void SetScrollBarThickness(float); void SetShowScrollBar(bool);
+    void SetTransitionDirection(PageHost::TransitionDirection);
+    void SetTransitionEasing(PageHost::TransitionEasing);
+    void SetAnimationDuration(float);
+    void SetAutoTransitionDirection(bool);
+};
+```
+
+- Content is hosted by an internal **`PageHost`** (one `Page` per tab) → switching **reuses the PageHost transition animation**; pass a `Page` to use directly, any other element is wrapped in a `Page`.
+- **Keyboard**: `Left/Right` cycle, `Home`/`End`, `Delete` closes the current (if closable).
+- **Overflow**: only when too wide — **◀/▶ buttons** (shown per direction) and a **bottom horizontal scrollbar** (reuses `ScrollBar`); the wheel scrolls tabs **only over the tab strip**, content-area wheel goes to the outer scroll container.
+- Closing a tab **slides** the following tabs into place; the indicator follows exactly.
+
 ## MenuItem
 
 ```cpp
@@ -1061,6 +1099,44 @@ class Label : public UIElement {
 - **Icon**: after `SetImage` the Label draws the icon to the left of its text; `SetIconSize(0,0)` uses the image's natural size. An icon can coexist with text and children (it is drawn even with no text).
 - **Nested children**: elements added via `AddChild` are laid out **inline** with the icon and text, and participate in `GetChildren()` recursion (window ownership, repaint, and layout all treat them as child elements).
 
+## FontIcon (icons · `ZufyUIIcons.h`)
+
+```cpp
+const std::wstring& IconFontFamily();   // Win11 "Segoe Fluent Icons" -> Win10 "Segoe MDL2 Assets" (auto-detected)
+
+enum class Icon : unsigned short {      // enum value IS the font codepoint
+    None = 0x0000,
+    Add = 0xE710, Remove = 0xE738, Delete = 0xE74D, Edit = 0xE70F, Save = 0xE74E,
+    Open = 0xE8E5, Copy = 0xE8C8, Cut = 0xE8C6, Paste = 0xE77F, Undo = 0xE7A7, Redo = 0xE7A6,
+    Refresh = 0xE72C, Search = 0xE721, Filter = 0xE71C, Settings = 0xE713, More = 0xE712,
+    Close = 0xE8BB, Cancel = 0xE711, Check = 0xE73E, Share = 0xE72D, Download = 0xE896,
+    Upload = 0xE898, Link = 0xE71B, Attach = 0xE723, Send = 0xE724, Pin = 0xE718,
+    Sort = 0xE8CB, Sync = 0xE895,
+    Home = 0xE80F, Back = 0xE72B, Forward = 0xE72A, ChevronDown = 0xE70D, ChevronUp = 0xE70E,
+    ChevronLeft = 0xE76B, ChevronRight = 0xE76C, GlobalNav = 0xE700, AllApps = 0xE71D, Zoom = 0xE71E,
+    Info = 0xE946, Warning = 0xE7BA, Error = 0xE783, Success = 0xE930, Help = 0xE897,
+    Lock = 0xE72E, Unlock = 0xE785, View = 0xE890,
+    Person = 0xE77B, Mail = 0xE715, Phone = 0xE717, Calendar = 0xE787, Clock = 0xE823,
+    Folder = 0xE8B7, File = 0xE7C3, Image = 0xE8B9, Favorite = 0xE734, FavoriteFill = 0xE735,
+    Play = 0xE768, Pause = 0xE769, Stop = 0xE71A, Volume = 0xE767,
+};
+
+std::wstring IconGlyph(Icon);
+
+class FontIcon : public UIElement {
+    FontIcon(Icon icon, float size = 16.0f);
+    FontIcon(Icon icon, float size, Color color);
+    void SetIcon(Icon); Icon GetIcon() const;
+    void SetIconSize(float);          // font size = icon size
+    void SetColor(Color); Color GetColor() const;
+};
+std::shared_ptr<FontIcon> MakeFontIcon(Icon, float size = 16.0f, Color = black);
+```
+
+- Renders a glyph from the system icon font; `Icon` values are the codepoints.
+- The glyph layout goes through the global `FontManager` cache → many icons do not rebuild layouts.
+- Usable in any container; combine icon + text with a `RowBox`.
+
 ## Button
 
 ```cpp
@@ -1238,6 +1314,43 @@ class CheckBox : public UIElement {
 - Keyboard `Space`/`Enter` toggles; disabled is greyed.
 - `DrawBox` is static so `ListView`/`TableView`/`TreeView` row checkboxes reuse it for a consistent look.
 
+## RadioButton / RadioGroup
+
+```cpp
+class RadioButton : public UIElement {
+    ZSignal<bool> CheckedChanged;
+    ZSignal<> Clicked;
+    RadioButton(bool checked = false);
+    RadioButton(const std::wstring& text, bool checked = false);
+    void SetChecked(bool); bool IsChecked() const;
+    void SetLabel(const std::wstring&); std::wstring GetLabel() const; void SetLabelColor(Color);
+    void SetSize(float);              // dot diameter (default 16)
+    void SetAccentColor(Color); void SetBorderColor(Color);
+    void SetAnimationSpeed(float);
+    void SetRowHighlight(bool); void SetRowHighlightColor(Color); void SetAccentBar(bool);
+};
+
+class RadioGroup : public LayoutHost {
+    enum class Orientation { Vertical, Horizontal };  // Vertical: Up/Down, Horizontal: Left/Right
+    ZSignal<int> SelectionChanged;
+    std::function<bool(int newIndex, int oldIndex)> SelectionChanging;  // return false to veto
+
+    int  AddItem(const std::wstring& text, bool selected = false);
+    int  AddButton(std::shared_ptr<RadioButton> rb, bool selected = false);
+    std::shared_ptr<RadioButton> GetButton(int index) const;
+    int  GetItemCount() const;
+    void SetOrientation(Orientation); Orientation GetOrientation() const;
+    void SetItemSpacing(float);
+    void SetSelectedIndex(int); int GetSelectedIndex() const;
+    void SetMutualExclusion(bool); bool GetMutualExclusion() const;
+};
+```
+
+- **Mutual exclusion is owned by `RadioGroup`** (an explicit group, not inferred from the parent) → multiple groups on a page do not interfere.
+- **Group keyboard navigation**: while any child is focused, Up/Down (vertical) or Left/Right (horizontal), **skipping disabled items**.
+- The selected item draws a **light-blue row background + accent left bar** (`#D6E8FB`).
+- For **custom exclusion / linkage**: `SetMutualExclusion(false)` then use `SelectionChanging` (veto) and `SelectionChanged`.
+
 ## ScrollViewer
 
 ```cpp
@@ -1276,6 +1389,27 @@ class ScrollViewer : public UIElement {
 - `ScrollChanged(x,y)` fires whenever the offset changes (including during animation).
 - `SetContentMargin` adds padding around the content.
 - The internal `ScrollBar` is normally not used directly.
+
+## ScrollBar (reusable scroll bar)
+
+```cpp
+class ScrollBar : public UIElement {
+    std::function<void(float value, bool animate)> ValueChanged;  // user drag/track click -> (value, smooth?)
+
+    explicit ScrollBar(bool vertical);       // true = vertical, false = horizontal
+    void SetRange(float value, float maxValue, float viewportSize);  // host pushes each frame
+    void SetValue(float); float GetValue() const; bool IsVertical() const;
+
+    void SetBarWidth(float); void SetMinLength(float); void SetHitExtra(float);
+    void SetColors(D2D1_COLOR_F thumb, D2D1_COLOR_F hoverThumb, D2D1_COLOR_F track);
+    void SetIdleDelay(float); void SetAutoShrink(bool); void MarkActive();
+};
+```
+
+- **Extracted from `ScrollViewer` into a standalone reusable control** (shared by `ScrollViewer`, `TabView`, ...); decoupled from the host, values flow via `ValueChanged`.
+- **Self-contained** hover-expand + **idle-shrink** animation (`SetIdleDelay`, default 2s -> a thin line; hover restores and plays the hover animation).
+- Host calls `SetRange(value, maxValue, viewport)` each frame; drag -> `animate=false` (immediate), track click -> `animate=true` (smooth).
+- `ScrollViewer` equivalents: `SetScrollBarIdleDelay(float)` / `SetScrollBarAutoShrink(bool)` / `SetDefaultScrollBarIdleDelay(float)`.
 
 ## ProgressBar
 

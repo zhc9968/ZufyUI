@@ -78,3 +78,4 @@
 #include "ZufyUIImages.h"
 #include "ZufyUIWindowTool.h"
 #include "ZDataViewer.h"
+#include "ZufyUIIcons.h"

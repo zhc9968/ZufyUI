@@ -188,6 +188,12 @@ win.SetCustomTitleBar(bar);
 - **`WndProc` 自毁保护**：判据补充 `GWLP_USERDATA == self`，并在 `WM_NCDESTROY` 清空 `GWLP_USERDATA`，覆盖 HWND 号被复用的情形。
 - **`TableView` / `TreeView` 子元素缓存**：列宽校验从"列宽总和"改为**顺序敏感哈希**，修复交换两列宽度后缓存不失效（单元格文字停在旧位置）。
 
+**新增控件 / 滚动条抽离（v1.11.0）**
+- **图标系统 `FontIcon` + `Icon`**（新头 `ZufyUIIcons.h`）：**枚举值即字体码点**；Win11 `Segoe Fluent Icons` / Win10 `Segoe MDL2 Assets` 运行期自动回退；字形 layout 走 `FontManager` 全局缓存。
+- **`TabView` 页签**：顶部横向紧凑页签（文字居中 + 选中浅蓝底 `#D6E8FB` + 下划线指示器 + 悬停 + 圆角边框）；可选关闭 ×（悬停变深色）；内容用内建 **`PageHost`** 托管 → 切换**复用过渡动画**；溢出时出现 **◀/▶ 按钮**（按能否再滚显隐）+ **底部横向滚动条**；滚轮只在页签条上滚动页签；关闭页签时后续页签**平滑移动**。
+- **`RadioButton` + `RadioGroup`**：圆形单选；**组内互斥**（显式成组，不靠父容器推断）、**横/纵**两种方向、**组整体键盘导航**（自动跳过禁用项）、选中**整行浅蓝底 + 左侧竖条**；`SelectionChanging` 可否决、`SelectionChanged` 信号 → 支持自定义互斥/联动。
+- **`ScrollBar` 抽成独立可复用控件**（从 `ScrollViewer` 提炼）：自带**悬停扩张 + 空闲缩小**（默认 2 秒缩成细线）、**回调式**数值（拖动跟手 / 点轨道平滑）；`ScrollViewer` 与 `TabView` 共用同一个类。
+
 ### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
 
 **菜单**

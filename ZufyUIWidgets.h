@@ -2376,6 +2376,204 @@ namespace ZufyUI {
         ComPtr<ID2D1SolidColorBrush> labelBrush_;
     };
 
+    // ============================================================================
+    // ScrollBar：可复用的滚动条控件（纵向/横向）。
+    //   - 自带 hover 扩张动画 + 空闲缩小动画（不依赖宿主）
+    //   - 数值变化通过 ValueChanged 回调交给宿主（ScrollViewer / TabView ...）
+    //   - 宿主每帧用 SetRange(value, maxValue, viewportSize) 推入最新范围
+    // ============================================================================
+    class ScrollBar : public UIElement {
+    public:
+        inline static float DefaultWidth = 8.0f;
+        inline static float DefaultMinLength = 20.0f;
+        inline static float DefaultHitExtra = 6.0f;
+        inline static float DefaultIdleDelay = 2.0f;
+        inline static float DefaultAnimationSpeed = 14.0f;
+        inline static D2D1_COLOR_F DefaultThumbColor = D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.9f);
+        inline static D2D1_COLOR_F DefaultHoverThumbColor = D2D1::ColorF(0.3f, 0.3f, 0.3f, 1.0f);
+        inline static D2D1_COLOR_F DefaultTrackColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.06f);
+
+        std::function<void(float, bool animate)> ValueChanged;   // 用户拖动/点轨道 → (新值, 是否平滑)
+
+        explicit ScrollBar(bool vertical) : vertical_(vertical) {
+            visible_ = false;
+            bleed_ = 4.0f;
+            width_ = 0; height_ = 0;
+            trackColor_ = DefaultTrackColor;
+            thumbColor_ = DefaultThumbColor;
+            hoverThumbColor_ = DefaultHoverThumbColor;
+            lastActive_ = (double)GetTickCount64();   // 初始视为刚活跃（不缩小）
+        }
+
+        bool UseCache() const override { return false; }
+
+        // ---- 宿主每帧推入范围 ----
+        void SetRange(float value, float maxValue, float viewportSize) {
+            if (value != value_) MarkActive();        // 值变了（滚动/动画）→ 保持不缩小
+            value_ = value; maxValue_ = maxValue; viewportSize_ = viewportSize;
+        }
+        void SetValue(float v) { value_ = v; }
+        float GetValue() const { return value_; }
+        bool IsVertical() const { return vertical_; }
+
+        // ---- 样式 ----
+        void SetBarWidth(float w) { barWidth_ = max(1.0f, w); }
+        float GetBarWidth() const { return barWidth_; }
+        void SetMinLength(float l) { minLength_ = max(4.0f, l); }
+        void SetHitExtra(float e) { hitExtra_ = max(0.0f, e); }
+        void SetColors(D2D1_COLOR_F thumb, D2D1_COLOR_F hoverThumb, D2D1_COLOR_F track) {
+            thumbColor_ = thumb; hoverThumbColor_ = hoverThumb; trackColor_ = track; RequestRepaint();
+        }
+        void SetIdleDelay(float s) { idleDelay_ = max(0.0f, s); }
+        void SetAutoShrink(bool on) { autoShrink_ = on; RequestRepaint(); }
+        void MarkActive() { lastActive_ = (double)GetTickCount64(); }
+
+        // ---- UIElement ----
+        Size MeasureOverride(const Size&) override {
+            return vertical_ ? Size(barWidth_, 100.0f) : Size(100.0f, barWidth_);
+        }
+        UIElement* HitTest(float x, float y) override {
+            if (!visible_) return nullptr;
+            Rect r = GetArrangedRect();
+            Rect hot(r.x - hitExtra_, r.y - hitExtra_, r.width + hitExtra_ * 2, r.height + hitExtra_ * 2);
+            return hot.Contains(x, y) ? this : nullptr;
+        }
+        void OnMouseEnter() override { hovering_ = true; MarkActive(); RequestRepaint(); }
+        void OnMouseLeave() override { hovering_ = false; MarkActive(); if (!dragging_) RequestRepaint(); }
+        void OnMouseDown(float x, float y) override {
+            MarkActive();
+            Rect r = GetArrangedRect();
+            float pos, len; GetThumbInfo(r, pos, len);
+            if (vertical_) {
+                float start = r.y + pos, end = start + len;
+                if (y >= start && y <= end) { dragging_ = true; dragStartMouse_ = y; dragStartValue_ = value_; }
+                else { float ratio = (r.height > len) ? (y - r.y - len * 0.5f) / (r.height - len) : 0.0f; Fire(clamp(ratio * maxValue_, 0.0f, maxValue_), true); }
+            }
+            else {
+                float start = r.x + pos, end = start + len;
+                if (x >= start && x <= end) { dragging_ = true; dragStartMouse_ = x; dragStartValue_ = value_; }
+                else { float ratio = (r.width > len) ? (x - r.x - len * 0.5f) / (r.width - len) : 0.0f; Fire(clamp(ratio * maxValue_, 0.0f, maxValue_), true); }
+            }
+        }
+        void OnMouseMove(float x, float y) override {
+            if (!dragging_) return;
+            MarkActive();
+            Rect r = GetArrangedRect();
+            if (vertical_) {
+                float len = ThumbLength(r.height);
+                if (r.height > len) { float ratio = (y - dragStartMouse_) / (r.height - len); Fire(clamp(dragStartValue_ + ratio * maxValue_, 0.0f, maxValue_), false); }
+            }
+            else {
+                float len = ThumbLength(r.width);
+                if (r.width > len) { float ratio = (x - dragStartMouse_) / (r.width - len); Fire(clamp(dragStartValue_ + ratio * maxValue_, 0.0f, maxValue_), false); }
+            }
+        }
+        void OnMouseUp(float, float) override { if (dragging_) { dragging_ = false; RequestRepaint(); } }
+
+        void UpdateAnimation(float dt) override {
+            float ht = hovering_ ? 1.0f : 0.0f;
+            if (fabs(ht - hoverProgress_) > 0.001f) {
+                hoverProgress_ += (ht - hoverProgress_) * min(1.0f, animSpeed_ * dt);
+                if (fabs(ht - hoverProgress_) < 0.001f) hoverProgress_ = ht;
+                RequestRepaint();
+            }
+            float st = ShrinkTarget();
+            if (fabs(st - shrinkProgress_) > 0.001f) {
+                shrinkProgress_ += (st - shrinkProgress_) * min(1.0f, animSpeed_ * dt);
+                if (fabs(st - shrinkProgress_) < 0.001f) shrinkProgress_ = st;
+                RequestRepaint();
+            }
+        }
+        bool HasActiveAnimation() const override {
+            if (hovering_ ? hoverProgress_ < 0.999f : hoverProgress_ > 0.001f) return true;
+            if (fabs(ShrinkTarget() - shrinkProgress_) > 0.001f) return true;
+            if (autoShrink_ && !hovering_ && shrinkProgress_ < 0.999f) {
+                double now = (double)GetTickCount64();
+                if (now - lastActive_ < (double)idleDelay_ * 1000.0) return true;   // 空闲倒计时期间保持活跃
+            }
+            return false;
+        }
+        void Draw(ID2D1RenderTarget* rt) override {
+            if (!visible_ || !rt) return;
+            Rect r = GetArrangedRect();
+            float shrink = 1.0f - shrinkProgress_;
+            float trackWidth = barWidth_ * (0.30f + 0.70f * shrink) * (1.0f + 0.25f * hoverProgress_);
+
+            D2D1_COLOR_F trackCol = trackColor_;
+            if (shrink < 0.999f) trackCol.a *= shrink;
+            D2D1_COLOR_F thumbCol = thumbColor_;
+            if (hoverProgress_ > 0.01f) {
+                thumbCol = D2D1::ColorF(
+                    thumbColor_.r + (hoverThumbColor_.r - thumbColor_.r) * hoverProgress_,
+                    thumbColor_.g + (hoverThumbColor_.g - thumbColor_.g) * hoverProgress_,
+                    thumbColor_.b + (hoverThumbColor_.b - thumbColor_.b) * hoverProgress_,
+                    thumbColor_.a + (hoverThumbColor_.a - thumbColor_.a) * hoverProgress_);
+            }
+
+            D2D1_ROUNDED_RECT trackRect;
+            if (vertical_) {
+                float tx = r.x + r.width - trackWidth;
+                trackRect = D2D1::RoundedRect(D2D1::RectF(tx, r.y, tx + trackWidth, r.y + r.height), trackWidth * 0.5f, trackWidth * 0.5f);
+            }
+            else {
+                float ty = r.y + r.height - trackWidth;
+                trackRect = D2D1::RoundedRect(D2D1::RectF(r.x, ty, r.x + r.width, ty + trackWidth), trackWidth * 0.5f, trackWidth * 0.5f);
+            }
+            if (trackCol.a > 0.001f) {
+                if (!trackBrush_) rt->CreateSolidColorBrush(trackCol, trackBrush_.GetAddressOf());
+                else trackBrush_->SetColor(trackCol);
+                if (trackBrush_) rt->FillRoundedRectangle(trackRect, trackBrush_.Get());
+            }
+
+            float pos, len; GetThumbInfo(r, pos, len);
+            D2D1_ROUNDED_RECT thumbRect;
+            if (vertical_) {
+                float tw = max(1.5f, trackWidth - 2.0f);
+                float tx = trackRect.rect.left + (trackWidth - tw) * 0.5f;
+                thumbRect = D2D1::RoundedRect(D2D1::RectF(tx, r.y + pos, tx + tw, r.y + pos + len), tw * 0.5f, tw * 0.5f);
+            }
+            else {
+                float th = max(1.5f, trackWidth - 2.0f);
+                float ty = trackRect.rect.top + (trackWidth - th) * 0.5f;
+                thumbRect = D2D1::RoundedRect(D2D1::RectF(r.x + pos, ty, r.x + pos + len, ty + th), th * 0.5f, th * 0.5f);
+            }
+            if (!thumbBrush_) rt->CreateSolidColorBrush(thumbCol, thumbBrush_.GetAddressOf());
+            else thumbBrush_->SetColor(thumbCol);
+            if (thumbBrush_) rt->FillRoundedRectangle(thumbRect, thumbBrush_.Get());
+        }
+        void ReleaseDeviceResources() override { trackBrush_.Reset(); thumbBrush_.Reset(); UIElement::ReleaseDeviceResources(); }
+
+    private:
+        void Fire(float v, bool animate) { value_ = v; if (ValueChanged) ValueChanged(v, animate); RequestRepaint(); }
+        float ThumbLength(float total) const {
+            if (maxValue_ <= 0.0f) return total;
+            return max(minLength_, total * (total / (maxValue_ + total)));
+        }
+        void GetThumbInfo(const Rect& r, float& pos, float& len) const {
+            float total = vertical_ ? r.height : r.width;
+            len = ThumbLength(total);
+            float ratio = (maxValue_ > 0.0f) ? clamp(value_ / maxValue_, 0.0f, 1.0f) : 0.0f;
+            pos = (total - len) * ratio;
+        }
+        float ShrinkTarget() const {
+            if (!autoShrink_ || hovering_) return 0.0f;
+            double now = (double)GetTickCount64();
+            return (now - lastActive_ >= (double)idleDelay_ * 1000.0) ? 1.0f : 0.0f;
+        }
+
+        bool vertical_ = true;
+        float value_ = 0.0f, maxValue_ = 0.0f, viewportSize_ = 0.0f;
+        float barWidth_ = DefaultWidth, minLength_ = DefaultMinLength, hitExtra_ = DefaultHitExtra;
+        bool dragging_ = false, hovering_ = false;
+        float dragStartMouse_ = 0.0f, dragStartValue_ = 0.0f;
+        float hoverProgress_ = 0.0f, shrinkProgress_ = 0.0f;
+        float animSpeed_ = DefaultAnimationSpeed, idleDelay_ = DefaultIdleDelay;
+        bool autoShrink_ = true;
+        double lastActive_ = 0.0;
+        D2D1_COLOR_F trackColor_, thumbColor_, hoverThumbColor_;
+        ComPtr<ID2D1SolidColorBrush> trackBrush_, thumbBrush_;
+    };
+
     // ==================== 滚动容器（ScrollViewer） ====================
     class ScrollViewer : public UIElement {
     public:
@@ -2389,240 +2587,30 @@ namespace ZufyUI {
         inline static D2D1_COLOR_F DefaultThumbColor = D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.9f);
         inline static D2D1_COLOR_F DefaultHoverThumbColor = D2D1::ColorF(0.3f, 0.3f, 0.3f, 1.0f);
         inline static float DefaultScrollBarHitExtra = 6.0f;
+        inline static float DefaultScrollBarIdleDelay = 2.0f;   // 鼠标离开后多久开始缩小（秒）
+
+        // 空闲缩小：鼠标离开 idleDelay 秒后滚动条缩成细线；悬停/滚动时恢复正常并播放悬停动画
+        void SetScrollBarIdleDelay(float s) {
+            scrollBarIdleDelay_ = max(0.0f, s);
+            if (vScrollBar_) vScrollBar_->SetIdleDelay(scrollBarIdleDelay_);
+            if (hScrollBar_) hScrollBar_->SetIdleDelay(scrollBarIdleDelay_);
+            RequestRepaint();
+        }
+        float GetScrollBarIdleDelay() const { return scrollBarIdleDelay_; }
+        void SetScrollBarAutoShrink(bool on) {
+            autoShrinkScrollBar_ = on;
+            if (vScrollBar_) vScrollBar_->SetAutoShrink(on);
+            if (hScrollBar_) hScrollBar_->SetAutoShrink(on);
+            RequestRepaint();
+        }
+        static void SetDefaultScrollBarIdleDelay(float s) { DefaultScrollBarIdleDelay = max(0.0f, s); }
+        void MarkScrollBarActive(bool vertical) {
+            if (vertical) { if (vScrollBar_) vScrollBar_->MarkActive(); }
+            else { if (hScrollBar_) hScrollBar_->MarkActive(); }
+        }
         inline static float DefaultHorizontalStretchWeight = 1.0f;
         inline static float DefaultVerticalStretchWeight = 1.0f;
 
-        // 滚动条子元素（内部类）
-        class ScrollBar : public UIElement {
-        public:
-            ScrollBar(bool vertical, ScrollViewer* owner)
-                : vertical_(vertical), owner_(owner), dragging_(false),
-                dragStartMouse_(0.0f), dragStartValue_(0.0f) {
-                visible_ = false;
-                bleed_ = 4.0f;
-            }
-
-            // 禁用滚动条自身的离屏缓存，确保每次直接绘制，实时同步
-            bool UseCache() const override { return false; }
-
-            void UpdateFromOwner() {
-                // 从所有者读取最新值
-                if (vertical_) {
-                    maxValue_ = owner_->maxScrollY_;
-                    viewportSize_ = owner_->arrangedRect_.height - (owner_->showHorizontalScrollBar_ ? owner_->scrollBarWidth_ : 0);
-                    currentValue_ = owner_->scrollOffsetY_;
-                }
-                else {
-                    maxValue_ = owner_->maxScrollX_;
-                    viewportSize_ = owner_->arrangedRect_.width - (owner_->showVerticalScrollBar_ ? owner_->scrollBarWidth_ : 0);
-                    currentValue_ = owner_->scrollOffsetX_;
-                }
-            }
-
-            UIElement* HitTest(float x, float y) override {
-                if (!visible_) return nullptr;
-                Rect r = GetArrangedRect();
-                float extra = owner_->scrollBarHitExtra_;
-                Rect hotRect(r.x - extra, r.y - extra, r.width + extra * 2, r.height + extra * 2);
-                if (hotRect.Contains(x, y)) return this;
-                return nullptr;
-            }
-
-            void OnMouseEnter() override {
-                // 更新所有者悬停状态，触发扩张动画
-                if (vertical_) owner_->isVerticalHovered_ = true;
-                else owner_->isHorizontalHovered_ = true;
-                RequestRepaint();
-            }
-
-            void OnMouseLeave() override {
-                if (vertical_) owner_->isVerticalHovered_ = false;
-                else owner_->isHorizontalHovered_ = false;
-                if (!dragging_) RequestRepaint();
-            }
-
-            void OnMouseDown(float x, float y) override {
-                UpdateFromOwner();
-                Rect r = GetArrangedRect();
-                float thumbPos, thumbLength;
-                GetThumbInfo(r, thumbPos, thumbLength);
-
-                if (vertical_) {
-                    float thumbStart = r.y + thumbPos;
-                    float thumbEnd = thumbStart + thumbLength;
-                    if (y >= thumbStart && y <= thumbEnd) {
-                        dragging_ = true;
-                        dragStartMouse_ = y;
-                        dragStartValue_ = currentValue_;
-                    }
-                    else {
-                        float ratio = (y - r.y - thumbLength / 2) / (r.height - thumbLength);
-                        float newVal = clamp(ratio * maxValue_, 0.0f, maxValue_);
-                        owner_->ScrollTo(owner_->scrollOffsetX_, newVal, true);
-                    }
-                }
-                else {
-                    float thumbStart = r.x + thumbPos;
-                    float thumbEnd = thumbStart + thumbLength;
-                    if (x >= thumbStart && x <= thumbEnd) {
-                        dragging_ = true;
-                        dragStartMouse_ = x;
-                        dragStartValue_ = currentValue_;
-                    }
-                    else {
-                        float ratio = (x - r.x - thumbLength / 2) / (r.width - thumbLength);
-                        float newVal = clamp(ratio * maxValue_, 0.0f, maxValue_);
-                        owner_->ScrollTo(newVal, owner_->scrollOffsetY_, true);
-                    }
-                }
-            }
-
-            void OnMouseMove(float x, float y) override {
-                if (!dragging_) return;
-                UpdateFromOwner();
-                Rect r = GetArrangedRect();
-                float thumbLength;
-                if (vertical_) {
-                    thumbLength = max(owner_->scrollBarMinLength_,
-                        r.height * (r.height / (maxValue_ + r.height)));
-                    if (r.height > thumbLength) {
-                        float ratio = (y - dragStartMouse_) / (r.height - thumbLength);
-                        float newVal = clamp(dragStartValue_ + ratio * maxValue_, 0.0f, maxValue_);
-                        // 立即更新实际偏移，并同步目标值
-                        owner_->scrollOffsetY_ = newVal;
-                        owner_->targetScrollOffsetY_ = newVal;
-                        owner_->ArrangeContent();
-                        owner_->RequestRepaint(); // 通知父级更新
-                    }
-                }
-                else {
-                    thumbLength = max(owner_->scrollBarMinLength_,
-                        r.width * (r.width / (maxValue_ + r.width)));
-                    if (r.width > thumbLength) {
-                        float ratio = (x - dragStartMouse_) / (r.width - thumbLength);
-                        float newVal = clamp(dragStartValue_ + ratio * maxValue_, 0.0f, maxValue_);
-                        owner_->scrollOffsetX_ = newVal;
-                        owner_->targetScrollOffsetX_ = newVal;
-                        owner_->ArrangeContent();
-                        owner_->RequestRepaint();
-                    }
-                }
-            }
-
-            void OnMouseUp(float x, float y) override {
-                if (dragging_) {
-                    dragging_ = false;
-                    RequestRepaint();
-                }
-            }
-
-            Size MeasureOverride(const Size& availableSize) override {
-                if (vertical_) return Size(owner_->scrollBarWidth_, 100.0f);
-                else return Size(100.0f, owner_->scrollBarWidth_);
-            }
-
-            void ArrangeOverride(const Rect& finalRect) override {
-                UIElement::ArrangeOverride(finalRect);
-            }
-
-            void Draw(ID2D1RenderTarget* rt) override {
-                if (!visible_) return;
-                UpdateFromOwner(); // 确保用最新值绘制
-                Rect r = GetArrangedRect();
-
-                // 获取当前悬停动画进度（由 ScrollViewer::UpdateAnimation 更新）
-                float hoverProgress = vertical_ ? owner_->verticalHoverProgress_ : owner_->horizontalHoverProgress_;
-
-                // 轨道颜色和滑块颜色
-                D2D1_COLOR_F trackCol = owner_->trackColor_;
-                D2D1_COLOR_F thumbCol = owner_->thumbColor_;
-                if (hoverProgress > 0.01f) {
-                    thumbCol = D2D1::ColorF(
-                        owner_->thumbColor_.r + (owner_->hoverThumbColor_.r - owner_->thumbColor_.r) * hoverProgress,
-                        owner_->thumbColor_.g + (owner_->hoverThumbColor_.g - owner_->thumbColor_.g) * hoverProgress,
-                        owner_->thumbColor_.b + (owner_->hoverThumbColor_.b - owner_->thumbColor_.b) * hoverProgress,
-                        owner_->thumbColor_.a + (owner_->hoverThumbColor_.a - owner_->thumbColor_.a) * hoverProgress);
-                }
-
-                // 轨道宽度根据动画进度增加
-                float trackWidth = owner_->scrollBarWidth_ * (1.0f + 0.25f * hoverProgress);
-                D2D1_ROUNDED_RECT trackRect;
-                if (vertical_) {
-                    float trackX = r.x + r.width - trackWidth;
-                    trackRect = D2D1::RoundedRect(D2D1::RectF(trackX, r.y, trackX + trackWidth, r.y + r.height),
-                        trackWidth / 2, trackWidth / 2);
-                }
-                else {
-                    float trackY = r.y + r.height - trackWidth;
-                    trackRect = D2D1::RoundedRect(D2D1::RectF(r.x, trackY, r.x + r.width, trackY + trackWidth),
-                        trackWidth / 2, trackWidth / 2);
-                }
-
-                if (!owner_->trackBrush_) {
-                    rt->CreateSolidColorBrush(trackCol, owner_->trackBrush_.GetAddressOf());
-                }
-                else {
-                    owner_->trackBrush_->SetColor(trackCol);
-                }
-                if (owner_->trackBrush_) rt->FillRoundedRectangle(trackRect, owner_->trackBrush_.Get());
-
-                // 滑块
-                float thumbPos, thumbLength;
-                GetThumbInfo(r, thumbPos, thumbLength);
-                D2D1_ROUNDED_RECT thumbRect;
-                if (vertical_) {
-                    float thumbX = trackRect.rect.left + 1;
-                    float thumbW = trackWidth - 2;
-                    thumbRect = D2D1::RoundedRect(D2D1::RectF(thumbX, r.y + thumbPos,
-                        thumbX + thumbW, r.y + thumbPos + thumbLength),
-                        thumbW / 2, thumbW / 2);
-                }
-                else {
-                    float thumbY = trackRect.rect.top + 1;
-                    float thumbH = trackWidth - 2;
-                    thumbRect = D2D1::RoundedRect(D2D1::RectF(r.x + thumbPos, thumbY,
-                        r.x + thumbPos + thumbLength, thumbY + thumbH),
-                        thumbH / 2, thumbH / 2);
-                }
-
-                if (!owner_->thumbBrush_) {
-                    rt->CreateSolidColorBrush(thumbCol, owner_->thumbBrush_.GetAddressOf());
-                }
-                else {
-                    owner_->thumbBrush_->SetColor(thumbCol);
-                }
-                if (owner_->thumbBrush_) rt->FillRoundedRectangle(thumbRect, owner_->thumbBrush_.Get());
-            }
-
-            void UpdateAnimation(float deltaTime) override {
-                // 滚动条自身无动画，动画由所有者统一驱动
-            }
-
-            bool HasActiveAnimation() const override { return false; }
-
-        void ReleaseDeviceResources() override {
-                UIElement::ReleaseDeviceResources();
-            }
-
-        private:
-            void GetThumbInfo(const Rect& r, float& pos, float& length) const {
-                if (maxValue_ <= 0) {
-                    pos = 0;
-                    length = (vertical_ ? r.height : r.width);
-                    return;
-                }
-                float total = vertical_ ? r.height : r.width;
-                length = max(owner_->scrollBarMinLength_, total * (total / (maxValue_ + total)));
-                float ratio = Snap(currentValue_) / maxValue_;
-                pos = (total - length) * ratio;
-            }
-
-            bool vertical_;
-            ScrollViewer* owner_;
-            float maxValue_, viewportSize_, currentValue_;
-            bool dragging_;
-            float dragStartMouse_, dragStartValue_;
-        }; // 结束 ScrollBar 内部类
 
         // ---------- ScrollViewer 构造函数 ----------
         ScrollViewer()
@@ -2648,12 +2636,32 @@ namespace ZufyUI {
             width_ = 0; height_ = 0;
 
             // 创建垂直滚动条子元素
-            vScrollBar_ = std::make_shared<ScrollBar>(true, this);
+            vScrollBar_ = std::make_shared<ScrollBar>(true);
             vScrollBar_->SetParent(this);
+            vScrollBar_->SetBarWidth(scrollBarWidth_);
+            vScrollBar_->SetMinLength(scrollBarMinLength_);
+            vScrollBar_->SetHitExtra(scrollBarHitExtra_);
+            vScrollBar_->SetColors(thumbColor_, hoverThumbColor_, trackColor_);
+            vScrollBar_->SetIdleDelay(scrollBarIdleDelay_);
+            vScrollBar_->ValueChanged = [this](float v, bool animate) {
+                if (animate) { ScrollTo(scrollOffsetX_, v, true); }
+                else { scrollOffsetY_ = v; targetScrollOffsetY_ = v; ArrangeContent(); RequestRepaint(); }
+                if (vScrollBar_) vScrollBar_->RequestRepaint();
+            };
 
             // 创建水平滚动条子元素
-            hScrollBar_ = std::make_shared<ScrollBar>(false, this);
+            hScrollBar_ = std::make_shared<ScrollBar>(false);
             hScrollBar_->SetParent(this);
+            hScrollBar_->SetBarWidth(scrollBarWidth_);
+            hScrollBar_->SetMinLength(scrollBarMinLength_);
+            hScrollBar_->SetHitExtra(scrollBarHitExtra_);
+            hScrollBar_->SetColors(thumbColor_, hoverThumbColor_, trackColor_);
+            hScrollBar_->SetIdleDelay(scrollBarIdleDelay_);
+            hScrollBar_->ValueChanged = [this](float v, bool animate) {
+                if (animate) { ScrollTo(v, scrollOffsetY_, true); }
+                else { scrollOffsetX_ = v; targetScrollOffsetX_ = v; ArrangeContent(); RequestRepaint(); }
+                if (hScrollBar_) hScrollBar_->RequestRepaint();
+            };
         }
 
         // ---------- 公共接口 ----------
@@ -2776,6 +2784,8 @@ namespace ZufyUI {
             ArrangeContent();
 
             // 把内容裁到视口（扣掉滚动条占用），避免内容（含内容内部再溢出的子控件）画到滚动条下面
+            if (vScrollBar_) vScrollBar_->SetRange(scrollOffsetY_, maxScrollY_, viewportHeight);
+            if (hScrollBar_) hScrollBar_->SetRange(scrollOffsetX_, maxScrollX_, viewportWidth);
             content_->SetClipRect(Rect(finalRect.x, finalRect.y, viewportWidth, viewportHeight));
 
             // 更新滚动条子元素布局和可见性
@@ -2932,6 +2942,8 @@ namespace ZufyUI {
         }
 
         void UpdateAnimation(float deltaTime) override {
+            if (vScrollBar_) vScrollBar_->UpdateAnimation(deltaTime);   // 滚动条自身动画（悬停/缩小）由父级转发
+            if (hScrollBar_) hScrollBar_->UpdateAnimation(deltaTime);
             if (!content_) return;
             bool moved = false;
             if (fabs(targetScrollOffsetX_ - scrollOffsetX_) > 0.1f) {
@@ -2958,21 +2970,11 @@ namespace ZufyUI {
                 ScrollChanged(scrollOffsetX_, scrollOffsetY_);
             }
 
-            // 更新 hover 动画进度（平滑扩张/收缩）
-            float targetV = isVerticalHovered_ ? 1.0f : 0.0f;
-            if (verticalHoverProgress_ != targetV) {
-                verticalHoverProgress_ += (targetV - verticalHoverProgress_) * min(1.0f, hoverAnimationSpeed_ * deltaTime);
-                if (fabs(verticalHoverProgress_ - targetV) < 0.001f) verticalHoverProgress_ = targetV;
-                RequestRepaint();
-                if (vScrollBar_) vScrollBar_->RequestRepaint();
-            }
-            float targetH = isHorizontalHovered_ ? 1.0f : 0.0f;
-            if (horizontalHoverProgress_ != targetH) {
-                horizontalHoverProgress_ += (targetH - horizontalHoverProgress_) * min(1.0f, hoverAnimationSpeed_ * deltaTime);
-                if (fabs(horizontalHoverProgress_ - targetH) < 0.001f) horizontalHoverProgress_ = targetH;
-                RequestRepaint();
-                if (hScrollBar_) hScrollBar_->RequestRepaint();
-            }
+            // 把最新范围推给滚动条（滚动条自身负责 hover / 空闲缩小的动画）
+            if (vScrollBar_) vScrollBar_->SetRange(scrollOffsetY_, maxScrollY_,
+                arrangedRect_.height - (showHorizontalScrollBar_ ? scrollBarWidth_ : 0.0f));
+            if (hScrollBar_) hScrollBar_->SetRange(scrollOffsetX_, maxScrollX_,
+                arrangedRect_.width - (showVerticalScrollBar_ ? scrollBarWidth_ : 0.0f));
 
             // 更新子元素动画
             content_->UpdateAnimation(deltaTime);
@@ -2982,10 +2984,10 @@ namespace ZufyUI {
             const float epsilon = 0.1f;
             bool scrollAnim = (fabs(targetScrollOffsetX_ - scrollOffsetX_) > epsilon) ||
                 (fabs(targetScrollOffsetY_ - scrollOffsetY_) > epsilon);
-            bool hoverAnim = (verticalHoverProgress_ > 0.001f && verticalHoverProgress_ < 0.999f) ||
-                (horizontalHoverProgress_ > 0.001f && horizontalHoverProgress_ < 0.999f);
             bool contentAnim = content_ ? content_->HasActiveAnimation() : false;
-            return scrollAnim || hoverAnim || contentAnim;
+            bool barAnim = (vScrollBar_ && vScrollBar_->HasActiveAnimation()) ||
+                           (hScrollBar_ && hScrollBar_->HasActiveAnimation());
+            return scrollAnim || contentAnim || barAnim;
         }
 
         void ReleaseDeviceResources() override {
@@ -3050,6 +3052,11 @@ namespace ZufyUI {
         float lastMouseX_, lastMouseY_;
         bool isVerticalHovered_, isHorizontalHovered_;
         float verticalHoverProgress_, horizontalHoverProgress_;
+        // 空闲缩小
+        float scrollBarIdleDelay_ = DefaultScrollBarIdleDelay;
+        bool  autoShrinkScrollBar_ = true;
+        float verticalShrinkProgress_ = 0.0f, horizontalShrinkProgress_ = 0.0f;   // 0=正常, 1=缩成细线
+        double verticalLastActive_ = 0.0, horizontalLastActive_ = 0.0;
         float scrollBarHitExtra_;
         ScrollBarVisibility vVisibility_ = ScrollBarVisibility::Auto;
         ScrollBarVisibility hVisibility_ = ScrollBarVisibility::Auto;
@@ -3668,6 +3675,966 @@ namespace ZufyUI {
         float hoverSpeed_ = 10.0f;
         ComPtr<ID2D1SolidColorBrush> hoverBrush_;
         ComPtr<ID2D1SolidColorBrush> labelBrush_;
+    };
+
+    class RadioGroup;   // 前置声明（RadioButton 内部回调它）
+
+    // ============================================================================
+    // RadioButton：圆形单选按钮（圆点 + 文字）。自身只负责勾选自己的状态；
+    //   **组内互斥由 RadioGroup 负责**（不靠遍历父容器推断）。
+    // ============================================================================
+    class RadioButton : public UIElement {
+    public:
+        inline static float DefaultSize = 16.0f;
+        inline static float DefaultAnimationSpeed = 9.0f;
+        inline static float DefaultHoverSpeed = 10.0f;
+        inline static D2D1_COLOR_F DefaultAccentColor = D2D1::ColorF(0.0f, 0.47f, 0.84f, 1.0f);
+        inline static D2D1_COLOR_F DefaultBorderColor = D2D1::ColorF(0.62f, 0.62f, 0.62f, 1.0f);
+        inline static D2D1_COLOR_F DefaultLabelColor = D2D1::ColorF(0.15f, 0.15f, 0.15f, 1.0f);
+
+        ZSignal<bool> CheckedChanged;   // 自身勾选态变化
+        ZSignal<> Clicked;              // 被点击（无论是否已是选中）
+
+        RadioButton(bool checked = false)
+            : checked_(checked), progress_(checked ? 1.0f : 0.0f), target_(checked ? 1.0f : 0.0f),
+            animSpeed_(DefaultAnimationSpeed), hoverSpeed_(DefaultHoverSpeed),
+            accentColor_(DefaultAccentColor), borderColor_(DefaultBorderColor), labelColor_(DefaultLabelColor) {
+            size_ = DefaultSize; bleed_ = 4.0f;
+            hoverColor_ = D2D1::ColorF(accentColor_.r, accentColor_.g, accentColor_.b, 0.15f);
+            highlightColor_ = D2D1::ColorF(0.839f, 0.910f, 0.984f, 1.0f);   // 选中整行浅蓝 #D6E8FB
+        }
+        explicit RadioButton(const std::wstring& text, bool checked = false) : RadioButton(checked) { label_ = text; }
+
+        void SetChecked(bool checked) {
+            if (checked_ == checked) return;
+            checked_ = checked;
+            target_ = checked ? 1.0f : 0.0f;
+            CheckedChanged(checked_);
+            RequestRepaint();
+        }
+        bool IsChecked() const { return checked_; }
+
+        void SetLabel(const std::wstring& text) { label_ = text; InvalidateLayout(); RequestRepaint(); }
+        std::wstring GetLabel() const { return label_; }
+        void SetLabelColor(Color c) { labelColor_ = c.ToD2D(); labelBrush_.Reset(); RequestRepaint(); }
+        void SetAccentColor(Color c) { accentColor_ = c.ToD2D(); hoverColor_ = D2D1::ColorF(accentColor_.r, accentColor_.g, accentColor_.b, 0.15f); RequestRepaint(); }
+        void SetBorderColor(Color c) { borderColor_ = c.ToD2D(); RequestRepaint(); }
+        void SetSize(float size) { size_ = max(8.0f, size); InvalidateLayout(); RequestRepaint(); }
+        void SetAnimationSpeed(float s) { animSpeed_ = s; }
+        void SetHoverSpeed(float s) { hoverSpeed_ = s; }
+        // 选中整行高亮（浅蓝底 + 可选左侧竖条）；由 RadioGroup 自动开启
+        void SetRowHighlight(bool on) { rowHighlight_ = on; RequestRepaint(); }
+        bool GetRowHighlight() const { return rowHighlight_; }
+        void SetRowHighlightColor(Color c) { highlightColor_ = c.ToD2D(); RequestRepaint(); }
+        void SetAccentBar(bool on) { accentBar_ = on; RequestRepaint(); }
+
+        // 由 RadioGroup 注入（组内互斥）
+        void SetGroup(RadioGroup* g) { group_ = g; }
+        RadioGroup* GetGroup() const { return group_; }
+        void NotifyGroup();              // 定义在 RadioGroup 之后
+        void NotifyGroupKey(WPARAM key); // 定义在 RadioGroup 之后
+
+        bool IsFocusable() const override { return true; }
+        void OnKeyDown(WPARAM key, LPARAM lParam) override {
+            if (!IsEffectivelyEnabled()) return;
+            if (key == VK_SPACE || key == VK_RETURN) { if (!checked_) Activate(); }
+            else if (key == VK_UP || key == VK_DOWN || key == VK_LEFT || key == VK_RIGHT) {
+                if (group_) NotifyGroupKey(key);   // 组整体键盘导航（定义在 RadioGroup 之后）
+            }
+            KeyDown.Fire(key, lParam);
+        }
+        void OnMouseDown(float x, float y) override {
+            if (!IsEffectivelyEnabled()) return;
+            if (!checked_) Activate();
+            Clicked.Fire();
+            MouseDown.Fire(x, y);
+        }
+        void OnMouseEnter() override { hovered_ = true; RequestRepaint(); MouseEnter.Fire(); }
+        void OnMouseLeave() override { hovered_ = false; RequestRepaint(); MouseLeave.Fire(); }
+
+        Size MeasureOverride(const Size&) override {
+            float circle = size_;
+            if (label_.empty()) return Size(circle, circle);
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(GetEffectiveFontSpec());
+            ComPtr<IDWriteTextLayout> layout;
+            if (fmt) FontManager::Instance().GetFactory()->CreateTextLayout(label_.c_str(), (UINT32)label_.length(), fmt, 10000.0f, 100.0f, &layout);
+            DWRITE_TEXT_METRICS tm{};
+            if (layout) layout->GetMetrics(&tm);
+            return Size(circle + 6.0f + tm.width, max(circle, tm.height));
+        }
+        void ArrangeOverride(const Rect& finalRect) override {
+            float circle = size_;
+            float w = label_.empty() ? circle : finalRect.width;
+            float h = max(circle, finalRect.height);
+            UIElement::ArrangeOverride(Rect(finalRect.x, finalRect.y, w, h));
+            float by = finalRect.y + (h - circle) * 0.5f;
+            circleRect_ = D2D1::RectF(finalRect.x, by, finalRect.x + circle, by + circle);
+        }
+        void Draw(ID2D1RenderTarget* rt) override {
+            bool en = IsEffectivelyEnabled();
+            // 选中整行高亮（浅蓝底 + 可选左侧竖条），在最底层
+            if (rowHighlight_ && progress_ > 0.01f) {
+                float a = clamp(progress_, 0.0f, 1.0f);
+                if (!highlightBrush_) {
+                    D2D1_COLOR_F hc = highlightColor_; hc.a *= a;
+                    rt->CreateSolidColorBrush(hc, highlightBrush_.GetAddressOf());
+                }
+                else { D2D1_COLOR_F hc = highlightColor_; hc.a *= a; highlightBrush_->SetColor(hc); }
+                if (highlightBrush_) {
+                    D2D1_RECT_F rr = D2D1::RectF(arrangedRect_.x - 3.0f, arrangedRect_.y - 1.0f,
+                        arrangedRect_.x + arrangedRect_.width + 3.0f, arrangedRect_.y + arrangedRect_.height + 1.0f);
+                    rt->FillRoundedRectangle(D2D1::RoundedRect(rr, 6.0f, 6.0f), highlightBrush_.Get());
+                }
+                if (accentBar_) {
+                    D2D1_COLOR_F ac = accentColor_; ac.a *= a;
+                    if (highlightBrush_) highlightBrush_->SetColor(ac);
+                    if (highlightBrush_) {
+                        D2D1_RECT_F bar = D2D1::RectF(arrangedRect_.x - 3.0f, arrangedRect_.y + 2.0f,
+                            arrangedRect_.x - 0.5f, arrangedRect_.y + arrangedRect_.height - 2.0f);
+                        rt->FillRoundedRectangle(D2D1::RoundedRect(bar, 1.5f, 1.5f), highlightBrush_.Get());
+                    }
+                }
+            }
+            float cx = (circleRect_.left + circleRect_.right) * 0.5f;
+            float cy = (circleRect_.top + circleRect_.bottom) * 0.5f;
+            float r = (circleRect_.right - circleRect_.left) * 0.5f;
+            if (r <= 0.5f) return;
+
+            // hover 光晕
+            if (en && hoverProgress_ > 0.001f) {
+                D2D1_COLOR_F hc = hoverColor_; hc.a *= hoverProgress_;
+                if (!hoverBrush_) rt->CreateSolidColorBrush(hc, hoverBrush_.GetAddressOf());
+                else hoverBrush_->SetColor(hc);
+                if (hoverBrush_) rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), r + 3.0f, r + 3.0f), hoverBrush_.Get());
+            }
+
+            D2D1_COLOR_F accent = en ? accentColor_ : D2D1::ColorF(0.80f, 0.80f, 0.80f, 1.0f);
+            D2D1_COLOR_F border = en ? borderColor_ : D2D1::ColorF(0.82f, 0.82f, 0.82f, 1.0f);
+            float p = clamp(progress_, 0.0f, 1.0f);
+
+            // 外圈：未选=灰描边 → 选中=主题色（颜色/粗细随进度）
+            D2D1_COLOR_F ring = D2D1::ColorF(
+                border.r + (accent.r - border.r) * p,
+                border.g + (accent.g - border.g) * p,
+                border.b + (accent.b - border.b) * p, 1.0f);
+            if (!brush_) rt->CreateSolidColorBrush(ring, brush_.GetAddressOf());
+            else brush_->SetColor(ring);
+            if (brush_) rt->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), r - 0.7f, r - 0.7f), brush_.Get(), 1.4f + p * 0.6f);
+
+            // 内点
+            float dr = (r - 4.0f) * p;
+            if (dr > 0.4f) {
+                if (brush_) brush_->SetColor(accent); else rt->CreateSolidColorBrush(accent, brush_.GetAddressOf());
+                if (brush_) rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), dr, dr), brush_.Get());
+            }
+
+            // 文字
+            if (!label_.empty()) {
+                IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(GetEffectiveFontSpec());
+                D2D1_COLOR_F lc = en ? labelColor_ : D2D1::ColorF(0.55f, 0.55f, 0.55f, 1.0f);
+                if (!labelBrush_) rt->CreateSolidColorBrush(lc, labelBrush_.GetAddressOf());
+                else labelBrush_->SetColor(lc);
+                D2D1_RECT_F tr = D2D1::RectF(circleRect_.right + 6.0f, arrangedRect_.y,
+                    arrangedRect_.x + arrangedRect_.width, arrangedRect_.y + arrangedRect_.height);
+                if (fmt && labelBrush_) rt->DrawText(label_.c_str(), (UINT32)label_.length(), fmt, tr, labelBrush_.Get());
+            }
+        }
+        void UpdateAnimation(float dt) override {
+            if (fabs(target_ - progress_) > 0.001f) {
+                progress_ += (target_ - progress_) * min(1.0f, animSpeed_ * dt);
+                if (fabs(target_ - progress_) <= 0.001f) progress_ = target_;
+                RequestRepaint();
+            }
+            float ht = hovered_ ? 1.0f : 0.0f;
+            if (fabs(ht - hoverProgress_) > 0.001f) {
+                hoverProgress_ += (ht - hoverProgress_) * min(1.0f, hoverSpeed_ * dt);
+                if (fabs(ht - hoverProgress_) <= 0.001f) hoverProgress_ = ht;
+                RequestRepaint();
+            }
+        }
+        bool HasActiveAnimation() const override {
+            return fabs(target_ - progress_) > 0.001f ||
+                (hovered_ ? hoverProgress_ < 0.999f : hoverProgress_ > 0.001f);
+        }
+        void ReleaseDeviceResources() override { brush_.Reset(); labelBrush_.Reset(); hoverBrush_.Reset(); highlightBrush_.Reset(); UIElement::ReleaseDeviceResources(); }
+
+    private:
+        void Activate() {
+            if (group_) NotifyGroup();   // 交给组做互斥（会 SetChecked(true)）
+            else SetChecked(true);
+        }
+
+        bool checked_ = false;
+        float progress_ = 0.0f, target_ = 0.0f;
+        float animSpeed_, hoverSpeed_;
+        bool hovered_ = false;
+        float hoverProgress_ = 0.0f;
+        std::wstring label_;
+        float size_ = DefaultSize;
+        bool rowHighlight_ = false;
+        bool accentBar_ = true;
+        D2D1_COLOR_F accentColor_, borderColor_, labelColor_, hoverColor_, highlightColor_;
+        D2D1_RECT_F circleRect_ = D2D1::RectF(0, 0, 0, 0);
+        RadioGroup* group_ = nullptr;
+        ComPtr<ID2D1SolidColorBrush> brush_, labelBrush_, hoverBrush_, highlightBrush_;
+    };
+
+    // ============================================================================
+    // RadioGroup：单选组的"组"容器。纵向/横向堆叠；默认组内互斥；
+    //   可 SetMutualExclusion(false) 并用 SelectionChanging/SelectionChanged 处理特殊互斥关系。
+    //   组整体键盘导航：纵向 ↑/↓，横向 ←/→。
+    // ============================================================================
+    class RadioGroup : public LayoutHost {
+    public:
+        enum class Orientation { Vertical, Horizontal };
+        inline static float DefaultItemSpacing = 6.0f;
+        inline static bool  DefaultMutualExclusion = true;
+
+        ZSignal<int> SelectionChanged;                                  // 选中项索引变化
+        std::function<bool(int newIndex, int oldIndex)> SelectionChanging;   // 返回 false 取消本次选择
+
+        RadioGroup() { BuildStack(Orientation::Vertical); }
+
+        void SetOrientation(Orientation o) { if (o == orientation_) return; RebuildStack(o); }
+        Orientation GetOrientation() const { return orientation_; }
+        void SetItemSpacing(float s) { spacing_ = max(0.0f, s); RebuildStack(orientation_); }
+
+        void SetMutualExclusion(bool on) { mutualExclusion_ = on; }
+        bool GetMutualExclusion() const { return mutualExclusion_; }
+
+        int AddItem(const std::wstring& text, bool selected = false) {
+            return AddButton(std::make_shared<RadioButton>(text), selected);
+        }
+        int AddButton(std::shared_ptr<RadioButton> rb, bool selected = false) {
+            if (!rb) return -1;
+            rb->SetGroup(this);
+            rb->SetRowHighlight(true);   // 选中整行浅蓝
+            buttons_.push_back(rb);
+            StackAddChild(rb);
+            int idx = (int)buttons_.size() - 1;
+            if (selected || selectedIndex_ < 0) SelectOnly(rb.get());
+            return idx;
+        }
+        int GetItemCount() const { return (int)buttons_.size(); }
+        std::shared_ptr<RadioButton> GetButton(int index) const {
+            return (index >= 0 && index < (int)buttons_.size()) ? buttons_[index] : nullptr;
+        }
+        void SetSelectedIndex(int index) { if (index >= 0 && index < (int)buttons_.size()) SelectOnly(buttons_[index].get()); }
+        int GetSelectedIndex() const { return selectedIndex_; }
+
+        // 组整体键盘导航（由 RadioButton 的 OnKeyDown 转发过来）；自动跳过禁用项
+        void NavigateKey(WPARAM key) {
+            int n = (int)buttons_.size();
+            if (n == 0) return;
+            int dir = 0;
+            if (orientation_ == Orientation::Vertical) { if (key == VK_UP) dir = -1; else if (key == VK_DOWN) dir = +1; }
+            else { if (key == VK_LEFT) dir = -1; else if (key == VK_RIGHT) dir = +1; }
+            if (dir == 0) return;
+            int cur = (selectedIndex_ < 0) ? 0 : selectedIndex_;
+            for (int step = 1; step <= n; ++step) {
+                int idx = (((cur + dir * step) % n) + n) % n;
+                if (buttons_[idx]->IsEffectivelyEnabled()) { SelectOnly(buttons_[idx].get()); return; }
+            }
+        }
+
+        // 只选中 b（RadioButton 勾选时回调这里）
+        void SelectOnly(RadioButton* b) {
+            int idx = -1;
+            for (int i = 0; i < (int)buttons_.size(); ++i) if (buttons_[i].get() == b) { idx = i; break; }
+            if (idx < 0) return;
+            if (SelectionChanging && !SelectionChanging(idx, selectedIndex_)) return;   // 用户否决
+            if (mutualExclusion_) for (int i = 0; i < (int)buttons_.size(); ++i) buttons_[i]->SetChecked(i == idx);
+            else buttons_[idx]->SetChecked(true);
+            bool changed = (idx != selectedIndex_);
+            selectedIndex_ = idx;
+            if (changed) SelectionChanged(idx);
+        }
+
+        // ---- UIElement / 容器 ----
+        Size MeasureOverride(const Size& availableSize) override {
+            return layout_ ? layout_->Measure(availableSize) : Size(0, 0);
+        }
+        void ArrangeOverride(const Rect& finalRect) override {
+            UIElement::ArrangeOverride(finalRect);
+            if (layout_) layout_->Arrange(finalRect);
+        }
+        void Draw(ID2D1RenderTarget*) override {}   // 自身无视觉内容，子元素由合成通道递归绘制
+        UIElement* HitTest(float x, float y) override {
+            if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
+            if (layout_) { if (UIElement* h = layout_->HitTest(x, y)) return h; }
+            return this;
+        }
+        void UpdateAnimation(float dt) override { if (layout_) layout_->UpdateAnimation(dt); }
+        bool HasActiveAnimation() const override { return layout_ ? layout_->HasActiveAnimation() : false; }
+        bool UseCache() const override { return false; }
+
+    private:
+        void BuildStack(Orientation o) {
+            orientation_ = o;
+            std::shared_ptr<UIElement> stack;
+            if (o == Orientation::Vertical) { auto c = std::make_shared<ColumnBox>(); c->SetSpacing(spacing_); stack = c; }
+            else { auto r = std::make_shared<RowBox>(); r->SetSpacing(spacing_); stack = r; }
+            layout_ = stack;   // LayoutHost::layout_
+            layout_->SetParent(this);
+            MarkChildrenDirty();
+            InvalidateLayout();
+            RequestRepaint();
+        }
+        void RebuildStack(Orientation o) {
+            BuildStack(o);
+            for (auto& b : buttons_) StackAddChild(b);
+        }
+        void StackAddChild(std::shared_ptr<UIElement> child) {
+            if (!layout_ || !child) return;
+            if (auto c = std::dynamic_pointer_cast<ColumnBox>(layout_)) c->AddChild(child);
+            else if (auto r = std::dynamic_pointer_cast<RowBox>(layout_)) r->AddChild(child);
+        }
+
+        Orientation orientation_ = Orientation::Vertical;
+        float spacing_ = DefaultItemSpacing;
+        bool mutualExclusion_ = DefaultMutualExclusion;
+        std::vector<std::shared_ptr<RadioButton>> buttons_;
+        int selectedIndex_ = -1;
+    };
+
+    inline void RadioButton::NotifyGroup() { if (group_) group_->SelectOnly(this); }
+    inline void RadioButton::NotifyGroupKey(WPARAM key) { if (group_) group_->NavigateKey(key); }
+
+    // ============================================================================
+    // TabView / TabControl：顶部横向紧凑页签 + 内容区
+    //   - 页签条自绘：文字 + 选中下划线指示器（带过渡）+ hover + 可选关闭 ×
+    //   - 键盘：←/→/Home/End 切换，Delete 关闭当前；点击页签即聚焦
+    //   - 选中页的内容作为子元素，由合成通道递归绘制（同 PageHost 的托管模式）
+    //   - 页签溢出：裁剪 + 滚轮横向滚动
+    // ============================================================================
+    class TabView : public UIElement {
+    public:
+        struct Tab {
+            std::wstring title;
+            std::shared_ptr<Page> page;   // 内容用 Page 承载（复用 PageHost 的过渡动画）
+            bool closable = false;
+            float x = 0.0f;               // 动画中的当前左坐标（关闭/增删时平滑移动）
+            bool  xInit = false;
+        };
+
+        // ---- 默认样式（可实例覆盖）----
+        inline static float DefaultTabHeight = 34.0f;
+        inline static float DefaultTabMinWidth = 64.0f;
+        inline static float DefaultTabTextPad = 14.0f;
+        inline static float DefaultIndicatorHeight = 2.5f;
+        inline static float DefaultCloseBox = 16.0f;
+        inline static float DefaultScrollWheelStep = 80.0f;    // 滚轮一格滚动的 DIP（deltaY 是"格数"）
+        inline static float DefaultScrollBarThickness = 6.0f;  // 页签条底部横向滚动条厚度
+        inline static Color DefaultSelectedTabColor = Color::FromArgb(255, 0xD6, 0xE8, 0xFB);   // 选中页签浅蓝 #D6E8FB
+        inline static Color DefaultBackgroundColor = Color(1, 1, 1, 1);
+        inline static Color DefaultContentColor = Color(1, 1, 1, 1);
+        inline static Color DefaultTextColor = Color(0.36f, 0.36f, 0.36f, 1);
+        inline static Color DefaultSelectedTextColor = Color(0.13f, 0.13f, 0.13f, 1);
+        inline static Color DefaultHoverColor = Color(0, 0, 0, 0.05f);
+        inline static Color DefaultIndicatorColor = Color(0.0f, 0.47f, 0.84f, 1);
+        inline static Color DefaultBorderColor = Color(0, 0, 0, 0.10f);
+
+        ZSignal<int> SelectionChanged;    // 选中页签索引
+        ZSignal<int> TabCloseRequested;   // 用户点了某页签的 ×（由应用决定是否 RemoveTab）
+
+        TabView() {
+            width_ = 0; height_ = 0;
+            minWidth_ = 120.0f; minHeight_ = 80.0f;
+            fillWidth_ = true;
+            bleed_ = 8.0f;   // 出血：给整体边框/圆角留余量，避免被裁
+            // 内容区用内建 PageHost 托管（复用它的过渡动画）
+            contentHost_ = std::make_shared<PageHost>();
+            contentHost_->SetParent(this);
+            // 页签条底部横向滚动条：复用库自身的 ScrollBar 子类
+            hBar_ = std::make_shared<ScrollBar>(false);
+            hBar_->SetParent(this);
+            hBar_->SetVisibleNoInvalidate(false);
+            hBar_->SetBarWidth(scrollBarThickness_);
+            hBar_->SetMinLength(24.0f);
+            hBar_->SetHitExtra(4.0f);
+            hBar_->SetColors(scrollThumbColor_.ToD2D(), scrollThumbHoverColor_.ToD2D(), D2D1::ColorF(0, 0, 0, 0.0f));
+            hBar_->ValueChanged = [this](float v, bool animate) {
+                stripScrollTarget_ = v;
+                if (!animate) stripScroll_ = v;
+                stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+            };
+        }
+
+        // 过渡动画参数（内容切换）
+        void SetTransitionDirection(PageHost::TransitionDirection dir) { if (contentHost_) contentHost_->SetTransitionDirection(dir); }
+        void SetTransitionEasing(PageHost::TransitionEasing e) { if (contentHost_) contentHost_->SetTransitionEasing(e); }
+        void SetAnimationDuration(float seconds) { if (contentHost_) contentHost_->SetAnimationDuration(seconds); }
+
+        // 把任意内容包成一个 Page（若本身就是 Page 直接用）
+        static std::shared_ptr<Page> MakePage(std::shared_ptr<UIElement> content) {
+            if (auto p = std::dynamic_pointer_cast<Page>(content)) return p;
+            auto page = std::make_shared<Page>();
+            page->SetPadding(0.0f);
+            if (content) page->SetLayout(content);
+            return page;
+        }
+
+        // ---------- 页签增删改 ----------
+        int AddTab(const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
+            Tab t; t.title = title; t.page = MakePage(content); t.closable = closable;
+            tabs_.push_back(std::move(t));
+            int idx = (int)tabs_.size() - 1;
+            if (contentHost_) contentHost_->AddPage(tabs_[idx].page);
+            if (selectedIndex_ < 0) selectedIndex_ = 0;
+            stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+            return idx;
+        }
+        void InsertTab(int index, const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
+            if (index < 0) index = 0;
+            if (index > (int)tabs_.size()) index = (int)tabs_.size();
+            Tab t; t.title = title; t.page = MakePage(content); t.closable = closable;
+            tabs_.insert(tabs_.begin() + index, std::move(t));
+            if (selectedIndex_ < 0) selectedIndex_ = 0;
+            else if (index <= selectedIndex_) selectedIndex_++;
+            RebuildHost();
+            stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+        }
+        void RebuildHost() {
+            if (!contentHost_) return;
+            contentHost_->ClearPages();
+            for (auto& t : tabs_) contentHost_->AddPage(t.page);
+            if (selectedIndex_ >= 0) contentHost_->SetCurrentIndexInstant(selectedIndex_);
+        }
+        void RemoveTab(int index) {
+            if (index < 0 || index >= (int)tabs_.size()) return;
+            if (contentHost_) contentHost_->RemovePage(index);
+            tabs_.erase(tabs_.begin() + index);
+            if (tabs_.empty()) selectedIndex_ = -1;
+            else if (selectedIndex_ > index) selectedIndex_--;
+            else if (selectedIndex_ == index) selectedIndex_ = min(index, (int)tabs_.size() - 1);
+            stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+        }
+        void ClearTabs() {
+            tabs_.clear(); selectedIndex_ = -1;
+            if (contentHost_) contentHost_->ClearPages();
+            stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+        }
+        int GetTabCount() const { return (int)tabs_.size(); }
+        void SetTabTitle(int index, const std::wstring& title) {
+            if (index < 0 || index >= (int)tabs_.size()) return;
+            tabs_[index].title = title; stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+        }
+        std::wstring GetTabTitle(int index) const {
+            return (index >= 0 && index < (int)tabs_.size()) ? tabs_[index].title : std::wstring();
+        }
+        void SetTabContent(int index, std::shared_ptr<UIElement> content) {
+            if (index < 0 || index >= (int)tabs_.size()) return;
+            tabs_[index].page = MakePage(content);
+            RebuildHost();
+            InvalidateLayout(); RequestRepaint();
+        }
+        std::shared_ptr<UIElement> GetTabContent(int index) const {
+            return (index >= 0 && index < (int)tabs_.size()) ? tabs_[index].page : nullptr;
+        }
+        void SetTabClosable(int index, bool closable) {
+            if (index < 0 || index >= (int)tabs_.size()) return;
+            tabs_[index].closable = closable; stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+        }
+
+        // ---------- 选中 ----------
+        void SetSelectedIndex(int index) {
+            if (index < 0 || index >= (int)tabs_.size() || index == selectedIndex_) return;
+            int oldIndex = selectedIndex_;
+            selectedIndex_ = index;
+            stripDirty_ = true;
+            if (contentHost_) {
+                if (autoTransition_)
+                    contentHost_->SetTransitionDirection(index > oldIndex ? PageHost::TransitionDirection::Left
+                                                                         : PageHost::TransitionDirection::Right);
+                contentHost_->NavigateTo(index);   // 复用 PageHost 的过渡动画
+            }
+            InvalidateLayout();
+            RequestRepaint();
+            SelectionChanged(index);
+        }
+        int GetSelectedIndex() const { return selectedIndex_; }
+        std::shared_ptr<UIElement> GetSelectedContent() const {
+            if (selectedIndex_ >= 0 && selectedIndex_ < (int)tabs_.size()) return tabs_[selectedIndex_].page;
+            return nullptr;
+        }
+
+        // ---------- 样式 ----------
+        void SetTabHeight(float h) { tabHeight_ = max(20.0f, h); stripDirty_ = true; InvalidateLayout(); RequestRepaint(); }
+        void SetTabMinWidth(float w) { tabMinWidth_ = max(20.0f, w); stripDirty_ = true; InvalidateLayout(); RequestRepaint(); }
+        void SetTabPadding(float p) { tabTextPad_ = max(4.0f, p); stripDirty_ = true; InvalidateLayout(); RequestRepaint(); }
+        void SetIndicatorHeight(float h) { indicatorHeight_ = max(0.0f, h); RequestRepaint(); }
+        void SetCornerRadius(float r) { cornerRadius_ = max(0.0f, r); RequestRepaint(); }
+        float GetCornerRadius() const { return cornerRadius_; }
+        void SetBorder(bool visible, Color color = Color(0, 0, 0, 0.10f), float width = 1.0f) {
+            borderVisible_ = visible;
+            if (visible) { borderColor_ = color; borderWidth_ = max(0.0f, width); }
+            RequestRepaint();
+        }
+        // 切换页签时按"目标在左/右"自动选择过渡方向（更自然）；设 false 则用 SetTransitionDirection 指定
+        void SetAutoTransitionDirection(bool on) { autoTransition_ = on; }
+        void SetIndicatorColor(Color c) { indicatorColor_ = c; RequestRepaint(); }
+        void SetBackgroundColor(Color c) { backgroundColor_ = c; RequestRepaint(); }
+        void SetContentColor(Color c) { contentColor_ = c; RequestRepaint(); }
+        void SetTextColor(Color normal, Color selected) { textColor_ = normal; selectedTextColor_ = selected; RequestRepaint(); }
+        void SetAnimationSpeeds(float indicator, float hover) { indicatorSpeed_ = max(0.1f, indicator); hoverSpeed_ = max(0.1f, hover); }
+        void SetSelectedTabColor(Color c) { selectedTabColor_ = c; RequestRepaint(); }
+        void SetScrollWheelStep(float px) { scrollWheelStep_ = max(1.0f, px); }
+        void SetScrollBarThickness(float px) { scrollBarThickness_ = max(0.0f, px); RequestRepaint(); }
+        void SetShowScrollBar(bool on) { showScrollBar_ = on; RequestRepaint(); }
+        void SetTabMoveSpeed(float s) { tabMoveSpeed_ = max(0.1f, s); }
+
+        // ---------- UIElement 接口 ----------
+        bool IsFocusable() const override { return true; }
+        bool UseCache() const override { return false; }
+        std::optional<D2D1_RECT_F> GetClipRect() const override {
+            // 裁剪矩形会同时裁到"本元素自身的绘制"（描边/圆角）→ 按出血外扩，避免边框被裁
+            float b = bleed_;
+            return D2D1::RectF(arrangedRect_.x - b, arrangedRect_.y - b,
+                arrangedRect_.x + arrangedRect_.width + b, arrangedRect_.y + arrangedRect_.height + b);
+        }
+
+        Size MeasureOverride(const Size& availableSize) override {
+            float w = width_ > 0 ? width_ : (availableSize.width != FLT_MAX ? availableSize.width : max(minWidth_, 0.0f));
+            float h = height_ > 0 ? height_ : (availableSize.height != FLT_MAX ? availableSize.height : max(minHeight_, 0.0f));
+            if (contentHost_) contentHost_->Measure(Size(max(0.0f, w), max(0.0f, h - tabHeight_)));
+            return Size(w, h);
+        }
+
+        void ArrangeOverride(const Rect& finalRect) override {
+            UIElement::ArrangeOverride(finalRect);
+            LayoutStrip();   // 先算页签条（含 overflow_ 与滚动条位置）
+            float band = overflow_ ? max(2.0f, scrollBarThickness_) * 1.3f : 0.0f;   // 滚动条独占一条带，别压到指示器
+            contentRect_ = Rect(finalRect.x, finalRect.y + tabHeight_ + band, finalRect.width,
+                max(0.0f, finalRect.height - tabHeight_ - band));
+            if (contentHost_) contentHost_->Arrange(contentRect_);
+        }
+
+        void Draw(ID2D1RenderTarget* rt) override {
+            if (!visible_ || !rt) return;
+
+            const float cr = cornerRadius_;
+            // 内容区背景（圆角）
+            if (!contentBrush_) rt->CreateSolidColorBrush(contentColor_.ToD2D(), contentBrush_.GetAddressOf());
+            else contentBrush_->SetColor(contentColor_.ToD2D());
+            if (contentBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(contentRect_.ToD2D(), cr, cr), contentBrush_.Get());
+
+            // 页签条背景（顶部圆角）
+            D2D1_RECT_F strip = D2D1::RectF(arrangedRect_.x, arrangedRect_.y,
+                arrangedRect_.x + arrangedRect_.width, arrangedRect_.y + tabHeight_);
+            if (!bgBrush_) rt->CreateSolidColorBrush(backgroundColor_.ToD2D(), bgBrush_.GetAddressOf());
+            else bgBrush_->SetColor(backgroundColor_.ToD2D());
+            if (bgBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(strip, cr, cr), bgBrush_.Get());
+
+            rt->PushAxisAlignedClip(strip, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+            IDWriteTextFormat* fmt = GetFontFormat();
+            for (int i = 0; i < (int)tabs_.size(); ++i) {
+                D2D1_RECT_F r = TabRect(i);
+                bool sel = (i == selectedIndex_);
+
+                // 选中页签：浅蓝底
+                if (sel) {
+                    float fr = min(6.0f, tabHeight_ * 0.4f);
+                    if (!selBrush_) rt->CreateSolidColorBrush(selectedTabColor_.ToD2D(), selBrush_.GetAddressOf());
+                    else selBrush_->SetColor(selectedTabColor_.ToD2D());
+                    if (selBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(r, fr, fr), selBrush_.Get());
+                }
+
+                // hover 底（圆角；选中项也响应悬停）
+                if (i == hoverIndex_ && hoverProgress_ > 0.01f) {
+                    float fr = min(6.0f, tabHeight_ * 0.4f);
+                    D2D1_COLOR_F hc = hoverColor_.ToD2D(); hc.a *= hoverProgress_;
+                    if (!hoverBrush_) rt->CreateSolidColorBrush(hc, hoverBrush_.GetAddressOf());
+                    else hoverBrush_->SetColor(hc);
+                    if (hoverBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(r, fr, fr), hoverBrush_.Get());
+                }
+
+                // 文字（layout 盒子 = 实际可用区，vAlign=Center 才能在本页签高度内垂直居中）
+                if (fmt && !tabs_[i].title.empty()) {
+                    float innerW = (r.right - r.left) - tabTextPad_ * 2.0f;
+                    if (tabs_[i].closable) innerW -= (closeBox_ + 6.0f);
+                    if (innerW > 0.0f) {
+                        auto layout = FontManager::Instance().GetStyledLayout(tabs_[i].title, fmt, innerW, tabHeight_, true, 1, 1, 0.0f, 0);   // 居中(横+纵)
+                        if (layout) {
+                            if (!textBrush_) rt->CreateSolidColorBrush((sel ? selectedTextColor_ : textColor_).ToD2D(), textBrush_.GetAddressOf());
+                            else textBrush_->SetColor((sel ? selectedTextColor_ : textColor_).ToD2D());
+                            rt->DrawTextLayout(D2D1::Point2F(Snap((float)r.left + tabTextPad_), Snap((float)r.top)), layout.Get(), textBrush_.Get());
+                        }
+                    }
+                }
+
+                // 关闭 ×（带背景：常态浅色，悬停背景变深色、图标转白）
+                if (tabs_[i].closable) {
+                    bool hot = (i == closeHoverIndex_);
+                    D2D1_RECT_F cb = CloseBoxRect(i);
+                    D2D1_COLOR_F bg = (hot ? closeHoverColor_ : closeBgColor_).ToD2D();
+                    if (!closeBtnBrush_) rt->CreateSolidColorBrush(bg, closeBtnBrush_.GetAddressOf());
+                    else closeBtnBrush_->SetColor(bg);
+                    if (closeBtnBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(cb, 3.0f, 3.0f), closeBtnBrush_.Get());
+                    D2D1_COLOR_F gc = (hot ? closeHoverGlyphColor_ : textColor_).ToD2D();
+                    if (!closeBrush_) rt->CreateSolidColorBrush(gc, closeBrush_.GetAddressOf());
+                    else closeBrush_->SetColor(gc);
+                    float cx = (cb.left + cb.right) * 0.5f, cy = (cb.top + cb.bottom) * 0.5f;
+                    float e = closeBox_ * 0.26f;
+                    if (closeBrush_) {
+                        rt->DrawLine(D2D1::Point2F(cx - e, cy - e), D2D1::Point2F(cx + e, cy + e), closeBrush_.Get(), 1.3f);
+                        rt->DrawLine(D2D1::Point2F(cx + e, cy - e), D2D1::Point2F(cx - e, cy + e), closeBrush_.Get(), 1.3f);
+                    }
+                }
+            }
+
+            // 溢出滚动按钮（仅在溢出时）
+            if (overflow_) {
+                auto drawBtn = [&](const D2D1_RECT_F& r, bool left, bool hot) {
+                    D2D1_COLOR_F hc = hoverColor_.ToD2D(); hc.a = hot ? 0.16f : 0.06f;
+                    if (!hoverBrush_) rt->CreateSolidColorBrush(hc, hoverBrush_.GetAddressOf());
+                    else hoverBrush_->SetColor(hc);
+                    D2D1_RECT_F rr = D2D1::RectF(r.left + 2.0f, r.top + 3.0f, r.right - 2.0f, r.bottom - 3.0f);
+                    float rad = min(rr.right - rr.left, rr.bottom - rr.top) * 0.4f;
+                    if (hoverBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(rr, rad, rad), hoverBrush_.Get());
+                    D2D1_COLOR_F lc = selectedTextColor_.ToD2D();
+                    if (!textBrush_) rt->CreateSolidColorBrush(lc, textBrush_.GetAddressOf());
+                    else textBrush_->SetColor(lc);
+                    float cx = (r.left + r.right) * 0.5f, cy = (r.top + r.bottom) * 0.5f, e = 4.0f;
+                    if (textBrush_) {
+                        if (left) {
+                            rt->DrawLine(D2D1::Point2F(cx + e * 0.5f, cy - e), D2D1::Point2F(cx - e * 0.5f, cy), textBrush_.Get(), 1.6f);
+                            rt->DrawLine(D2D1::Point2F(cx - e * 0.5f, cy), D2D1::Point2F(cx + e * 0.5f, cy + e), textBrush_.Get(), 1.6f);
+                        }
+                        else {
+                            rt->DrawLine(D2D1::Point2F(cx - e * 0.5f, cy - e), D2D1::Point2F(cx + e * 0.5f, cy), textBrush_.Get(), 1.6f);
+                            rt->DrawLine(D2D1::Point2F(cx + e * 0.5f, cy), D2D1::Point2F(cx - e * 0.5f, cy + e), textBrush_.Get(), 1.6f);
+                        }
+                    }
+                };
+                if (showLeftBtn_) drawBtn(overflowLeftRect_, true, hoverOverflow_ == -1);
+                if (showRightBtn_) drawBtn(overflowRightRect_, false, hoverOverflow_ == 1);
+            }
+
+            // 页签条底部横向滚动条由 hBar_（ScrollBar 子类）自绘，这里不再手绘
+
+            // 底部边框线
+            if (!borderBrush_) rt->CreateSolidColorBrush(borderColor_.ToD2D(), borderBrush_.GetAddressOf());
+            else borderBrush_->SetColor(borderColor_.ToD2D());
+            if (borderBrush_)
+                rt->DrawLine(D2D1::Point2F(arrangedRect_.x, arrangedRect_.y + tabHeight_ - 0.5f),
+                    D2D1::Point2F(arrangedRect_.x + arrangedRect_.width, arrangedRect_.y + tabHeight_ - 0.5f), borderBrush_.Get(), 1.0f);
+
+            // 选中指示器（贴底、圆角）
+            if (indicatorW_ > 0.5f && indicatorHeight_ > 0.0f) {
+                if (!indicatorBrush_) rt->CreateSolidColorBrush(indicatorColor_.ToD2D(), indicatorBrush_.GetAddressOf());
+                else indicatorBrush_->SetColor(indicatorColor_.ToD2D());
+                D2D1_RECT_F ir = D2D1::RectF(indicatorX_, arrangedRect_.y + tabHeight_ - indicatorHeight_,
+                    indicatorX_ + indicatorW_, arrangedRect_.y + tabHeight_);
+                if (indicatorBrush_)
+                    rt->FillRoundedRectangle(D2D1::RoundedRect(ir, indicatorHeight_ * 0.5f, indicatorHeight_ * 0.5f), indicatorBrush_.Get());
+            }
+            rt->PopAxisAlignedClip();
+
+            // 整体边框（可关；圆角跟 cornerRadius_）
+            if (borderVisible_ && borderWidth_ > 0.0f) {
+                if (!borderBrush_) rt->CreateSolidColorBrush(borderColor_.ToD2D(), borderBrush_.GetAddressOf());
+                else borderBrush_->SetColor(borderColor_.ToD2D());
+                if (borderBrush_) {
+                    float hw = borderWidth_ * 0.5f;   // 内缩半个线宽 → 描边完整落在控件内，不被裁
+                    D2D1_RECT_F br = D2D1::RectF(arrangedRect_.x + hw, arrangedRect_.y + hw,
+                        arrangedRect_.x + arrangedRect_.width - hw, arrangedRect_.y + arrangedRect_.height - hw);
+                    rt->DrawRoundedRectangle(D2D1::RoundedRect(br, cr, cr), borderBrush_.Get(), borderWidth_);
+                }
+            }
+        }
+
+        const std::vector<UIElement*>& GetChildren() const override {
+            if (!childrenDirty_) return childrenView_;
+            childrenDirty_ = false;
+            childrenView_.clear();
+            if (contentHost_) childrenView_.push_back(contentHost_.get());
+            if (hBar_) childrenView_.push_back(hBar_.get());
+            return childrenView_;
+        }
+
+        void AttachWindowRecursive(Window* w) override {
+            windowId_ = WindowIdOf(w);
+            if (contentHost_) contentHost_->AttachWindowRecursive(w);
+            if (hBar_) hBar_->AttachWindowRecursive(w);
+        }
+
+        UIElement* HitTest(float x, float y) override {
+            if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
+            if (hBar_ && hBar_->IsVisible()) { if (UIElement* h = hBar_->HitTest(x, y)) return h; }   // 底部滚动条优先（否则点不到）
+            if (contentRect_.Contains(x, y) && contentHost_) {
+                if (UIElement* h = contentHost_->HitTest(x, y)) return h;
+            }
+            return this;
+        }
+
+        // ---------- 输入 ----------
+        void OnMouseEnter() override { pointerInStrip_ = true; }
+
+        void OnMouseMove(float x, float y) override {
+            pointerInStrip_ = true;
+            int ov = 0;
+            if (overflow_) {
+                if (showLeftBtn_ && x >= overflowLeftRect_.left && x < overflowLeftRect_.right && y >= overflowLeftRect_.top && y < overflowLeftRect_.bottom) ov = -1;
+                else if (showRightBtn_ && x >= overflowRightRect_.left && x < overflowRightRect_.right && y >= overflowRightRect_.top && y < overflowRightRect_.bottom) ov = +1;
+            }
+            int idx = (ov != 0) ? -1 : TabIndexAt(x, y);
+            int closeIdx = -1;
+            if (idx >= 0 && tabs_[idx].closable && PointInCloseBox(idx, x, y)) closeIdx = idx;
+            if (idx != hoverIndex_ || closeIdx != closeHoverIndex_ || ov != hoverOverflow_) {
+                hoverIndex_ = idx; closeHoverIndex_ = closeIdx; hoverOverflow_ = ov;
+                RequestRepaint();
+            }
+        }
+        void OnMouseLeave() override {
+            pointerInStrip_ = false;
+            if (hoverIndex_ != -1 || closeHoverIndex_ != -1 || hoverOverflow_ != 0 || hoverScrollThumb_) {
+                hoverIndex_ = -1; closeHoverIndex_ = -1; hoverOverflow_ = 0; hoverScrollThumb_ = false; RequestRepaint();
+            }
+        }
+        void OnMouseDown(float x, float y) override {
+            if (!arrangedRect_.Contains(x, y)) return;
+            // 底部横向滚动条由 hBar_ 自己处理（它是子元素，会先命中）
+            if (showLeftBtn_ && x >= overflowLeftRect_.left && x < overflowLeftRect_.right && y >= overflowLeftRect_.top && y < overflowLeftRect_.bottom) { ScrollStripBy(-arrangedRect_.width * 0.6f); return; }
+            if (showRightBtn_ && x >= overflowRightRect_.left && x < overflowRightRect_.right && y >= overflowRightRect_.top && y < overflowRightRect_.bottom) { ScrollStripBy(+arrangedRect_.width * 0.6f); return; }
+            int idx = TabIndexAt(x, y);
+            if (idx < 0) return;
+            if (tabs_[idx].closable && PointInCloseBox(idx, x, y)) { TabCloseRequested(idx); return; }
+            SetSelectedIndex(idx);
+        }
+        bool OnMouseWheel(float deltaX, float deltaY) override {
+            (void)deltaX;
+            // 只在"页签条"上滚动页签；在内容区滚动应交给外层滚动容器。
+            // 注意 deltaY 是"格数"(±1)，要乘每格像素数，否则一格格挪动几乎不动。
+            if (!overflow_ || !pointerInStrip_) return false;
+            float before = stripScrollTarget_;
+            ScrollStripBy(-deltaY * scrollWheelStep_);
+            return stripScrollTarget_ != before;   // ScrollStripBy 改的是"目标值"，要和它比才判断得出"是否消费"
+        }
+        void OnKeyDown(WPARAM key, LPARAM) override {
+            int n = (int)tabs_.size();
+            if (n == 0) return;
+            switch (key) {
+            case VK_LEFT:   SetSelectedIndex((selectedIndex_ - 1 + n) % n); break;
+            case VK_RIGHT:  SetSelectedIndex((selectedIndex_ + 1) % n); break;
+            case VK_HOME:   SetSelectedIndex(0); break;
+            case VK_END:    SetSelectedIndex(n - 1); break;
+            case VK_DELETE: if (selectedIndex_ >= 0 && tabs_[selectedIndex_].closable) TabCloseRequested(selectedIndex_); break;
+            default: break;
+            }
+        }
+
+        // ---------- 动画 ----------
+        void UpdateAnimation(float deltaTime) override {
+            // 页签条滚动 / 页签移动中：指示器直接贴住目标（避免滞后、停下后对不齐）
+            bool moving = fabs(stripScroll_ - stripScrollTarget_) > 0.5f;
+            for (int i = 0; !moving && i < (int)tabs_.size() && i < (int)tabTargetX_.size(); ++i)
+                if (fabs(tabs_[i].x - tabTargetX_[i]) > 0.5f) moving = true;
+            if (moving) {
+                if (indicatorX_ != targetIndicatorX_ || indicatorW_ != targetIndicatorW_) {
+                    indicatorX_ = targetIndicatorX_; indicatorW_ = targetIndicatorW_;
+                    RequestRepaint();
+                }
+            }
+            else if (indicatorX_ != targetIndicatorX_ || indicatorW_ != targetIndicatorW_) {
+                float t = clamp(indicatorSpeed_ * deltaTime, 0.0f, 1.0f);
+                indicatorX_ += (targetIndicatorX_ - indicatorX_) * t;
+                indicatorW_ += (targetIndicatorW_ - indicatorW_) * t;
+                if (fabs(indicatorX_ - targetIndicatorX_) < 0.5f) indicatorX_ = targetIndicatorX_;
+                if (fabs(indicatorW_ - targetIndicatorW_) < 0.5f) indicatorW_ = targetIndicatorW_;
+                RequestRepaint();
+            }
+            float ht = (hoverIndex_ >= 0) ? 1.0f : 0.0f;
+            if (hoverProgress_ != ht) {
+                float s = clamp(hoverSpeed_ * deltaTime, 0.0f, 1.0f);
+                hoverProgress_ += (ht - hoverProgress_) * s;
+                if (fabs(hoverProgress_ - ht) < 0.01f) hoverProgress_ = ht;
+                RequestRepaint();
+            }
+            // 页签条平滑滚动（点滚动条 / 按钮 / 滚轮）
+            {
+                float mx = max(0.0f, stripTotalWidth_ - arrangedRect_.width);
+                stripScrollTarget_ = clamp(stripScrollTarget_, 0.0f, mx);
+                if (fabs(stripScroll_ - stripScrollTarget_) > 0.5f) {
+                    stripScroll_ += (stripScrollTarget_ - stripScroll_) * min(1.0f, scrollAnimSpeed_ * deltaTime);
+                    if (fabs(stripScroll_ - stripScrollTarget_) < 0.5f) stripScroll_ = stripScrollTarget_;
+                    stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+                }
+            }
+            // 页签平滑移动（关闭/增删时后续页签滑过来）
+            for (int i = 0; i < (int)tabs_.size() && i < (int)tabTargetX_.size(); ++i) {
+                float tx = tabTargetX_[i];
+                if (tabs_[i].x != tx) {
+                    tabs_[i].x += (tx - tabs_[i].x) * min(1.0f, tabMoveSpeed_ * deltaTime);
+                    if (fabs(tabs_[i].x - tx) < 0.5f) tabs_[i].x = tx;
+                    RequestRepaint();
+                }
+            }
+            if (hBar_) hBar_->UpdateAnimation(deltaTime);
+            if (contentHost_) contentHost_->UpdateAnimation(deltaTime);
+        }
+        bool HasActiveAnimation() const override {
+            if (fabs(indicatorX_ - targetIndicatorX_) > 0.1f || fabs(indicatorW_ - targetIndicatorW_) > 0.1f) return true;
+            if (hoverProgress_ > 0.001f && hoverProgress_ < 0.999f) return true;
+            if (fabs(stripScroll_ - stripScrollTarget_) > 0.5f) return true;
+            for (int i = 0; i < (int)tabs_.size() && i < (int)tabTargetX_.size(); ++i)
+                if (fabs(tabs_[i].x - tabTargetX_[i]) > 0.5f) return true;
+            if (contentHost_) return contentHost_->HasActiveAnimation();
+            return false;
+        }
+
+    private:
+        float TabTextWidth(int i) const {
+            IDWriteTextFormat* fmt = GetFontFormat();
+            if (!fmt || i < 0 || i >= (int)tabs_.size() || tabs_[i].title.empty()) return 0.0f;
+            auto layout = FontManager::Instance().GetStyledLayout(tabs_[i].title, fmt, 10000.0f, 10000.0f, true, 0, 0, 0.0f, 0);
+            if (!layout) return 0.0f;
+            DWRITE_TEXT_METRICS m{}; layout->GetMetrics(&m);
+            return m.width;
+        }
+        float TabWidth(int i) const {
+            float w = TabTextWidth(i) + tabTextPad_ * 2.0f;
+            if (i >= 0 && i < (int)tabs_.size() && tabs_[i].closable) w += closeBox_ + 6.0f;
+            return max(w, tabMinWidth_);
+        }
+        void LayoutStrip() {
+            int n = (int)tabs_.size();
+            tabWidths_.resize(n);
+            tabTargetX_.resize(n);
+            float x = arrangedRect_.x - stripScroll_;
+            for (int i = 0; i < n; ++i) {
+                float w = TabWidth(i);
+                tabWidths_[i] = w;
+                tabTargetX_[i] = x;
+                if (!tabs_[i].xInit) { tabs_[i].x = x; tabs_[i].xInit = true; }
+                x += w;
+            }
+            stripTotalWidth_ = x - (arrangedRect_.x - stripScroll_);
+            if (stopAtCap_) stripScroll_ = clamp(stripScroll_, 0.0f, max(0.0f, stripTotalWidth_ - arrangedRect_.width));
+
+            if (selectedIndex_ >= 0 && selectedIndex_ < n) {
+                targetIndicatorX_ = tabs_[selectedIndex_].x;
+                targetIndicatorW_ = tabWidths_[selectedIndex_];
+            }
+            else { targetIndicatorX_ = 0.0f; targetIndicatorW_ = 0.0f; }
+            if (indicatorInit_) { indicatorX_ = targetIndicatorX_; indicatorW_ = targetIndicatorW_; indicatorInit_ = false; }
+
+            // 溢出 + 只在"还能往该方向滚"时才显示对应按钮
+            overflow_ = (stripTotalWidth_ > arrangedRect_.width + 0.5f);
+            float maxScroll = max(0.0f, stripTotalWidth_ - arrangedRect_.width);
+            showLeftBtn_ = overflow_ && stripScroll_ > 0.5f;
+            showRightBtn_ = overflow_ && stripScroll_ < maxScroll - 0.5f;
+            overflowLeftRect_ = D2D1::RectF(arrangedRect_.x, arrangedRect_.y, arrangedRect_.x + overflowBtnW_, arrangedRect_.y + tabHeight_);
+            overflowRightRect_ = D2D1::RectF(arrangedRect_.x + arrangedRect_.width - overflowBtnW_, arrangedRect_.y,
+                arrangedRect_.x + arrangedRect_.width, arrangedRect_.y + tabHeight_);
+            UpdateScrollBar(maxScroll);
+        }
+        void UpdateScrollBar(float maxScroll) {
+            if (!hBar_) return;
+            float th = max(2.0f, scrollBarThickness_);
+            float trackX = arrangedRect_.x + (showLeftBtn_ ? overflowBtnW_ : 0.0f);
+            float trackW = arrangedRect_.width - (showLeftBtn_ ? overflowBtnW_ : 0.0f) - (showRightBtn_ ? overflowBtnW_ : 0.0f);
+            bool show = showScrollBar_ && overflow_ && maxScroll > 0.5f && trackW > 8.0f;
+            hBar_->SetVisibleNoInvalidate(show);
+            if (!show) return;
+            hBar_->SetBarWidth(th);
+            hBar_->SetRange(stripScroll_, maxScroll, arrangedRect_.width);
+            hBar_->Arrange(Rect(trackX, arrangedRect_.y + tabHeight_, trackW, th * 1.3f));
+        }
+        void ScrollStripBy(float d) {
+            float maxScroll = max(0.0f, stripTotalWidth_ - arrangedRect_.width);
+            float before = stripScrollTarget_;
+            stripScrollTarget_ = clamp(stripScrollTarget_ + d, 0.0f, maxScroll);
+            if (stripScrollTarget_ != before) { stripDirty_ = true; InvalidateLayout(); RequestRepaint(); }
+        }
+        // 由动画后的 x 现算矩形（关闭/增删时页签平滑移动）
+        D2D1_RECT_F TabRect(int i) const {
+            float xx = (i >= 0 && i < (int)tabs_.size()) ? tabs_[i].x : 0.0f;
+            float w = (i >= 0 && i < (int)tabWidths_.size()) ? tabWidths_[i] : 0.0f;
+            return D2D1::RectF(xx, arrangedRect_.y, xx + w, arrangedRect_.y + tabHeight_);
+        }
+        int TabIndexAt(float x, float y) const {
+            if (y < arrangedRect_.y || y >= arrangedRect_.y + tabHeight_) return -1;
+            for (int i = 0; i < (int)tabs_.size(); ++i) {
+                D2D1_RECT_F r = TabRect(i);
+                if (x >= r.left && x < r.right) return i;
+            }
+            return -1;
+        }
+        D2D1_RECT_F CloseBoxRect(int i) const {
+            D2D1_RECT_F tr = TabRect(i);
+            float right = tr.right - tabTextPad_;
+            float cy = (tr.top + tr.bottom) * 0.5f;
+            return D2D1::RectF(right - closeBox_, cy - closeBox_ * 0.5f, right, cy + closeBox_ * 0.5f);
+        }
+        bool PointInCloseBox(int i, float x, float y) const {
+            if (i < 0 || i >= (int)tabs_.size()) return false;
+            D2D1_RECT_F cb = CloseBoxRect(i);
+            return x >= cb.left && x < cb.right && y >= cb.top && y < cb.bottom;
+        }
+
+        std::vector<Tab> tabs_;
+        std::shared_ptr<PageHost> contentHost_;   // 内容托管（复用 PageHost 过渡动画）
+        std::shared_ptr<ScrollBar> hBar_;         // 底部横向滚动条（复用 ScrollBar 子类）
+        int selectedIndex_ = -1;
+        Rect contentRect_{};
+        std::vector<float> tabWidths_;
+        std::vector<float> tabTargetX_;
+        float stripTotalWidth_ = 0.0f, stripScroll_ = 0.0f, stripScrollTarget_ = 0.0f;
+        bool stopAtCap_ = true;
+        float scrollAnimSpeed_ = 16.0f;
+
+        // 样式值
+        float tabHeight_ = DefaultTabHeight;
+        float tabMinWidth_ = DefaultTabMinWidth;
+        float tabTextPad_ = DefaultTabTextPad;
+        float indicatorHeight_ = DefaultIndicatorHeight;
+        float closeBox_ = DefaultCloseBox;
+        Color backgroundColor_ = DefaultBackgroundColor;
+        Color contentColor_ = DefaultContentColor;
+        Color textColor_ = DefaultTextColor;
+        Color selectedTextColor_ = DefaultSelectedTextColor;
+        Color hoverColor_ = DefaultHoverColor;
+        Color indicatorColor_ = DefaultIndicatorColor;
+        Color borderColor_ = DefaultBorderColor;
+        Color selectedTabColor_ = DefaultSelectedTabColor;   // 选中页签浅蓝底
+        float tabMoveSpeed_ = 12.0f;                          // 页签移动动画速度
+        // 关闭按钮配色：常态浅底，悬停变深底 + 图标转白
+        Color closeBgColor_ = Color(0, 0, 0, 0.06f);
+        Color closeHoverColor_ = Color(0, 0, 0, 0.30f);
+        Color closeHoverGlyphColor_ = Color(1, 1, 1, 1);
+        float cornerRadius_ = 8.0f;      // 整体圆角
+        bool  borderVisible_ = true;     // 整体边框（可 SetBorder(false) 取消）
+        float borderWidth_ = 1.0f;
+        bool  autoTransition_ = true;    // 切换方向自动跟索引左右
+
+        // 交互 / 动画
+        int hoverIndex_ = -1, closeHoverIndex_ = -1;
+        bool stripDirty_ = true;
+        float hoverProgress_ = 0.0f, hoverSpeed_ = 14.0f;
+        float indicatorX_ = 0.0f, indicatorW_ = 0.0f;
+        float targetIndicatorX_ = 0.0f, targetIndicatorW_ = 0.0f;
+        float indicatorSpeed_ = 16.0f;
+        bool indicatorInit_ = true;
+        // 溢出滚动按钮
+        float overflowBtnW_ = 22.0f;
+        bool overflow_ = false;
+        bool showLeftBtn_ = false, showRightBtn_ = false;
+        int hoverOverflow_ = 0;   // 0=无, -1=左, +1=右
+        D2D1_RECT_F overflowLeftRect_ = D2D1::RectF(0, 0, 0, 0);
+        D2D1_RECT_F overflowRightRect_ = D2D1::RectF(0, 0, 0, 0);
+        // 页签条底部横向滚动条
+        float scrollBarThickness_ = DefaultScrollBarThickness;
+        float scrollWheelStep_ = DefaultScrollWheelStep;
+        bool  showScrollBar_ = true;
+        Color scrollThumbColor_ = Color(0, 0, 0, 0.35f);
+        Color scrollThumbHoverColor_ = Color(0, 0, 0, 0.55f);
+        D2D1_RECT_F scrollTrackRect_ = D2D1::RectF(0, 0, 0, 0);
+        D2D1_RECT_F scrollThumbRect_ = D2D1::RectF(0, 0, 0, 0);
+        bool  scrollDragging_ = false, hoverScrollThumb_ = false;
+        float scrollDragGrab_ = 0.0f;
+        bool  pointerInStrip_ = false;   // 鼠标是否在页签条上（决定滚轮是否归 tab）
+
+        ComPtr<ID2D1SolidColorBrush> bgBrush_, contentBrush_, textBrush_, hoverBrush_, indicatorBrush_, borderBrush_, closeBrush_, closeBtnBrush_, selBrush_, scroll2Brush_;
     };
 
 } // namespace ZufyUI

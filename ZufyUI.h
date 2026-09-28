@@ -81,9 +81,9 @@
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 10
-#define ZufyUI_VERSION_PATCH 3
-#define ZufyUI_VERSION_STRING L"1.10.3"
+#define ZufyUI_VERSION_MINOR 11
+#define ZufyUI_VERSION_PATCH 0
+#define ZufyUI_VERSION_STRING L"1.11.0"
 
 #ifndef DWMWA_BORDER_COLOR
 #define DWMWA_BORDER_COLOR 34
@@ -2011,6 +2011,34 @@ class MenuWindowBase;
             page->SetParent(this);
             if (currentIndex_ == -1) currentIndex_ = 0;
             InvalidateLayout();
+        }
+        void RemovePage(int index) {
+            if (index < 0 || index >= (int)pages_.size()) return;
+            pages_.erase(pages_.begin() + index);
+            if (pages_.empty()) currentIndex_ = -1;
+            else if (currentIndex_ > index) currentIndex_--;
+            else if (currentIndex_ == index) currentIndex_ = min(index, (int)pages_.size() - 1);
+            MarkChildrenDirty();
+            InvalidateLayout();
+            RequestRepaint();
+        }
+        void ClearPages() {
+            pages_.clear(); currentIndex_ = -1;
+            animating_ = false; fromIndex_ = -1; toIndex_ = -1;
+            MarkChildrenDirty();
+            InvalidateLayout();
+            RequestRepaint();
+        }
+        int GetPageCount() const { return (int)pages_.size(); }
+        std::shared_ptr<Page> GetPage(int index) const {
+            return (index >= 0 && index < (int)pages_.size()) ? pages_[index] : nullptr;
+        }
+        // 直接切到某页（无过渡）：用于整表重建后恢复选中
+        void SetCurrentIndexInstant(int index) {
+            if (index < -1 || index >= (int)pages_.size()) return;
+            animating_ = false; currentIndex_ = index; fromIndex_ = -1; toIndex_ = -1;
+            MarkChildrenDirty();
+            RequestRepaint();
         }
 
         void NavigateTo(int index) {

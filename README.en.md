@@ -188,6 +188,12 @@ A tour of the widgets (first page of the demo):
 - **`WndProc` self-destruct guard**: now also checks `GWLP_USERDATA == self` and clears `GWLP_USERDATA` on `WM_NCDESTROY`, covering HWND-handle reuse.
 - **`TableView` / `TreeView` child cache**: the column check changed from a width *sum* to an **order-sensitive hash**, fixing a stale layout after swapping two column widths (cell text stayed at the old positions).
 
+**New controls / ScrollBar extraction (v1.11.0)**
+- **Icon system `FontIcon` + `Icon`** (new header `ZufyUIIcons.h`): the **enum value IS the font codepoint**; Win11 `Segoe Fluent Icons` / Win10 `Segoe MDL2 Assets` with runtime fallback; glyph layouts go through the global `FontManager` cache.
+- **`TabView`**: a compact top tab strip (centered text + selected light-blue background `#D6E8FB` + underline indicator + hover + rounded border); optional close `x` (darkens on hover); content hosted by an internal **`PageHost`** so switching **reuses the transition animation**; on overflow, **◀/▶ buttons** (shown per scrollable direction) plus a **bottom horizontal scrollbar**; the wheel scrolls tabs only over the strip; closing a tab **slides** the rest into place.
+- **`RadioButton` + `RadioGroup`**: circular radios; **group mutual exclusion** (an explicit group, not inferred from the parent), **vertical/horizontal**, **group keyboard navigation** (skips disabled items), selected item gets a **light-blue row background + accent left bar**; `SelectionChanging` (veto) and `SelectionChanged` enable custom exclusion/linkage.
+- **`ScrollBar` extracted into a standalone reusable control** (from `ScrollViewer`): self-contained **hover-expand + idle-shrink** (default 2s -> thin line) and a **callback-based** value (drag immediate / track-click smooth); shared by `ScrollViewer` and `TabView`.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**
