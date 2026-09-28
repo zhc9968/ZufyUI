@@ -390,6 +390,12 @@ A tour of the widgets (first page of the demo):
 - **`WndProc` self-destruct guard**: now also checks `GWLP_USERDATA == self` and clears `GWLP_USERDATA` on `WM_NCDESTROY`, covering HWND-handle reuse.
 - **`TableView` / `TreeView` child cache**: the column check changed from a width *sum* to an **order-sensitive hash**, fixing a stale layout after swapping two column widths (cell text stayed at the old positions).
 
+**New controls / ScrollBar extraction (v1.11.0)**
+- **Icon system `FontIcon` + `Icon`** (new header `ZufyUIIcons.h`): the **enum value IS the font codepoint**; Win11 `Segoe Fluent Icons` / Win10 `Segoe MDL2 Assets` with runtime fallback; glyph layouts go through the global `FontManager` cache.
+- **`TabView`**: a compact top tab strip (centered text + selected light-blue background `#D6E8FB` + underline indicator + hover + rounded border); optional close `x` (darkens on hover); content hosted by an internal **`PageHost`** so switching **reuses the transition animation**; on overflow, **◀/▶ buttons** (shown per scrollable direction) plus a **bottom horizontal scrollbar**; the wheel scrolls tabs only over the strip; closing a tab **slides** the rest into place.
+- **`RadioButton` + `RadioGroup`**: circular radios; **group mutual exclusion** (an explicit group, not inferred from the parent), **vertical/horizontal**, **group keyboard navigation** (skips disabled items), selected item gets a **light-blue row background + accent left bar**; `SelectionChanging` (veto) and `SelectionChanged` enable custom exclusion/linkage.
+- **`ScrollBar` extracted into a standalone reusable control** (from `ScrollViewer`): self-contained **hover-expand + idle-shrink** (default 2s -&gt; thin line) and a **callback-based** value (drag immediate / track-click smooth); shared by `ScrollViewer` and `TabView`.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**
@@ -687,11 +693,11 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-e0f25b04', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-b3120bc3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-e0f25b04" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-b3120bc3" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own <code>WinMain</code>.</p>
@@ -700,7 +706,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-7999dfb2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-fd000fa6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
@@ -713,7 +719,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 └── docs/
     └── API.en.md      # Full API documentation
 </pre></div>
-<pre id="code-7999dfb2" style="display: none;">ZufyUI/
+<pre id="code-fd000fa6" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # Data views: ListView / TableView / TreeView
@@ -728,7 +734,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0cb4bdd0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-79d4ffac', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -764,7 +770,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-0cb4bdd0" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-79d4ffac" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -812,25 +818,25 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d5acd68a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-e2ebea12', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// Mica + fully transparent tint</span>
 </pre></div>
-<pre id="code-d5acd68a" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
+<pre id="code-e2ebea12" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
 </div>
 <p><img alt="Backdrop: manual Mica" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>Step 3: a custom title bar.</strong></p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-347d1dfd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-08e37e3a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar lives here</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">DefaultTitleBar</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 </pre></div>
-<pre id="code-347d1dfd" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
+<pre id="code-08e37e3a" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);</pre>
@@ -877,6 +883,11 @@ win.SetCustomTitleBar(bar);</pre>
 - <strong><code>UIElement::AttachWindowRecursive</code> (base)</strong>: now recurses <code>GetChildren()</code> by default, fixing stale subtree <code>windowId_</code> when an ordinary control is moved (previously only containers that overrode it recursed).
 - <strong><code>WndProc</code> self-destruct guard</strong>: now also checks <code>GWLP_USERDATA == self</code> and clears <code>GWLP_USERDATA</code> on <code>WM_NCDESTROY</code>, covering HWND-handle reuse.
 - <strong><code>TableView</code> / <code>TreeView</code> child cache</strong>: the column check changed from a width <em>sum</em> to an <strong>order-sensitive hash</strong>, fixing a stale layout after swapping two column widths (cell text stayed at the old positions).</p>
+<p><strong>New controls / ScrollBar extraction (v1.11.0)</strong>
+- <strong>Icon system <code>FontIcon</code> + <code>Icon</code></strong> (new header <code>ZufyUIIcons.h</code>): the <strong>enum value IS the font codepoint</strong>; Win11 <code>Segoe Fluent Icons</code> / Win10 <code>Segoe MDL2 Assets</code> with runtime fallback; glyph layouts go through the global <code>FontManager</code> cache.
+- <strong><code>TabView</code></strong>: a compact top tab strip (centered text + selected light-blue background <code>#D6E8FB</code> + underline indicator + hover + rounded border); optional close <code>x</code> (darkens on hover); content hosted by an internal <strong><code>PageHost</code></strong> so switching <strong>reuses the transition animation</strong>; on overflow, <strong>◀/▶ buttons</strong> (shown per scrollable direction) plus a <strong>bottom horizontal scrollbar</strong>; the wheel scrolls tabs only over the strip; closing a tab <strong>slides</strong> the rest into place.
+- <strong><code>RadioButton</code> + <code>RadioGroup</code></strong>: circular radios; <strong>group mutual exclusion</strong> (an explicit group, not inferred from the parent), <strong>vertical/horizontal</strong>, <strong>group keyboard navigation</strong> (skips disabled items), selected item gets a <strong>light-blue row background + accent left bar</strong>; <code>SelectionChanging</code> (veto) and <code>SelectionChanged</code> enable custom exclusion/linkage.
+- <strong><code>ScrollBar</code> extracted into a standalone reusable control</strong> (from <code>ScrollViewer</code>): self-contained <strong>hover-expand + idle-shrink</strong> (default 2s -&gt; thin line) and a <strong>callback-based</strong> value (drag immediate / track-click smooth); shared by <code>ScrollViewer</code> and <code>TabView</code>.</p>
 <h3 id="2026-09-26-tray-taskbar-menu-enhancements-app-identity-self-registration">2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration</h3>
 <p><strong>Menus</strong>
 - Rebuilt the right-click menu as a <strong>layered window with self-drawn soft shadow, rounded corners, and fade-in</strong>; fixed "menu won't open a second time" (root cause: the checkmark's <code>ID2D1StrokeStyle</code> was a <code>static</code> reused across factories → <code>EndDraw</code> returned <code>D2DERR_WRONG_FACTORY</code>; now created/released per instance).

@@ -390,6 +390,12 @@ win.SetCustomTitleBar(bar);
 - **`WndProc` 自毁保护**：判据补充 `GWLP_USERDATA == self`，并在 `WM_NCDESTROY` 清空 `GWLP_USERDATA`，覆盖 HWND 号被复用的情形。
 - **`TableView` / `TreeView` 子元素缓存**：列宽校验从"列宽总和"改为**顺序敏感哈希**，修复交换两列宽度后缓存不失效（单元格文字停在旧位置）。
 
+**新增控件 / 滚动条抽离（v1.11.0）**
+- **图标系统 `FontIcon` + `Icon`**（新头 `ZufyUIIcons.h`）：**枚举值即字体码点**；Win11 `Segoe Fluent Icons` / Win10 `Segoe MDL2 Assets` 运行期自动回退；字形 layout 走 `FontManager` 全局缓存。
+- **`TabView` 页签**：顶部横向紧凑页签（文字居中 + 选中浅蓝底 `#D6E8FB` + 下划线指示器 + 悬停 + 圆角边框）；可选关闭 ×（悬停变深色）；内容用内建 **`PageHost`** 托管 → 切换**复用过渡动画**；溢出时出现 **◀/▶ 按钮**（按能否再滚显隐）+ **底部横向滚动条**；滚轮只在页签条上滚动页签；关闭页签时后续页签**平滑移动**。
+- **`RadioButton` + `RadioGroup`**：圆形单选；**组内互斥**（显式成组，不靠父容器推断）、**横/纵**两种方向、**组整体键盘导航**（自动跳过禁用项）、选中**整行浅蓝底 + 左侧竖条**；`SelectionChanging` 可否决、`SelectionChanged` 信号 → 支持自定义互斥/联动。
+- **`ScrollBar` 抽成独立可复用控件**（从 `ScrollViewer` 提炼）：自带**悬停扩张 + 空闲缩小**（默认 2 秒缩成细线）、**回调式**数值（拖动跟手 / 点轨道平滑）；`ScrollViewer` 与 `TabView` 共用同一个类。
+
 ### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
 
 **菜单**
@@ -687,11 +693,11 @@ win.SetCustomTitleBar(bar);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-62218aeb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e6cac349', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-62218aeb" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-e6cac349" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> 是一个综合演示程序（左侧导航 + 多个测试页），同时也充当框架的“冒烟测试”。真正要做自己的应用时，只需要包含头文件并写自己的 <code>WinMain</code>。</p>
@@ -700,7 +706,7 @@ win.SetCustomTitleBar(bar);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-f73696bb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-25393276', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # 核心：类型 / 信号槽 / 字体 / 元素 / 布局 / 菜单 / 窗口
@@ -713,7 +719,7 @@ win.SetCustomTitleBar(bar);
 └── docs/
     └── API.md         # 完整 API 文档
 </pre></div>
-<pre id="code-f73696bb" style="display: none;">ZufyUI/
+<pre id="code-25393276" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # 核心：类型 / 信号槽 / 字体 / 元素 / 布局 / 菜单 / 窗口
 ├── ZufyUIWidgets.h       # 基础控件：Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # 数据视图：ListView / TableView / TreeView
@@ -728,7 +734,7 @@ win.SetCustomTitleBar(bar);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e9af3d22', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-81ff281a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -764,7 +770,7 @@ win.SetCustomTitleBar(bar);
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-e9af3d22" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-81ff281a" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -812,25 +818,25 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-16ddf184', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-82f951b8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// 云母 + 全透明叠加色</span>
 </pre></div>
-<pre id="code-16ddf184" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 云母 + 全透明叠加色</pre>
+<pre id="code-82f951b8" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 云母 + 全透明叠加色</pre>
 </div>
 <p><img alt="背景层：手动云母" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>第 3 步：自定义标题栏。</strong> 换个标题栏，窗口立刻不一样：</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d41be7ca', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-5db7e4a1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar 在这里</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">DefaultTitleBar</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 </pre></div>
-<pre id="code-d41be7ca" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar 在这里
+<pre id="code-5db7e4a1" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar 在这里
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);</pre>
@@ -877,6 +883,11 @@ win.SetCustomTitleBar(bar);</pre>
 - <strong><code>UIElement::AttachWindowRecursive</code>（基类）</strong>：默认递归 <code>GetChildren()</code>，修复普通控件被移动后子树 <code>windowId_</code> 不更新的问题（此前只有容器 override 才递归）。
 - <strong><code>WndProc</code> 自毁保护</strong>：判据补充 <code>GWLP_USERDATA == self</code>，并在 <code>WM_NCDESTROY</code> 清空 <code>GWLP_USERDATA</code>，覆盖 HWND 号被复用的情形。
 - <strong><code>TableView</code> / <code>TreeView</code> 子元素缓存</strong>：列宽校验从"列宽总和"改为<strong>顺序敏感哈希</strong>，修复交换两列宽度后缓存不失效（单元格文字停在旧位置）。</p>
+<p><strong>新增控件 / 滚动条抽离（v1.11.0）</strong>
+- <strong>图标系统 <code>FontIcon</code> + <code>Icon</code></strong>（新头 <code>ZufyUIIcons.h</code>）：<strong>枚举值即字体码点</strong>；Win11 <code>Segoe Fluent Icons</code> / Win10 <code>Segoe MDL2 Assets</code> 运行期自动回退；字形 layout 走 <code>FontManager</code> 全局缓存。
+- <strong><code>TabView</code> 页签</strong>：顶部横向紧凑页签（文字居中 + 选中浅蓝底 <code>#D6E8FB</code> + 下划线指示器 + 悬停 + 圆角边框）；可选关闭 ×（悬停变深色）；内容用内建 <strong><code>PageHost</code></strong> 托管 → 切换<strong>复用过渡动画</strong>；溢出时出现 <strong>◀/▶ 按钮</strong>（按能否再滚显隐）+ <strong>底部横向滚动条</strong>；滚轮只在页签条上滚动页签；关闭页签时后续页签<strong>平滑移动</strong>。
+- <strong><code>RadioButton</code> + <code>RadioGroup</code></strong>：圆形单选；<strong>组内互斥</strong>（显式成组，不靠父容器推断）、<strong>横/纵</strong>两种方向、<strong>组整体键盘导航</strong>（自动跳过禁用项）、选中<strong>整行浅蓝底 + 左侧竖条</strong>；<code>SelectionChanging</code> 可否决、<code>SelectionChanged</code> 信号 → 支持自定义互斥/联动。
+- <strong><code>ScrollBar</code> 抽成独立可复用控件</strong>（从 <code>ScrollViewer</code> 提炼）：自带<strong>悬停扩张 + 空闲缩小</strong>（默认 2 秒缩成细线）、<strong>回调式</strong>数值（拖动跟手 / 点轨道平滑）；<code>ScrollViewer</code> 与 <code>TabView</code> 共用同一个类。</p>
 <h3 id="2026-09-26-托盘-任务栏-菜单增强-应用身份自注册">2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册</h3>
 <p><strong>菜单</strong>
 - 重做右键菜单为<strong>分层窗口 + 自绘柔阴影 + 圆角 + 渐显</strong>；修复「第二次弹不出」（根因：勾选对勾的 <code>ID2D1StrokeStyle</code> 静态跨工厂复用 → <code>EndDraw</code> 报 <code>D2DERR_WRONG_FACTORY</code>，改为随实例工厂创建/释放）。
