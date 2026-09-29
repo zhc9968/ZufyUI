@@ -3755,7 +3755,9 @@ class MenuWindowBase;
                         }
                     }
                     if (HasRenderWork()) {          // 关键：先判断是否有工作
-                        InvalidateRect(hwnd_, nullptr, FALSE);
+                        // 实验：同步触发 WM_PAINT（绕过消息队列，不被鼠标/键盘插队）；
+                        // Present1(1) 会把它对齐到下一个 vblank。若不行，改回 InvalidateRect 即可。
+                        RedrawWindow(hwnd_, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
                     }
                     // 若无工作，则什么都不做，定时器继续运行
                 }
