@@ -1232,15 +1232,25 @@ class TextBox : public UIElement {
     void SetTextColor(Color); SetBackgroundColor(Color); SetBorderColor(Color);
     void SetSelectionColor(Color); SetHoverBackgroundColor(Color); SetHoverBorderColor(Color);
     void SetCursorBlinkInterval(float);
+
+    // 错误态：整体（含边框、底部指示器）变红；边框粗细不变，只换颜色
+    void SetError(bool); bool IsError() const; void SetErrorColor(Color);
+    // 底部指示器（默认蓝；错误态红；替换下边框、与圆角融合）
+    void SetIndicatorColor(Color); void SetIndicatorThickness(float);
+    // 关掉 IME 关联（数字框等不希望弹输入法）
+    void SetImeEnabled(bool); bool IsImeEnabled() const;
 };
 ```
 
 - 默认尺寸 `160×30`，字号 `14`，光标闪烁 `0.5s`。
 - 支持 `Ctrl+C/X/V/A/Z/Y`、方向键、`Home/End`、`Shift+方向键` 选区、鼠标拖选，以及 IME 组合输入。
 - **选区累积**：按住 Shift 连按方向键会逐字符累积高亮（内部用独立锚点，不会每按一次塌缩成一个字符）。
-- `SetInputFilter` 是唯一字符级过滤入口，例如“仅数字”：`[](wchar_t c){ return c >= L'0' && c <= L'1'; }` 风格。
-- `SetReadOnly(true)` 后仍可选择/复制，但不能编辑。
+- `SetInputFilter` 是唯一字符级过滤入口，例如“仅数字”：`[](wchar_t c){ return c >= L'0' && c <= L'9'; }`。
+- `SetReadOnly(true)` 后仍可选择/复制，但不能编辑，且**不显示光标**。
 - `TextChanged` 在每次文本变化时触发；`ReturnPressed` 在按回车时触发。
+- **底部指示器**：默认蓝色条，替换下边框并和两侧圆角融合（`SetIndicatorColor` / `SetIndicatorThickness` 可调）。
+- **错误态**：`SetError(true)` → 背景淡红 + 边框与指示器变红（**边框粗细不变，只改颜色**）。
+- `SetImeEnabled(false)`：该框不关联 IME（`IsTextInput()` 返回 false，不弹输入法），适合纯数字/符号输入。
 
 ## ComboBox
 
@@ -1483,6 +1493,25 @@ class ProgressBar : public UIElement {
 - `SetValue` 归一化到 `[0,1]`；`SetRangeValue` 用 `[min,max]`。
 - `SetShowText(true)` 在进度条上显示百分比文本；禁用时填充色置灰。
 
+## ProgressRing（环形进度）
+
+```cpp
+class ProgressRing : public UIElement {
+    ProgressRing();
+    explicit ProgressRing(float size);
+    void SetValue(float v);            // 0..1（变化走缓动）
+    float GetValue() const;
+    void SetIndeterminate(bool); bool IsIndeterminate() const;
+    void SetColor(Color); void SetTrackColor(Color);
+    void SetThickness(float); void SetSize(float);
+    void SetAnimationSpeed(float);
+};
+```
+
+- **确定值**：底环 + 从 `-90°` 起扫 `value×360°` 的弧（圆头描边），值变化**缓动**过渡。
+- **不确定值**：头部每周期整整 **2 圈（720°）** + 弧长呼吸（60°↔200°）→ **不跳变、尾端不倒走**。
+- 默认尺寸 40、粗细 4、色 `#0078D4`；`SetAnimationSpeed` 调快慢（周期基准 1.8s）。
+
 ## Slider
 
 ```cpp
@@ -1510,6 +1539,60 @@ class Slider : public UIElement {
 ###chapter: 数据视图 | ListView、TableView、TreeNode、TreeView
 
 > 数据视图的**选择、勾选、排序、禁用**有大量细节，且框架内部对“每项/每行的附加信息”做了特殊处理，请仔细阅读每节的“要点”。
+
+## NumberBox（数字输入 / Spinner）
+
+```cpp
+class NumberBox : public UIElement {
+    ZSignal<double> ValueChanged;               // 提交后（回车 / 失焦 / 步进）
+    ZSignal<const std::wstring&> TextChanged;   // 每次文本变化（可做实时校验）
+
+    NumberBox(double value = 0.0);
+    std::shared_ptr<TextBox> GetTextBox() const;
+
+    void SetValue(double, bool fire = true); double GetValue() const;
+    void SetRange(double lo, double hi); void SetMin(double); void SetMax(double);
+    double GetMin() const; double GetMax() const;
+    void SetStep(double); double GetStep() const;   // 支持浮点
+    void SetDecimals(int); void SetWrap(bool);
+
+    void SetDefaultValue(double); double GetDefaultValue() const;
+    void ResetToDefault(); bool IsDefaultValue() const; bool ShowClear() const;
+    void StepUp(); void StepDown();
+
+    void SetSpinButtons(bool); void SetSpinWidth(float);
+    void SetColors(Color spinBg, Color arrow, Color accent);
+    void SetError(bool); bool IsError() const;
+    void SetPlaceholder(const std::wstring&); void SetEnabled(bool);
+};
+```
+
+- 内部是 `TextBox` + **字符过滤**（只允许数字、`.`、`-`、`+`）并**关闭 IME**；
+- 右侧叠**上/下步进按钮**和**清除 ×**（仅当值 ≠ 默认值时出现，点击恢复默认值），都画在输入框**内部**；字形用系统图标字体；
+- **空文本 = 错误**（**控件自身行为**，非调用方职责）；`ValueChanged` 在提交时触发，`TextChanged` 每次输入都触发（做**实时**校验/错误态）；
+- 超出 `[min,max]` 的输入：提交时**夹到范围**。
+
+## SplitView（两栏 + 可拖动分隔条）
+
+```cpp
+class SplitView : public UIElement {
+    enum class Orientation { Vertical, Horizontal };   // Vertical = 左右（竖分隔条）
+    ZSignal<float> SplitChanged;                       // 新比例 0..1
+
+    SplitView();
+    void SetOrientation(Orientation);
+    void SetFirst(std::shared_ptr<UIElement>);  std::shared_ptr<UIElement> GetFirst() const;
+    void SetSecond(std::shared_ptr<UIElement>); std::shared_ptr<UIElement> GetSecond() const;
+    void SetSplitRatio(float); float GetSplitRatio() const;
+    void SetSplitterWidth(float);
+    void SetMinFirst(float); void SetMinSecond(float);
+    void SetSplitterColor(Color); void SetHoverColor(Color);
+};
+```
+
+- 一个**父容器/布局器**：按比例摆好两栏，中间是可拖动**分隔条**（圆角 + 悬停高亮）。
+- 拖动时**立即跟手**并**重新标记两栏**（子控件宽度变了要重排）；两栏各自 `SetClipRect(栏矩形 ± 出血)`，高亮/阴影不被裁。
+- 想要 3/4 栏：**嵌套** SplitView 即可（与 Qt `QSplitter` 同思路）。
 
 ## ListView
 

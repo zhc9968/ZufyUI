@@ -396,6 +396,14 @@ A tour of the widgets (first page of the demo):
 - **`RadioButton` + `RadioGroup`**: circular radios; **group mutual exclusion** (an explicit group, not inferred from the parent), **vertical/horizontal**, **group keyboard navigation** (skips disabled items), selected item gets a **light-blue row background + accent left bar**; `SelectionChanging` (veto) and `SelectionChanged` enable custom exclusion/linkage.
 - **`ScrollBar` extracted into a standalone reusable control** (from `ScrollViewer`): self-contained **hover-expand + idle-shrink** (default 2s -&gt; thin line) and a **callback-based** value (drag immediate / track-click smooth); shared by `ScrollViewer` and `TabView`.
 
+**New controls / UX (v1.12.0)**
+- **`ProgressRing`**: determinate (arc + eased value changes) / indeterminate (head advances exactly **2 turns per cycle** + sweep "breath" -&gt; **no jump, tail never reverses**).
+- **`NumberBox` (numeric input / spinner)**: internal `TextBox` + character filter + **IME disabled**; overlaid **inside** the box on the right: up/down steps and a **clear ×** (shown when the value differs from the default; click restores it); **empty text -&gt; error** (**the control's own behavior**); `ValueChanged` (commit) / `TextChanged` (live validation); out-of-range input clamped to `[min,max]`.
+- **`SplitView` (two panes)**: draggable splitter (rounded + hover highlight); dragging **re-marks only the two children** (not the whole control); each pane is clipped to `pane rect ± bleed`; multi-pane via **nesting**.
+- **`TextBox`**: new **bottom blue indicator** (replaces the bottom border, blends with corners), **error state** (`SetError`, whole box turns red, **border width unchanged**), **IME toggle** (`SetImeEnabled`); read-only **shows no caret** (still selectable).
+- **`ScrollBar`**: extracted into a standalone reusable control; 2s idle shrink, hover restore + hover animation.
+- **Fix**: containers (`LayoutHost` / `SplitView` / `NumberBox`) previously **did not recurse the animation tick down to their children** -&gt; child hover/page animations did not run; fixed.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**
@@ -693,11 +701,11 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-b3120bc3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-6c089574', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-b3120bc3" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-6c089574" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own <code>WinMain</code>.</p>
@@ -706,7 +714,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-fd000fa6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-72f148eb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
@@ -719,7 +727,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 └── docs/
     └── API.en.md      # Full API documentation
 </pre></div>
-<pre id="code-fd000fa6" style="display: none;">ZufyUI/
+<pre id="code-72f148eb" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # Data views: ListView / TableView / TreeView
@@ -734,7 +742,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-79d4ffac', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-541cd556', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -770,7 +778,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-79d4ffac" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-541cd556" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -818,25 +826,25 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e2ebea12', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d5c148fe', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// Mica + fully transparent tint</span>
 </pre></div>
-<pre id="code-e2ebea12" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
+<pre id="code-d5c148fe" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
 </div>
 <p><img alt="Backdrop: manual Mica" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>Step 3: a custom title bar.</strong></p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-08e37e3a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-24330699', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar lives here</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">DefaultTitleBar</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 </pre></div>
-<pre id="code-08e37e3a" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
+<pre id="code-24330699" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);</pre>
@@ -888,6 +896,13 @@ win.SetCustomTitleBar(bar);</pre>
 - <strong><code>TabView</code></strong>: a compact top tab strip (centered text + selected light-blue background <code>#D6E8FB</code> + underline indicator + hover + rounded border); optional close <code>x</code> (darkens on hover); content hosted by an internal <strong><code>PageHost</code></strong> so switching <strong>reuses the transition animation</strong>; on overflow, <strong>◀/▶ buttons</strong> (shown per scrollable direction) plus a <strong>bottom horizontal scrollbar</strong>; the wheel scrolls tabs only over the strip; closing a tab <strong>slides</strong> the rest into place.
 - <strong><code>RadioButton</code> + <code>RadioGroup</code></strong>: circular radios; <strong>group mutual exclusion</strong> (an explicit group, not inferred from the parent), <strong>vertical/horizontal</strong>, <strong>group keyboard navigation</strong> (skips disabled items), selected item gets a <strong>light-blue row background + accent left bar</strong>; <code>SelectionChanging</code> (veto) and <code>SelectionChanged</code> enable custom exclusion/linkage.
 - <strong><code>ScrollBar</code> extracted into a standalone reusable control</strong> (from <code>ScrollViewer</code>): self-contained <strong>hover-expand + idle-shrink</strong> (default 2s -&gt; thin line) and a <strong>callback-based</strong> value (drag immediate / track-click smooth); shared by <code>ScrollViewer</code> and <code>TabView</code>.</p>
+<p><strong>New controls / UX (v1.12.0)</strong>
+- <strong><code>ProgressRing</code></strong>: determinate (arc + eased value changes) / indeterminate (head advances exactly <strong>2 turns per cycle</strong> + sweep "breath" -&gt; <strong>no jump, tail never reverses</strong>).
+- <strong><code>NumberBox</code> (numeric input / spinner)</strong>: internal <code>TextBox</code> + character filter + <strong>IME disabled</strong>; overlaid <strong>inside</strong> the box on the right: up/down steps and a <strong>clear ×</strong> (shown when the value differs from the default; click restores it); <strong>empty text -&gt; error</strong> (<strong>the control's own behavior</strong>); <code>ValueChanged</code> (commit) / <code>TextChanged</code> (live validation); out-of-range input clamped to <code>[min,max]</code>.
+- <strong><code>SplitView</code> (two panes)</strong>: draggable splitter (rounded + hover highlight); dragging <strong>re-marks only the two children</strong> (not the whole control); each pane is clipped to <code>pane rect ± bleed</code>; multi-pane via <strong>nesting</strong>.
+- <strong><code>TextBox</code></strong>: new <strong>bottom blue indicator</strong> (replaces the bottom border, blends with corners), <strong>error state</strong> (<code>SetError</code>, whole box turns red, <strong>border width unchanged</strong>), <strong>IME toggle</strong> (<code>SetImeEnabled</code>); read-only <strong>shows no caret</strong> (still selectable).
+- <strong><code>ScrollBar</code></strong>: extracted into a standalone reusable control; 2s idle shrink, hover restore + hover animation.
+- <strong>Fix</strong>: containers (<code>LayoutHost</code> / <code>SplitView</code> / <code>NumberBox</code>) previously <strong>did not recurse the animation tick down to their children</strong> -&gt; child hover/page animations did not run; fixed.</p>
 <h3 id="2026-09-26-tray-taskbar-menu-enhancements-app-identity-self-registration">2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration</h3>
 <p><strong>Menus</strong>
 - Rebuilt the right-click menu as a <strong>layered window with self-drawn soft shadow, rounded corners, and fade-in</strong>; fixed "menu won't open a second time" (root cause: the checkmark's <code>ID2D1StrokeStyle</code> was a <code>static</code> reused across factories → <code>EndDraw</code> returned <code>D2DERR_WRONG_FACTORY</code>; now created/released per instance).
