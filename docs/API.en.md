@@ -1208,6 +1208,13 @@ class TextBox : public UIElement {
 
     // colors: SetTextColor / SetBackgroundColor / SetBorderColor / SetSelectionColor /
     //         SetHoverBackgroundColor / SetHoverBorderColor / SetCursorBlinkInterval
+
+    // error state: whole box (border + bottom indicator) turns red; border width unchanged
+    void SetError(bool); bool IsError() const; void SetErrorColor(Color);
+    // bottom indicator (blue by default; red on error; replaces the bottom border, blends with corners)
+    void SetIndicatorColor(Color); void SetIndicatorThickness(float);
+    // disable IME association (number/symbol-only fields)
+    void SetImeEnabled(bool); bool IsImeEnabled() const;
 };
 ```
 
@@ -1215,6 +1222,10 @@ class TextBox : public UIElement {
 - Supports `Ctrl+C/X/V/A/Z/Y`, arrow keys, `Home/End`, `Shift+arrows` selection, mouse drag, and IME composition.
 - **Selection accumulation**: holding Shift and pressing an arrow extends the highlight character by character (an independent anchor is used internally, so it never collapses to one character per press).
 - `SetInputFilter` is the character-level filter, e.g. digits only: `[](wchar_t c){ return c >= L'0' && c <= L'9'; }`.
+- Read-only (`SetReadOnly(true)`) still allows select/copy but **shows no caret**.
+- **Bottom indicator**: a blue bar replacing the bottom border, blending with the corners (`SetIndicatorColor` / `SetIndicatorThickness`).
+- **Error state**: `SetError(true)` -> light-red background + red border & indicator (**border width unchanged, only the color**).
+- `SetImeEnabled(false)`: no IME association (`IsTextInput()` returns false), for number/symbol input.
 - `SetReadOnly(true)`: you can still select/copy but not edit.
 - `TextChanged` fires on every text change; `ReturnPressed` fires on Enter.
 
@@ -1436,6 +1447,25 @@ class ProgressBar : public UIElement {
 - `SetValue` normalizes to `[0,1]`; `SetRangeValue` uses `[min,max]`.
 - `SetShowText(true)` draws a percentage; disabled greys the fill.
 
+## ProgressRing (circular progress)
+
+```cpp
+class ProgressRing : public UIElement {
+    ProgressRing();
+    explicit ProgressRing(float size);
+    void SetValue(float v);            // 0..1 (eased)
+    float GetValue() const;
+    void SetIndeterminate(bool); bool IsIndeterminate() const;
+    void SetColor(Color); void SetTrackColor(Color);
+    void SetThickness(float); void SetSize(float);
+    void SetAnimationSpeed(float);
+};
+```
+
+- **Determinate**: track ring + an arc from `-90°` sweeping `value×360°` (round caps); value changes are **eased**.
+- **Indeterminate**: the head advances **exactly 2 turns (720°) per cycle** plus a sweep "breath" (60°↔200°) -> **no jump, tail never reverses**.
+- Defaults: size 40, thickness 4, color `#0078D4`; `SetAnimationSpeed` (base period 1.8s).
+
 ## Slider
 
 ```cpp
@@ -1461,6 +1491,60 @@ class Slider : public UIElement {
 ###chapter: Data views | ListView, TableView, TreeNode, TreeView
 
 > Data views have many details around **selection, checking, sorting and disabling**, and the framework treats per-item/per-row metadata specially. Read the "Key points" of each section.
+
+## NumberBox (numeric input / spinner)
+
+```cpp
+class NumberBox : public UIElement {
+    ZSignal<double> ValueChanged;               // committed (Enter / blur / step)
+    ZSignal<const std::wstring&> TextChanged;   // every text change (live validation)
+
+    NumberBox(double value = 0.0);
+    std::shared_ptr<TextBox> GetTextBox() const;
+
+    void SetValue(double, bool fire = true); double GetValue() const;
+    void SetRange(double lo, double hi); void SetMin(double); void SetMax(double);
+    double GetMin() const; double GetMax() const;
+    void SetStep(double); double GetStep() const;   // float steps
+    void SetDecimals(int); void SetWrap(bool);
+
+    void SetDefaultValue(double); double GetDefaultValue() const;
+    void ResetToDefault(); bool IsDefaultValue() const; bool ShowClear() const;
+    void StepUp(); void StepDown();
+
+    void SetSpinButtons(bool); void SetSpinWidth(float);
+    void SetColors(Color spinBg, Color arrow, Color accent);
+    void SetError(bool); bool IsError() const;
+    void SetPlaceholder(const std::wstring&); void SetEnabled(bool);
+};
+```
+
+- Internally a `TextBox` with a **character filter** (digits, `.`, `-`, `+` only) and **IME disabled**.
+- Overlaid on the right **inside** the box: **up/down step buttons** and a **clear ×** (shown only when the value differs from the default; click restores the default); glyphs come from the system icon font.
+- **Empty text = error** (**the control's own behavior**, not the caller's job); `ValueChanged` fires on commit, `TextChanged` on every keystroke (for **live** validation / error state).
+- Input beyond `[min,max]` is **clamped** on commit.
+
+## SplitView (two panes + draggable splitter)
+
+```cpp
+class SplitView : public UIElement {
+    enum class Orientation { Vertical, Horizontal };   // Vertical = left/right (vertical splitter)
+    ZSignal<float> SplitChanged;                       // new ratio 0..1
+
+    SplitView();
+    void SetOrientation(Orientation);
+    void SetFirst(std::shared_ptr<UIElement>);  std::shared_ptr<UIElement> GetFirst() const;
+    void SetSecond(std::shared_ptr<UIElement>); std::shared_ptr<UIElement> GetSecond() const;
+    void SetSplitRatio(float); float GetSplitRatio() const;
+    void SetSplitterWidth(float);
+    void SetMinFirst(float); void SetMinSecond(float);
+    void SetSplitterColor(Color); void SetHoverColor(Color);
+};
+```
+
+- A **parent container / layout**: lays out two panes by ratio with a draggable **splitter** (rounded + hover highlight).
+- Dragging follows the pointer immediately and **re-marks the two children** (their width changed -> re-layout); each pane gets `SetClipRect(pane rect ± bleed)` so highlights/shadows are not clipped.
+- For 3/4 panes: **nest** SplitViews (same idea as Qt's `QSplitter`).
 
 ## ListView
 

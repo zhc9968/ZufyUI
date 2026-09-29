@@ -194,6 +194,14 @@ A tour of the widgets (first page of the demo):
 - **`RadioButton` + `RadioGroup`**: circular radios; **group mutual exclusion** (an explicit group, not inferred from the parent), **vertical/horizontal**, **group keyboard navigation** (skips disabled items), selected item gets a **light-blue row background + accent left bar**; `SelectionChanging` (veto) and `SelectionChanged` enable custom exclusion/linkage.
 - **`ScrollBar` extracted into a standalone reusable control** (from `ScrollViewer`): self-contained **hover-expand + idle-shrink** (default 2s -> thin line) and a **callback-based** value (drag immediate / track-click smooth); shared by `ScrollViewer` and `TabView`.
 
+**New controls / UX (v1.12.0)**
+- **`ProgressRing`**: determinate (arc + eased value changes) / indeterminate (head advances exactly **2 turns per cycle** + sweep "breath" -> **no jump, tail never reverses**).
+- **`NumberBox` (numeric input / spinner)**: internal `TextBox` + character filter + **IME disabled**; overlaid **inside** the box on the right: up/down steps and a **clear ×** (shown when the value differs from the default; click restores it); **empty text -> error** (**the control's own behavior**); `ValueChanged` (commit) / `TextChanged` (live validation); out-of-range input clamped to `[min,max]`.
+- **`SplitView` (two panes)**: draggable splitter (rounded + hover highlight); dragging **re-marks only the two children** (not the whole control); each pane is clipped to `pane rect ± bleed`; multi-pane via **nesting**.
+- **`TextBox`**: new **bottom blue indicator** (replaces the bottom border, blends with corners), **error state** (`SetError`, whole box turns red, **border width unchanged**), **IME toggle** (`SetImeEnabled`); read-only **shows no caret** (still selectable).
+- **`ScrollBar`**: extracted into a standalone reusable control; 2s idle shrink, hover restore + hover animation.
+- **Fix**: containers (`LayoutHost` / `SplitView` / `NumberBox`) previously **did not recurse the animation tick down to their children** -> child hover/page animations did not run; fixed.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**

@@ -81,9 +81,9 @@
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 11
+#define ZufyUI_VERSION_MINOR 12
 #define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.11.0"
+#define ZufyUI_VERSION_STRING L"1.12.0"
 
 #ifndef DWMWA_BORDER_COLOR
 #define DWMWA_BORDER_COLOR 34
@@ -1785,6 +1785,10 @@ class MenuWindowBase;
             windowId_ = WindowIdOf(w);
             if (layout_) layout_->AttachWindowRecursive(w);
         }
+
+        // 容器基类：把动画递归下发给自己的布局子元素（否则子控件动画不跑）
+        void UpdateAnimation(float deltaTime) override { if (layout_) layout_->UpdateAnimation(deltaTime); }
+        bool HasActiveAnimation() const override { return layout_ ? layout_->HasActiveAnimation() : false; }
 
         bool UseCache() const override { return false; }
 

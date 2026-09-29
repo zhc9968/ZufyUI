@@ -613,7 +613,7 @@ namespace ZufyUI {
         inline static float DefaultWidth = 160.0f;
         inline static float DefaultHeight = 30.0f;
         inline static D2D1_COLOR_F DefaultBgColor = D2D1::ColorF(0.98f, 0.98f, 0.98f, 1.0f);
-        inline static D2D1_COLOR_F DefaultBorderColor = D2D1::ColorF(0.6f, 0.6f, 0.6f, 1.0f);
+        inline static D2D1_COLOR_F DefaultBorderColor = D2D1::ColorF(0.80f, 0.80f, 0.80f, 1.0f);
         inline static D2D1_COLOR_F DefaultTextColor = D2D1::ColorF(0, 0, 0, 1);
         inline static D2D1_COLOR_F DefaultSelectionColor = D2D1::ColorF(0.7f, 0.85f, 1.0f, 0.5f);
         inline static D2D1_COLOR_F DefaultHoverBgColor = D2D1::ColorF(0.93f, 0.93f, 0.93f, 1.0f);
@@ -700,6 +700,16 @@ namespace ZufyUI {
 
         // ---------- 只读 / 输入过滤 / 回车 / 占位色 / 密码显隐 / 选区编辑 ----------
         void SetReadOnly(bool readOnly) { readOnly_ = readOnly; RequestRepaint(); }
+        // 错误态：整体（含边框、底部指示器）变红
+        void SetError(bool on) { if (on != error_) { error_ = on; RequestRepaint(); } }
+        bool IsError() const { return error_; }
+        // 关掉 IME 关联（数字框等不希望弹出输入法）
+        void SetImeEnabled(bool on) { imeEnabled_ = on; }
+        bool IsImeEnabled() const { return imeEnabled_; }
+        void SetAccentColor(Color c) { accentColor_ = c.ToD2D(); RequestRepaint(); }
+        void SetErrorColor(Color c) { errorColor_ = c.ToD2D(); RequestRepaint(); }
+        void SetIndicatorColor(Color c) { accentColor_ = c.ToD2D(); RequestRepaint(); }
+        void SetIndicatorThickness(float t) { indicatorThickness_ = max(1.0f, t); RequestRepaint(); }
         bool IsReadOnly() const { return readOnly_; }
         void SetInputFilter(std::function<bool(wchar_t)> filter) { inputFilter_ = std::move(filter); }
         void ClearInputFilter() { inputFilter_ = nullptr; }
@@ -744,7 +754,7 @@ namespace ZufyUI {
             return nullptr;
         }
         bool IsFocusable() const override { return true; }
-        bool IsTextInput() const override { return true; }
+        bool IsTextInput() const override { return imeEnabled_; }
 
         Rect GetImeCandidateRect() const override {
             float cursorX = GetTextPositionX(cursorPos_ + (hasComposition_ ? min(compositionCursorPos_, (int)compositionText_.size()) : 0));
@@ -768,22 +778,42 @@ namespace ZufyUI {
             IDWriteTextFormat* fmt = GetFontFormat();
             if (!fmt) return;
 
-            // 1. 背景和边框（不裁剪）
-            D2D1_COLOR_F bgCol = D2D1::ColorF(
-                bgColor_.r + (hoverBgColor_.r - bgColor_.r) * hoverProgress_,
-                bgColor_.g + (hoverBgColor_.g - bgColor_.g) * hoverProgress_,
-                bgColor_.b + (hoverBgColor_.b - bgColor_.b) * hoverProgress_, 1.0f);
+            // 1. 背景和边框（不裁剪；错误态整体变红）
+            D2D1_COLOR_F bgCol = error_
+                ? D2D1::ColorF(1.0f, 0.97f, 0.97f, 1.0f)
+                : D2D1::ColorF(
+                    bgColor_.r + (hoverBgColor_.r - bgColor_.r) * hoverProgress_,
+                    bgColor_.g + (hoverBgColor_.g - bgColor_.g) * hoverProgress_,
+                    bgColor_.b + (hoverBgColor_.b - bgColor_.b) * hoverProgress_, 1.0f);
             if (!bgBrush_) rt->CreateSolidColorBrush(bgCol, bgBrush_.GetAddressOf());
             else bgBrush_->SetColor(bgCol);
             if (bgBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(arrangedRect_.ToD2D(), 4, 4), bgBrush_.Get());
 
-            D2D1_COLOR_F borderCol = D2D1::ColorF(
+            D2D1_COLOR_F borderCol = error_ ? errorColor_ : D2D1::ColorF(
                 borderColor_.r + (hoverBorderColor_.r - borderColor_.r) * hoverProgress_,
                 borderColor_.g + (hoverBorderColor_.g - borderColor_.g) * hoverProgress_,
                 borderColor_.b + (hoverBorderColor_.b - borderColor_.b) * hoverProgress_, 1.0f);
             if (!borderBrush_) rt->CreateSolidColorBrush(borderCol, borderBrush_.GetAddressOf());
             else borderBrush_->SetColor(borderCol);
             if (borderBrush_) rt->DrawRoundedRectangle(D2D1::RoundedRect(arrangedRect_.ToD2D(), 4, 4), borderBrush_.Get(), 1.0f);
+
+            // 底部指示器：与边框同圆角的"加粗描边"，裁到框底部 → 替换下边框并与圆角融合
+            {
+                D2D1_COLOR_F ind = error_ ? errorColor_ : accentColor_;
+                if (!indicatorBrush_) rt->CreateSolidColorBrush(ind, indicatorBrush_.GetAddressOf());
+                else indicatorBrush_->SetColor(ind);
+                if (indicatorBrush_) {
+                    float th2 = indicatorThickness_;
+                    float ins = th2 * 0.5f;
+                    D2D1_RECT_F box = arrangedRect_.ToD2D();
+                    D2D1_RECT_F ip = D2D1::RectF(box.left + ins, box.top + ins, box.right - ins, box.bottom - ins);
+                    float irad = max(0.0f, 4.0f - ins);
+                    rt->PushAxisAlignedClip(D2D1::RectF(box.left - 1.0f, box.bottom - th2, box.right + 1.0f, box.bottom + 1.0f),
+                        D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+                    rt->DrawRoundedRectangle(D2D1::RoundedRect(ip, irad, irad), indicatorBrush_.Get(), th2);
+                    rt->PopAxisAlignedClip();
+                }
+            }
 
             // 2. 文本内容裁剪（内部区域）
             D2D1_RECT_F clipRect = D2D1::RectF(
@@ -838,7 +868,7 @@ namespace ZufyUI {
             }
 
             // 5. 绘制光标
-            if (focused_ && showCursor_ && selectionStart_ == selectionEnd_) {
+            if (focused_ && showCursor_ && !readOnly_ && selectionStart_ == selectionEnd_) {
                 int globalCursorPos = cursorPos_;
                 if (hasComposition_) {
                     globalCursorPos += min(compositionCursorPos_, (int)compositionText_.size());
@@ -1288,6 +1318,12 @@ namespace ZufyUI {
         ComPtr<IDWriteTextLayout> displayTextLayout_;
         ComPtr<IDWriteTextLayout> fullDisplayLayout_;
         D2D1_COLOR_F bgColor_, borderColor_, textColor_, selectionColor_;
+        bool error_ = false;
+        bool imeEnabled_ = true;                                            // 关掉后不关联 IME（输入法）
+        D2D1_COLOR_F accentColor_ = D2D1::ColorF(0.0f, 0.47f, 0.84f, 1.0f);
+        D2D1_COLOR_F errorColor_ = D2D1::ColorF(0.80f, 0.13f, 0.13f, 1.0f);
+        float indicatorThickness_ = 2.5f;
+        ComPtr<ID2D1SolidColorBrush> indicatorBrush_;
         D2D1_COLOR_F hoverBgColor_, hoverBorderColor_;
         std::vector<std::wstring> undoStack_;
         int undoIndex_;
@@ -4635,6 +4671,649 @@ namespace ZufyUI {
         bool  pointerInStrip_ = false;   // 鼠标是否在页签条上（决定滚轮是否归 tab）
 
         ComPtr<ID2D1SolidColorBrush> bgBrush_, contentBrush_, textBrush_, hoverBrush_, indicatorBrush_, borderBrush_, closeBrush_, closeBtnBrush_, selBrush_, scroll2Brush_;
+    };
+
+    // ============================================================================
+    // ProgressRing：环形进度（确定值弧 / 不确定值旋转）
+    // ============================================================================
+    class ProgressRing : public UIElement {
+    public:
+        inline static float DefaultSize = 40.0f;
+        inline static float DefaultThickness = 4.0f;
+        inline static float DefaultAnimationSpeed = 1.0f;
+        inline static Color DefaultColor = Color(0.0f, 0.47f, 0.84f, 1.0f);
+        inline static Color DefaultTrackColor = Color(0, 0, 0, 0.10f);
+
+        ProgressRing() { size_ = DefaultSize; thickness_ = DefaultThickness; color_ = DefaultColor; trackColor_ = DefaultTrackColor; }
+        explicit ProgressRing(float size) : ProgressRing() { size_ = size; }
+
+        void SetValue(float v) { v = clamp(v, 0.0f, 1.0f); if (v != value_) { value_ = v; RequestRepaint(); } }
+        float GetValue() const { return value_; }
+        void SetIndeterminate(bool on) { if (on != indeterminate_) { indeterminate_ = on; RequestRepaint(); } }
+        bool IsIndeterminate() const { return indeterminate_; }
+        void SetColor(Color c) { color_ = c; RequestRepaint(); }
+        void SetTrackColor(Color c) { trackColor_ = c; RequestRepaint(); }
+        void SetThickness(float t) { thickness_ = max(1.0f, t); InvalidateLayout(); RequestRepaint(); }
+        void SetSize(float s) { size_ = max(8.0f, s); InvalidateLayout(); RequestRepaint(); }
+        void SetAnimationSpeed(float s) { animSpeed_ = max(0.1f, s); }
+
+        Size MeasureOverride(const Size&) override { return Size(size_, size_); }
+
+        void Draw(ID2D1RenderTarget* rt) override {
+            if (!visible_ || !rt) return;
+            float s = min(arrangedRect_.width, arrangedRect_.height);
+            if (s <= 1.0f) s = size_;
+            float th = min(thickness_, s * 0.5f);
+            float cx = arrangedRect_.x + arrangedRect_.width * 0.5f;
+            float cy = arrangedRect_.y + arrangedRect_.height * 0.5f;
+            float r = (s - th) * 0.5f;
+            if (r <= 0.5f) return;
+            ID2D1StrokeStyle* ss = RoundStroke(rt);
+            if (!brush_) rt->CreateSolidColorBrush(color_.ToD2D(), brush_.GetAddressOf());
+            else brush_->SetColor(color_.ToD2D());
+            if (!indeterminate_) {
+                if (displayValue_ < 0.999f && trackColor_.a > 0.0f) {
+                    if (!trackBrush_) rt->CreateSolidColorBrush(trackColor_.ToD2D(), trackBrush_.GetAddressOf());
+                    else trackBrush_->SetColor(trackColor_.ToD2D());
+                    if (trackBrush_) DrawArc(rt, cx, cy, r, 0.0f, 359.9f, th, trackBrush_.Get(), ss);
+                }
+                if (displayValue_ > 0.001f && brush_) DrawArc(rt, cx, cy, r, -90.0f, 360.0f * displayValue_, th, brush_.Get(), ss);
+            }
+            else if (brush_) {
+                // 头部每周期整整 2 圈（720°=360°×2）：indT_ 回绕时 head 720°→0° 视觉连续，不跳（540° 会跳 180°）。
+                // 扫角 20°↔240° 呼吸：最大变化速率 ≈110·2π≈691°/周期 < 720°/周期 → 尾端 (head-sweep) 始终向前，不倒走。
+                float head = indT_ * 720.0f;
+                float sweep = 130.0f - 70.0f * cosf(2.0f * 3.14159265f * indT_);   // 60°↔200°；速率峰值≈440°/周期 → 尾端最低速≈280°/周期（不再明显卡顿）
+                DrawArc(rt, cx, cy, r, head - sweep, sweep, th, brush_.Get(), ss);
+            }
+        }
+        void UpdateAnimation(float dt) override {
+            if (indeterminate_) {
+                indT_ += dt * animSpeed_ / indPeriod_;
+                while (indT_ >= 1.0f) indT_ -= 1.0f;
+                RequestRepaint();
+                return;
+            }
+            if (fabs(displayValue_ - value_) > 0.001f) {   // 值变化走缓动
+                displayValue_ += (value_ - displayValue_) * min(1.0f, animSpeed_ * 8.0f * dt);
+                if (fabs(displayValue_ - value_) < 0.001f) displayValue_ = value_;
+                RequestRepaint();
+            }
+        }
+        bool HasActiveAnimation() const override {
+            if (indeterminate_) return true;
+            return fabs(displayValue_ - value_) > 0.001f;
+        }
+        void ReleaseDeviceResources() override { brush_.Reset(); trackBrush_.Reset(); UIElement::ReleaseDeviceResources(); }
+
+    private:
+        static ID2D1StrokeStyle* RoundStroke(ID2D1RenderTarget* rt) {
+            static ComPtr<ID2D1StrokeStyle> ss;
+            if (!ss && rt) {
+                ComPtr<ID2D1Factory> f; rt->GetFactory(&f);
+                if (f) f->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND,
+                    D2D1_CAP_STYLE_ROUND, D2D1_LINE_JOIN_ROUND), nullptr, 0, &ss);
+            }
+            return ss.Get();
+        }
+        static void DrawArc(ID2D1RenderTarget* rt, float cx, float cy, float r, float startDeg, float sweepDeg,
+            float thickness, ID2D1Brush* brush, ID2D1StrokeStyle* ss) {
+            sweepDeg = clamp(sweepDeg, -359.9f, 359.9f);
+            if (fabs(sweepDeg) < 0.05f) return;
+            const float kPi = 3.14159265358979f;
+            float a0 = startDeg * kPi / 180.0f;
+            float a1 = (startDeg + sweepDeg) * kPi / 180.0f;
+            D2D1_POINT_2F p0 = D2D1::Point2F(cx + r * cosf(a0), cy + r * sinf(a0));
+            D2D1_POINT_2F p1 = D2D1::Point2F(cx + r * cosf(a1), cy + r * sinf(a1));
+            ComPtr<ID2D1Factory> f; rt->GetFactory(&f);
+            if (!f) return;
+            ComPtr<ID2D1PathGeometry> path;
+            if (FAILED(f->CreatePathGeometry(&path)) || !path) return;
+            ComPtr<ID2D1GeometrySink> sink;
+            if (FAILED(path->Open(&sink)) || !sink) return;
+            sink->BeginFigure(p0, D2D1_FIGURE_BEGIN_HOLLOW);
+            D2D1_ARC_SEGMENT arc;
+            arc.point = p1;
+            arc.size = D2D1::SizeF(r, r);
+            arc.rotationAngle = 0.0f;
+            arc.sweepDirection = (sweepDeg >= 0.0f) ? D2D1_SWEEP_DIRECTION_CLOCKWISE : D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE;
+            arc.arcSize = (fabs(sweepDeg) > 180.0f) ? D2D1_ARC_SIZE_LARGE : D2D1_ARC_SIZE_SMALL;
+            sink->AddArc(arc);
+            sink->EndFigure(D2D1_FIGURE_END_OPEN);
+            sink->Close();
+            rt->DrawGeometry(path.Get(), brush, thickness, ss);
+        }
+
+        float size_ = DefaultSize, thickness_ = DefaultThickness;
+        float value_ = 0.0f, displayValue_ = 0.0f, indT_ = 0.0f, indPeriod_ = 1.8f, animSpeed_ = DefaultAnimationSpeed;
+        bool indeterminate_ = false;
+        Color color_, trackColor_;
+        ComPtr<ID2D1SolidColorBrush> brush_, trackBrush_;
+    };
+
+    // ============================================================================
+    // NumberBox / Spinner：数字输入（只接受数字；范围 / 步进 / 滚轮 / 上下按钮）
+    // ============================================================================
+    class NumberBox : public UIElement {
+    public:
+        inline static float DefaultSpinWidth = 22.0f;
+        inline static float DefaultHeight = 32.0f;
+        inline static Color DefaultSpinBgColor = Color(0, 0, 0, 0.04f);
+        inline static Color DefaultArrowColor = Color(0.30f, 0.30f, 0.30f, 1.0f);
+        inline static Color DefaultAccentColor = Color(0.0f, 0.47f, 0.84f, 1.0f);
+
+        ZSignal<double> ValueChanged;
+        ZSignal<const std::wstring&> TextChanged;   // 每次文本变化（可做实时校验/错误态）
+
+        NumberBox(double value = 0.0) {
+            value_ = value;
+            height_ = DefaultHeight;
+            spinBgColor_ = DefaultSpinBgColor; arrowColor_ = DefaultArrowColor; accentColor_ = DefaultAccentColor;
+            default_ = value;
+            text_ = std::make_shared<TextBox>();
+            text_->SetParent(this);
+            text_->SetImeEnabled(false);   // 数字框不弹输入法
+            text_->SetInputFilter([](wchar_t c) {
+                return (c >= L'0' && c <= L'9') || c == L'.' || c == L'-' || c == L'+';
+            });
+            text_->Connect(text_->TextChanged, [this](const std::wstring& s) {
+                if (updating_) return;                        // 程序性同步不触发校验
+                edited_ = true;
+                // 空文本 = 空集，不属于任何数值（也超出范围）→ 控件层面直接标错误
+                if (s.empty()) { text_->SetError(true); }
+                else { wchar_t* e = nullptr; wcstod(s.c_str(), &e); if (!e || *e != L'\0') text_->SetError(true); }
+                InvalidateLayout();   // 重置按钮显隐会改变按钮区宽度 → 叠加层需重排
+                RequestRepaint();
+                TextChanged(s);
+            });
+            text_->Connect(text_->ReturnPressed, [this]() { CommitText(); });
+            text_->Connect(text_->Blurred, [this]() { CommitText(); });
+            SyncText();
+            upBtn_ = std::make_shared<SpinButton>(); upBtn_->owner = this; upBtn_->kind = SpinButton::Kind::Up; upBtn_->SetParent(this);
+            downBtn_ = std::make_shared<SpinButton>(); downBtn_->owner = this; downBtn_->kind = SpinButton::Kind::Down; downBtn_->SetParent(this);
+            clearBtn_ = std::make_shared<SpinButton>(); clearBtn_->owner = this; clearBtn_->kind = SpinButton::Kind::Clear; clearBtn_->SetParent(this);
+            clearBtn_->SetVisibleNoInvalidate(false);
+        }
+
+        std::shared_ptr<TextBox> GetTextBox() const { return text_; }
+
+        // 三个独立的小按钮（清除 / 上 / 下）：各自用框架的 OnMouseEnter/Leave 管悬停，最稳
+        struct SpinButton : public UIElement {
+            enum class Kind { Clear, Up, Down };
+            NumberBox* owner = nullptr;
+            Kind kind = Kind::Up;
+            Size MeasureOverride(const Size&) override { return Size(0, 0); }
+            void Draw(ID2D1RenderTarget* rt) override { if (owner) owner->DrawSpinButton(rt, arrangedRect_, kind, hoverProg_); }
+            UIElement* HitTest(float x, float y) override { return (visible_ && arrangedRect_.Contains(x, y)) ? this : nullptr; }
+            void OnMouseEnter() override { hover_ = true; RequestRepaint(); }
+            void OnMouseLeave() override { hover_ = false; RequestRepaint(); }
+            void OnMouseDown(float, float) override { if (owner) owner->OnSpinButton(kind); }
+            void UpdateAnimation(float dt) override {
+                float t = hover_ ? 1.0f : 0.0f;
+                if (fabs(t - hoverProg_) > 0.001f) {
+                    hoverProg_ += (t - hoverProg_) * min(1.0f, 14.0f * dt);
+                    if (fabs(t - hoverProg_) < 0.001f) hoverProg_ = t;
+                    RequestRepaint();
+                }
+            }
+            bool HasActiveAnimation() const override { return hover_ ? hoverProg_ < 0.999f : hoverProg_ > 0.001f; }
+        private:
+            bool hover_ = false;
+            float hoverProg_ = 0.0f;
+        };
+
+        void OnSpinButton(SpinButton::Kind kind) {
+            if (!IsEffectivelyEnabled()) return;
+            if (kind == SpinButton::Kind::Clear) ResetToDefault();
+            else if (kind == SpinButton::Kind::Up) StepUp();
+            else StepDown();
+        }
+        void DrawSpinButton(ID2D1RenderTarget* rt, const Rect& r, SpinButton::Kind kind, float prog) {
+            if (!visible_ || !rt || r.width <= 0.5f) return;
+            if (prog > 0.01f) {
+                D2D1_COLOR_F hc = hoverBgColor_.ToD2D(); hc.a *= prog;
+                if (!hoverBtnBrush_) rt->CreateSolidColorBrush(hc, hoverBtnBrush_.GetAddressOf());
+                else hoverBtnBrush_->SetColor(hc);
+                if (hoverBtnBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(r.ToD2D(), 4.0f, 4.0f), hoverBtnBrush_.Get());
+            }
+            // 用系统图标字体的字形（比手画线整齐、居中）
+            unsigned short code; D2D1_COLOR_F c;
+            if (kind == SpinButton::Kind::Clear) { code = 0xE711; c = (prog > 0.5f ? clearHoverColor_ : arrowColor_).ToD2D(); }
+            else if (kind == SpinButton::Kind::Up) { code = 0xE70E; c = (prog > 0.5f ? accentColor_ : arrowColor_).ToD2D(); }
+            else { code = 0xE70D; c = (prog > 0.5f ? accentColor_ : arrowColor_).ToD2D(); }
+            DrawGlyph(rt, code, r, c, min(r.width, r.height) * 0.62f);
+        }
+        static const std::wstring& IconFontFamily() {
+            static const std::wstring f = []() -> std::wstring {
+                IDWriteFactory* fac = FontManager::Instance().GetFactory();
+                if (fac) {
+                    ComPtr<IDWriteFontCollection> c;
+                    if (SUCCEEDED(fac->GetSystemFontCollection(&c)) && c) {
+                        UINT32 i = 0; BOOL e = FALSE;
+                        if (SUCCEEDED(c->FindFamilyName(L"Segoe Fluent Icons", &i, &e)) && e) return L"Segoe Fluent Icons";
+                    }
+                }
+                return L"Segoe MDL2 Assets";
+            }();
+            return f;
+        }
+        void DrawGlyph(ID2D1RenderTarget* rt, unsigned short code, const Rect& r, const D2D1_COLOR_F& color, float size) {
+            FontSpec spec; spec.familyName = IconFontFamily(); spec.size = size;
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(spec);
+            if (!fmt) return;
+            std::wstring g(1, (wchar_t)code);
+            ComPtr<IDWriteTextLayout> layout = FontManager::Instance().GetStyledLayout(g, fmt, r.width, r.height, true, 1, 1, 0.0f, 0);
+            if (!layout) return;
+            if (!arrowBrush_) rt->CreateSolidColorBrush(color, arrowBrush_.GetAddressOf());
+            else arrowBrush_->SetColor(color);
+            if (arrowBrush_) rt->DrawTextLayout(D2D1::Point2F(Snap(r.x), Snap(r.y)), layout.Get(), arrowBrush_.Get());
+        }
+
+        void SetValue(double v, bool fire = true) {
+            v = Clamp(v);
+            if (v == value_) { SyncText(); return; }
+            value_ = v; SyncText();
+            if (fire) ValueChanged(value_);
+            RequestRepaint();
+        }
+        double GetValue() const { return value_; }
+        void SetRange(double lo, double hi) { min_ = lo; max_ = hi; SetValue(value_); }
+        void SetMin(double v) { min_ = v; SetValue(value_); }
+        void SetMax(double v) { max_ = v; SetValue(value_); }
+        double GetMin() const { return min_; } double GetMax() const { return max_; }
+        void SetStep(double s) { step_ = (s > 0.0 ? s : 1.0); }
+        double GetStep() const { return step_; }
+        void SetDecimals(int d) { decimals_ = max(0, d); SyncText(); }
+        void SetWrap(bool on) { wrap_ = on; }
+        void SetSpinButtons(bool on) { showSpin_ = on; InvalidateLayout(); RequestRepaint(); }
+        void SetSpinWidth(float w) { spinWidth_ = max(0.0f, w); InvalidateLayout(); RequestRepaint(); }
+        void SetColors(Color spinBg, Color arrow, Color accent) { spinBgColor_ = spinBg; arrowColor_ = arrow; accentColor_ = accent; RequestRepaint(); }
+        // 转发到内部输入框
+        void SetPlaceholder(const std::wstring& t) { if (text_) text_->SetPlaceholder(t); }
+        void SetEnabled(bool e) { UIElement::SetEnabled(e); if (text_) text_->SetEnabled(e); }
+
+        void StepUp() { ApplyStep(+1); }
+        void StepDown() { ApplyStep(-1); }
+
+        // 默认值：值 != 默认值时，按钮区左侧会显示一个「清除 ×」恢复到默认值
+        void SetDefaultValue(double v) { default_ = v; InvalidateLayout(); RequestRepaint(); }
+        double GetDefaultValue() const { return default_; }
+        void ResetToDefault() { SetValue(default_); }
+        bool IsDefaultValue() const { return fabs(value_ - default_) < 1e-9; }
+        // 重置按钮是否显示：按"当前输入框文本"实时判断（不是已提交的缓存值），所以输入过程中就会显示
+        bool ShowClear() const {
+            if (!text_) return false;
+            wchar_t buf[64]; swprintf(buf, 64, L"%.*f", decimals_, default_);
+            return text_->GetText() != buf;
+        }
+        // 错误态（转发给内部输入框）
+        void SetError(bool on) { if (text_) text_->SetError(on); }
+        bool IsError() const { return text_ ? text_->IsError() : false; }
+
+        bool IsFocusable() const override { return true; }
+
+        Size MeasureOverride(const Size& availableSize) override {
+            float w = width_ > 0 ? width_ : (availableSize.width != FLT_MAX ? availableSize.width : 120.0f);
+            float h = height_ > 0 ? height_ : DefaultHeight;
+            if (text_) text_->Measure(Size(max(0.0f, w - (showSpin_ ? spinWidth_ : 0.0f)), h));
+            return Size(w, h);
+        }
+        void ArrangeOverride(const Rect& finalRect) override {
+            UIElement::ArrangeOverride(finalRect);
+            if (text_) text_->Arrange(finalRect);   // 输入框占满；按钮叠在其右侧之上
+            float sw = showSpin_ ? min(spinWidth_, finalRect.width * 0.4f) : 0.0f;
+            float cw = (showSpin_ && ShowClear()) ? min(clearWidth_, max(0.0f, finalRect.width - sw)) : 0.0f;
+            float x0 = finalRect.x + finalRect.width - sw - cw;
+            float hh = finalRect.height * 0.5f;
+            if (upBtn_) { upBtn_->SetVisibleNoInvalidate(showSpin_ && sw > 1.0f); upBtn_->Arrange(Rect(finalRect.x + finalRect.width - sw, finalRect.y, sw, hh)); }
+            if (downBtn_) { downBtn_->SetVisibleNoInvalidate(showSpin_ && sw > 1.0f); downBtn_->Arrange(Rect(finalRect.x + finalRect.width - sw, finalRect.y + hh, sw, hh)); }
+            if (clearBtn_) { clearBtn_->SetVisibleNoInvalidate(showSpin_ && cw > 1.0f); clearBtn_->Arrange(Rect(x0, finalRect.y + finalRect.height * 0.25f, cw, finalRect.height * 0.5f)); }
+        }
+        void Draw(ID2D1RenderTarget* rt) override {
+            // 上下按钮的浅色底（画在按钮之下）
+            if (!visible_ || !rt || !showSpin_) return;
+            float sw = min(spinWidth_, arrangedRect_.width * 0.4f);
+            if (sw <= 1.0f) return;
+            Rect col(arrangedRect_.x + arrangedRect_.width - sw, arrangedRect_.y, sw, arrangedRect_.height);
+            if (!spinBrush_) rt->CreateSolidColorBrush(spinBgColor_.ToD2D(), spinBrush_.GetAddressOf());
+            else spinBrush_->SetColor(spinBgColor_.ToD2D());
+            if (spinBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(col.ToD2D(), 4.0f, 4.0f), spinBrush_.Get());
+        }
+        void DrawButtons(ID2D1RenderTarget* rt, const Rect& r) {
+            if (!visible_ || !rt || !showSpin_ || r.width <= 1.0f) return;
+            float sw = min(spinWidth_, r.width);
+            Rect spin(r.x + r.width - sw, r.y, sw, r.height);
+            if (!spinBrush_) rt->CreateSolidColorBrush(spinBgColor_.ToD2D(), spinBrush_.GetAddressOf());
+            else spinBrush_->SetColor(spinBgColor_.ToD2D());
+            if (spinBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(spin.ToD2D(), 4.0f, 4.0f), spinBrush_.Get());
+            // 悬停按钮的圆角背景（带渐入动画）
+            if (btnHover_ > 0.01f) {
+                Rect hr = hoverClear_ ? ClearRect(r) : (hoverUp_ ? UpRect(r) : (hoverDown_ ? DownRect(r) : Rect(0, 0, 0, 0)));
+                if (hr.width > 0.5f) {
+                    D2D1_COLOR_F hc = hoverBgColor_.ToD2D(); hc.a *= btnHover_;
+                    if (!hoverBtnBrush_) rt->CreateSolidColorBrush(hc, hoverBtnBrush_.GetAddressOf());
+                    else hoverBtnBrush_->SetColor(hc);
+                    if (hoverBtnBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(hr.ToD2D(), 4.0f, 4.0f), hoverBtnBrush_.Get());
+                }
+            }
+            float half = spin.height * 0.5f;
+            DrawArrow(rt, spin.x, spin.y, sw, half, true, hoverUp_);
+            DrawArrow(rt, spin.x, spin.y + half, sw, half, false, hoverDown_);
+            if (ShowClear()) {
+                float cw = min(clearWidth_, max(0.0f, r.width - sw));
+                DrawClear(rt, Rect(r.x + r.width - sw - cw, r.y, cw, r.height));
+            }
+        }
+        void DrawClear(ID2D1RenderTarget* rt, const Rect& r) {
+            D2D1_COLOR_F c = (hoverClear_ ? accentColor_ : arrowColor_).ToD2D();
+            if (!arrowBrush_) rt->CreateSolidColorBrush(c, arrowBrush_.GetAddressOf());
+            else arrowBrush_->SetColor(c);
+            if (!arrowBrush_) return;
+            float cx = r.x + r.width * 0.5f, cy = r.y + r.height * 0.5f;
+            float e = min(r.width, r.height) * 0.24f * (1.0f + 0.12f * btnHover_);   // 本体随 hover 微放大
+            rt->DrawLine(D2D1::Point2F(cx - e, cy - e), D2D1::Point2F(cx + e, cy + e), arrowBrush_.Get(), 1.4f);
+            rt->DrawLine(D2D1::Point2F(cx + e, cy - e), D2D1::Point2F(cx - e, cy + e), arrowBrush_.Get(), 1.4f);
+        }
+        const std::vector<UIElement*>& GetChildren() const override {
+            if (!childrenDirty_) return childrenView_;
+            childrenDirty_ = false;
+            childrenView_.clear();
+            if (text_) childrenView_.push_back(text_.get());
+            if (clearBtn_) childrenView_.push_back(clearBtn_.get());
+            if (upBtn_) childrenView_.push_back(upBtn_.get());
+            if (downBtn_) childrenView_.push_back(downBtn_.get());
+            return childrenView_;
+        }
+        void AttachWindowRecursive(Window* w) override {
+            windowId_ = WindowIdOf(w);
+            if (text_) text_->AttachWindowRecursive(w);
+            if (clearBtn_) clearBtn_->AttachWindowRecursive(w);
+            if (upBtn_) upBtn_->AttachWindowRecursive(w);
+            if (downBtn_) downBtn_->AttachWindowRecursive(w);
+        }
+        UIElement* HitTest(float x, float y) override {
+            if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
+            if (clearBtn_) { if (UIElement* h = clearBtn_->HitTest(x, y)) return h; }
+            if (upBtn_) { if (UIElement* h = upBtn_->HitTest(x, y)) return h; }
+            if (downBtn_) { if (UIElement* h = downBtn_->HitTest(x, y)) return h; }
+            if (text_) { if (UIElement* h = text_->HitTest(x, y)) return h; }
+            return this;
+        }
+        void ButtonsHover(float x, float y, const Rect& r) {
+            bool cu = ShowClear() && ClearRect(r).Contains(x, y);
+            bool uu = UpRect(r).Contains(x, y), dd = DownRect(r).Contains(x, y);
+            if (cu != hoverClear_ || uu != hoverUp_ || dd != hoverDown_) { hoverClear_ = cu; hoverUp_ = uu; hoverDown_ = dd; RequestRepaint(); }
+        }
+        void ButtonsLeave() { if (hoverClear_ || hoverUp_ || hoverDown_) { hoverClear_ = hoverUp_ = hoverDown_ = false; RequestRepaint(); } }
+        void ButtonsDown(float x, float y, const Rect& r) {
+            if (!IsEffectivelyEnabled()) return;
+            if (ShowClear() && ClearRect(r).Contains(x, y)) { ResetToDefault(); return; }
+            if (DownRect(r).Contains(x, y)) { StepDown(); return; }
+            if (UpRect(r).Contains(x, y)) { StepUp(); return; }
+        }
+        bool OnMouseWheel(float deltaX, float deltaY) override {
+            (void)deltaX;
+            if (!IsEffectivelyEnabled()) return false;
+            if (deltaY > 0.0f) { StepUp(); return true; }
+            if (deltaY < 0.0f) { StepDown(); return true; }
+            return false;
+        }
+        void UpdateAnimation(float dt) override {
+            float ht = (hoverUp_ || hoverDown_ || hoverClear_) ? 1.0f : 0.0f;
+            if (fabs(ht - btnHover_) > 0.001f) {
+                btnHover_ += (ht - btnHover_) * min(1.0f, 14.0f * dt);
+                if (fabs(ht - btnHover_) < 0.001f) btnHover_ = ht;
+                RequestRepaint();
+            }
+            if (clearBtn_) clearBtn_->UpdateAnimation(dt);
+            if (upBtn_) upBtn_->UpdateAnimation(dt);
+            if (downBtn_) downBtn_->UpdateAnimation(dt);
+            if (text_) text_->UpdateAnimation(dt);
+        }
+        bool HasActiveAnimation() const override {
+            if ((clearBtn_ && clearBtn_->HasActiveAnimation()) || (upBtn_ && upBtn_->HasActiveAnimation()) ||
+                (downBtn_ && downBtn_->HasActiveAnimation())) return true;
+            return text_ ? text_->HasActiveAnimation() : false;
+        }
+        void ReleaseDeviceResources() override { spinBrush_.Reset(); arrowBrush_.Reset(); hoverBtnBrush_.Reset(); if (text_) text_->ReleaseDeviceResources(); UIElement::ReleaseDeviceResources(); }
+
+    private:
+        double Clamp(double v) const { if (v < min_) return min_; if (v > max_) return max_; return v; }
+        Rect UpRect(const Rect& r) const { float sw = min(spinWidth_, r.width); return Rect(r.x + r.width - sw, r.y, sw, r.height * 0.5f); }
+        Rect DownRect(const Rect& r) const { float sw = min(spinWidth_, r.width); return Rect(r.x + r.width - sw, r.y + r.height * 0.5f, sw, r.height * 0.5f); }
+        Rect ClearRect(const Rect& r) const {
+            if (!ShowClear()) return Rect(0, 0, 0, 0);
+            float sw = min(spinWidth_, r.width);
+            float cw = min(clearWidth_, max(0.0f, r.width - sw));
+            return Rect(r.x + r.width - sw - cw, r.y, cw, r.height);
+        }
+        void ApplyStep(int dir) {
+            CommitText();   // 关键：先读输入框里的"当前"值（用户可能已改但没失焦），否则会用旧缓存值把改动顶掉
+            double v = value_ + (dir > 0 ? step_ : -step_);
+            if (!wrap_) v = Clamp(v);
+            else { if (v > max_) v = min_; else if (v < min_) v = max_; }
+            SetValue(v);
+        }
+        void SyncText() {
+            if (!text_) return;
+            wchar_t buf[64];
+            swprintf(buf, 64, L"%.*f", decimals_, value_);
+            updating_ = true;
+            text_->SetText(buf);
+            updating_ = false;
+            edited_ = false;
+        }
+        void CommitText() {
+            if (!text_ || !edited_) return;
+            std::wstring s = text_->GetText();
+            double v = value_;
+            if (!s.empty()) { const wchar_t* p = s.c_str(); wchar_t* end = nullptr; v = wcstod(p, &end); }
+            SetValue(v);
+            edited_ = false;
+        }
+        void DrawArrow(ID2D1RenderTarget* rt, float x, float y, float w, float h, bool up, bool hot) {
+            D2D1_COLOR_F c = (hot ? accentColor_ : arrowColor_).ToD2D();
+            if (!arrowBrush_) rt->CreateSolidColorBrush(c, arrowBrush_.GetAddressOf());
+            else arrowBrush_->SetColor(c);
+            if (!arrowBrush_) return;
+            float cx = x + w * 0.5f, cy = y + h * 0.5f, e = min(w, h) * 0.22f;
+            if (up) {
+                rt->DrawLine(D2D1::Point2F(cx - e, cy + e * 0.7f), D2D1::Point2F(cx, cy - e * 0.7f), arrowBrush_.Get(), 1.4f);
+                rt->DrawLine(D2D1::Point2F(cx, cy - e * 0.7f), D2D1::Point2F(cx + e, cy + e * 0.7f), arrowBrush_.Get(), 1.4f);
+            }
+            else {
+                rt->DrawLine(D2D1::Point2F(cx - e, cy - e * 0.7f), D2D1::Point2F(cx, cy + e * 0.7f), arrowBrush_.Get(), 1.4f);
+                rt->DrawLine(D2D1::Point2F(cx, cy + e * 0.7f), D2D1::Point2F(cx + e, cy - e * 0.7f), arrowBrush_.Get(), 1.4f);
+            }
+        }
+
+        std::shared_ptr<TextBox> text_;
+        std::shared_ptr<SpinButton> clearBtn_, upBtn_, downBtn_;
+        double value_ = 0.0, min_ = -1e15, max_ = 1e15, step_ = 1.0, default_ = 0.0;
+        int decimals_ = 0;
+        bool wrap_ = false, showSpin_ = true, hoverUp_ = false, hoverDown_ = false, hoverClear_ = false, edited_ = false, updating_ = false;
+        float spinWidth_ = DefaultSpinWidth, clearWidth_ = 28.0f;
+        float btnHover_ = 0.0f;
+        Rect spinRect_{};
+        Color spinBgColor_, arrowColor_, accentColor_, hoverBgColor_ = Color(0, 0, 0, 0.18f);
+        Color clearHoverColor_ = Color(0.80f, 0.13f, 0.13f, 1.0f);   // 清除键悬停→红
+        ComPtr<ID2D1SolidColorBrush> spinBrush_, arrowBrush_, hoverBtnBrush_;
+    };
+
+    // ============================================================================
+    // SplitView：两栏 + 可拖动分隔条（左右 / 上下）
+    // ============================================================================
+    class SplitView : public UIElement {
+    public:
+        enum class Orientation { Vertical, Horizontal };   // Vertical = 左右两栏（竖分隔条）
+        inline static float DefaultSplitterWidth = 6.0f;
+        inline static Color DefaultSplitterColor = Color(0, 0, 0, 0.06f);
+        inline static Color DefaultHoverColor = Color(0.0f, 0.47f, 0.84f, 0.35f);
+
+        ZSignal<float> SplitChanged;   // 新比例 0..1
+
+        SplitView() { width_ = 0; height_ = 0; fillWidth_ = true; fillHeight_ = true; splitterColor_ = DefaultSplitterColor; hoverColor_ = DefaultHoverColor; }
+
+        void SetOrientation(Orientation o) { if (o != orientation_) { orientation_ = o; InvalidateLayout(); RequestRepaint(); } }
+        Orientation GetOrientation() const { return orientation_; }
+        void SetFirst(std::shared_ptr<UIElement> e) {
+            if (first_) first_->SetParent(nullptr);
+            first_ = e; if (e) e->SetParent(this);
+            MarkChildrenDirty(); InvalidateLayout(); RequestRepaint();
+        }
+        void SetSecond(std::shared_ptr<UIElement> e) {
+            if (second_) second_->SetParent(nullptr);
+            second_ = e; if (e) e->SetParent(this);
+            MarkChildrenDirty(); InvalidateLayout(); RequestRepaint();
+        }
+        std::shared_ptr<UIElement> GetFirst() const { return first_; }
+        std::shared_ptr<UIElement> GetSecond() const { return second_; }
+        void SetSplitRatio(float r) { r = clamp(r, 0.0f, 1.0f); if (r != ratio_) { ratio_ = r; InvalidateLayout(); RequestRepaint(); } }
+        float GetSplitRatio() const { return ratio_; }
+        void SetSplitterWidth(float w) { splitterW_ = max(1.0f, w); InvalidateLayout(); RequestRepaint(); }
+        float GetSplitterWidth() const { return splitterW_; }
+        void SetMinFirst(float px) { minFirst_ = max(0.0f, px); InvalidateLayout(); }
+        void SetMinSecond(float px) { minSecond_ = max(0.0f, px); InvalidateLayout(); }
+        void SetSplitterColor(Color c) { splitterColor_ = c; RequestRepaint(); }
+        void SetHoverColor(Color c) { hoverColor_ = c; RequestRepaint(); }
+
+        bool UseCache() const override { return false; }
+
+        Size MeasureOverride(const Size& availableSize) override {
+            float w = width_ > 0 ? width_ : (availableSize.width != FLT_MAX ? availableSize.width : 200.0f);
+            float h = height_ > 0 ? height_ : (availableSize.height != FLT_MAX ? availableSize.height : 200.0f);
+            bool vert = (orientation_ == Orientation::Vertical);
+            float usable = max(0.0f, (vert ? w : h) - splitterW_);
+            float firstLen = clamp(ratio_ * usable, minFirst_, max(0.0f, usable - minSecond_));
+            float secondLen = max(0.0f, usable - firstLen);
+            if (vert) {
+                if (first_) first_->Measure(Size(firstLen, h));
+                if (second_) second_->Measure(Size(secondLen, h));
+            }
+            else {
+                if (first_) first_->Measure(Size(w, firstLen));
+                if (second_) second_->Measure(Size(w, secondLen));
+            }
+            return Size(w, h);
+        }
+        void ArrangeOverride(const Rect& finalRect) override {
+            UIElement::ArrangeOverride(finalRect);
+            ApplyArrange(finalRect);
+        }
+        void Draw(ID2D1RenderTarget* rt) override {
+            if (!visible_ || !rt) return;
+            if (!splitterBrush_) rt->CreateSolidColorBrush(splitterColor_.ToD2D(), splitterBrush_.GetAddressOf());
+            else splitterBrush_->SetColor((hovered_ || dragging_) ? hoverColor_.ToD2D() : splitterColor_.ToD2D());
+            if (splitterBrush_) {
+                bool vert = (orientation_ == Orientation::Vertical);
+                float ins = 2.0f;   // 内缩一点 + 圆角（不再方角贴边）
+                D2D1_RECT_F sr = D2D1::RectF(splitterRect_.x + (vert ? ins : 0.0f), splitterRect_.y + (vert ? 0.0f : ins),
+                    splitterRect_.x + splitterRect_.width - (vert ? ins : 0.0f), splitterRect_.y + splitterRect_.height - (vert ? 0.0f : ins));
+                float rad = min(sr.right - sr.left, sr.bottom - sr.top) * 0.5f;
+                rt->FillRoundedRectangle(D2D1::RoundedRect(sr, rad, rad), splitterBrush_.Get());
+            }
+            // 中间的小握把线
+            if (!gripBrush_) rt->CreateSolidColorBrush(Color(1, 1, 1, 0.9f).ToD2D(), gripBrush_.GetAddressOf());
+            if (gripBrush_) {
+                float cx = splitterRect_.x + splitterRect_.width * 0.5f;
+                float cy = splitterRect_.y + splitterRect_.height * 0.5f;
+                if (orientation_ == Orientation::Vertical) {
+                    rt->DrawLine(D2D1::Point2F(cx, cy - 10.0f), D2D1::Point2F(cx, cy + 10.0f), gripBrush_.Get(), 1.0f);
+                }
+                else {
+                    rt->DrawLine(D2D1::Point2F(cx - 10.0f, cy), D2D1::Point2F(cx + 10.0f, cy), gripBrush_.Get(), 1.0f);
+                }
+            }
+        }
+        const std::vector<UIElement*>& GetChildren() const override {
+            if (!childrenDirty_) return childrenView_;
+            childrenDirty_ = false;
+            childrenView_.clear();
+            if (first_) childrenView_.push_back(first_.get());
+            if (second_) childrenView_.push_back(second_.get());
+            return childrenView_;
+        }
+        void AttachWindowRecursive(Window* w) override {
+            windowId_ = WindowIdOf(w);
+            if (first_) first_->AttachWindowRecursive(w);
+            if (second_) second_->AttachWindowRecursive(w);
+        }
+        // 关键：容器必须把 UpdateAnimation / HasActiveAnimation 递归给子控件，否则子控件的动画（悬停/翻页）不会跑
+        void UpdateAnimation(float dt) override {
+            if (first_) first_->UpdateAnimation(dt);
+            if (second_) second_->UpdateAnimation(dt);
+        }
+        bool HasActiveAnimation() const override {
+            return (first_ && first_->HasActiveAnimation()) || (second_ && second_->HasActiveAnimation());
+        }
+        UIElement* HitTest(float x, float y) override {
+            if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
+            // 分隔条带（含一点额外命中区，方便拖动）
+            Rect hit(splitterRect_.x - 3.0f, splitterRect_.y - 3.0f, splitterRect_.width + 6.0f, splitterRect_.height + 6.0f);
+            if (hit.Contains(x, y)) return this;
+            if (first_) { if (UIElement* h = first_->HitTest(x, y)) return h; }
+            if (second_) { if (UIElement* h = second_->HitTest(x, y)) return h; }
+            return this;
+        }
+        void OnMouseMove(float x, float y) override {
+            if (dragging_) { UpdateDrag(x, y); return; }
+            Rect hit(splitterRect_.x - 3.0f, splitterRect_.y - 3.0f, splitterRect_.width + 6.0f, splitterRect_.height + 6.0f);
+            bool h = hit.Contains(x, y);
+            if (h != hovered_) { hovered_ = h; RequestRepaint(); }
+        }
+        void OnMouseLeave() override { if (hovered_) { hovered_ = false; RequestRepaint(); } }
+        void OnMouseDown(float x, float y) override {
+            Rect hit(splitterRect_.x - 3.0f, splitterRect_.y - 3.0f, splitterRect_.width + 6.0f, splitterRect_.height + 6.0f);
+            if (hit.Contains(x, y)) { dragging_ = true; RequestRepaint(); }
+        }
+        void OnMouseUp(float, float) override { if (dragging_) { dragging_ = false; RequestRepaint(); } }
+
+    private:
+        void ApplyArrange(const Rect& fr) {
+            bool vert = (orientation_ == Orientation::Vertical);
+            float total = (vert ? fr.width : fr.height);
+            float usable = max(0.0f, total - splitterW_);
+            float firstLen = clamp(ratio_ * usable, minFirst_, max(0.0f, usable - minSecond_));
+            float secondLen = max(0.0f, usable - firstLen);
+            auto clipTo = [](UIElement* e, const Rect& r) {
+                float b = e->GetBleed();
+                e->SetClipRect(Rect(r.x - b, r.y - b, r.width + b * 2, r.height + b * 2));   // 保留出血（阴影/边框）不被裁
+            };
+            if (vert) {
+                if (first_) { Rect r(fr.x, fr.y, firstLen, fr.height); first_->Arrange(r); clipTo(first_.get(), r); }
+                splitterRect_ = Rect(fr.x + firstLen, fr.y, splitterW_, fr.height);
+                if (second_) { Rect r(fr.x + firstLen + splitterW_, fr.y, secondLen, fr.height); second_->Arrange(r); clipTo(second_.get(), r); }
+            }
+            else {
+                if (first_) { Rect r(fr.x, fr.y, fr.width, firstLen); first_->Arrange(r); clipTo(first_.get(), r); }
+                splitterRect_ = Rect(fr.x, fr.y + firstLen, fr.width, splitterW_);
+                if (second_) { Rect r(fr.x, fr.y + firstLen + splitterW_, fr.width, secondLen); second_->Arrange(r); clipTo(second_.get(), r); }
+            }
+        }
+        void UpdateDrag(float x, float y) {
+            bool vert = (orientation_ == Orientation::Vertical);
+            float total = (vert ? arrangedRect_.width : arrangedRect_.height);
+            float usable = max(1.0f, total - splitterW_);
+            float pos = (vert ? x : y) - (vert ? arrangedRect_.x : arrangedRect_.y) - splitterW_ * 0.5f;
+            float r = clamp(pos / usable, 0.0f, 1.0f);
+            if (r != ratio_) {
+                ratio_ = r;
+                ApplyArrange(arrangedRect_);             // 立即摆位（跟手）
+                if (first_) first_->InvalidateLayout();  // 变的是"子控件"的尺寸 → 标记子控件（不是重排整个 SplitView）
+                if (second_) second_->InvalidateLayout();
+                SplitChanged(ratio_);
+                RequestRepaint();
+            }
+        }
+
+        Orientation orientation_ = Orientation::Vertical;
+        std::shared_ptr<UIElement> first_, second_;
+        float ratio_ = 0.35f, splitterW_ = DefaultSplitterWidth;
+        float minFirst_ = 0.0f, minSecond_ = 0.0f;
+        bool dragging_ = false, hovered_ = false;
+        Rect splitterRect_{};
+        Color splitterColor_, hoverColor_;
+        ComPtr<ID2D1SolidColorBrush> splitterBrush_, gripBrush_;
     };
 
 } // namespace ZufyUI

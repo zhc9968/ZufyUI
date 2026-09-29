@@ -225,6 +225,55 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         radiosH->AddItem(L"乙");
         radiosH->AddItem(L"丙");
         grid1->AddChild(radiosH, 12, 0, 1, 2);
+
+        // 环形进度（确定值 x2 + 不确定旋转）
+        auto ringRow = std::make_shared<RowBox>();
+        ringRow->SetSpacing(16.0f);
+        auto ring1 = std::make_shared<ProgressRing>(36.0f);
+        ring1->SetValue(0.35f);
+        auto ring2 = std::make_shared<ProgressRing>(36.0f);
+        ring2->SetValue(0.72f);
+        ring2->SetColor(Color::FromArgb(255, 16, 124, 16));
+        auto ring3 = std::make_shared<ProgressRing>(36.0f);
+        ring3->SetIndeterminate(true);
+        ringRow->AddChild(ring1);
+        ringRow->AddChild(ring2);
+        ringRow->AddChild(ring3);
+        grid1->AddChild(ringRow, 13, 0, 1, 2);
+
+        // 分栏（可拖动中间分隔条）：左 = 嵌套 PageHost「交叉测试」，右 = 列表
+        auto split = std::make_shared<SplitView>();
+        split->SetHeight(200.0f);
+        split->SetSplitterWidth(8.0f);
+        split->SetMinFirst(120.0f);
+        split->SetMinSecond(120.0f);
+        {
+            auto leftPane = std::make_shared<Card>();
+            if (auto lg = leftPane->GetLayoutAs<GridLayout>()) {
+                auto nested = std::make_shared<PageHost>();
+                auto btns = std::make_shared<RowBox>();
+                btns->SetSpacing(6.0f);
+                for (int i = 1; i <= 3; ++i) {
+                    auto pg = std::make_shared<Page>();
+                    if (auto g = pg->GetLayoutAs<GridLayout>()) g->AddChild(std::make_shared<Label>(L"交叉页 " + std::to_wstring(i)), 0, 0);
+                    nested->AddPage(pg);
+                    auto b = std::make_shared<Button>(L"页" + std::to_wstring(i));
+                    b->SetWidth(44.0f);
+                    b->SetHeight(26.0f);
+                    b->Connect(b->Clicked, [nested, i]() { nested->NavigateTo(i - 1); });
+                    btns->AddChild(b);
+                }
+                nested->SetHeight(120.0f);
+                lg->AddChild(btns, 0, 0);
+                lg->AddChild(nested, 1, 0);
+            }
+            auto rightPane = std::make_shared<ListView>();
+            rightPane->SetButtonMode(true);
+            for (int i = 1; i <= 8; ++i) rightPane->AddItem(L"列表项 " + std::to_wstring(i));
+            split->SetFirst(leftPane);
+            split->SetSecond(rightPane);
+        }
+        grid1->AddChild(split, 14, 0, 1, 2);
     }
 
     // ---------- 页面2：输入与滚动 ----------
@@ -257,9 +306,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         passwordBox->SetMaxLength(16);
         grid2->AddChild(passwordBox, 2, 0);
 
-        auto numBox = std::make_shared<TextBox>();
-        numBox->SetPlaceholder(L"数字");
-        numBox->SetMaxLength(10);
+        auto numBox = std::make_shared<NumberBox>(5.0);
+        numBox->SetRange(-100000000.0, 100000000.0);   // ±1 亿
+        numBox->SetStep(100.0);                        // 每次上下调 100
+        numBox->SetDefaultValue(5.0);                  // 默认值；非默认时右侧出现「清除 ×」
+        numBox->SetPlaceholder(L"数字（仅数字；范围 ±1 亿；步进 100）");
+        // 实时校验（每次输入就判断，不用等失焦）：空 → 错误；114514 / 1919810 → 错误；其余正常
+        numBox->Connect(numBox->TextChanged, [nb = numBox.get()](const std::wstring& s) {
+            double v = 0.0; bool ok = !s.empty();
+            if (ok) { wchar_t* end = nullptr; v = wcstod(s.c_str(), &end); ok = (end && *end == L'\0' && end != s.c_str()); }
+            nb->SetError(!ok || v == 114514.0 || v == 1919810.0);
+        });
         grid2->AddChild(numBox, 2, 1);
 
         auto scrollView = std::make_shared<ScrollViewer>();
