@@ -202,6 +202,14 @@ win.SetCustomTitleBar(bar);
 - **`ScrollBar`**：抽成独立可复用控件；空闲 2 秒缩小、悬停恢复 + 悬停动画。
 - **修复**：容器（`LayoutHost` / `SplitView` / `NumberBox`）此前**没有把动画 tick 递归下发给子控件** → 子控件的悬停/翻页等动画不跑；现已补齐。
 
+**帧节奏修复 · 动画丝滑（v1.12.1）**
+- **现象**：帧率测着是 60，**肉眼却像 30–40**（"卡卡的"）。
+- **根因**：**帧间隔不均匀**（不是帧率低）。`WM_TIMER` 里排队 `InvalidateRect` → `WM_PAINT` 会被鼠标/键盘消息**插队**，帧开始时刻漂移，再被 `Present1(1)` 量化成整 vblank 的错位；叠加定时器（~15.6ms）与 vblank（16.67ms）天生错位 → 周期性微顿。
+- **修法（两处，都很小）**：
+  1. `WM_TIMER` 里改用 **`RedrawWindow(…, RDW_INVALIDATE | RDW_UPDATENOW)`** —— **同步**触发 WM_PAINT，绕过消息队列被插队；
+  2. `OnPaint` **在 `Present1(1)` 返回后立刻排下一帧**（`InvalidateRect`）—— 让节拍由 **vblank** 决定，而不是定时器。
+- **效果**：主观帧率显著变顺，动画接近原生 WinUI。
+
 ### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
 
 **菜单**

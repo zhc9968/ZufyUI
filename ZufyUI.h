@@ -82,8 +82,8 @@
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 12
-#define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.12.0"
+#define ZufyUI_VERSION_PATCH 1
+#define ZufyUI_VERSION_STRING L"1.12.1"
 
 #ifndef DWMWA_BORDER_COLOR
 #define DWMWA_BORDER_COLOR 34
@@ -4425,6 +4425,12 @@ class MenuWindowBase;
                     DXGI_PRESENT_PARAMETERS pp{};
                     hr = swapChain_->Present1(1, 0, &pp);
                 }
+            }
+
+            // 实验 2：present 驱动下一帧。Present1(1) 返回时≈刚过一个 vblank，
+            // 立刻排队下一帧，让节拍由 vblank 决定（而不是定时器 ~15.6ms vs vblank 16.67ms 的错位）。
+            if (SUCCEEDED(hr) && HasRenderWork()) {
+                InvalidateRect(hwnd_, nullptr, FALSE);
             }
 
             if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {

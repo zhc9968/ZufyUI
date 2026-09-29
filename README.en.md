@@ -202,6 +202,14 @@ A tour of the widgets (first page of the demo):
 - **`ScrollBar`**: extracted into a standalone reusable control; 2s idle shrink, hover restore + hover animation.
 - **Fix**: containers (`LayoutHost` / `SplitView` / `NumberBox`) previously **did not recurse the animation tick down to their children** -> child hover/page animations did not run; fixed.
 
+**Frame-pacing fix · buttery animations (v1.12.1)**
+- **Symptom**: frame rate measures 60 but **looks like 30-40** ("stuttery").
+- **Root cause**: **uneven frame intervals** (not a low frame rate). `WM_TIMER` queues `InvalidateRect` -> `WM_PAINT` gets **jumped by mouse/keyboard messages**, so the frame start drifts and `Present1(1)` quantizes it into whole-vblank misses; the timer (~15.6ms) and vblank (16.67ms) are also inherently misaligned -> periodic micro-hitches.
+- **Fix (two small changes)**:
+  1. In `WM_TIMER`, use **`RedrawWindow(..., RDW_INVALIDATE | RDW_UPDATENOW)`** to **synchronously** trigger WM_PAINT (bypass the message queue);
+  2. In `OnPaint`, **schedule the next frame right after `Present1(1)` returns** (`InvalidateRect`) -> the cadence is driven by **vblank** instead of the timer.
+- **Result**: subjectively far smoother, close to native WinUI.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**
