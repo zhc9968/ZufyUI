@@ -210,6 +210,15 @@ A tour of the widgets (first page of the demo):
   2. In `OnPaint`, **schedule the next frame right after `Present1(1)` returns** (`InvalidateRect`) -> the cadence is driven by **vblank** instead of the timer.
 - **Result**: subjectively far smoother, close to native WinUI.
 
+**Right-click menu / CPU fixes (v1.12.2)**
+- **Fixed "right-click menu never appears while the main window has a sustained animation"**: the root cause is that **`WM_PAINT` has higher retrieval priority than `WM_TIMER`** — the main window's present loop posts a `WM_PAINT` every frame, starving both the menu window's **fade-in timer** and its own `WM_PAINT`, so the menu stays at opacity 0 forever (looks like "it never opens"). Now the menu is **set opaque immediately and painted synchronously once via `RedrawWindow(RDW_UPDATENOW)`**, no longer depending on a starved timer. (Side effect: menus **no longer fade in**; they appear instantly, for reliable display under continuous animation.)
+- **Lower CPU**: removed the "hovering any element that has a tooltip keeps `HasRenderWork()` true" condition from `HasRenderWork()` — it made the timer **repaint the whole window every 16ms**. The tooltip's 500ms delay and fade-in are already advanced by `UpdateTooltip()` inside the timer tick; they don't need repainting to progress.
+- **Lower GPU**: no longer stuffs the whole "active animation set" (one spinner drags a dozen+ ancestor containers) into `pendingRepaint_` every frame — measured to cause a full-window recomposite each frame (~10% GPU).
+- **Frame pacing**: `WM_TIMER` is back to `InvalidateRect` (removed the previous `RDW_UPDATENOW` synchronous draw) to avoid **double-drawing every frame** on top of the present-driven loop and to stop clogging the message pump; the present-driven next-frame gate changed from `HasRenderWork()` to "an animation is actually running", avoiding a self-sustaining loop that starves `WM_TIMER` (which would stop tooltips from showing).
+- **Menus**: `MenuWindow`'s `GetFactory` `AddRef` was not paired with a `Release` (one factory reference leaked per menu); the same submenu is **no longer re-opened when it is already expanded**.
+- **Controls**: `TabView::LayoutStrip` now has a **zero-size guard** (avoids bogus arrangement at zero width/height); `ProgressRing` now uses `UseCache()=false` (it changes every frame; the cache would just be rebuilt needlessly); `NumberBox::ResetToDefault()` now **clears the error state** and fires `TextChanged` after restoring the default.
+- Version **1.12.1 -> 1.12.2**.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**

@@ -4533,6 +4533,7 @@ namespace ZufyUI {
             return max(w, tabMinWidth_);
         }
         void LayoutStrip() {
+            if (arrangedRect_.width <= 0.0f || arrangedRect_.height <= 0.0f) { tabWidths_.clear(); tabTargetX_.clear(); return; }
             int n = (int)tabs_.size();
             tabWidths_.resize(n);
             tabTargetX_.resize(n);
@@ -4696,6 +4697,8 @@ namespace ZufyUI {
         void SetThickness(float t) { thickness_ = max(1.0f, t); InvalidateLayout(); RequestRepaint(); }
         void SetSize(float s) { size_ = max(8.0f, s); InvalidateLayout(); RequestRepaint(); }
         void SetAnimationSpeed(float s) { animSpeed_ = max(0.1f, s); }
+
+        bool UseCache() const override { return false; }   // 每帧都变 → 缓存只会白重建一遍，反而更耗
 
         Size MeasureOverride(const Size&) override { return Size(size_, size_); }
 
@@ -4938,7 +4941,12 @@ namespace ZufyUI {
         // 默认值：值 != 默认值时，按钮区左侧会显示一个「清除 ×」恢复到默认值
         void SetDefaultValue(double v) { default_ = v; InvalidateLayout(); RequestRepaint(); }
         double GetDefaultValue() const { return default_; }
-        void ResetToDefault() { SetValue(default_); }
+        void ResetToDefault() {
+            SetValue(default_);
+            if (text_) text_->SetError(false);   // 恢复默认后必须清错误态，否则一直红着
+            std::wstring t = text_ ? text_->GetText() : std::wstring();
+            TextChanged(t);                      // 通知应用重新校验
+        }
         bool IsDefaultValue() const { return fabs(value_ - default_) < 1e-9; }
         // 重置按钮是否显示：按"当前输入框文本"实时判断（不是已提交的缓存值），所以输入过程中就会显示
         bool ShowClear() const {

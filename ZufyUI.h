@@ -82,8 +82,8 @@
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 12
-#define ZufyUI_VERSION_PATCH 1
-#define ZufyUI_VERSION_STRING L"1.12.1"
+#define ZufyUI_VERSION_PATCH 2
+#define ZufyUI_VERSION_STRING L"1.12.2"
 
 #ifndef DWMWA_BORDER_COLOR
 #define DWMWA_BORDER_COLOR 34
@@ -2507,6 +2507,7 @@ class MenuWindowBase;
         };
     }
 
+
     // ---------- 进程级 DPI 感知 ----------
     namespace detail {
         // 必须在进程内创建任何窗口之前调用：一旦建过窗口，系统就锁定 DPI 感知，之后调用必然失败（静默）。
@@ -3361,10 +3362,12 @@ class MenuWindowBase;
                 if (nc) return nc;
             }
             UIElement* hit = HitTestElement(x, y);
-            if (hit && hit->IsPointInDragRegion(x, y)) return HTCAPTION;
-            if (hit) return HTCLIENT;
-            if (PointInDragRegion(x, y)) return HTCAPTION;
-            return HTCLIENT;
+            int ht;
+            if (hit && hit->IsPointInDragRegion(x, y)) ht = HTCAPTION;
+            else if (hit) ht = HTCLIENT;
+            else if (PointInDragRegion(x, y)) ht = HTCAPTION;
+            else ht = HTCLIENT;
+            return ht;
         }
         // 收集“不参与布局”的元素（按绘制时机分类），递归整棵子树
         void CollectNonParticipating(UIElement* elem, UIElement::LayoutParticipation phase, std::vector<UIElement*>& out) {
@@ -3754,10 +3757,10 @@ class MenuWindowBase;
                             customTitleBar_->SetWindowTitle(lastWindowTitle_);
                         }
                     }
-                    if (HasRenderWork()) {          // 关键：先判断是否有工作
-                        // 实验：同步触发 WM_PAINT（绕过消息队列，不被鼠标/键盘插队）；
-                        // Present1(1) 会把它对齐到下一个 vblank。若不行，改回 InvalidateRect 即可。
-                        RedrawWindow(hwnd_, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
+                    if (HasRenderWork()) {
+                        // 只保留"排队"这一种驱动：真正的动画由 OnPaint 末尾的 present 驱动（vblank 节拍）。
+                        // 这里不要再 RDW_UPDATENOW 同步画 —— 会和 present 驱动叠成"每帧画两遍"，更耗 GPU 还堵消息泵（右键/淡入被拖）。
+                        InvalidateRect(hwnd_, nullptr, FALSE);
                     }
                     // 若无工作，则什么都不做，定时器继续运行
                 }
@@ -3959,8 +3962,10 @@ class MenuWindowBase;
             if (layoutInvalidated_ || focusDirty_ || !pendingRepaint_.empty()) return true;
             // 用上次合成收集到的活跃动画集合判断，避免每个 timer tick 都全树递归 HasActiveAnimation()
             if (!activeAnimScratch_.empty()) return true;
+            // tooltip 的推进（500ms 延迟、渐显）由每次 timer tick 里的 UpdateTooltip() 完成，
+            // 不需要"重绘"来驱动；真正要重绘只在它已经出现/正在渐显时。
             if (tooltipTarget_ || tooltipProgress_ > 0.0f) return true;
-            if (currentHovered_ && currentHovered_->IsEffectivelyEnabled() && !currentHovered_->GetToolTip().empty()) return true;
+            // 注意：不要加"鼠标停在任何带 tooltip 的元素上就恒为 true" —— 会让定时器每 16ms 全窗重绘一次，白烧 CPU。
             return false;
         }
 
@@ -4378,15 +4383,16 @@ class MenuWindowBase;
                 customTitleBar_->UpdateAnimation(deltaTime);
             }
 
-            // 自动收集活跃动画元素（确保动画期间每帧重绘这些元素）
+            // 自动收集活跃动画元素（只用于"是否要继续跑帧"的判断）
             std::swap(activeAnimScratch_, lastActiveAnimElements_);   // 交换缓冲代替每帧 hashset 深拷贝；last 保留上一帧活跃集
             activeAnimScratch_.clear();
             CollectActiveAnimations(rootElement_.get(), activeAnimScratch_);
             if (customTitleBar_) CollectActiveAnimations(customTitleBar_.get(), activeAnimScratch_);
-            for (auto* elem : activeAnimScratch_) {
-                pendingRepaint_.insert(elem);
-            }
-            // 上一帧活跃但当前不活跃的元素也加入，确保动画结束状态正确
+            // 注意：**不要**把整个 activeAnimScratch_ 塞进 pendingRepaint_。
+            // 那样做会让"含了正在动画子元素的祖先容器"每帧都重绘/重建缓存（一个转圈圈能带出十几个祖先），
+            // 造成整窗每帧重合成（实测 10% GPU）。真正需要重绘的元素自己在 UpdateAnimation 里调了 RequestRepaint；
+            // 靠遮罩/变换动的（如 PageHost 过渡）在每次合成时读变换，本来也不需要进 pendingRepaint_。
+            // 上一帧活跃但当前不活跃的元素补一次，确保动画结束状态正确
             for (auto* elem : lastActiveAnimElements_) {
                 if (activeAnimScratch_.find(elem) == activeAnimScratch_.end()) {
                     pendingRepaint_.insert(elem);
@@ -4429,7 +4435,9 @@ class MenuWindowBase;
 
             // 实验 2：present 驱动下一帧。Present1(1) 返回时≈刚过一个 vblank，
             // 立刻排队下一帧，让节拍由 vblank 决定（而不是定时器 ~15.6ms vs vblank 16.67ms 的错位）。
-            if (SUCCEEDED(hr) && HasRenderWork()) {
+            // 注意：只在"确实有动画在跑"时这样做 —— 用 HasRenderWork() 会因"悬停在带 tooltip 的元素"
+            // 恒为 true 而变成自持死循环，把 WM_TIMER（UpdateTooltip/标题轮询）饿死。
+            if (SUCCEEDED(hr) && !activeAnimScratch_.empty()) {
                 InvalidateRect(hwnd_, nullptr, FALSE);
             }
 
@@ -5287,8 +5295,12 @@ class MenuWindowBase;
                                 SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
             ShowNoActivate();
             if (!parent_) detail::g_activeMenu = this;   // 根弹出层登记，供窗口转发键盘
-            SetContentOpacity(0.0f);
-            StartFade();
+            // 注意：WM_PAINT 的检索优先级高于 WM_TIMER。当主窗口有持续动画（present 循环每帧发 WM_PAINT）时，
+            // 菜单窗口的「淡入定时器」和它的 WM_PAINT 都会被饿死 → 菜单会一直是全透明（看起来"完全不出现"）。
+            // 所以这里：立即置为不透明 + 同步画一帧（不依赖定时器/消息队列）。
+            SetContentOpacity(1.0f);
+            fade_ = 1.0f; animating_ = false;
+            if (h) RedrawWindow(h, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
             openedTick_ = GetTickCount();
             prevLButtonDown_ = true;
             if (standalone_ && h) SetTimer(h, kPollTimerId, 30, nullptr);
@@ -5546,13 +5558,13 @@ class MenuWindowBase;
             if (!separatorBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0.8f, 0.8f, 0.8f), &separatorBrush_);
             if (!shadowBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0, 0.03f), &shadowBrush_);
             if (!roundStroke_) {
-                ID2D1Factory* f = nullptr; rt->GetFactory(&f);
-                if (!f) { f = sharedDWriteFactory_ ? nullptr : nullptr; }
+                ID2D1Factory* f = nullptr; rt->GetFactory(&f);   // GetFactory 会 AddRef
                 if (f) {
                     D2D1_STROKE_STYLE_PROPERTIES sp = D2D1::StrokeStyleProperties(
                         D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND,
                         D2D1_LINE_JOIN_ROUND, 1.0f, D2D1_DASH_STYLE_SOLID, 0.0f);
                     f->CreateStrokeStyle(sp, nullptr, 0, &roundStroke_);
+                    f->Release();   // 与 GetFactory 的 AddRef 配对（原来漏了 → 每次菜单漏一个 factory 引用）
                 }
             }
         }
@@ -5820,7 +5832,9 @@ class MenuWindowBase;
             int px = rc.right - ShadowPx();
             int py = rc.top + ShadowPx() + MulDiv((int)curY, Dpi(), 96);
             if (MenuWindow* c = static_cast<MenuWindow*>(ChildPopup())) {
-                if (c->menu_ == item->submenu) { c->ShowAtPoint(px, py); return; }
+                // 对应子菜单"已经展开" → 不再重复展开（避免闪一下/重开）；
+                // 注意：只对"这一个"生效，点另外的子项仍会切换过去（走下面的替换逻辑）
+                if (c->menu_ == item->submenu) return;
             }
             auto child = std::make_unique<MenuWindow>(item->submenu, ownerHwnd_, px, py);
             child->parentMenu_ = this;
@@ -5893,7 +5907,8 @@ class MenuWindowBase;
         if (customFrame_ && y <= customTitleBarHeight_) { ShowSystemMenu(); return; }
         if (!rootElement_ && !customTitleBar_) return;
         UIElement* hit = HitTestElement(x, y);
-        if (hit && hit->OnContextMenu(x, y)) return;
+        bool consumed = hit ? hit->OnContextMenu(x, y) : false;
+        if (consumed) return;
         std::shared_ptr<Menu> menu;
         if (hit && hit->IsContextMenuEnabled()) menu = hit->BuildContextMenu();
         if (!menu && windowContextMenu_) menu = windowContextMenu_;

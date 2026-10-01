@@ -210,6 +210,15 @@ win.SetCustomTitleBar(bar);
   2. `OnPaint` **在 `Present1(1)` 返回后立刻排下一帧**（`InvalidateRect`）—— 让节拍由 **vblank** 决定，而不是定时器。
 - **效果**：主观帧率显著变顺，动画接近原生 WinUI。
 
+**右键菜单 / CPU 修复（v1.12.2）**
+- **修「主窗口有持续动画时右键菜单完全不出现」**：根因是 **`WM_PAINT` 的检索优先级高于 `WM_TIMER`** —— 主窗口 present 循环每帧发一个 `WM_PAINT`，把菜单窗口的**淡入定时器**和它自己的 `WM_PAINT` 一起饿死 → 菜单永远停在透明度 0（看起来"没弹出来"）。改为**显示时立即置为不透明 + `RedrawWindow(RDW_UPDATENOW)` 同步画一帧**，不再依赖被饿死的定时器。（副作用：菜单**不再淡入**，改为即时出现 —— 为了在持续动画下可靠显示。）
+- **降 CPU**：`HasRenderWork()` 去掉「鼠标停在任何带 tooltip 的元素上就恒为 true」的判据 —— 它会让定时器**每 16ms 全窗重绘一次**。tooltip 的 500ms 延迟与渐显本来就由定时器里的 `UpdateTooltip()` 推进，不需要靠"重绘"驱动。
+- **降 GPU**：不再把整棵「活跃动画集合」（一个转圈圈会带出十几个祖先容器）每帧塞进 `pendingRepaint_` —— 实测那会导致整窗每帧重新合成（约 10% GPU）。
+- **帧节奏**：`WM_TIMER` 回到 `InvalidateRect`（去掉上一版的 `RDW_UPDATENOW` 同步画），避免与 present 驱动**叠成"每帧画两遍"**、还堵消息泵；present 驱动下一帧的门控从 `HasRenderWork()` 改为「确有动画在跑」，避免自持死循环饿死 `WM_TIMER`（否则 tooltip 不弹）。
+- **菜单**：`MenuWindow` 里 `GetFactory` 的 `AddRef` 未配对 `Release`（每次菜单漏一个 factory 引用）；同一子菜单**已展开时不再重复展开**。
+- **控件**：`TabView::LayoutStrip` 加**零尺寸守卫**（避免零宽高下的异常排列）；`ProgressRing` 改 `UseCache()=false`（每帧都变，缓存只会白重建一遍）；`NumberBox::ResetToDefault()` 恢复默认后**清除错误态**并触发 `TextChanged`。
+- 版本 **1.12.1 → 1.12.2**。
+
 ### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
 
 **菜单**
