@@ -412,6 +412,26 @@ A tour of the widgets (first page of the demo):
   2. In `OnPaint`, **schedule the next frame right after `Present1(1)` returns** (`InvalidateRect`) -&gt; the cadence is driven by **vblank** instead of the timer.
 - **Result**: subjectively far smoother, close to native WinUI.
 
+**Right-click menu / CPU fixes (v1.12.2)**
+- **Fixed "right-click menu never appears while the main window has a sustained animation"**: the root cause is that **`WM_PAINT` has higher retrieval priority than `WM_TIMER`** — the main window's present loop posts a `WM_PAINT` every frame, starving both the menu window's **fade-in timer** and its own `WM_PAINT`, so the menu stays at opacity 0 forever (looks like "it never opens"). Now the menu is **set opaque immediately and painted synchronously once via `RedrawWindow(RDW_UPDATENOW)`**, no longer depending on a starved timer. (Side effect: menus **no longer fade in**; they appear instantly, for reliable display under continuous animation.)
+- **Lower CPU**: removed the "hovering any element that has a tooltip keeps `HasRenderWork()` true" condition from `HasRenderWork()` — it made the timer **repaint the whole window every 16ms**. The tooltip's 500ms delay and fade-in are already advanced by `UpdateTooltip()` inside the timer tick; they don't need repainting to progress.
+- **Lower GPU**: no longer stuffs the whole "active animation set" (one spinner drags a dozen+ ancestor containers) into `pendingRepaint_` every frame — measured to cause a full-window recomposite each frame (~10% GPU).
+- **Frame pacing**: `WM_TIMER` is back to `InvalidateRect` (removed the previous `RDW_UPDATENOW` synchronous draw) to avoid **double-drawing every frame** on top of the present-driven loop and to stop clogging the message pump; the present-driven next-frame gate changed from `HasRenderWork()` to "an animation is actually running", avoiding a self-sustaining loop that starves `WM_TIMER` (which would stop tooltips from showing).
+- **Menus**: `MenuWindow`'s `GetFactory` `AddRef` was not paired with a `Release` (one factory reference leaked per menu); the same submenu is **no longer re-opened when it is already expanded**.
+- **Controls**: `TabView::LayoutStrip` now has a **zero-size guard** (avoids bogus arrangement at zero width/height); `ProgressRing` now uses `UseCache()=false` (it changes every frame; the cache would just be rebuilt needlessly); `NumberBox::ResetToDefault()` now **clears the error state** and fires `TextChanged` after restoring the default.
+- Version **1.12.1 -&gt; 1.12.2**.
+
+**Framework Timer / Label icons / Label-based tabs (v1.13.0)**
+- **Framework `Timer` (signal-based)**: `Window::CreateTimer(ms)` -&gt; `std::shared_ptr&lt;Timer&gt;`; `Timer::Tick` is a `ZSignal&lt;&gt;`. Still `WM_TIMER` underneath, but the **id uses a reserved framework range (`0x7F00+`)** so it never collides with the library's internal id or app-defined ids; the timer **auto-detaches when the window is destroyed** and auto-`Stop`s/unregisters when the `Timer` is destroyed.
+- **`Label` built-in glyph icon**: `SetIcon(Icon[,size])` / `SetIconColor` / `GetIcon` (reusing the existing image-icon slot; `size&lt;=0` follows the font size; color defaults to the text color; **icon-only when there is no text**); the "icon + text (+children)" block is aligned **as a unit** (so on a button the icon hugs the centered text).
+- **Icon system moved to the core**: `Icon` / `IconGlyph` / `IconFontFamily` moved from `ZufyUIIcons.h` to **`ZufyUIWidgets.h`**, usable by any control; `FontIcon` / `MakeFontIcon` remain in `ZufyUIIcons.h`.
+- **`Button` forwards the icon**: `SetIcon` / `GetIcon` / `SetIconColor` (to its internal `Label`).
+- **`TabView` tab titles are now `Label`s**: `AddTab(shared_ptr&lt;Label&gt;, ...)` / `SetTabLabel` / `GetTabLabel` (the `wstring` overload stays as a convenience) -&gt; tabs support icons naturally.
+- **`ScrollBar::ShrunkWidthRatio`** (default `0.30`): hosts can reserve exactly the shrunk thickness; `TabView`'s "tab strip &lt;-&gt; content" gap is now that thin-line thickness.
+- **Frame-loop improvements** (for "timers/popups starved while animating"): before the present-driven self-continuation, **dispatch due `WM_TIMER`s** (fixes inaccurate periodic polling), and add a **yield gate** `HasSiblingWindowNeedingPaint()` (`EnumThreadWindows` + `GetUpdateRect`, a precise test) — if another window of this thread is waiting to paint, the current round **does not schedule its own frame**, so their paint is not postponed indefinitely.
+- **Menu open fade-in restored** (`ShowAtPoint`: synchronously paint one frame first, then `SetContentOpacity(0)` + fade in; `WM_TIMER` is no longer starved).
+- Version **1.12.2 -&gt; 1.13.0**.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**
@@ -709,11 +729,11 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-3d328a39', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-bdd4766d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-3d328a39" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-bdd4766d" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own <code>WinMain</code>.</p>
@@ -722,7 +742,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-9863479a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-a0df4e42', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
@@ -735,7 +755,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 └── docs/
     └── API.en.md      # Full API documentation
 </pre></div>
-<pre id="code-9863479a" style="display: none;">ZufyUI/
+<pre id="code-a0df4e42" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # Data views: ListView / TableView / TreeView
@@ -750,7 +770,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a71d5e5b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-2566b9a9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -786,7 +806,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-a71d5e5b" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-2566b9a9" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -834,25 +854,25 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-97571cb9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-6912becc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// Mica + fully transparent tint</span>
 </pre></div>
-<pre id="code-97571cb9" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
+<pre id="code-6912becc" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
 </div>
 <p><img alt="Backdrop: manual Mica" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>Step 3: a custom title bar.</strong></p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-984decba', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-eab7a59a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar lives here</span>
 
 <span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">DefaultTitleBar</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 </pre></div>
-<pre id="code-984decba" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
+<pre id="code-eab7a59a" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);</pre>
@@ -918,6 +938,24 @@ win.SetCustomTitleBar(bar);</pre>
   1. In <code>WM_TIMER</code>, use <strong><code>RedrawWindow(..., RDW_INVALIDATE | RDW_UPDATENOW)</code></strong> to <strong>synchronously</strong> trigger WM_PAINT (bypass the message queue);
   2. In <code>OnPaint</code>, <strong>schedule the next frame right after <code>Present1(1)</code> returns</strong> (<code>InvalidateRect</code>) -&gt; the cadence is driven by <strong>vblank</strong> instead of the timer.
 - <strong>Result</strong>: subjectively far smoother, close to native WinUI.</p>
+<p><strong>Right-click menu / CPU fixes (v1.12.2)</strong>
+- <strong>Fixed "right-click menu never appears while the main window has a sustained animation"</strong>: the root cause is that <strong><code>WM_PAINT</code> has higher retrieval priority than <code>WM_TIMER</code></strong> — the main window's present loop posts a <code>WM_PAINT</code> every frame, starving both the menu window's <strong>fade-in timer</strong> and its own <code>WM_PAINT</code>, so the menu stays at opacity 0 forever (looks like "it never opens"). Now the menu is <strong>set opaque immediately and painted synchronously once via <code>RedrawWindow(RDW_UPDATENOW)</code></strong>, no longer depending on a starved timer. (Side effect: menus <strong>no longer fade in</strong>; they appear instantly, for reliable display under continuous animation.)
+- <strong>Lower CPU</strong>: removed the "hovering any element that has a tooltip keeps <code>HasRenderWork()</code> true" condition from <code>HasRenderWork()</code> — it made the timer <strong>repaint the whole window every 16ms</strong>. The tooltip's 500ms delay and fade-in are already advanced by <code>UpdateTooltip()</code> inside the timer tick; they don't need repainting to progress.
+- <strong>Lower GPU</strong>: no longer stuffs the whole "active animation set" (one spinner drags a dozen+ ancestor containers) into <code>pendingRepaint_</code> every frame — measured to cause a full-window recomposite each frame (~10% GPU).
+- <strong>Frame pacing</strong>: <code>WM_TIMER</code> is back to <code>InvalidateRect</code> (removed the previous <code>RDW_UPDATENOW</code> synchronous draw) to avoid <strong>double-drawing every frame</strong> on top of the present-driven loop and to stop clogging the message pump; the present-driven next-frame gate changed from <code>HasRenderWork()</code> to "an animation is actually running", avoiding a self-sustaining loop that starves <code>WM_TIMER</code> (which would stop tooltips from showing).
+- <strong>Menus</strong>: <code>MenuWindow</code>'s <code>GetFactory</code> <code>AddRef</code> was not paired with a <code>Release</code> (one factory reference leaked per menu); the same submenu is <strong>no longer re-opened when it is already expanded</strong>.
+- <strong>Controls</strong>: <code>TabView::LayoutStrip</code> now has a <strong>zero-size guard</strong> (avoids bogus arrangement at zero width/height); <code>ProgressRing</code> now uses <code>UseCache()=false</code> (it changes every frame; the cache would just be rebuilt needlessly); <code>NumberBox::ResetToDefault()</code> now <strong>clears the error state</strong> and fires <code>TextChanged</code> after restoring the default.
+- Version <strong>1.12.1 -&gt; 1.12.2</strong>.</p>
+<p><strong>Framework Timer / Label icons / Label-based tabs (v1.13.0)</strong>
+- <strong>Framework <code>Timer</code> (signal-based)</strong>: <code>Window::CreateTimer(ms)</code> -&gt; <code>std::shared_ptr&lt;Timer&gt;</code>; <code>Timer::Tick</code> is a <code>ZSignal&lt;&gt;</code>. Still <code>WM_TIMER</code> underneath, but the <strong>id uses a reserved framework range (<code>0x7F00+</code>)</strong> so it never collides with the library's internal id or app-defined ids; the timer <strong>auto-detaches when the window is destroyed</strong> and auto-<code>Stop</code>s/unregisters when the <code>Timer</code> is destroyed.
+- <strong><code>Label</code> built-in glyph icon</strong>: <code>SetIcon(Icon[,size])</code> / <code>SetIconColor</code> / <code>GetIcon</code> (reusing the existing image-icon slot; <code>size&lt;=0</code> follows the font size; color defaults to the text color; <strong>icon-only when there is no text</strong>); the "icon + text (+children)" block is aligned <strong>as a unit</strong> (so on a button the icon hugs the centered text).
+- <strong>Icon system moved to the core</strong>: <code>Icon</code> / <code>IconGlyph</code> / <code>IconFontFamily</code> moved from <code>ZufyUIIcons.h</code> to <strong><code>ZufyUIWidgets.h</code></strong>, usable by any control; <code>FontIcon</code> / <code>MakeFontIcon</code> remain in <code>ZufyUIIcons.h</code>.
+- <strong><code>Button</code> forwards the icon</strong>: <code>SetIcon</code> / <code>GetIcon</code> / <code>SetIconColor</code> (to its internal <code>Label</code>).
+- <strong><code>TabView</code> tab titles are now <code>Label</code>s</strong>: <code>AddTab(shared_ptr&lt;Label&gt;, ...)</code> / <code>SetTabLabel</code> / <code>GetTabLabel</code> (the <code>wstring</code> overload stays as a convenience) -&gt; tabs support icons naturally.
+- <strong><code>ScrollBar::ShrunkWidthRatio</code></strong> (default <code>0.30</code>): hosts can reserve exactly the shrunk thickness; <code>TabView</code>'s "tab strip &lt;-&gt; content" gap is now that thin-line thickness.
+- <strong>Frame-loop improvements</strong> (for "timers/popups starved while animating"): before the present-driven self-continuation, <strong>dispatch due <code>WM_TIMER</code>s</strong> (fixes inaccurate periodic polling), and add a <strong>yield gate</strong> <code>HasSiblingWindowNeedingPaint()</code> (<code>EnumThreadWindows</code> + <code>GetUpdateRect</code>, a precise test) — if another window of this thread is waiting to paint, the current round <strong>does not schedule its own frame</strong>, so their paint is not postponed indefinitely.
+- <strong>Menu open fade-in restored</strong> (<code>ShowAtPoint</code>: synchronously paint one frame first, then <code>SetContentOpacity(0)</code> + fade in; <code>WM_TIMER</code> is no longer starved).
+- Version <strong>1.12.2 -&gt; 1.13.0</strong>.</p>
 <h3 id="2026-09-26-tray-taskbar-menu-enhancements-app-identity-self-registration">2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration</h3>
 <p><strong>Menus</strong>
 - Rebuilt the right-click menu as a <strong>layered window with self-drawn soft shadow, rounded corners, and fade-in</strong>; fixed "menu won't open a second time" (root cause: the checkmark's <code>ID2D1StrokeStyle</code> was a <code>static</code> reused across factories → <code>EndDraw</code> returned <code>D2DERR_WRONG_FACTORY</code>; now created/released per instance).

@@ -599,11 +599,16 @@ class TabView : public UIElement {
     ZSignal<int> SelectionChanged;    // selected tab index
     ZSignal<int> TabCloseRequested;   // a tab's x was clicked (application decides whether to remove)
 
+    // A tab's title IS a Label (v1.13.0); the wstring overload is a convenience (wraps a Label)
     int  AddTab(const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
+    int  AddTab(std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
     void InsertTab(int index, const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
+    void InsertTab(int index, std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
     void RemoveTab(int index); void ClearTabs();
     int  GetTabCount() const;
     void SetTabTitle(int, const std::wstring&); std::wstring GetTabTitle(int) const;
+    void SetTabLabel(int, std::shared_ptr<Label>); std::shared_ptr<Label> GetTabLabel(int) const;
+    static std::shared_ptr<Label> MakeTabLabel(const std::wstring& title);   // centered Label
     void SetTabContent(int, std::shared_ptr<UIElement>); std::shared_ptr<UIElement> GetTabContent(int) const;
     void SetTabClosable(int, bool);
 
@@ -629,6 +634,10 @@ class TabView : public UIElement {
 - **Keyboard**: `Left/Right` cycle, `Home`/`End`, `Delete` closes the current (if closable).
 - **Overflow**: only when too wide — **◀/▶ buttons** (shown per direction) and a **bottom horizontal scrollbar** (reuses `ScrollBar`); the wheel scrolls tabs **only over the tab strip**, content-area wheel goes to the outer scroll container.
 - Closing a tab **slides** the following tabs into place; the indicator follows exactly.
+- **A tab's title is a `Label` (v1.13.0)**, so tabs support icons etc. naturally, e.g.
+  `auto l = TabView::MakeTabLabel(L"Home"); l->SetIcon(Icon::Home); tabs->AddTab(l, content);`
+  or `tabs->GetTabLabel(i)->SetIcon(Icon::Folder);`.
+- The **tab strip <-> content gap** equals the shrunk thickness of the bottom scrollbar (`ScrollBar::ShrunkWidthRatio`), present only when overflowing.
 
 ## MenuItem
 
@@ -1085,6 +1094,11 @@ class Label : public UIElement {
     Size GetIconSize() const;
     void SetIconSpacing(float spacing);      // gap between icon and text/children
     float GetIconSpacing() const;
+    // Glyph icon (leading): shares the same icon slot as the image (image wins if both set)
+    void SetIcon(Icon icon, float size = 0.0f);   // size<=0 follows the label's font size
+    Icon GetIcon() const;
+    void SetIconColor(Color);                     // defaults to the text color
+    Color GetIconColor() const;
 
     // Nested child elements (inline row: icon + text + children)
     void AddChild(std::shared_ptr<UIElement> child);
@@ -1097,9 +1111,11 @@ class Label : public UIElement {
 - `SetMaxLines` only matters in `Wrap` mode; `Ellipsis` is inherently single-line.
 - When disabled the text turns grey (`DefaultDisabledColor`).
 - **Icon**: after `SetImage` the Label draws the icon to the left of its text; `SetIconSize(0,0)` uses the image's natural size. An icon can coexist with text and children (it is drawn even with no text).
+- **Glyph icon (v1.13.0)**: `SetIcon(Icon::Xxx)` draws a system-icon-font glyph as a leading icon (`size<=0` follows the font size, color defaults to the text color); icon-only when there is no text. **Note**: the icon system (`Icon` / `IconGlyph` / `IconFontFamily`) now lives in `ZufyUIWidgets.h`, so **every `Label`-based control (e.g. `Button`) supports it automatically**.
+- **Alignment**: with `SetAlignment`, the "icon + text (+children)" block is aligned **as a unit** (on a button the icon hugs the centered text).
 - **Nested children**: elements added via `AddChild` are laid out **inline** with the icon and text, and participate in `GetChildren()` recursion (window ownership, repaint, and layout all treat them as child elements).
 
-## FontIcon (icons · `ZufyUIIcons.h`)
+## FontIcon (icon element / icon system)
 
 ```cpp
 const std::wstring& IconFontFamily();   // Win11 "Segoe Fluent Icons" -> Win10 "Segoe MDL2 Assets" (auto-detected)
@@ -1136,6 +1152,7 @@ std::shared_ptr<FontIcon> MakeFontIcon(Icon, float size = 16.0f, Color = black);
 - Renders a glyph from the system icon font; `Icon` values are the codepoints.
 - The glyph layout goes through the global `FontManager` cache → many icons do not rebuild layouts.
 - Usable in any container; combine icon + text with a `RowBox`.
+- **Since v1.13.0**: `Icon` / `IconGlyph` / `IconFontFamily` live in **`ZufyUIWidgets.h` (core)**, so any control (especially `Label`-based ones: `Button`, `TabView` tabs, ...) can call `SetIcon(Icon)` directly; `FontIcon` / `MakeFontIcon` remain in `ZufyUIIcons.h` (which now includes `ZufyUIWidgets.h`).
 
 ## Button
 
@@ -1147,6 +1164,10 @@ class Button : public UIElement {
     Button(const std::wstring& text = L"Button");
     void SetText(const std::wstring& text);
     std::wstring GetText() const;
+    // Icon (forwarded to the internal Label; icon-only when there is no text)
+    void SetIcon(Icon icon, float size = 0.0f);
+    Icon GetIcon() const;
+    void SetIconColor(Color);
     void SetColors(Color normal, Color hover, Color pressed);
     void SetTextColor(Color color);
     void SetCornerRadius(float radius);
@@ -1414,12 +1435,15 @@ class ScrollBar : public UIElement {
     void SetBarWidth(float); void SetMinLength(float); void SetHitExtra(float);
     void SetColors(D2D1_COLOR_F thumb, D2D1_COLOR_F hoverThumb, D2D1_COLOR_F track);
     void SetIdleDelay(float); void SetAutoShrink(bool); void MarkActive();
+
+    inline static float ShrunkWidthRatio;   // fully-shrunk thickness = barWidth * this (default 0.30)
 };
 ```
 
 - **Extracted from `ScrollViewer` into a standalone reusable control** (shared by `ScrollViewer`, `TabView`, ...); decoupled from the host, values flow via `ValueChanged`.
 - **Self-contained** hover-expand + **idle-shrink** animation (`SetIdleDelay`, default 2s -> a thin line; hover restores and plays the hover animation).
 - Host calls `SetRange(value, maxValue, viewport)` each frame; drag -> `animate=false` (immediate), track click -> `animate=true` (smooth).
+- `ScrollBar::ShrunkWidthRatio` (default `0.30`): the **fully-shrunk thickness ratio**; hosts reserve margins from it — `TabView` uses it to make the "tab strip <-> content" gap equal the thin-line thickness.
 - `ScrollViewer` equivalents: `SetScrollBarIdleDelay(float)` / `SetScrollBarAutoShrink(bool)` / `SetDefaultScrollBarIdleDelay(float)`.
 
 ## ProgressBar
@@ -2104,10 +2128,42 @@ class Window {
 
 ```cpp
 virtual bool OnWindowKeyDown(int vk);   // called before dispatching to the focused element; true = handled
-virtual bool OnWindowTimer(int id);     // WM_TIMER
+virtual bool OnWindowTimer(int id);     // WM_TIMER (app-defined id)
 virtual void OnWindowSize();            // WM_SIZE (final layout that depends on client width)
 void SetInputBlocked(bool on);          // block mouse/keyboard input for this window
+std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);   // signal-based repeating timer (see Timer)
 ```
+
+## Timer
+
+```cpp
+class Timer {
+    ZSignal<> Tick;                    // fires on each interval (UI thread)
+    inline static int DefaultInterval; // 1000
+
+    void Attach(Window* owner);
+    Window* GetWindow() const;
+    void Start(int intervalMs);        // set interval and start
+    void Start();                      // start with the current interval
+    void Stop();
+    void SetInterval(int ms);
+    int  GetInterval() const;
+    bool IsRunning() const;
+};
+
+// Convenience entry point (recommended):
+std::shared_ptr<Timer> Window::CreateTimer(int intervalMs = 1000);
+```
+
+- Backed by `WM_TIMER`, but the **id uses a reserved framework range (`0x7F00+`)** so it never collides with the library's internal timer (id 1) or app-defined ids.
+- Usage:
+  ```cpp
+  auto t = window->CreateTimer(500);      // every 500 ms
+  t->Tick.connect([this]{ Refresh(); });
+  t->Stop(); t->Start(); t->SetInterval(1000);
+  ```
+- Holding the `shared_ptr` keeps it alive; the window **auto-detaches the timer when it is destroyed** (a later `Start()` becomes a no-op, no dangling pointer); destroying the timer auto-`Stop`s + unregisters it.
+- Manual form: `Timer t; t.Attach(win); t.Start(ms);`.
 
 ###chapter: Appendix | Signal list, default values, and common pitfalls
 

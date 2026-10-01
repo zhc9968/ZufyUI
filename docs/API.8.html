@@ -207,12 +207,17 @@ class TabView : public UIElement {
     ZSignal&lt;int&gt; SelectionChanged;    // 选中页签索引
     ZSignal&lt;int&gt; TabCloseRequested;   // 点了某页签的 ×（删不删由应用决定）
 
+    // 页签标题就是一个 Label（v1.13.0）；wstring 重载是便捷写法（内部包一个 Label）
     int  AddTab(const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
+    int  AddTab(std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
     void InsertTab(int index, const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
+    void InsertTab(int index, std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
     void RemoveTab(int index);
     void ClearTabs();
     int  GetTabCount() const;
     void SetTabTitle(int, const std::wstring&amp;); std::wstring GetTabTitle(int) const;
+    void SetTabLabel(int, std::shared_ptr&lt;Label&gt;); std::shared_ptr&lt;Label&gt; GetTabLabel(int) const;
+    static std::shared_ptr&lt;Label&gt; MakeTabLabel(const std::wstring&amp; title);   // 居中 Label
     void SetTabContent(int, std::shared_ptr&lt;UIElement&gt;); std::shared_ptr&lt;UIElement&gt; GetTabContent(int) const;
     void SetTabClosable(int, bool);
 
@@ -244,6 +249,10 @@ class TabView : public UIElement {
 - **键盘**：页签聚焦后 `←/→` 循环、`Home`/`End`、`Delete` 关当前（可关闭时）。
 - **溢出**：超出宽度时才出现 **◀/▶ 按钮**（按能否再往该方向滚显隐）与**底部横向滚动条**（复用 `ScrollBar` 子类）；滚轮**只在页签条上**滚动页签，内容区滚轮交给外层滚动容器。
 - 关闭页签时，后面的页签**平滑移动**过来；选中项指示器随之跟手。
+- **页签标题是 `Label`（v1.13.0）**：所以页签天然支持图标等 Label 能力，例如
+  `auto l = TabView::MakeTabLabel(L"主页"); l-&gt;SetIcon(Icon::Home); tabs-&gt;AddTab(l, content);`
+  或 `tabs-&gt;GetTabLabel(i)-&gt;SetIcon(Icon::Folder);`。
+- **标签条 ↔ 内容的间距** = 底部滚动条**完全收缩**时的粗细（`ScrollBar::ShrunkWidthRatio`，视口溢出时才有该间距）。
 
 ## MenuItem
 
@@ -336,18 +345,23 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-557007a3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e5d956a6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TabView</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">    </span><span class="c1">// 选中页签索引</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">TabCloseRequested</span><span class="p">;</span><span class="w">   </span><span class="c1">// 点了某页签的 ×（删不删由应用决定）</span>
 
+<span class="w">    </span><span class="c1">// 页签标题就是一个 Label（v1.13.0）；wstring 重载是便捷写法（内部包一个 Label）</span>
 <span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="nf">AddTab</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="nf">AddTab</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">InsertTab</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">InsertTab</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">RemoveTab</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTabs</span><span class="p">();</span>
 <span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="nf">GetTabCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabTitle</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetTabTitle</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabLabel</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetTabLabel</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">MakeTabLabel</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span><span class="w">   </span><span class="c1">// 居中 Label</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabContent</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetTabContent</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabClosable</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span>
 
@@ -374,16 +388,21 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoTransitionDirection</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="c1">// 切换时按目标在左/右自动选过渡方向</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-557007a3" style="display: none;">class TabView : public UIElement {
+<pre id="code-e5d956a6" style="display: none;">class TabView : public UIElement {
     ZSignal&lt;int&gt; SelectionChanged;    // 选中页签索引
     ZSignal&lt;int&gt; TabCloseRequested;   // 点了某页签的 ×（删不删由应用决定）
 
+    // 页签标题就是一个 Label（v1.13.0）；wstring 重载是便捷写法（内部包一个 Label）
     int  AddTab(const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
+    int  AddTab(std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
     void InsertTab(int index, const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
+    void InsertTab(int index, std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
     void RemoveTab(int index);
     void ClearTabs();
     int  GetTabCount() const;
     void SetTabTitle(int, const std::wstring&amp;); std::wstring GetTabTitle(int) const;
+    void SetTabLabel(int, std::shared_ptr&lt;Label&gt;); std::shared_ptr&lt;Label&gt; GetTabLabel(int) const;
+    static std::shared_ptr&lt;Label&gt; MakeTabLabel(const std::wstring&amp; title);   // 居中 Label
     void SetTabContent(int, std::shared_ptr&lt;UIElement&gt;); std::shared_ptr&lt;UIElement&gt; GetTabContent(int) const;
     void SetTabClosable(int, bool);
 
@@ -415,12 +434,16 @@ class MenuWindow : public MenuWindowBase {
 <li><strong>键盘</strong>：页签聚焦后 <code>←/→</code> 循环、<code>Home</code>/<code>End</code>、<code>Delete</code> 关当前（可关闭时）。</li>
 <li><strong>溢出</strong>：超出宽度时才出现 <strong>◀/▶ 按钮</strong>（按能否再往该方向滚显隐）与<strong>底部横向滚动条</strong>（复用 <code>ScrollBar</code> 子类）；滚轮<strong>只在页签条上</strong>滚动页签，内容区滚轮交给外层滚动容器。</li>
 <li>关闭页签时，后面的页签<strong>平滑移动</strong>过来；选中项指示器随之跟手。</li>
+<li><strong>页签标题是 <code>Label</code>（v1.13.0）</strong>：所以页签天然支持图标等 Label 能力，例如
+  <code>auto l = TabView::MakeTabLabel(L"主页"); l-&gt;SetIcon(Icon::Home); tabs-&gt;AddTab(l, content);</code>
+  或 <code>tabs-&gt;GetTabLabel(i)-&gt;SetIcon(Icon::Folder);</code>。</li>
+<li><strong>标签条 ↔ 内容的间距</strong> = 底部滚动条<strong>完全收缩</strong>时的粗细（<code>ScrollBar::ShrunkWidthRatio</code>，视口溢出时才有该间距）。</li>
 </ul>
 <h2 id="menuitem">MenuItem</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1d10741f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e6f3c6bd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuItem</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
@@ -443,7 +466,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span><span class="w">    </span><span class="c1">// 该项自定义字体（缺省=Menu::font）</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-1d10741f" style="display: none;">class MenuItem {
+<pre id="code-e6f3c6bd" style="display: none;">class MenuItem {
     enum class Type { Normal, Separator, Submenu };
     std::wstring text;
     std::function&lt;void()&gt; callback;
@@ -468,7 +491,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0ef5d99e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-3c79d222', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Menu</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">{};</span><span class="w">              </span><span class="c1">// 全局默认菜单字体</span>
@@ -488,7 +511,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">                    </span><span class="c1">// 在鼠标当前位置弹出</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-0ef5d99e" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
+<pre id="code-3c79d222" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
     inline static FontSpec DefaultFont{};              // 全局默认菜单字体
     void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
     void AddCheckItem(const std::wstring&amp; text, bool checked,
@@ -518,7 +541,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7f8759f0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-0974bc8a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// 弹出层基类：只负责弹出层的系统交互，不含任何“菜单项”概念</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MenuWindowBase</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
@@ -544,7 +567,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuWindow</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">StandaloneHolder</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-7f8759f0" style="display: none;">// 弹出层基类：只负责弹出层的系统交互，不含任何“菜单项”概念
+<pre id="code-0974bc8a" style="display: none;">// 弹出层基类：只负责弹出层的系统交互，不含任何“菜单项”概念
 class MenuWindowBase : public Window {
     bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // 内容尺寸(DIP)；窗口自动加阴影边距
     void ShowAtPoint(int screenX, int screenY);   // 屏幕坐标弹出（自动按工作区避让，避免出屏）

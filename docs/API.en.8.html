@@ -207,11 +207,16 @@ class TabView : public UIElement {
     ZSignal&lt;int&gt; SelectionChanged;    // selected tab index
     ZSignal&lt;int&gt; TabCloseRequested;   // a tab's x was clicked (application decides whether to remove)
 
+    // A tab's title IS a Label (v1.13.0); the wstring overload is a convenience (wraps a Label)
     int  AddTab(const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
+    int  AddTab(std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
     void InsertTab(int index, const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
+    void InsertTab(int index, std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
     void RemoveTab(int index); void ClearTabs();
     int  GetTabCount() const;
     void SetTabTitle(int, const std::wstring&amp;); std::wstring GetTabTitle(int) const;
+    void SetTabLabel(int, std::shared_ptr&lt;Label&gt;); std::shared_ptr&lt;Label&gt; GetTabLabel(int) const;
+    static std::shared_ptr&lt;Label&gt; MakeTabLabel(const std::wstring&amp; title);   // centered Label
     void SetTabContent(int, std::shared_ptr&lt;UIElement&gt;); std::shared_ptr&lt;UIElement&gt; GetTabContent(int) const;
     void SetTabClosable(int, bool);
 
@@ -237,6 +242,10 @@ class TabView : public UIElement {
 - **Keyboard**: `Left/Right` cycle, `Home`/`End`, `Delete` closes the current (if closable).
 - **Overflow**: only when too wide — **◀/▶ buttons** (shown per direction) and a **bottom horizontal scrollbar** (reuses `ScrollBar`); the wheel scrolls tabs **only over the tab strip**, content-area wheel goes to the outer scroll container.
 - Closing a tab **slides** the following tabs into place; the indicator follows exactly.
+- **A tab's title is a `Label` (v1.13.0)**, so tabs support icons etc. naturally, e.g.
+  `auto l = TabView::MakeTabLabel(L"Home"); l-&gt;SetIcon(Icon::Home); tabs-&gt;AddTab(l, content);`
+  or `tabs-&gt;GetTabLabel(i)-&gt;SetIcon(Icon::Folder);`.
+- The **tab strip &lt;-&gt; content gap** equals the shrunk thickness of the bottom scrollbar (`ScrollBar::ShrunkWidthRatio`), present only when overflowing.
 
 ## MenuItem
 
@@ -329,17 +338,22 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f1bb32fe', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-5eac5f8c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TabView</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">    </span><span class="c1">// selected tab index</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">TabCloseRequested</span><span class="p">;</span><span class="w">   </span><span class="c1">// a tab's x was clicked (application decides whether to remove)</span>
 
+<span class="w">    </span><span class="c1">// A tab's title IS a Label (v1.13.0); the wstring overload is a convenience (wraps a Label)</span>
 <span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="nf">AddTab</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="nf">AddTab</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">InsertTab</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">InsertTab</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">RemoveTab</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTabs</span><span class="p">();</span>
 <span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="nf">GetTabCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabTitle</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetTabTitle</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabLabel</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetTabLabel</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">MakeTabLabel</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span><span class="w">   </span><span class="c1">// centered Label</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabContent</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetTabContent</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabClosable</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span>
 
@@ -360,15 +374,20 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoTransitionDirection</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-f1bb32fe" style="display: none;">class TabView : public UIElement {
+<pre id="code-5eac5f8c" style="display: none;">class TabView : public UIElement {
     ZSignal&lt;int&gt; SelectionChanged;    // selected tab index
     ZSignal&lt;int&gt; TabCloseRequested;   // a tab's x was clicked (application decides whether to remove)
 
+    // A tab's title IS a Label (v1.13.0); the wstring overload is a convenience (wraps a Label)
     int  AddTab(const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
+    int  AddTab(std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
     void InsertTab(int index, const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
+    void InsertTab(int index, std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
     void RemoveTab(int index); void ClearTabs();
     int  GetTabCount() const;
     void SetTabTitle(int, const std::wstring&amp;); std::wstring GetTabTitle(int) const;
+    void SetTabLabel(int, std::shared_ptr&lt;Label&gt;); std::shared_ptr&lt;Label&gt; GetTabLabel(int) const;
+    static std::shared_ptr&lt;Label&gt; MakeTabLabel(const std::wstring&amp; title);   // centered Label
     void SetTabContent(int, std::shared_ptr&lt;UIElement&gt;); std::shared_ptr&lt;UIElement&gt; GetTabContent(int) const;
     void SetTabClosable(int, bool);
 
@@ -394,12 +413,16 @@ class MenuWindow : public MenuWindowBase {
 <li><strong>Keyboard</strong>: <code>Left/Right</code> cycle, <code>Home</code>/<code>End</code>, <code>Delete</code> closes the current (if closable).</li>
 <li><strong>Overflow</strong>: only when too wide — <strong>◀/▶ buttons</strong> (shown per direction) and a <strong>bottom horizontal scrollbar</strong> (reuses <code>ScrollBar</code>); the wheel scrolls tabs <strong>only over the tab strip</strong>, content-area wheel goes to the outer scroll container.</li>
 <li>Closing a tab <strong>slides</strong> the following tabs into place; the indicator follows exactly.</li>
+<li><strong>A tab's title is a <code>Label</code> (v1.13.0)</strong>, so tabs support icons etc. naturally, e.g.
+  <code>auto l = TabView::MakeTabLabel(L"Home"); l-&gt;SetIcon(Icon::Home); tabs-&gt;AddTab(l, content);</code>
+  or <code>tabs-&gt;GetTabLabel(i)-&gt;SetIcon(Icon::Folder);</code>.</li>
+<li>The <strong>tab strip &lt;-&gt; content gap</strong> equals the shrunk thickness of the bottom scrollbar (<code>ScrollBar::ShrunkWidthRatio</code>), present only when overflowing.</li>
 </ul>
 <h2 id="menuitem">MenuItem</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0a68e2cc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d11bea22', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuItem</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
@@ -422,7 +445,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span><span class="w">    </span><span class="c1">// per-item font (defaults to Menu::font)</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-0a68e2cc" style="display: none;">class MenuItem {
+<pre id="code-d11bea22" style="display: none;">class MenuItem {
     enum class Type { Normal, Separator, Submenu };
     std::wstring text;
     std::function&lt;void()&gt; callback;
@@ -447,7 +470,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9d680220', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-438a21f2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Menu</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">{};</span><span class="w">              </span><span class="c1">// global default menu font</span>
@@ -467,7 +490,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">                    </span><span class="c1">// pop up at the mouse cursor</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-9d680220" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
+<pre id="code-438a21f2" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
     inline static FontSpec DefaultFont{};              // global default menu font
     void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
     void AddCheckItem(const std::wstring&amp; text, bool checked,
@@ -497,7 +520,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b9daf68b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-75f510fb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// Popup base: only the popup's system interaction; no notion of "menu items"</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MenuWindowBase</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
@@ -523,7 +546,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuWindow</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">StandaloneHolder</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-b9daf68b" style="display: none;">// Popup base: only the popup's system interaction; no notion of "menu items"
+<pre id="code-75f510fb" style="display: none;">// Popup base: only the popup's system interaction; no notion of "menu items"
 class MenuWindowBase : public Window {
     bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // content size in DIP; shadow margin added
     void ShowAtPoint(int screenX, int screenY);   // pop up at a screen point (auto-clamped to the work area)
