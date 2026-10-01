@@ -219,6 +219,17 @@ A tour of the widgets (first page of the demo):
 - **Controls**: `TabView::LayoutStrip` now has a **zero-size guard** (avoids bogus arrangement at zero width/height); `ProgressRing` now uses `UseCache()=false` (it changes every frame; the cache would just be rebuilt needlessly); `NumberBox::ResetToDefault()` now **clears the error state** and fires `TextChanged` after restoring the default.
 - Version **1.12.1 -> 1.12.2**.
 
+**Framework Timer / Label icons / Label-based tabs (v1.13.0)**
+- **Framework `Timer` (signal-based)**: `Window::CreateTimer(ms)` -> `std::shared_ptr<Timer>`; `Timer::Tick` is a `ZSignal<>`. Still `WM_TIMER` underneath, but the **id uses a reserved framework range (`0x7F00+`)** so it never collides with the library's internal id or app-defined ids; the timer **auto-detaches when the window is destroyed** and auto-`Stop`s/unregisters when the `Timer` is destroyed.
+- **`Label` built-in glyph icon**: `SetIcon(Icon[,size])` / `SetIconColor` / `GetIcon` (reusing the existing image-icon slot; `size<=0` follows the font size; color defaults to the text color; **icon-only when there is no text**); the "icon + text (+children)" block is aligned **as a unit** (so on a button the icon hugs the centered text).
+- **Icon system moved to the core**: `Icon` / `IconGlyph` / `IconFontFamily` moved from `ZufyUIIcons.h` to **`ZufyUIWidgets.h`**, usable by any control; `FontIcon` / `MakeFontIcon` remain in `ZufyUIIcons.h`.
+- **`Button` forwards the icon**: `SetIcon` / `GetIcon` / `SetIconColor` (to its internal `Label`).
+- **`TabView` tab titles are now `Label`s**: `AddTab(shared_ptr<Label>, ...)` / `SetTabLabel` / `GetTabLabel` (the `wstring` overload stays as a convenience) -> tabs support icons naturally.
+- **`ScrollBar::ShrunkWidthRatio`** (default `0.30`): hosts can reserve exactly the shrunk thickness; `TabView`'s "tab strip <-> content" gap is now that thin-line thickness.
+- **Frame-loop improvements** (for "timers/popups starved while animating"): before the present-driven self-continuation, **dispatch due `WM_TIMER`s** (fixes inaccurate periodic polling), and add a **yield gate** `HasSiblingWindowNeedingPaint()` (`EnumThreadWindows` + `GetUpdateRect`, a precise test) — if another window of this thread is waiting to paint, the current round **does not schedule its own frame**, so their paint is not postponed indefinitely.
+- **Menu open fade-in restored** (`ShowAtPoint`: synchronously paint one frame first, then `SetContentOpacity(0)` + fade in; `WM_TIMER` is no longer starved).
+- Version **1.12.2 -> 1.13.0**.
+
 ### 2026-09-26 — Tray / taskbar / menu enhancements + app identity self-registration
 
 **Menus**

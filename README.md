@@ -219,6 +219,17 @@ win.SetCustomTitleBar(bar);
 - **控件**：`TabView::LayoutStrip` 加**零尺寸守卫**（避免零宽高下的异常排列）；`ProgressRing` 改 `UseCache()=false`（每帧都变，缓存只会白重建一遍）；`NumberBox::ResetToDefault()` 恢复默认后**清除错误态**并触发 `TextChanged`。
 - 版本 **1.12.1 → 1.12.2**。
 
+**框架 Timer / Label 图标 / 页签用 Label（v1.13.0）**
+- **框架 `Timer`（信号通知）**：`Window::CreateTimer(ms)` → `std::shared_ptr<Timer>`，`Timer::Tick` 是 `ZSignal<>`；底层仍是 `WM_TIMER`，但 **id 用框架保留段（`0x7F00+`）**，不干扰库内部定时器与应用自定义 id；**窗口先析构自动解绑**、Timer 先析构自动 `Stop`+注销。
+- **`Label` 内置字体字形图标**：`SetIcon(Icon[,size])` / `SetIconColor` / `GetIcon`（复用原「图片图标」槽位；`size<=0` 跟随字号；颜色默认取文字色；**只设图标无文字 = 纯图标标签**）；「图标 + 文本(+子控件)」作为**一个整体**做左右对齐（按钮里图标与居中文字贴在一起）。
+- **图标系统下沉到核心**：`Icon` / `IconGlyph` / `IconFontFamily` 从 `ZufyUIIcons.h` 移到 **`ZufyUIWidgets.h`**，任何控件都能直接用；`FontIcon` / `MakeFontIcon` 仍在 `ZufyUIIcons.h`。
+- **`Button` 转发图标**：`SetIcon` / `GetIcon` / `SetIconColor`（转发给内部 `Label`）。
+- **`TabView` 页签标题改为 `Label`**：`AddTab(shared_ptr<Label>, …)` / `SetTabLabel` / `GetTabLabel`（`wstring` 重载保留为便捷写法）→ 页签天然支持图标。
+- **`ScrollBar::ShrunkWidthRatio`**（默认 `0.30`）：宿主据此留边；`TabView` 的「标签条 ↔ 内容」间距改为「细线粗细」。
+- **帧循环改进**（针对「动画期间定时器/弹窗被饿死」）：present 自续前先**派发到期的 `WM_TIMER`**（修定时轮询不准时）；并新增**让位闸门** `HasSiblingWindowNeedingPaint()`（`EnumThreadWindows` + `GetUpdateRect` 精确判据）——本线程若有其它窗口正等着出画，本轮**不给自己排帧**，避免其重绘被无限期推迟。
+- **菜单打开淡入恢复**（`ShowAtPoint`：先同步画一帧把内容渲染出来，再 `SetContentOpacity(0)` + 淡入；WM_TIMER 不再被饿死）。
+- 版本 **1.12.2 → 1.13.0**。
+
 ### 2026-09-26 — 托盘 / 任务栏 / 菜单增强 + 应用身份自注册
 
 **菜单**

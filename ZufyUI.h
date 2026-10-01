@@ -81,9 +81,9 @@
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 12
-#define ZufyUI_VERSION_PATCH 2
-#define ZufyUI_VERSION_STRING L"1.12.2"
+#define ZufyUI_VERSION_MINOR 13
+#define ZufyUI_VERSION_PATCH 0
+#define ZufyUI_VERSION_STRING L"1.13.0"
 
 #ifndef DWMWA_BORDER_COLOR
 #define DWMWA_BORDER_COLOR 34
@@ -245,6 +245,7 @@ namespace ZufyUI {
 class MenuWindowBase;
     class ComboBox;
     class Window;
+    class Timer;   // 基于信号的框架定时器
 
     // ========== 信号槽机制 ==========
     enum class ConnectionThread {
@@ -2606,6 +2607,7 @@ class MenuWindowBase;
 
         virtual ~Window() {
             acrylicReloadConn_.disconnect();
+            ClearFrameworkTimers();   // 通知框架定时器：窗口将亡（让 Timer 与窗口解绑）
             if (rootElement_) rootElement_->AttachWindowRecursive(nullptr);
             if (customTitleBar_) customTitleBar_->AttachWindowRecursive(nullptr);   // 析构路径同样清归属
             if (hwnd_) { DestroyWindow(hwnd_); hwnd_ = nullptr; }
@@ -2623,6 +2625,25 @@ class MenuWindowBase;
 
         // 窗口级定时器钩子（WM_TIMER；返回 true 表示已处理）。id 为 SetTimer 传入的 id。
         virtual bool OnWindowTimer(int id) { (void)id; return false; }
+
+        // ---- 框架定时器 ----
+        // 创建一个基于信号的循环定时器：intervalMs>0 时立即启动，到点触发 Timer::Tick（UI 线程）。
+        // 用法：auto t = CreateTimer(500); t->Tick.connect([this]{ ... });
+        std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
+
+    private:
+        friend class Timer;
+        UINT_PTR AllocFrameworkTimerId() { return nextFrameworkTimerId_++; }
+        void RegisterFrameworkTimer(UINT_PTR id, Timer* t) { frameworkTimers_[id] = t; }
+        void UnregisterFrameworkTimer(UINT_PTR id, Timer* t) {
+            auto it = frameworkTimers_.find(id);
+            if (it != frameworkTimers_.end() && it->second == t) frameworkTimers_.erase(it);
+        }
+        void FireFrameworkTimer(UINT_PTR id);
+        void ClearFrameworkTimers();
+        std::unordered_map<UINT_PTR, Timer*> frameworkTimers_;
+        UINT_PTR nextFrameworkTimerId_ = 0x7F00;   // 框架定时器 id 段（避开库内部 1/应用自定义）
+    public:
 
         // 窗口尺寸变化钩子（WM_SIZE）；用于依赖客户区宽度的收尾布局（如弹窗按钮靠右）
         virtual void OnWindowSize() {}
@@ -3726,6 +3747,7 @@ class MenuWindowBase;
             case WM_DISPLAYCHANGE: InvalidateRect(hwnd_, nullptr, FALSE); UpdateTimerState(); return 0;
             case WM_TIMER:
                 if (OnWindowTimer((int)wParam)) return 0;
+                if (frameworkTimers_.count((UINT_PTR)wParam)) { FireFrameworkTimer((UINT_PTR)wParam); return 0; }
                 if (wParam == 1) {
 #ifdef ZufyUI_DEBUG
                     // ---- 调试输出开始 ----
@@ -3760,7 +3782,8 @@ class MenuWindowBase;
                     if (HasRenderWork()) {
                         // 只保留"排队"这一种驱动：真正的动画由 OnPaint 末尾的 present 驱动（vblank 节拍）。
                         // 这里不要再 RDW_UPDATENOW 同步画 —— 会和 present 驱动叠成"每帧画两遍"，更耗 GPU 还堵消息泵（右键/淡入被拖）。
-                        InvalidateRect(hwnd_, nullptr, FALSE);
+                        // 同样加让位闸门：本线程若有别的窗口（弹窗/对话框）等着画，先别插本窗的 WM_PAINT。
+                        if (!HasSiblingWindowNeedingPaint()) InvalidateRect(hwnd_, nullptr, FALSE);
                     }
                     // 若无工作，则什么都不做，定时器继续运行
                 }
@@ -3967,6 +3990,22 @@ class MenuWindowBase;
             if (tooltipTarget_ || tooltipProgress_ > 0.0f) return true;
             // 注意：不要加"鼠标停在任何带 tooltip 的元素上就恒为 true" —— 会让定时器每 16ms 全窗重绘一次，白烧 CPU。
             return false;
+        }
+
+        // 本线程里（除本窗口外）是否还有"可见且有待处理更新区"的窗口（弹窗 / 对话框 / MessageBox）在等着出画。
+        // 用 GetUpdateRect(...,FALSE) 只查询不验证（无副作用），用 EnumThreadWindows 只遍历本线程、不误伤其它进程。
+        // present 自续循环靠它"让位"：否则本窗口持续合成的 WM_PAINT 会把同线程其它窗口的重绘无限期推迟
+        // （表现：窗口在、客户区空白 / 像"没弹出来"；动画一停才画出来）。
+        bool HasSiblingWindowNeedingPaint() const {
+            struct Ctx { HWND self; bool found; };
+            Ctx ctx{ hwnd_, false };
+            EnumThreadWindows(GetCurrentThreadId(), [](HWND h, LPARAM lp) -> BOOL {
+                Ctx* c = reinterpret_cast<Ctx*>(lp);
+                if (h == c->self || !IsWindowVisible(h)) return TRUE;
+                if (GetUpdateRect(h, nullptr, FALSE)) { c->found = true; return FALSE; }   // 有未处理的更新区
+                return TRUE;
+            }, reinterpret_cast<LPARAM>(&ctx));
+            return ctx.found;
         }
 
         void Compose(UIElement* elem, ID2D1RenderTarget* rt) {
@@ -4438,7 +4477,32 @@ class MenuWindowBase;
             // 注意：只在"确实有动画在跑"时这样做 —— 用 HasRenderWork() 会因"悬停在带 tooltip 的元素"
             // 恒为 true 而变成自持死循环，把 WM_TIMER（UpdateTooltip/标题轮询）饿死。
             if (SUCCEEDED(hr) && !activeAnimScratch_.empty()) {
-                InvalidateRect(hwnd_, nullptr, FALSE);
+                // present 驱动下一帧。前提：Present1(1) 已同步到 vblank，所以"立刻再排一帧"能贴住 vblank ——
+                // 这正是它比纯 WM_TIMER 驱动流畅的原因，不能退化成定时器驱动。
+                // 但"排下一帧"= 让本窗无效 = 合成一个本窗的 WM_PAINT；而合成消息里 WM_PAINT 是"谁有未处理区域就先给谁"。
+                // 若本窗的 WM_PAINT 一直排在同线程其它窗口（MessageBox / 模态 / RunModal）前面，它们会永远拿不到，
+                // 表现为窗口在、客户区空白 / 像"没弹出来"，动画停下（切页 / 最小化）后才画出来。
+                // 所以：先派发到期的 WM_TIMER 与"其它窗口"的 WM_PAINT；再经"让位闸门"——本线程若有别的窗口等着画，
+                // 本轮就不给自己排帧（让位一帧），下一 tick 的 WM_TIMER 会重新进来续上，动画不中断、节拍也保住。
+                MSG tmsg;
+                int guard = 0;
+                while (guard++ < 64 && PeekMessageW(&tmsg, nullptr, WM_TIMER, WM_TIMER, PM_REMOVE)) {
+                    TranslateMessage(&tmsg);
+                    DispatchMessageW(&tmsg);
+                }
+                guard = 0;
+                while (guard++ < 64 && PeekMessageW(&tmsg, nullptr, WM_PAINT, WM_PAINT, PM_REMOVE)) {
+                    if (tmsg.hwnd == hwnd_) {
+                        // 本窗的（理论上不该有：BeginPaint 已清空区域）→ 放回队列，别吞掉。
+                        PostMessageW(tmsg.hwnd, WM_PAINT, 0, 0);
+                        break;
+                    }
+                    TranslateMessage(&tmsg);
+                    DispatchMessageW(&tmsg);
+                }
+                if (!HasSiblingWindowNeedingPaint()) {
+                    InvalidateRect(hwnd_, nullptr, FALSE);
+                }
             }
 
             if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
@@ -5295,12 +5359,12 @@ class MenuWindowBase;
                                 SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
             ShowNoActivate();
             if (!parent_) detail::g_activeMenu = this;   // 根弹出层登记，供窗口转发键盘
-            // 注意：WM_PAINT 的检索优先级高于 WM_TIMER。当主窗口有持续动画（present 循环每帧发 WM_PAINT）时，
-            // 菜单窗口的「淡入定时器」和它的 WM_PAINT 都会被饿死 → 菜单会一直是全透明（看起来"完全不出现"）。
-            // 所以这里：立即置为不透明 + 同步画一帧（不依赖定时器/消息队列）。
-            SetContentOpacity(1.0f);
-            fade_ = 1.0f; animating_ = false;
+            // 淡入：由菜单窗口的 WM_TIMER(animTimerId_) 每 10ms 推进透明度。
+            // 注意：菜单窗口自身的 WM_PAINT 在"主窗口有持续动画"时可能被压后，所以这里先同步画一帧把内容渲染好；
+            // 之后淡入只改 DComp 透明度，不需要重绘。（WM_TIMER 已不再被 present 循环饿死。）
+            SetContentOpacity(0.0f);
             if (h) RedrawWindow(h, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
+            StartFade();
             openedTick_ = GetTickCount();
             prevLButtonDown_ = true;
             if (standalone_ && h) SetTimer(h, kPollTimerId, 30, nullptr);
@@ -5975,6 +6039,78 @@ class MenuWindowBase;
         for (Window* w : detail::AppCore::Instance().Windows()) {
             if (w) w->CloseContextMenu();
         }
+    }
+
+    // ============================================================================
+    // Timer —— 基于信号的循环定时器（UI 线程；到点触发 Tick）
+    // ----------------------------------------------------------------------------
+    // 用法：
+    //     auto t = window->CreateTimer(500);          // 每 500ms 触发
+    //     t->Tick.connect([this]{ Refresh(); });
+    //     t->Stop(); t->Start(); t->SetInterval(1000);
+    // 说明：底层就是 WM_TIMER；id 用框架保留段（0x7F00+），不干扰库内部定时器(1)与应用自定义 id。
+    //       持有 shared_ptr 即保活；析构自动 Stop/解绑；窗口先亡则自动与窗口解绑（Start 变空操作）。
+    // ============================================================================
+    class Timer {
+    public:
+        ZSignal<> Tick;                                   // 到点触发（窗口线程）
+        inline static int DefaultInterval = 1000;
+
+        Timer() = default;
+        explicit Timer(Window* owner) { Attach(owner); }
+        ~Timer() {
+            Stop();
+            if (owner_) owner_->UnregisterFrameworkTimer(id_, this);
+        }
+        Timer(const Timer&) = delete;
+        Timer& operator=(const Timer&) = delete;
+
+        void Attach(Window* owner) {
+            if (owner_ == owner) return;
+            Stop();
+            if (owner_) owner_->UnregisterFrameworkTimer(id_, this);
+            owner_ = owner;
+            if (owner_) { id_ = owner_->AllocFrameworkTimerId(); owner_->RegisterFrameworkTimer(id_, this); }
+        }
+        Window* GetWindow() const { return owner_; }
+
+        void Start(int intervalMs) { interval_ = intervalMs > 0 ? intervalMs : 1; Start(); }
+        void Start() {
+            if (!owner_ || running_) return;
+            HWND h = owner_->GetHwnd();
+            if (!h) return;
+            SetTimer(h, id_, (UINT)interval_, nullptr);
+            running_ = true;
+        }
+        void Stop() {
+            if (running_ && owner_) { HWND h = owner_->GetHwnd(); if (h) KillTimer(h, id_); }
+            running_ = false;
+        }
+        void SetInterval(int ms) { interval_ = ms > 0 ? ms : 1; if (running_) { Stop(); Start(); } }
+        int  GetInterval() const { return interval_; }
+        bool IsRunning()  const { return running_; }
+
+    private:
+        friend class Window;
+        void DetachFromWindow() { running_ = false; owner_ = nullptr; }
+        Window*  owner_ = nullptr;
+        UINT_PTR id_ = 0;
+        int      interval_ = DefaultInterval;
+        bool     running_ = false;
+    };
+
+    inline void Window::FireFrameworkTimer(UINT_PTR id) {
+        auto it = frameworkTimers_.find(id);
+        if (it != frameworkTimers_.end() && it->second) it->second->Tick.Fire();
+    }
+    inline void Window::ClearFrameworkTimers() {
+        for (auto& kv : frameworkTimers_) if (kv.second) kv.second->DetachFromWindow();
+        frameworkTimers_.clear();
+    }
+    inline std::shared_ptr<Timer> Window::CreateTimer(int intervalMs) {
+        auto t = std::make_shared<Timer>(this);
+        if (intervalMs > 0) t->Start(intervalMs);
+        return t;
     }
 
 } // namespace ZufyUI

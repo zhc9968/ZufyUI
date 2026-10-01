@@ -608,12 +608,17 @@ class TabView : public UIElement {
     ZSignal<int> SelectionChanged;    // 选中页签索引
     ZSignal<int> TabCloseRequested;   // 点了某页签的 ×（删不删由应用决定）
 
+    // 页签标题就是一个 Label（v1.13.0）；wstring 重载是便捷写法（内部包一个 Label）
     int  AddTab(const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
+    int  AddTab(std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
     void InsertTab(int index, const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
+    void InsertTab(int index, std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false);
     void RemoveTab(int index);
     void ClearTabs();
     int  GetTabCount() const;
     void SetTabTitle(int, const std::wstring&); std::wstring GetTabTitle(int) const;
+    void SetTabLabel(int, std::shared_ptr<Label>); std::shared_ptr<Label> GetTabLabel(int) const;
+    static std::shared_ptr<Label> MakeTabLabel(const std::wstring& title);   // 居中 Label
     void SetTabContent(int, std::shared_ptr<UIElement>); std::shared_ptr<UIElement> GetTabContent(int) const;
     void SetTabClosable(int, bool);
 
@@ -645,6 +650,10 @@ class TabView : public UIElement {
 - **键盘**：页签聚焦后 `←/→` 循环、`Home`/`End`、`Delete` 关当前（可关闭时）。
 - **溢出**：超出宽度时才出现 **◀/▶ 按钮**（按能否再往该方向滚显隐）与**底部横向滚动条**（复用 `ScrollBar` 子类）；滚轮**只在页签条上**滚动页签，内容区滚轮交给外层滚动容器。
 - 关闭页签时，后面的页签**平滑移动**过来；选中项指示器随之跟手。
+- **页签标题是 `Label`（v1.13.0）**：所以页签天然支持图标等 Label 能力，例如
+  `auto l = TabView::MakeTabLabel(L"主页"); l->SetIcon(Icon::Home); tabs->AddTab(l, content);`
+  或 `tabs->GetTabLabel(i)->SetIcon(Icon::Folder);`。
+- **标签条 ↔ 内容的间距** = 底部滚动条**完全收缩**时的粗细（`ScrollBar::ShrunkWidthRatio`，视口溢出时才有该间距）。
 
 ## MenuItem
 
@@ -897,7 +906,8 @@ class Window {
     virtual void OnWindowMessageHandled(UINT, WPARAM, LPARAM, LRESULT);  // 旁路观察（不改结果）
     virtual bool OnWindowClosing();           // WM_CLOSE，返回 true 取消关闭
     virtual bool OnWindowKeyDown(int vk);     // 键盘（派发给焦点元素前）
-    virtual bool OnWindowTimer(int id);       // WM_TIMER
+    virtual bool OnWindowTimer(int id);       // WM_TIMER（应用自定义 id）
+    std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);   // 基于信号的循环定时器（见下）
 
     // ---- 自绘 ----
     virtual void RenderContent(ID2D1DeviceContext* rt);   // 默认画元素树；可重写完全自绘
@@ -910,6 +920,37 @@ class Window {
 - **拦截任意消息**：`OnWindowMessage` 是唯一入口（在框架默认处理之前）；返回 true 即吞掉该消息。默认返回 false、行为不变。
 - **自绘窗口/浮层**：重写 `RenderContent(rt)`（拿到共享的 `ID2D1DeviceContext`），配合 `GetCreateStyle/GetCreateExStyle/WantDwmChrome/WantBackdrop` 即可做无边框/透明/弹出层。
 - `OnWindowMessageHandled` 只观察、不改结果（调试/联动用）。
+
+## Timer（框架定时器）
+
+```cpp
+class Timer {
+    ZSignal<> Tick;                    // 到点触发（UI 线程）
+    inline static int DefaultInterval; // 1000
+
+    void Attach(Window* owner);
+    Window* GetWindow() const;
+    void Start(int intervalMs);        // 设定间隔并启动
+    void Start();                      // 按当前间隔启动
+    void Stop();
+    void SetInterval(int ms);
+    int  GetInterval() const;
+    bool IsRunning() const;
+};
+
+// 便捷入口（推荐）：
+std::shared_ptr<Timer> Window::CreateTimer(int intervalMs = 1000);
+```
+
+- 底层就是 `WM_TIMER`，但 **id 用框架保留段（`0x7F00+`）**，不干扰库内部定时器（id 1）与应用自定义 id。
+- 用法：
+  ```cpp
+  auto t = window->CreateTimer(500);      // 每 500ms
+  t->Tick.connect([this]{ Refresh(); });
+  t->Stop(); t->Start(); t->SetInterval(1000);
+  ```
+- 持有 `shared_ptr` 即保活；**窗口先析构会自动把 Timer 与窗口解绑**（之后 `Start()` 变空操作，不会野指针）；Timer 先析构自动 `Stop` + 注销。
+- 也可手动：`Timer t; t.Attach(win); t.Start(ms);`。
 
 ###chapter: 应用与多窗口 | Application 与多窗口
 
@@ -1102,6 +1143,11 @@ class Label : public UIElement {
     Size GetIconSize() const;
     void SetIconSpacing(float spacing);      // 图标与文本/子控件的间距
     float GetIconSpacing() const;
+    // 字体字形图标（前置）：与图片共用同一图标槽（同时设了图片则图片优先）
+    void SetIcon(Icon icon, float size = 0.0f);   // size<=0 跟随本标签字号
+    Icon GetIcon() const;
+    void SetIconColor(Color);                     // 默认取文字色
+    Color GetIconColor() const;
 
     // 嵌套子控件（内联横排：图标 + 文本 + 子控件）
     void AddChild(std::shared_ptr<UIElement> child);
@@ -1114,9 +1160,11 @@ class Label : public UIElement {
 - `SetMaxLines` 只在 `Wrap` 模式下有意义；`Ellipsis` 本身就是单行。
 - 禁用时文字自动变为灰色（`DefaultDisabledColor`）。
 - **图标**：`SetImage` 后 Label 在文本左侧绘制图标；`SetIconSize(0,0)` 表示用图像原尺寸。图标可与文字、子控件共存（即使没有文字也会绘制）。
+- **字体字形图标（v1.13.0）**：`SetIcon(Icon::Xxx)` 用系统图标字体的字形作前置图标（`size<=0` 跟随字号、颜色默认取文字色）；只设图标不设文字即为「纯图标标签」。**注意**：图标系统（`Icon` / `IconGlyph` / `IconFontFamily`）已下沉到 `ZufyUIWidgets.h`，所以 **`Button` 等一切基于 `Label` 的控件都自动支持**。
+- **对齐**：`SetAlignment` 时「图标 + 文本(+子控件)」作为**一个整体**对齐（按钮里图标会和居中文字贴在一起）。
 - **嵌套子控件**：`AddChild` 的子控件与图标、文本**内联横排**，并参与 `GetChildren()` 递归（窗口归属、重绘、布局都按子控件处理）。
 
-## FontIcon（图标系统 · `ZufyUIIcons.h`）
+## FontIcon（图标元素 / 图标系统）
 
 ```cpp
 // 图标字体：Win11 = "Segoe Fluent Icons"，Win10 = "Segoe MDL2 Assets"（运行期自动探测回退）
@@ -1155,6 +1203,7 @@ std::shared_ptr<FontIcon> MakeFontIcon(Icon, float size = 16.0f, Color = 黑);
 - 用**系统图标字体的字形**当图标；`Icon` 的值就是码点。
 - 字形 layout 走 `FontManager` 全局缓存 → 大量图标不重复建 `IDWriteTextLayout`。
 - 和普通控件一样可放进任意容器；图标 + 文字用 `RowBox` 组合即可。
+- **v1.13.0 起**：`Icon` / `IconGlyph` / `IconFontFamily` 已下沉到 **`ZufyUIWidgets.h`（核心）**，任何控件（尤其基于 `Label` 的：`Button`、`TabView` 页签…）都能直接用 `SetIcon(Icon)`；`FontIcon` / `MakeFontIcon` 仍在 `ZufyUIIcons.h`（该头现在会自动包含 `ZufyUIWidgets.h`）。
 
 ## Button
 
@@ -1166,6 +1215,10 @@ class Button : public UIElement {
     Button(const std::wstring& text = L"Button");
     void SetText(const std::wstring& text);
     std::wstring GetText() const;
+    // 图标（转发给内部 Label；只设图标不设文字 = 纯图标按钮）
+    void SetIcon(Icon icon, float size = 0.0f);
+    Icon GetIcon() const;
+    void SetIconColor(Color);
     void SetColors(Color normal, Color hover, Color pressed);
     void SetTextColor(Color color);
     void SetCornerRadius(float radius);
@@ -1459,6 +1512,8 @@ class ScrollBar : public UIElement {
     void SetBarWidth(float); void SetMinLength(float); void SetHitExtra(float);
     void SetColors(D2D1_COLOR_F thumb, D2D1_COLOR_F hoverThumb, D2D1_COLOR_F track);
     void SetIdleDelay(float); void SetAutoShrink(bool); void MarkActive();
+
+    inline static float ShrunkWidthRatio;   // 完全收缩时粗细 = barWidth × 该值（默认 0.30）
 };
 ```
 
@@ -1466,6 +1521,7 @@ class ScrollBar : public UIElement {
 - **自带** hover 扩张 + **空闲缩小**动画（`SetIdleDelay`，默认 2 秒后缩成细线；鼠标悬停立即恢复并播放悬停动画）。
 - 宿主每帧 `SetRange(value, maxValue, viewport)`；拖动 → `animate=false`（跟手），点轨道 → `animate=true`（平滑）。
 - `ScrollViewer` 对应接口：`SetScrollBarIdleDelay(float)` / `SetScrollBarAutoShrink(bool)` / `SetDefaultScrollBarIdleDelay(float)`。
+- `ScrollBar::ShrunkWidthRatio`（默认 `0.30`）：**完全收缩时的粗细比例**，宿主可据此留边——`TabView` 就用它把"标签条 ↔ 内容"的间距设成"细线粗细"。
 
 ## ProgressBar
 

@@ -80,6 +80,112 @@ namespace ZufyUI {
         rt->DrawTextLayout(D2D1::Point2F(Snap(drawX), Snap(rect.top)), finalLayout.Get(), textBrush.Get());
     }
 
+    // ============================================================================
+    // 图标系统（字形图标）—— 下沉到核心，任何控件（尤其基于 Label 的）都能用
+    // ----------------------------------------------------------------------------
+    // 用系统图标字体的字形当图标：Win11 = "Segoe Fluent Icons"，Win10 = "Segoe MDL2 Assets"，
+    // 两者码点基本一致。运行期探测可用性，缺前者自动回退后者。
+    //   - Icon 枚举值**就是字体码点本身**（`Icon::Add = 0xE710`），不维护平行码点表 → 不会漂移。
+    //   - FontIcon 只画一个字形；Label::SetIcon 给"带文本的标签"加前置字形图标。
+    // ============================================================================
+
+    // ---- 图标字体族（运行期探测一次）----
+    inline const std::wstring& IconFontFamily() {
+        static const std::wstring family = []() -> std::wstring {
+            IDWriteFactory* factory = FontManager::Instance().GetFactory();
+            if (factory) {
+                ComPtr<IDWriteFontCollection> coll;
+                if (SUCCEEDED(factory->GetSystemFontCollection(&coll)) && coll) {
+                    UINT32 index = 0; BOOL exists = FALSE;
+                    if (SUCCEEDED(coll->FindFamilyName(L"Segoe Fluent Icons", &index, &exists)) && exists)
+                        return L"Segoe Fluent Icons";
+                }
+            }
+            return L"Segoe MDL2 Assets";
+        }();
+        return family;
+    }
+
+    // ---- 图标枚举：枚举值 = 字体码点（括号内为 MDL2 Assets 名称，便于对照/查图）----
+    enum class Icon : unsigned short {
+        None = 0x0000,
+
+        // 常规操作
+        Add = 0xE710,          // Add
+        Remove = 0xE738,       // Remove
+        Delete = 0xE74D,       // Delete
+        Edit = 0xE70F,         // Edit
+        Save = 0xE74E,         // Save
+        Open = 0xE8E5,         // OpenFile
+        Copy = 0xE8C8,         // Copy
+        Cut = 0xE8C6,          // Cut
+        Paste = 0xE77F,        // Paste
+        Undo = 0xE7A7,         // Undo
+        Redo = 0xE7A6,         // Redo
+        Refresh = 0xE72C,      // Refresh
+        Search = 0xE721,       // Search
+        Filter = 0xE71C,       // Filter
+        Settings = 0xE713,     // Settings
+        More = 0xE712,         // More
+        Close = 0xE8BB,        // ChromeClose
+        Cancel = 0xE711,       // Cancel
+        Check = 0xE73E,        // CheckMark
+        Share = 0xE72D,        // Share
+        Download = 0xE896,     // Download
+        Upload = 0xE898,       // Upload
+        Link = 0xE71B,         // Link
+        Attach = 0xE723,       // Attach
+        Send = 0xE724,         // Send
+        Pin = 0xE718,          // Pin
+        Sort = 0xE8CB,         // Sort
+        Sync = 0xE895,         // Sync
+
+        // 导航
+        Home = 0xE80F,         // Home
+        Back = 0xE72B,         // Back
+        Forward = 0xE72A,      // Forward
+        ChevronDown = 0xE70D,  // ChevronDown
+        ChevronUp = 0xE70E,    // ChevronUp
+        ChevronLeft = 0xE76B,  // ChevronLeft
+        ChevronRight = 0xE76C, // ChevronRight
+        GlobalNav = 0xE700,    // GlobalNavButton（汉堡菜单）
+        AllApps = 0xE71D,      // AllApps
+        Zoom = 0xE71E,         // Zoom
+
+        // 状态 / 提示
+        Info = 0xE946,         // Info
+        Warning = 0xE7BA,      // Warning
+        Error = 0xE783,        // ErrorBadge
+        Success = 0xE930,      // Completed
+        Help = 0xE897,         // Help
+        Lock = 0xE72E,         // Lock
+        Unlock = 0xE785,       // Unlock
+        View = 0xE890,         // View（眼睛）
+
+        // 对象
+        Person = 0xE77B,       // Contact
+        Mail = 0xE715,         // Mail
+        Phone = 0xE717,        // Phone
+        Calendar = 0xE787,     // Calendar
+        Clock = 0xE823,        // Clock
+        Folder = 0xE8B7,       // Folder
+        File = 0xE7C3,         // Page
+        Image = 0xE8B9,        // Picture
+        Favorite = 0xE734,     // FavoriteStar
+        FavoriteFill = 0xE735, // FavoriteStarFill
+        Play = 0xE768,         // Play
+        Pause = 0xE769,        // Pause
+        Stop = 0xE71A,         // Stop
+        Volume = 0xE767,       // Volume
+    };
+
+    // 取字形字符串（单码点）
+    inline std::wstring IconGlyph(Icon icon) {
+        unsigned short code = (unsigned short)icon;
+        if (code == 0) return std::wstring();
+        return std::wstring(1, (wchar_t)code);
+    }
+
     // ---------- 标签（支持对齐、换行/省略号，最终修正版） ----------
     class Label : public UIElement {
     public:
@@ -147,6 +253,18 @@ namespace ZufyUI {
         void SetIconSpacing(float s) { iconSpacing_ = max(0.0f, s); InvalidateLayout(); RequestRepaint(); }
         float GetIconSpacing() const { return iconSpacing_; }
 
+        // 字体字形图标（前置）：与图片图标共用同一槽位（若同时设了图片则图片优先）。
+        // size<=0 表示跟随本标签字号。图标颜色默认取文字色。
+        void SetIcon(Icon icon, float size = 0.0f) {
+            if (glyphIcon_ != icon || glyphIconSize_ != size) {
+                glyphIcon_ = icon; glyphIconSize_ = size;
+                InvalidateLayout(); RequestRepaint();
+            }
+        }
+        Icon GetIcon() const { return glyphIcon_; }
+        void SetIconColor(Color c) { glyphIconColor_ = c; RequestRepaint(); }
+        Color GetIconColor() const { return glyphIconColor_; }
+
         // ---------------- 嵌套子控件（内联横排：图标 + 文本 + 子控件） ----------------
         void AddChild(std::shared_ptr<UIElement> child) {
             if (!child || child.get() == this) return;
@@ -194,11 +312,21 @@ namespace ZufyUI {
             float padW = padding_.left + padding_.right;
             float padH = padding_.top + padding_.bottom;
 
-            // 图标尺寸
+            // 图标尺寸（图片优先；否则用字体字形图标）
             float iw = 0, ih = 0;
             if (image_ && !image_->IsNull()) {
                 iw = iconSize_.width > 0 ? iconSize_.width : (float)image_->Width();
                 ih = iconSize_.height > 0 ? iconSize_.height : (float)image_->Height();
+            }
+            else if (glyphIcon_ != Icon::None) {
+                float fsz = GlyphSize();
+                std::wstring glyph = IconGlyph(glyphIcon_);
+                IDWriteTextFormat* ifmt = GetGlyphFormat(fsz);
+                if (!glyph.empty() && ifmt) {
+                    auto gl = FontManager::Instance().GetStyledLayout(glyph, ifmt, 10000.0f, 10000.0f, true, 0, 0, 0.0f, 0);
+                    if (gl) { DWRITE_TEXT_METRICS m{}; gl->GetMetrics(&m); iw = m.width; ih = m.height; }
+                }
+                if (iw <= 0.0f) { iw = fsz; ih = fsz; }
             }
 
             // 文本尺寸
@@ -257,17 +385,46 @@ namespace ZufyUI {
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
-            float x = finalRect.x + padding_.left;
-            float cy = finalRect.y + finalRect.height * 0.5f;
+            const float padW = padding_.left + padding_.right;
+            const float availW = max(0.0f, finalRect.width - padW);
+            const float iconW = measuredIconW_;
+            const bool hasChildren = !children_.empty();
+
+            float childrenW = 0.0f;
+            for (auto& s : childSizes_) childrenW += s.width;
+            if (hasChildren) childrenW += iconSpacing_ * (float)children_.size();
+
+            // 非文本内容宽度（图标 + 子控件 + 它们与文本之间的间隔）
+            const float otherW = iconW
+                + ((iconW > 0.0f && (measuredTextW_ > 0.0f || hasChildren)) ? iconSpacing_ : 0.0f)
+                + childrenW;
+            const float textAvail = max(0.0f, availW - otherW);
+
+            // 文本实际宽度 / 交给文本布局的盒宽
+            float textW = 0.0f, textBoxW = 0.0f;
+            if (measuredTextW_ > 0.0f) {
+                textW = min(measuredTextW_, textAvail);
+                textBoxW = (overflow_ == TextOverflow::Wrap) ? textAvail : textW;
+            }
+
+            // 把「图标 + 文本 + 子控件」当作一个整体做水平对齐（这样按钮里图标会和居中文字贴在一起）
+            const float contentW = otherW + textW;
+            float startX = finalRect.x + padding_.left;
+            if (hAlign_ == HAlign::Center) startX += max(0.0f, (availW - contentW) * 0.5f);
+            else if (hAlign_ == HAlign::Right) startX += max(0.0f, availW - contentW);
+
+            float x = startX;
+            const float cy = finalRect.y + finalRect.height * 0.5f;
             iconRect_ = D2D1::RectF(0, 0, 0, 0);
-            if (measuredIconW_ > 0) {
+            if (iconW > 0.0f) {
                 float iy = cy - measuredIconH_ * 0.5f;
-                iconRect_ = D2D1::RectF(x, iy, x + measuredIconW_, iy + measuredIconH_);
-                x += measuredIconW_;
-                if (measuredTextW_ > 0 || !children_.empty()) x += iconSpacing_;
+                iconRect_ = D2D1::RectF(x, iy, x + iconW, iy + measuredIconH_);
+                x += iconW;
+                if (measuredTextW_ > 0.0f || hasChildren) x += iconSpacing_;
             }
             textLeft_ = x;
-            x += measuredTextW_;
+            textBoxW_ = textBoxW;
+            x += textW;
             for (size_t i = 0; i < children_.size(); ++i) {
                 auto& c = children_[i];
                 if (!c) continue;
@@ -299,6 +456,24 @@ namespace ZufyUI {
                 Image::DrawOptions o;
                 image_->Draw(rt, iconRect_, o);
             }
+            else if (rt && glyphIcon_ != Icon::None && iconRect_.right > iconRect_.left) {
+                // 字体字形图标：居中画进图标槽（颜色默认取文字色）
+                float fsz = GlyphSize();
+                std::wstring glyph = IconGlyph(glyphIcon_);
+                IDWriteTextFormat* ifmt = GetGlyphFormat(fsz);
+                if (!glyph.empty() && ifmt) {
+                    float gw = iconRect_.right - iconRect_.left;
+                    float gh = iconRect_.bottom - iconRect_.top;
+                    auto gl = FontManager::Instance().GetStyledLayout(glyph, ifmt, gw, gh, true, 1, 1, 0.0f, 0);
+                    if (gl) {
+                        Color ic = (glyphIconColor_.a > 0.0f) ? glyphIconColor_ : textColor_;
+                        if (!glyphBrush_) rt->CreateSolidColorBrush(ic.ToD2D(), glyphBrush_.GetAddressOf());
+                        else glyphBrush_->SetColor(ic.ToD2D());
+                        if (!IsEffectivelyEnabled() && glyphBrush_) glyphBrush_->SetColor(DefaultDisabledColor.ToD2D());
+                        if (glyphBrush_) rt->DrawTextLayout(D2D1::Point2F(Snap(iconRect_.left), Snap(iconRect_.top)), gl.Get(), glyphBrush_.Get());
+                    }
+                }
+            }
             if (text_.empty()) return;
 
             IDWriteTextFormat* fmt = GetFontFormat();
@@ -311,6 +486,8 @@ namespace ZufyUI {
             rect.bottom = arrangedRect_.y + arrangedRect_.height - padding_.bottom;
             rect.left = (textLeft_ > 0.0f) ? textLeft_ : (arrangedRect_.x + padding_.left);
             rect.right = arrangedRect_.x + arrangedRect_.width - padding_.right;
+            // 有图标/子控件时，文本盒按"实际文本宽度"收窄，让文字紧贴图标（整体对齐已在 Arrange 里算好）
+            if (textBoxW_ > 0.0f && rect.left + textBoxW_ < rect.right) rect.right = rect.left + textBoxW_;
             if (rect.right < rect.left) rect.right = rect.left;
             if (rect.bottom < rect.top) rect.bottom = rect.top;
             FontManager& fm = FontManager::Instance();
@@ -372,10 +549,23 @@ namespace ZufyUI {
         void ReleaseDeviceResources() override {
             textBrush_.Reset();
             bgBrush_.Reset();
+            glyphBrush_.Reset();
             UIElement::ReleaseDeviceResources();
         }
 
     private:
+        // 字形图标：字号（<=0 跟随本标签字体）与取格式
+        float GlyphSize() {
+            if (glyphIconSize_ > 0.0f) return glyphIconSize_;
+            IDWriteTextFormat* fmt = GetFontFormat();
+            if (fmt) { float s = fmt->GetFontSize(); if (s > 0.0f) return s; }
+            return 16.0f;
+        }
+        IDWriteTextFormat* GetGlyphFormat(float size) {
+            FontSpec spec; spec.familyName = IconFontFamily(); spec.size = size;
+            return FontManager::Instance().GetFormat(spec);
+        }
+
         std::wstring text_;
         Color textColor_;
         TextOverflow overflow_;
@@ -390,6 +580,10 @@ namespace ZufyUI {
         ComPtr<ID2D1SolidColorBrush> textBrush_;
         // 图标 / 子控件
         std::shared_ptr<Image> image_;
+        Icon  glyphIcon_ = Icon::None;                 // 字体字形图标（图片优先）
+        float glyphIconSize_ = 0.0f;                   // <=0 跟随字号
+        Color glyphIconColor_ = Color(0.0f, 0.0f, 0.0f, 0.0f);   // a==0 用文字色
+        ComPtr<ID2D1SolidColorBrush> glyphBrush_;
         Size iconSize_{ 0, 0 };
         float iconSpacing_ = 6.0f;
         std::vector<std::shared_ptr<UIElement>> children_;
@@ -397,6 +591,7 @@ namespace ZufyUI {
         float measuredIconW_ = 0, measuredIconH_ = 0;
         float measuredTextW_ = 0, measuredTextH_ = 0;
         float textLeft_ = 0;
+        float textBoxW_ = 0;
         D2D1_RECT_F iconRect_ = D2D1::RectF(0, 0, 0, 0);
     };
 
@@ -446,6 +641,12 @@ namespace ZufyUI {
             RequestRepaint();
         }
         std::wstring GetText() const { return text_; }
+
+        // 图标（转发给内部 Label）：Button 等基于 Label 的控件因此也支持字体字形图标。
+        // 只设图标、不设文本时即为「图标按钮」。
+        void SetIcon(Icon icon, float size = 0.0f) { if (label_) label_->SetIcon(icon, size); }
+        Icon GetIcon() const { return label_ ? label_->GetIcon() : Icon::None; }
+        void SetIconColor(Color c) { if (label_) label_->SetIconColor(c); }
         // 悬停时：若文本被截断，自动用完整文本当 tooltip；用户设置过的 tooltip 优先
         std::wstring GetToolTip() const override {
             std::wstring custom = UIElement::GetToolTip();
@@ -2425,6 +2626,7 @@ namespace ZufyUI {
         inline static float DefaultHitExtra = 6.0f;
         inline static float DefaultIdleDelay = 2.0f;
         inline static float DefaultAnimationSpeed = 14.0f;
+        inline static float ShrunkWidthRatio = 0.30f;   // 完全收缩时的粗细比例（Draw 用；宿主可据此留边）
         inline static D2D1_COLOR_F DefaultThumbColor = D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.9f);
         inline static D2D1_COLOR_F DefaultHoverThumbColor = D2D1::ColorF(0.3f, 0.3f, 0.3f, 1.0f);
         inline static D2D1_COLOR_F DefaultTrackColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.06f);
@@ -2533,7 +2735,7 @@ namespace ZufyUI {
             if (!visible_ || !rt) return;
             Rect r = GetArrangedRect();
             float shrink = 1.0f - shrinkProgress_;
-            float trackWidth = barWidth_ * (0.30f + 0.70f * shrink) * (1.0f + 0.25f * hoverProgress_);
+            float trackWidth = barWidth_ * (ShrunkWidthRatio + (1.0f - ShrunkWidthRatio) * shrink) * (1.0f + 0.25f * hoverProgress_);
 
             D2D1_COLOR_F trackCol = trackColor_;
             if (shrink < 0.999f) trackCol.a *= shrink;
@@ -4046,7 +4248,7 @@ namespace ZufyUI {
     class TabView : public UIElement {
     public:
         struct Tab {
-            std::wstring title;
+            std::shared_ptr<Label> label; // 页签标题就是一个 Label（自带图标、整体对齐等）
             std::shared_ptr<Page> page;   // 内容用 Page 承载（复用 PageHost 的过渡动画）
             bool closable = false;
             float x = 0.0f;               // 动画中的当前左坐标（关闭/增删时平滑移动）
@@ -4111,8 +4313,19 @@ namespace ZufyUI {
         }
 
         // ---------- 页签增删改 ----------
+        // 页签标题就是一个 Label（所以可直接 SetIcon 等）；Title 重载是便捷写法（内部包一个 Label）
+        static std::shared_ptr<Label> MakeTabLabel(const std::wstring& title) {
+            auto l = std::make_shared<Label>(title);
+            l->SetAlignment(Label::HAlign::Center, Label::VAlign::Center);
+            return l;
+        }
         int AddTab(const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
-            Tab t; t.title = title; t.page = MakePage(content); t.closable = closable;
+            return AddTab(MakeTabLabel(title), content, closable);
+        }
+        int AddTab(std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
+            if (!label) label = MakeTabLabel(L"");
+            label->SetParent(this);
+            Tab t; t.label = label; t.page = MakePage(content); t.closable = closable;
             tabs_.push_back(std::move(t));
             int idx = (int)tabs_.size() - 1;
             if (contentHost_) contentHost_->AddPage(tabs_[idx].page);
@@ -4121,9 +4334,14 @@ namespace ZufyUI {
             return idx;
         }
         void InsertTab(int index, const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
+            InsertTab(index, MakeTabLabel(title), content, closable);
+        }
+        void InsertTab(int index, std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
             if (index < 0) index = 0;
             if (index > (int)tabs_.size()) index = (int)tabs_.size();
-            Tab t; t.title = title; t.page = MakePage(content); t.closable = closable;
+            if (!label) label = MakeTabLabel(L"");
+            label->SetParent(this);
+            Tab t; t.label = label; t.page = MakePage(content); t.closable = closable;
             tabs_.insert(tabs_.begin() + index, std::move(t));
             if (selectedIndex_ < 0) selectedIndex_ = 0;
             else if (index <= selectedIndex_) selectedIndex_++;
@@ -4153,10 +4371,24 @@ namespace ZufyUI {
         int GetTabCount() const { return (int)tabs_.size(); }
         void SetTabTitle(int index, const std::wstring& title) {
             if (index < 0 || index >= (int)tabs_.size()) return;
-            tabs_[index].title = title; stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+            if (!tabs_[index].label) { tabs_[index].label = MakeTabLabel(title); tabs_[index].label->SetParent(this); }
+            else tabs_[index].label->SetText(title);
+            stripDirty_ = true; InvalidateLayout(); RequestRepaint();
         }
         std::wstring GetTabTitle(int index) const {
-            return (index >= 0 && index < (int)tabs_.size()) ? tabs_[index].title : std::wstring();
+            if (index < 0 || index >= (int)tabs_.size() || !tabs_[index].label) return std::wstring();
+            return tabs_[index].label->GetText();
+        }
+        // 直接替换/取回页签的 Label（可设图标、颜色、子控件等）
+        void SetTabLabel(int index, std::shared_ptr<Label> label) {
+            if (index < 0 || index >= (int)tabs_.size()) return;
+            if (!label) label = MakeTabLabel(L"");
+            label->SetParent(this);
+            tabs_[index].label = label;
+            stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+        }
+        std::shared_ptr<Label> GetTabLabel(int index) const {
+            return (index >= 0 && index < (int)tabs_.size()) ? tabs_[index].label : nullptr;
         }
         void SetTabContent(int index, std::shared_ptr<UIElement> content) {
             if (index < 0 || index >= (int)tabs_.size()) return;
@@ -4239,7 +4471,8 @@ namespace ZufyUI {
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
             LayoutStrip();   // 先算页签条（含 overflow_ 与滚动条位置）
-            float band = overflow_ ? max(2.0f, scrollBarThickness_) * 1.3f : 0.0f;   // 滚动条独占一条带，别压到指示器
+            // 标签条与内容之间的间距 = 滚动条「完全收缩」时的粗细（视觉上正好容下那条细线）
+            float band = overflow_ ? max(1.5f, scrollBarThickness_ * ScrollBar::ShrunkWidthRatio) : 0.0f;
             contentRect_ = Rect(finalRect.x, finalRect.y + tabHeight_ + band, finalRect.width,
                 max(0.0f, finalRect.height - tabHeight_ - band));
             if (contentHost_) contentHost_->Arrange(contentRect_);
@@ -4284,17 +4517,17 @@ namespace ZufyUI {
                     if (hoverBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(r, fr, fr), hoverBrush_.Get());
                 }
 
-                // 文字（layout 盒子 = 实际可用区，vAlign=Center 才能在本页签高度内垂直居中）
-                if (fmt && !tabs_[i].title.empty()) {
+                // 标题：直接摆一个 Label（可自带图标、整体对齐），选中/未选中切换文字色
+                if (tabs_[i].label) {
                     float innerW = (r.right - r.left) - tabTextPad_ * 2.0f;
                     if (tabs_[i].closable) innerW -= (closeBox_ + 6.0f);
                     if (innerW > 0.0f) {
-                        auto layout = FontManager::Instance().GetStyledLayout(tabs_[i].title, fmt, innerW, tabHeight_, true, 1, 1, 0.0f, 0);   // 居中(横+纵)
-                        if (layout) {
-                            if (!textBrush_) rt->CreateSolidColorBrush((sel ? selectedTextColor_ : textColor_).ToD2D(), textBrush_.GetAddressOf());
-                            else textBrush_->SetColor((sel ? selectedTextColor_ : textColor_).ToD2D());
-                            rt->DrawTextLayout(D2D1::Point2F(Snap((float)r.left + tabTextPad_), Snap((float)r.top)), layout.Get(), textBrush_.Get());
-                        }
+                        Color want = sel ? selectedTextColor_ : textColor_;
+                        D2D1_COLOR_F wc = want.ToD2D(), hc = tabs_[i].label->GetTextColor().ToD2D();
+                        if (wc.r != hc.r || wc.g != hc.g || wc.b != hc.b || wc.a != hc.a)
+                            tabs_[i].label->SetTextColor(want);
+                        tabs_[i].label->Arrange(Rect((float)r.left + tabTextPad_, (float)r.top, innerW, tabHeight_));
+                        tabs_[i].label->Draw(rt);
                     }
                 }
 
@@ -4392,6 +4625,12 @@ namespace ZufyUI {
             windowId_ = WindowIdOf(w);
             if (contentHost_) contentHost_->AttachWindowRecursive(w);
             if (hBar_) hBar_->AttachWindowRecursive(w);
+            for (auto& t : tabs_) if (t.label) t.label->AttachWindowRecursive(w);
+        }
+
+        void ReleaseDeviceResources() override {
+            for (auto& t : tabs_) if (t.label) t.label->ReleaseDeviceResources();
+            UIElement::ReleaseDeviceResources();
         }
 
         UIElement* HitTest(float x, float y) override {
@@ -4520,12 +4759,8 @@ namespace ZufyUI {
 
     private:
         float TabTextWidth(int i) const {
-            IDWriteTextFormat* fmt = GetFontFormat();
-            if (!fmt || i < 0 || i >= (int)tabs_.size() || tabs_[i].title.empty()) return 0.0f;
-            auto layout = FontManager::Instance().GetStyledLayout(tabs_[i].title, fmt, 10000.0f, 10000.0f, true, 0, 0, 0.0f, 0);
-            if (!layout) return 0.0f;
-            DWRITE_TEXT_METRICS m{}; layout->GetMetrics(&m);
-            return m.width;
+            if (i < 0 || i >= (int)tabs_.size() || !tabs_[i].label) return 0.0f;
+            return tabs_[i].label->Measure(Size(FLT_MAX, 10000.0f)).width;
         }
         float TabWidth(int i) const {
             float w = TabTextWidth(i) + tabTextPad_ * 2.0f;
@@ -4575,7 +4810,9 @@ namespace ZufyUI {
             if (!show) return;
             hBar_->SetBarWidth(th);
             hBar_->SetRange(stripScroll_, maxScroll, arrangedRect_.width);
-            hBar_->Arrange(Rect(trackX, arrangedRect_.y + tabHeight_, trackW, th * 1.3f));
+            // 收缩态细线底对齐落在 band 内；展开时向上盖过标签条下缘（不挤占内容）
+            float band = max(1.5f, th * ScrollBar::ShrunkWidthRatio);
+            hBar_->Arrange(Rect(trackX, arrangedRect_.y + tabHeight_ + band - th, trackW, th));
         }
         void ScrollStripBy(float d) {
             float maxScroll = max(0.0f, stripTotalWidth_ - arrangedRect_.width);

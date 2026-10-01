@@ -201,9 +201,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         // 页签（TabView）：故意放很多个，测试溢出时的横向滚动按钮
         auto tabs = std::make_shared<TabView>();
         tabs->SetHeight(150.0f);
+        static const Icon kTabIcons[] = { Icon::Home, Icon::Search, Icon::Settings, Icon::Folder,
+                                          Icon::File, Icon::Person, Icon::Calendar, Icon::Mail,
+                                          Icon::Image, Icon::Favorite, Icon::View, Icon::Info };
         for (int i = 1; i <= 12; ++i) {
             auto content = std::make_shared<Label>(L"  这里是「页签 " + std::to_wstring(i) + L"」的内容。");
-            tabs->AddTab(L"页签 " + std::to_wstring(i), content, (i % 3 == 0));   // 每 3 个带 ×
+            // 页签标题就是一个 Label（这里给它加个前置图标，证明 TabView 走的是 Label）
+            auto tabLabel = std::make_shared<Label>(L"页签 " + std::to_wstring(i));
+            tabLabel->SetIcon(kTabIcons[i - 1]);
+            tabs->AddTab(tabLabel, content, (i % 3 == 0));   // 每 3 个带 ×
         }
         tabs->Connect(tabs->TabCloseRequested, [tabs](int idx) { tabs->RemoveTab(idx); });
         grid1->AddChild(tabs, 10, 0, 1, 2);
@@ -1004,8 +1010,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         iconWithText->AddChild(std::make_shared<Label>(L"图标 + 文字（RowBox 自由组合）"));
         grid8->AddChild(iconWithText, 6, 0, 1, 4);
 
+        // 新：Label / Button 内置字体字形图标（不需要外部 FontIcon；凡基于 Label 的控件都通用）
+        auto labelIcons = std::make_shared<RowBox>();
+        labelIcons->SetSpacing(16.0f);
+        { auto l = std::make_shared<Label>(L"内置图标标签"); l->SetIcon(Icon::Folder); l->SetIconColor(kIconAmber); labelIcons->AddChild(l); }
+        { auto l = std::make_shared<Label>(L"邮件"); l->SetIcon(Icon::Mail); l->SetIconColor(kIconBlue); labelIcons->AddChild(l); }
+        { auto l = std::make_shared<Label>(L"成功"); l->SetIcon(Icon::Success); l->SetIconColor(kIconGreen); labelIcons->AddChild(l); }
+        grid8->AddChild(labelIcons, 7, 0, 1, 4);
+
+        auto iconButtons = std::make_shared<RowBox>();
+        iconButtons->SetSpacing(8.0f);
+        { auto b = std::make_shared<Button>(L"新建"); b->SetIcon(Icon::Add); iconButtons->AddChild(b); }
+        { auto b = std::make_shared<Button>(L"刷新"); b->SetIcon(Icon::Refresh); iconButtons->AddChild(b); }
+        { auto b = std::make_shared<Button>(L"删除"); b->SetIcon(Icon::Delete); iconButtons->AddChild(b); }
+        { auto b = std::make_shared<Button>(L"关闭"); b->SetIcon(Icon::Close); iconButtons->AddChild(b); }
+        { auto b = std::make_shared<Button>(L""); b->SetIcon(Icon::More); b->SetWidth(40.0f); iconButtons->AddChild(b); }   // 纯图标按钮
+        grid8->AddChild(iconButtons, 8, 0, 1, 4);
+
         grid8->AddChild(std::make_shared<Label>(
-            L"图标用系统字体（Win11 Segoe Fluent Icons / Win10 Segoe MDL2 Assets）；Icon 枚举值即码点，字号决定大小。"), 7, 0, 1, 4);
+            L"图标用系统字体（Win11 Segoe Fluent Icons / Win10 Segoe MDL2 Assets）；Icon 枚举值即码点，字号决定大小。"), 9, 0, 1, 4);
     }
 
     // ---------- 页面9：多窗口（原独立工具窗口的内容） ----------
