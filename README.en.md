@@ -142,6 +142,22 @@ A tour of the widgets (first page of the demo):
 
 ## Changelog
 
+### 2026-10-02 — Independent render thread (arch B) + hover repaint optimization (v1.14.0)
+
+**Independent render thread (arch B)**
+- **Rendering is split off the UI thread**: a process-level render thread handles **composition / `Present1` / the `DwmFlush` (vblank) cadence**; the UI thread only does messages, input, layout and animation, and wakes the render thread via a **coalesced** `RequestRender()`.
+- **Shared device, per-thread context**: the `ID2D1Device` and the DComp / swap chain are created on the UI thread; the render thread creates its own `ID2D1DeviceContext`; element caches move from `ID2D1BitmapRenderTarget` to **device-scoped `ID2D1Bitmap1`** (two-pass: dirty caches are drawn on a separate DC first, the main frame only blits) — sharing across DCs works.
+- **Cross-thread correctness**: DC operations are serialized by `renderLock_` (the tick stays outside the lock so the UI is never blocked); `WM_SIZE` only sets a pending flag and the render thread calls `ResizeBuffers` under the lock; `WM_DPICHANGED` rebuilds under the lock; device-lost goes "render detects -> pause render -> rebuild on the UI thread -> resume"; minimized windows emit no frames.
+- Compile-time switch **`ZUFYUI_RENDER_THREAD` (default `1`)**; set to `0` to fall back to the original single-threaded `WM_PAINT` path.
+
+**Hover repaint optimization (lower CPU)**
+- Fixes "moving the mouse over the blank area of the button list (`ListView`) keeps burning CPU": the root cause was `ListView::OnMouseMove` calling `RequestRepaint()` **unconditionally on every move** (regardless of whether the hovered item changed, or whether it was blank) -> `pendingRepaint_` was never empty -> full-window recomposition every frame.
+- Same fix for the `ComboBox` dropdown, `DataViewer` grid and `TreeView`: repaint **only when the hover state actually changes** (hover highlight behavior is unchanged).
+
+**Robustness**
+- `TabView` / `ProgressRing` / `SplitView` `Draw` now guard against non-finite `arrangedRect_`, avoiding Direct2D geometry assertions from not-yet-laid-out / degenerate sizes.
+- Version **1.13.0 -> 1.14.0**.
+
 ### 2026-09-27 — Menu rework: popup layer now derives from Window (fixes ~+90MB per open) + openable Window internals
 
 **Menu (major architecture rework)**

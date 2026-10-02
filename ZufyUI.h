@@ -81,9 +81,15 @@
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 13
+#define ZufyUI_VERSION_MINOR 14
 #define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.13.0"
+#define ZufyUI_VERSION_STRING L"1.14.0"
+
+// ---------- 独立渲染线程（架构 B，实验已通过） ----------
+// 0 = 关闭（默认，行为与之前完全一致）；1 = 开启：渲染在专用 render 线程、UI 线程只标脏。
+#ifndef ZUFYUI_RENDER_THREAD
+#define ZUFYUI_RENDER_THREAD 1
+#endif
 
 #ifndef DWMWA_BORDER_COLOR
 #define DWMWA_BORDER_COLOR 34
@@ -145,6 +151,7 @@ namespace ZufyUI {
 
     template<typename T>
     T clamp(T value, T low, T high) {
+        if (std::isnan(value)) return low;   // NaN 安全：NaN 参与比较恒假，会漏出非法值
         return value < low ? low : (value > high ? high : value);
     }
 
@@ -245,6 +252,7 @@ namespace ZufyUI {
 class MenuWindowBase;
     class ComboBox;
     class Window;
+    namespace detail { class RenderHost; }   // 独立渲染线程（架构 B）
     class Timer;   // 基于信号的框架定时器
 
     // ========== 信号槽机制 ==========
@@ -928,7 +936,7 @@ class MenuWindowBase;
         // 缓存有效性标记（由 Window 管理，但为了方便检查放在这里）
         bool cacheValid_ = false;
         std::optional<Rect> clipRect_;   // 该元素子树的裁剪矩形（可选）
-        ComPtr<ID2D1BitmapRenderTarget> cacheRT_;
+        ComPtr<ID2D1Bitmap1> cacheBitmap_;   // 元素缓存：device-scoped（可被另一 DC 读，跨线程渲染前提）
         // 缓存尺寸记录
         Size cacheSize_;
 
@@ -957,7 +965,7 @@ class MenuWindowBase;
 
         virtual void ReleaseDeviceResources() {
             // 释放缓存资源
-            cacheRT_.Reset();
+            cacheBitmap_.Reset();
             cacheValid_ = false;
         }
 
@@ -1030,7 +1038,7 @@ class MenuWindowBase;
             if (visible_ != visible) {
                 visible_ = visible;
                 if (!visible_) {
-                    cacheRT_.Reset();
+                    cacheBitmap_.Reset();
                     cacheValid_ = false;
                 }
                 OnVisibilityChanged(visible);
@@ -1042,7 +1050,7 @@ class MenuWindowBase;
             if (visible_ != visible) {
                 visible_ = visible;
                 if (!visible_) {
-                    cacheRT_.Reset();
+                    cacheBitmap_.Reset();
                     cacheValid_ = false;
                 }
                 OnVisibilityChanged(visible);
@@ -1636,9 +1644,9 @@ class MenuWindowBase;
                 for (auto& h : rowHeights) h *= scale;
             }
 
-            if (extraWidth > 0) {
+            if (extraWidth > 0 && std::isfinite(extraWidth)) {
                 float totalWeight = 0.0f;
-                for (float w : colStretchWeights) totalWeight += w;
+                for (float w : colStretchWeights) if (std::isfinite(w)) totalWeight += w;
                 if (totalWeight > 0) {
                     for (int c = 0; c < maxCol; ++c) {
                         if (colStretchWeights[c] > 0)
@@ -1646,9 +1654,9 @@ class MenuWindowBase;
                     }
                 }
             }
-            else if (minTotalWidth > 0) {
+            else if (minTotalWidth > 0 && std::isfinite(finalRect.width)) {
                 float scale = finalRect.width / minTotalWidth;
-                for (auto& w : colWidths) w *= scale;
+                for (auto& w : colWidths) if (std::isfinite(w)) w *= scale;
             }
 
             float offsetX = 0.0f, offsetY = 0.0f;
@@ -2397,6 +2405,13 @@ class MenuWindowBase;
             }
             IDXGIDevice* GetDXGIDevice() { if (!dxgiDevice_) GetD2DDevice(); return dxgiDevice_.Get(); }
 
+            // ---- 独立渲染线程（架构 B）：由 Run() 启停；Window 用它标脏/唤醒（定义在 RenderHost 之后）----
+            void StartRenderHost();
+            void StopRenderHost();
+            void RequestRender(Window* w);
+            void SetRenderHostPaused(bool paused);   // device lost 期间暂停/恢复 render 线程
+            bool RenderHostActive() const { return renderHost_ != nullptr; }
+
             // 共享 WinRT Compositor（每 UI 线程一个），失败返回 nullptr
             ICompositor* GetCompositor() {
                 if (!compositor_) {
@@ -2474,11 +2489,17 @@ class MenuWindowBase;
                 InitializeUIThread();
                 if (running_) return exitCode_;   // 防止嵌套消息循环
                 running_ = true;
+#if ZUFYUI_RENDER_THREAD
+                StartRenderHost();
+#endif
                 MSG msg;
                 while (GetMessage(&msg, nullptr, 0, 0)) {
                     TranslateMessage(&msg);
                     DispatchMessage(&msg);
                 }
+#if ZUFYUI_RENDER_THREAD
+                StopRenderHost();
+#endif
                 running_ = false;
                 return exitCode_;
             }
@@ -2500,6 +2521,7 @@ class MenuWindowBase;
             ComPtr<IWICImagingFactory> wicFactory_;
             ComPtr<ICompositionBrush> noiseBrush_;
             ComPtr<IUnknown> dqController_;   // 持有并释放，避免泄漏
+            RenderHost* renderHost_ = nullptr;   // 独立渲染线程（ZUFYUI_RENDER_THREAD=1 时启用）
             std::vector<Window*> windows_;
             std::unordered_map<int, Window*> windowsById_;
             int nextWindowId_ = 1;
@@ -2633,6 +2655,7 @@ class MenuWindowBase;
 
     private:
         friend class Timer;
+        friend class detail::RenderHost;   // 独立渲染线程可调 RenderOnThread/NeedsRenderFrame
         UINT_PTR AllocFrameworkTimerId() { return nextFrameworkTimerId_++; }
         void RegisterFrameworkTimer(UINT_PTR id, Timer* t) { frameworkTimers_[id] = t; }
         void UnregisterFrameworkTimer(UINT_PTR id, Timer* t) {
@@ -2759,8 +2782,14 @@ class MenuWindowBase;
 
             d2dFactory_ = core_->GetFactory();   // 共享工厂（进程级）
             if (!d2dFactory_) return false;
+#if ZUFYUI_RENDER_THREAD
+            // DComp/交换链是 STA → UI 线程建共享设备 + 合成后端；renderTarget_/cacheContext_ 交 render 线程自建（每线程自持 DC）
+            core_->GetD2DDevice();
+            if (FAILED(CreateCompositionBackend())) return false;
+#else
             if (FAILED(CreateDeviceResources())) return false;
             if (FAILED(CreateCompositionBackend())) return false;
+#endif
 
             id_ = core_->RegisterWindow(this);
 
@@ -3698,7 +3727,14 @@ class MenuWindowBase;
                     lastClientW_ = nw; lastClientH_ = nh;
                     clientWidthDip_ = (rc.right - rc.left) * 96.0f / dpi_;
                     clientHeightDip_ = (rc.bottom - rc.top) * 96.0f / dpi_;
+#if ZUFYUI_RENDER_THREAD
+                    // 渲染线程化后**不能**在 UI 线程动 swapchain（会和 render 线程 Present/取后备缓冲竞争 → d2d 崩）。
+                    // 只置 pending，由 render 线程在锁内做 ResizeBuffers。
+                    pendingResizeW_.store(nw); pendingResizeH_.store(nh); resizePending_.store(true);
+                    RequestRender();
+#else
                     if (swapChain_) ResizeSwapChain(nw, nh);
+#endif
                     layoutNeeded_ = true;
                     layoutInvalidated_ = true;
                     InvalidateRect(hwnd_, nullptr, FALSE);
@@ -3723,14 +3759,22 @@ class MenuWindowBase;
                     return 0;
                 }
                 break;
-            case WM_DPICHANGED:
+            case WM_DPICHANGED: {
                 UpdateTimerState();
                 dpi_ = HIWORD(wParam); if (dpi_ == 0) dpi_ = 96;                // DPI 变了必须整条渲染链重建：D2D 上下文 + DComp 目标/visual 树 + 交换链。
                 // 只重建 renderTarget_ 的话，swapChain_/contentVisual_ 等仍是 nullptr，
                 // OnPaint 会在 EnsureSwapBackBuffer() 直接失败 → 一帧都不画，客户区变全透明
                 //（命中测试/DWM 边框与渲染链无关，所以看起来"窗口还活着"）。
+#if ZUFYUI_RENDER_THREAD
+                // 与 render 线程串行：否则 UI 线程重建 D2D 设备/交换链会和 render 帧跨线程竞争（同类隐患）
+                std::lock_guard<std::mutex> _dpiLock(renderLock_);
+#endif
                 DiscardDeviceResources();
+#if ZUFYUI_RENDER_THREAD
+                if (FAILED(CreateCompositionBackend())) {   // DC 交给 render 线程重建
+#else
                 if (FAILED(CreateDeviceResources()) || FAILED(CreateCompositionBackend())) {
+#endif
                     RenderingError.Fire(E_FAIL);
                     return 0;
                 }
@@ -3744,6 +3788,7 @@ class MenuWindowBase;
                 layoutInvalidated_ = true;
                 InvalidateRect(hwnd_, nullptr, FALSE);
                 return 0;
+            }
             case WM_DISPLAYCHANGE: InvalidateRect(hwnd_, nullptr, FALSE); UpdateTimerState(); return 0;
             case WM_TIMER:
                 if (OnWindowTimer((int)wParam)) return 0;
@@ -4047,60 +4092,25 @@ class MenuWindowBase;
                 EnsureCache(elem);
 
                 // 如果待重绘或缓存无效，则绘制到缓存
-                if (pendingRepaint_.count(elem) || !elem->cacheValid_) {
-                    if (elem->cacheRT_) {
-                        auto cacheRT = elem->cacheRT_.Get();
-                        cacheRT->BeginDraw();
-                        cacheRT->Clear(D2D1::ColorF(0, 0, 0, 0)); // 透明背景
+                // 缓存已在预通道(DrawDirtyCaches)画好 —— 这里只 blit 到主 RT
 
-                        // 设置平移变换，使元素内部使用的绝对坐标映射到缓存原点
-                        D2D1::Matrix3x2F oldTransform;
-                        cacheRT->GetTransform(&oldTransform);
-                        // 内容原点吸附到物理像素，避免缓存内容整体落在半像素上模糊
-                        D2D1::Matrix3x2F newTransform = D2D1::Matrix3x2F::Translation(
-                            Snap(elem->cacheOriginX_ - elem->GetArrangedRect().x),
-                            Snap(elem->cacheOriginY_ - elem->GetArrangedRect().y)
-                        );
-                        cacheRT->SetTransform(newTransform);
-
-                        if (elem->HasShadow()) DrawShadow(cacheRT, elem);
-
-                        elem->Draw(cacheRT);
-
-                        cacheRT->SetTransform(oldTransform);
-                        cacheRT->EndDraw();
-
-                        elem->cacheValid_ = true;
-                        pendingRepaint_.erase(elem);
-                    }
-                }
-
-                // 将缓存位图绘制到主 RT
-                if (elem->cacheRT_) {
-                    ComPtr<ID2D1Bitmap> bitmap;
-                    elem->cacheRT_->GetBitmap(&bitmap);
-                    if (bitmap) {
-                        Rect r = elem->GetArrangedRect();
-                        float scaleX = (float)dpi_ / 96.0f;   // DPI 一帧内恒定：直接用成员，免掉每元素 GetDpi() COM 调用
-                        float scaleY = (float)dpi_ / 96.0f;
-
-                        // 目标像素尺寸必须与缓存位图的像素尺寸“完全一致”，否则任何插值
-                        // 都会把缓存内容整体重采样，文字/线条就会发糊。
-                        // 之前用 DIP 圆整推导目标宽度，可能与位图实际像素数差 1px，
-                        // 叠加 NEAREST 后整个缓存被轻微缩放 → 模糊。这里直接用位图像素数反推。
-                        D2D1_SIZE_U bpx = bitmap->GetPixelSize();
-                        float dstX = std::round((r.x - elem->cacheOriginX_) * scaleX) / scaleX;
-                        float dstY = std::round((r.y - elem->cacheOriginY_) * scaleY) / scaleY;
-                        float dstW = (float)bpx.width / scaleX;
-                        float dstH = (float)bpx.height / scaleY;
-
-                        rt->DrawBitmap(
-                            bitmap.Get(),
-                            D2D1::RectF(dstX, dstY, dstX + dstW, dstY + dstH),
-                            1.0f,
-                            D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR
-                        );
-                    }
+                // 将缓存位图（ID2D1Bitmap1）绘制到主 RT
+                if (elem->cacheBitmap_) {
+                    Rect r = elem->GetArrangedRect();
+                    float scaleX = (float)dpi_ / 96.0f;   // DPI 一帧内恒定
+                    float scaleY = (float)dpi_ / 96.0f;
+                    // 目标像素尺寸必须与缓存位图像素数“完全一致”，否则 NEAREST 会把缓存轻微缩放 → 糊。
+                    D2D1_SIZE_U bpx = elem->cacheBitmap_->GetPixelSize();
+                    float dstX = std::round((r.x - elem->cacheOriginX_) * scaleX) / scaleX;
+                    float dstY = std::round((r.y - elem->cacheOriginY_) * scaleY) / scaleY;
+                    float dstW = (float)bpx.width / scaleX;
+                    float dstH = (float)bpx.height / scaleY;
+                    rt->DrawBitmap(
+                        elem->cacheBitmap_.Get(),
+                        D2D1::RectF(dstX, dstY, dstX + dstW, dstY + dstH),
+                        1.0f,
+                        D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR
+                    );
                 }
             }
             else {
@@ -4283,10 +4293,39 @@ class MenuWindowBase;
             SetFocusElement(list[next], true);
         }
 
+        // 预通道：把"脏的"元素缓存画进各自的 ID2D1Bitmap1（用独立 cacheContext_ 的 BeginDraw/EndDraw）。
+        // **必须在主帧 renderTarget_->BeginDraw() 之前**完成 —— ID2D1Bitmap1 当 target 时不能在主帧内嵌套绘制。
+        void DrawDirtyCaches(UIElement* elem) {
+            if (!elem || !elem->IsVisible()) return;
+            if (elem->UseCache()) {
+                EnsureCache(elem);
+                if (elem->cacheBitmap_ && cacheContext_ &&
+                    (pendingRepaint_.count(elem) || !elem->cacheValid_)) {
+                    cacheContext_->SetTarget(elem->cacheBitmap_.Get());
+                    cacheContext_->BeginDraw();
+                    cacheContext_->Clear(D2D1::ColorF(0, 0, 0, 0));
+                    cacheContext_->SetTransform(D2D1::Matrix3x2F::Translation(
+                        Snap(elem->cacheOriginX_ - elem->GetArrangedRect().x),
+                        Snap(elem->cacheOriginY_ - elem->GetArrangedRect().y)));
+                    if (elem->HasShadow()) DrawShadow(cacheContext_, elem);
+                    elem->Draw(cacheContext_);
+                    cacheContext_->SetTransform(D2D1::Matrix3x2F::Identity());
+                    cacheContext_->EndDraw();
+                    cacheContext_->SetTarget(nullptr);
+                    elem->cacheValid_ = true;
+                    pendingRepaint_.erase(elem);
+                }
+            }
+            for (auto* child : elem->GetChildren()) {
+                if (!child->ParticipatesInLayout()) continue;   // 不参与布局的由 before/after 通道单独处理
+                DrawDirtyCaches(child);
+            }
+        }
+
         void EnsureCache(UIElement* elem) {
             Rect r = elem->GetArrangedRect();
             if (r.width <= 0 || r.height <= 0) {
-                elem->cacheRT_.Reset();
+                elem->cacheBitmap_.Reset();
                 elem->cacheValid_ = false;
                 return;
             }
@@ -4295,26 +4334,28 @@ class MenuWindowBase;
             float w = r.width + bleed * 2;
             float h = r.height + bleed * 2;
 
-            bool needCreate = !elem->cacheRT_;
-            if (elem->cacheRT_) {
+            bool needCreate = !elem->cacheBitmap_;
+            if (elem->cacheBitmap_) {
                 if (elem->cacheSize_.width != w || elem->cacheSize_.height != h) {
                     needCreate = true;
                 }
             }
 
             if (needCreate) {
-                elem->cacheRT_.Reset();
-                if (renderTarget_) {
-                    HRESULT hr = renderTarget_->CreateCompatibleRenderTarget(
-                        D2D1::SizeF(w, h),
-                        elem->cacheRT_.GetAddressOf()
-                    );
-                    if (SUCCEEDED(hr)) {
+                elem->cacheBitmap_.Reset();
+                if (cacheContext_) {
+                    // 元素缓存 = ID2D1Bitmap1(TARGET)（device-scoped）：能被 render 线程的另一个 DC 读。
+                    // 尺寸按物理像素（位图以 px 计），DPI 由 bitmap 属性给出。
+                    float scale = (float)dpi_ / 96.0f;
+                    UINT pw = (UINT)max(1.0f, (float)std::ceil(w * scale));
+                    UINT ph = (UINT)max(1.0f, (float)std::ceil(h * scale));
+                    D2D1_BITMAP_PROPERTIES1 bp = D2D1::BitmapProperties1(
+                        D2D1_BITMAP_OPTIONS_TARGET,
+                        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+                        (FLOAT)dpi_, (FLOAT)dpi_);
+                    if (SUCCEEDED(cacheContext_->CreateBitmap(D2D1::SizeU(pw, ph), nullptr, 0, &bp, &elem->cacheBitmap_))) {
                         elem->cacheSize_ = Size(w, h);
                         elem->cacheValid_ = false;
-                        elem->cacheRT_->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-                        elem->cacheRT_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);   // 必须改回 GRAYSCALE
-                        elem->cacheRT_->SetDpi((FLOAT)dpi_, (FLOAT)dpi_);
                     }
                 }
             }
@@ -4327,7 +4368,7 @@ class MenuWindowBase;
             std::function<void(UIElement*)> clearRecursive = [&](UIElement* elem) {
                 if (!elem) return;
                 if (elem->UseCache()) {
-                    elem->cacheRT_.Reset();
+                    elem->cacheBitmap_.Reset();
                     elem->cacheValid_ = false;
                 }
                 for (auto* child : elem->GetChildren()) {
@@ -4348,17 +4389,123 @@ class MenuWindowBase;
             }
         }
 
+        // ---- 独立渲染线程（架构 B）----
+        // UI 线程标脏：置 atomic + 唤醒 render 线程（去抖：已在请求中不重复唤醒，避免批量标脏 → 唤醒风暴）
+        void RequestRender() {
+            if (!core_ || !core_->RenderHostActive()) return;
+            if (renderRequested_.exchange(true)) return;
+            core_->RequestRender(this);
+        }
+        bool NeedsRenderFrame() const { return HasRenderWork(); }
+        // render 线程入口：**只**把 DC 操作段放进锁；节拍(DwmFlush)必须在锁外（否则 UI 会被卡一帧）
+        void RenderOnThread() {
+            renderRequested_.store(false);
+            if (IsIconic(hwnd_)) return;   // 最小化：不出帧（Present 会 DXGI_STATUS_OCCLUDED / 后备缓冲可能失效）
+            HRESULT hr = E_FAIL;
+            {
+                std::lock_guard<std::mutex> lk(renderLock_);
+                if (!renderTarget_) { if (FAILED(CreateDeviceResources())) return; }   // render 线程自建自己的 DC
+                if (resizePending_.exchange(false)) {
+                    UINT nw = pendingResizeW_.load(), nh = pendingResizeH_.load();
+                    if (swapChain_ && nw && nh) ResizeSwapChain(nw, nh);
+                }
+                hr = RenderFrame();
+            }
+#if ZUFYUI_RENDER_THREAD
+            DwmFlush();   // 锁外节拍：等 DWM 合成一拍
+#endif
+            if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+                DeviceLost.Fire();
+                if (core_) core_->SetRenderHostPaused(true);                    // 1) 暂停 render 线程
+                detail::PostToUIThread([this] { RebuildAfterDeviceLost(); });   // 2) 回 UI 线程重建
+            }
+        }
+
+        // device lost 恢复（UI 线程、持 renderLock_）：重建共享设备 + DComp 目标/交换链 + 清缓存；完成后恢复 render 线程。
+        void RebuildAfterDeviceLost() {
+            std::lock_guard<std::mutex> lk(renderLock_);
+            DiscardDeviceResources();
+#if ZUFYUI_RENDER_THREAD
+            if (FAILED(CreateCompositionBackend())) {   // DC 交给 render 线程重建
+#else
+            if (FAILED(CreateDeviceResources()) || FAILED(CreateCompositionBackend())) {
+#endif
+                RenderingError.Fire(E_FAIL);
+                if (core_) core_->SetRenderHostPaused(false);
+                return;
+            }
+            DestroyWallpaperLayer();
+            ApplyBackdrop();
+            ApplyWindowCorner();
+            ClearAllCaches();
+            pendingRepaint_.clear();
+            if (rootElement_) CollectVisibleCachedElements(rootElement_.get(), pendingRepaint_);
+            layoutNeeded_ = true; layoutInvalidated_ = true;
+            if (core_) core_->SetRenderHostPaused(false);   // 恢复 render 线程
+            RequestRender();
+            InvalidateRect(hwnd_, nullptr, FALSE);
+        }
+        // render 线程出一帧后：若仍需出帧（有动画），重触发 UI 线程 OnPaint（更新动画）→ 再 RequestRender，
+        // 使帧节拍由 render 线程的 DwmFlush(vblank) 主导（恢复顺滑）；动画停了就不再触发 → 空闲。
+        void ContinueFrame() { if (uiAnimating_.load()) InvalidateRect(hwnd_, nullptr, FALSE); }
+
+        // 单帧渲染：合成 → 交换链后备缓冲 → Present；返回 EndDraw/Present 的 HRESULT。
+        // 由 render 线程调用（见 RenderOnThread）或单线程路径（OnPaint）调用。
+        HRESULT RenderFrame() {
+            SetGlobalDpiScale(dpi_ / 96.0f);
+            // 预通道：先把脏的元素缓存画好（独立 DC，独立 BeginDraw/EndDraw）——必须在主帧 BeginDraw 之前
+            DrawDirtyCaches(rootElement_.get());
+            for (auto* e : npBefore_) DrawDirtyCaches(e);
+            for (auto* e : npAfter_) DrawDirtyCaches(e);
+            HRESULT hr = E_FAIL;
+            if (SUCCEEDED(EnsureSwapBackBuffer())) {
+                renderTarget_->SetTarget(swapBackBuffer_);
+                renderTarget_->SetDpi((FLOAT)dpi_, (FLOAT)dpi_);
+                renderTarget_->BeginDraw();
+                {
+                    // 背景色 = 叠加在“背景（空 / 亚克力 / 云母）之上”的颜色。
+                    // RGB = 颜色，A = 透出多少背景（0 = 全透、255 = 完全盖住）。对所有模式统一生效。
+                    DWORD bg = backdropColor_;
+                    float a = ((bg >> 24) & 0xFF) / 255.0f;
+                    float r = ((bg >> 16) & 0xFF) / 255.0f;
+                    float g = ((bg >> 8) & 0xFF) / 255.0f;
+                    float b = (bg & 0xFF) / 255.0f;
+                    renderTarget_->Clear(D2D1::ColorF(r, g, b, a));
+                }
+                RenderContent(renderTarget_);
+                UIZSignals::DrawOverlay(this, renderTarget_);
+                DrawFocusAndTooltip(renderTarget_);
+                focusDirty_ = false;
+                hr = renderTarget_->EndDraw();
+                renderTarget_->SetTarget(nullptr);
+                if (SUCCEEDED(hr) && swapChain_) {
+                    DXGI_PRESENT_PARAMETERS pp{};
+                    hr = swapChain_->Present1(1, 0, &pp);
+                }
+            }
+            pendingRepaint_.clear();
+            return hr;
+        }
+
         void OnPaint() {
             PAINTSTRUCT ps;
             BeginPaint(hwnd_, &ps);
             if (IsIconic(hwnd_)) { EndPaint(hwnd_, &ps); return; }
 
+#if ZUFYUI_RENDER_THREAD
+            // renderTarget_/cacheContext_ 由 render 线程自建；UI 线程这里只做布局/动画
+#else
             if (!renderTarget_) {
                 if (FAILED(CreateDeviceResources())) {
                     EndPaint(hwnd_, &ps);
                     return;
                 }
             }
+#endif
+#if ZUFYUI_RENDER_THREAD
+            // UI 线程的布局/动画会改元素树；render 线程合成时会读它 —— Phase 1 用粗锁串行化。
+            std::lock_guard<std::mutex> _frameLock(renderLock_);
+#endif
 
             RECT rc; GetClientRect(hwnd_, &rc);
             float clientWidthDip = (rc.right - rc.left) * 96.0f / dpi_;
@@ -4437,40 +4584,17 @@ class MenuWindowBase;
                     pendingRepaint_.insert(elem);
                 }
             }
+#if ZUFYUI_RENDER_THREAD
+            uiAnimating_.store(!activeAnimScratch_.empty());   // 发布"是否还有动画"，供 render 线程决定是否续帧
+#endif
 
-            // 4. 合成绘制（D2D 1.1 DeviceContext -> 交换链后备缓冲 -> Present）
-            SetGlobalDpiScale(dpi_ / 96.0f);
-            HRESULT hr = E_FAIL;
-            if (SUCCEEDED(EnsureSwapBackBuffer())) {
-                renderTarget_->SetTarget(swapBackBuffer_);
-                renderTarget_->SetDpi((FLOAT)dpi_, (FLOAT)dpi_);
-                renderTarget_->BeginDraw();
-                {
-                    // 背景色 = 叠加在“背景（空 / 亚克力 / 云母）之上”的颜色。
-                    // RGB = 颜色，A = 透出多少背景（0 = 全透、255 = 完全盖住）。对所有模式统一生效。
-                    // D2D 的 Clear 接收“非预乘”颜色、内部自行预乘。
-                    DWORD bg = backdropColor_;
-                    float a = ((bg >> 24) & 0xFF) / 255.0f;
-                    float r = ((bg >> 16) & 0xFF) / 255.0f;
-                    float g = ((bg >> 8) & 0xFF) / 255.0f;
-                    float b = (bg & 0xFF) / 255.0f;
-                    renderTarget_->Clear(D2D1::ColorF(r, g, b, a));
-                }
-
-                RenderContent(renderTarget_);
-
-                UIZSignals::DrawOverlay(this, renderTarget_);
-                DrawFocusAndTooltip(renderTarget_);
-                focusDirty_ = false;
-
-                hr = renderTarget_->EndDraw();
-                renderTarget_->SetTarget(nullptr);
-
-                if (SUCCEEDED(hr) && swapChain_) {
-                    DXGI_PRESENT_PARAMETERS pp{};
-                    hr = swapChain_->Present1(1, 0, &pp);
-                }
-            }
+            // 4. 合成绘制 —— 已抽成 RenderFrame()（Phase 0：仍在本线程调用，行为不变）
+#if ZUFYUI_RENDER_THREAD
+            // 渲染交给独立 render 线程：OnPaint 只做"布局/动画 + 标脏唤醒"，不再自己出帧/自续。
+            // 无条件请求：一次 WM_PAINT 就是一次真实出画请求（例如菜单窗刚显示）；空闲由"没有 WM_PAINT"来停。
+            RequestRender();
+#else
+            HRESULT hr = RenderFrame();
 
             // 实验 2：present 驱动下一帧。Present1(1) 返回时≈刚过一个 vblank，
             // 立刻排队下一帧，让节拍由 vblank 决定（而不是定时器 ~15.6ms vs vblank 16.67ms 的错位）。
@@ -4525,6 +4649,7 @@ class MenuWindowBase;
                 // 本帧所有可见元素都已重新绘制，清空待重绘集合，避免空闲时残留 pending
                 pendingRepaint_.clear();
             }
+#endif   // !ZUFYUI_RENDER_THREAD
 
             EndPaint(hwnd_, &ps);
         }
@@ -4656,6 +4781,11 @@ class MenuWindowBase;
             renderTarget_->SetDpi((FLOAT)dpi_, (FLOAT)dpi_);
             renderTarget_->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
             renderTarget_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+            // 第二个 DC：专画"元素缓存"到 ID2D1Bitmap1(TARGET)（device-scoped，可被另一 DC 读）
+            if (FAILED(dev->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &cacheContext_))) { if (renderTarget_) { renderTarget_->Release(); renderTarget_ = nullptr; } return E_FAIL; }
+            cacheContext_->SetDpi((FLOAT)dpi_, (FLOAT)dpi_);
+            cacheContext_->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+            cacheContext_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
             return S_OK;
         }
 
@@ -5014,6 +5144,7 @@ class MenuWindowBase;
             wallpaperVisual_.Reset(); wallpaperSwap_.Reset(); wallpaperBitmap_.Reset();
             noiseBitmap_.Reset();
             noiseBrush_.Reset();
+            if (cacheContext_) { cacheContext_->SetTarget(nullptr); cacheContext_->Flush(); cacheContext_->Release(); cacheContext_ = nullptr; }
             if (renderTarget_) { renderTarget_->SetTarget(nullptr); renderTarget_->Flush(); renderTarget_->Release(); renderTarget_ = nullptr; }
             if (swapBackBuffer_) { swapBackBuffer_->Release(); swapBackBuffer_ = nullptr; }
             if (contentVisual_) { contentVisual_->Release(); contentVisual_ = nullptr; }
@@ -5205,6 +5336,7 @@ class MenuWindowBase;
         int id_ = 0;
         ID2D1Factory* d2dFactory_;
         ID2D1DeviceContext* renderTarget_;      // D2D 1.1 设备上下文（替代 HwndRenderTarget）
+        ID2D1DeviceContext* cacheContext_ = nullptr;   // 第二个 DC：专画元素缓存到 ID2D1Bitmap1(TARGET)
         IDXGISwapChain1* swapChain_ = nullptr;
         ID2D1Bitmap1* swapBackBuffer_ = nullptr;
         ICompositor* compositor_ = nullptr;     // 共享（AppCore 生命周期）
@@ -5303,6 +5435,11 @@ class MenuWindowBase;
         int compositionCursorPos_ = 0;
 
         // 新增成员
+        std::mutex renderLock_;                       // render 线程：保护 DC 操作段（不覆盖 DwmFlush）
+        std::atomic<bool> renderRequested_{ false };  // UI→render 帧请求去抖
+        std::atomic<bool> uiAnimating_{ false };      // UI 线程发布：本帧是否有活跃动画（render 据此决定续帧）
+        std::atomic<bool> resizePending_{ false };    // UI→render：待处理 resize（render 线程锁内 ResizeBuffers）
+        std::atomic<UINT> pendingResizeW_{ 0 }, pendingResizeH_{ 0 };
         std::unordered_set<UIElement*> pendingRepaint_;
         bool layoutInvalidated_;
         // 用于记录上一帧活跃动画元素
@@ -5328,6 +5465,75 @@ class MenuWindowBase;
         for (UIElement* p = parent_; p; p = p->parent_) { p->measureDirty_ = true; p->subtreeDirty_ = true; }
         if (Window* w = GetWindow()) w->MarkLayoutInvalidated();
         else UIZSignals::LayoutInvalidated(nullptr);
+    }
+
+    namespace detail {
+        // ============================================================================
+        // RenderHost —— 独立渲染线程（架构 B）
+        //   UI 线程标脏 → RequestFrame(SetEvent)；render 线程被唤醒后对本批"需要帧"的窗口调
+        //   Window::RenderOnThread()（DC 操作在 renderLock_ 内、DwmFlush 节拍在锁外）。
+        //   空闲时 WaitForSingleObject(wakeEvent) 阻塞，不烧 CPU。
+        //   实验已验证：跨 DC 的 ID2D1Bitmap 共享成立；classic DComp 的 Present1(1) 不阻塞 → 需显式节拍。
+        // ============================================================================
+        class RenderHost {
+        public:
+            enum class DeviceState { Ok, Lost, Rebuilding };
+
+            void Start() {
+                if (thread_.joinable()) return;
+                wake_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+                quit_.store(false);
+                state_.store(DeviceState::Ok);
+                thread_ = std::thread([this] { ThreadMain(); });
+            }
+            void Stop() {
+                if (!thread_.joinable()) return;
+                quit_.store(true);
+                if (wake_) SetEvent(wake_);
+                thread_.join();
+                if (wake_) { CloseHandle(wake_); wake_ = nullptr; }
+            }
+            void RequestFrame(Window* w) {
+                if (!w) return;
+                { std::lock_guard<std::mutex> lk(mutex_); dirty_.push_back(w); }
+                if (wake_) SetEvent(wake_);
+            }
+            DeviceState State() const { return state_.load(); }
+            void SetState(DeviceState s) { state_.store(s); }
+
+        private:
+            void ThreadMain() {
+                while (!quit_.load()) {
+                    WaitForSingleObject(wake_, INFINITE);   // 无帧请求就真睡（不空转、不轮询）
+                    std::vector<Window*> batch;
+                    { std::lock_guard<std::mutex> lk(mutex_); batch.swap(dirty_); }
+                    if (quit_.load()) break;
+                    if (state_.load() != DeviceState::Ok) continue;   // Lost/Rebuilding 期间不出帧
+                    for (Window* w : batch) if (w) { w->RenderOnThread(); w->ContinueFrame(); }
+                }
+            }
+            HANDLE wake_ = nullptr;
+            std::thread thread_;
+            std::atomic<bool> quit_{ false };
+            std::atomic<DeviceState> state_{ DeviceState::Ok };
+            std::mutex mutex_;
+            std::vector<Window*> dirty_;
+        };
+
+        // AppCore 的 render host 钩子（定义在 RenderHost 之后）
+        inline void AppCore::StartRenderHost() {
+            if (!renderHost_) renderHost_ = new RenderHost();
+            renderHost_->Start();
+        }
+        inline void AppCore::StopRenderHost() {
+            if (renderHost_) { renderHost_->Stop(); delete renderHost_; renderHost_ = nullptr; }
+        }
+        inline void AppCore::RequestRender(Window* w) {
+            if (renderHost_) renderHost_->RequestFrame(w);
+        }
+        inline void AppCore::SetRenderHostPaused(bool paused) {
+            if (renderHost_) renderHost_->SetState(paused ? RenderHost::DeviceState::Rebuilding : RenderHost::DeviceState::Ok);
+        }
     }
 
     // ============================================================================

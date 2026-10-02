@@ -2101,6 +2101,7 @@ namespace ZufyUI {
                 MouseMove.Fire(x, y);
                 return;
             }
+            int prevHover = hoveredItemIndex_;
 
             float listY = expandUp_ ? arrangedRect_.y - listViewHeight_ : arrangedRect_.y + arrangedRect_.height;
             if (x >= arrangedRect_.x && x < arrangedRect_.x + ListWidth() &&
@@ -2113,7 +2114,7 @@ namespace ZufyUI {
             else {
                 hoveredItemIndex_ = -1;
             }
-            RequestRepaint();
+            if (hoveredItemIndex_ != prevHover) RequestRepaint();
             MouseMove.Fire(x, y);
         }
 
@@ -4480,6 +4481,8 @@ namespace ZufyUI {
 
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_ || !rt) return;
+            if (!(std::isfinite(arrangedRect_.x) && std::isfinite(arrangedRect_.y) &&
+                  std::isfinite(arrangedRect_.width) && std::isfinite(arrangedRect_.height))) return;   // NaN/Inf 守卫
 
             const float cr = cornerRadius_;
             // 内容区背景（圆角）
@@ -4941,6 +4944,8 @@ namespace ZufyUI {
 
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_ || !rt) return;
+            if (!(std::isfinite(arrangedRect_.x) && std::isfinite(arrangedRect_.y) &&
+                  std::isfinite(arrangedRect_.width) && std::isfinite(arrangedRect_.height))) return;   // NaN/Inf 守卫
             float s = min(arrangedRect_.width, arrangedRect_.height);
             if (s <= 1.0f) s = size_;
             float th = min(thickness_, s * 0.5f);
@@ -5447,6 +5452,8 @@ namespace ZufyUI {
         }
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_ || !rt) return;
+            if (!(std::isfinite(arrangedRect_.x) && std::isfinite(arrangedRect_.y) &&
+                  std::isfinite(arrangedRect_.width) && std::isfinite(arrangedRect_.height))) return;   // NaN/Inf 守卫
             if (!splitterBrush_) rt->CreateSolidColorBrush(splitterColor_.ToD2D(), splitterBrush_.GetAddressOf());
             else splitterBrush_->SetColor((hovered_ || dragging_) ? hoverColor_.ToD2D() : splitterColor_.ToD2D());
             if (splitterBrush_) {

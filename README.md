@@ -142,6 +142,22 @@ win.SetCustomTitleBar(bar);
 
 ## 更新日志
 
+### 2026-10-02 — 独立渲染线程（架构 B）+ 悬停重绘优化（v1.14.0）
+
+**独立渲染线程（架构 B）**
+- **渲染从 UI 线程剥离**：新增进程级 render 线程负责**合成 / `Present1` / `DwmFlush`(vblank) 节拍**；UI 线程只做消息、输入、布局、动画，并用**去抖**的 `RequestRender()` 标脏唤醒 render。
+- **共享设备、各用各的上下文**：`ID2D1Device` 与 DComp / 交换链在 UI 线程建；render 线程自建自己的 `ID2D1DeviceContext`；元素缓存从 `ID2D1BitmapRenderTarget` 改为 **device 作用域的 `ID2D1Bitmap1`**（两遍式：先在独立 DC 把脏缓存画好，主帧只 blit），跨 DC 共享成立。
+- **跨线程正确性**：DC 操作段用 `renderLock_` 串行（节拍在锁外，UI 不被卡帧）；`WM_SIZE` 只置 pending、由 render 线程锁内 `ResizeBuffers`；`WM_DPICHANGED` 持锁串行重建；device lost 走「render 检测 → 暂停 render → 回 UI 线程重建 → 恢复」；最小化不出帧。
+- 编译期开关 **`ZUFYUI_RENDER_THREAD`（默认 `1`）**；设为 `0` 退回原单线程 `WM_PAINT` 路径。
+
+**悬停重绘优化（降 CPU）**
+- 修「在按钮列表（`ListView`）空白处移动鼠标也持续占 CPU」：根因是 `ListView::OnMouseMove` **每次移动都无条件 `RequestRepaint()`**（不管悬停项是否变化、是不是空白）→ `pendingRepaint_` 恒非空 → 每帧整窗重合成。
+- 同类修复 `ComboBox` 下拉、`DataViewer` 网格、`TreeView`：**只在悬停状态真的变化时**才重绘（悬停高亮行为不变）。
+
+**健壮性**
+- `TabView` / `ProgressRing` / `SplitView` 的 `Draw` 增加 `arrangedRect_` 非有限值守卫，避免布局未就绪 / 退化尺寸触发 Direct2D 几何断言。
+- 版本 **1.13.0 → 1.14.0**。
+
 ### 2026-09-27 — 菜单重构：弹出层继承 Window（根治每次 +90MB）+ 窗口底层开放
 
 **菜单（重要架构重构）**

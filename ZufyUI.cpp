@@ -77,6 +77,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     navList->AddItem(L"图像");
     navList->AddItem(L"多窗口");
     navList->AddItem(L"窗口属性");
+    navList->AddItem(L"新控件A");   // TabView + RadioGroup
+    navList->AddItem(L"新控件B");   // ProgressRing + SplitView
     navList->SetSelectedIndex(0);
     mainRow->AddChild(navList);
 
@@ -198,88 +200,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         comboEdit->SetPlaceholder(L"输入过滤...");
         grid1->AddChild(comboEdit, 9, 0, 1, 2);
 
-        // 页签（TabView）：故意放很多个，测试溢出时的横向滚动按钮
-        auto tabs = std::make_shared<TabView>();
-        tabs->SetHeight(150.0f);
-        static const Icon kTabIcons[] = { Icon::Home, Icon::Search, Icon::Settings, Icon::Folder,
-                                          Icon::File, Icon::Person, Icon::Calendar, Icon::Mail,
-                                          Icon::Image, Icon::Favorite, Icon::View, Icon::Info };
-        for (int i = 1; i <= 12; ++i) {
-            auto content = std::make_shared<Label>(L"  这里是「页签 " + std::to_wstring(i) + L"」的内容。");
-            // 页签标题就是一个 Label（这里给它加个前置图标，证明 TabView 走的是 Label）
-            auto tabLabel = std::make_shared<Label>(L"页签 " + std::to_wstring(i));
-            tabLabel->SetIcon(kTabIcons[i - 1]);
-            tabs->AddTab(tabLabel, content, (i % 3 == 0));   // 每 3 个带 ×
-        }
-        tabs->Connect(tabs->TabCloseRequested, [tabs](int idx) { tabs->RemoveTab(idx); });
-        grid1->AddChild(tabs, 10, 0, 1, 2);
-
-        // 单选组（纵向；组内互斥；选中整行浅蓝；↑/↓ 导航）
-        auto radios = std::make_shared<RadioGroup>();
-        radios->AddItem(L"单选 A（默认选中）", true);
-        radios->AddItem(L"单选 B");
-        radios->AddItem(L"单选 C");
-        radios->AddItem(L"单选 D（禁用）");
-        if (auto d = radios->GetButton(3)) d->SetEnabled(false);
-        radios->Connect(radios->SelectionChanged, [](int idx) {});
-        grid1->AddChild(radios, 11, 0, 1, 2);
-
-        // 单选组（横向；←/→ 导航）
-        auto radiosH = std::make_shared<RadioGroup>();
-        radiosH->SetOrientation(RadioGroup::Orientation::Horizontal);
-        radiosH->AddItem(L"甲", true);
-        radiosH->AddItem(L"乙");
-        radiosH->AddItem(L"丙");
-        grid1->AddChild(radiosH, 12, 0, 1, 2);
-
-        // 环形进度（确定值 x2 + 不确定旋转）
-        auto ringRow = std::make_shared<RowBox>();
-        ringRow->SetSpacing(16.0f);
-        auto ring1 = std::make_shared<ProgressRing>(36.0f);
-        ring1->SetValue(0.35f);
-        auto ring2 = std::make_shared<ProgressRing>(36.0f);
-        ring2->SetValue(0.72f);
-        ring2->SetColor(Color::FromArgb(255, 16, 124, 16));
-        auto ring3 = std::make_shared<ProgressRing>(36.0f);
-        ring3->SetIndeterminate(true);
-        ringRow->AddChild(ring1);
-        ringRow->AddChild(ring2);
-        ringRow->AddChild(ring3);
-        grid1->AddChild(ringRow, 13, 0, 1, 2);
-
-        // 分栏（可拖动中间分隔条）：左 = 嵌套 PageHost「交叉测试」，右 = 列表
-        auto split = std::make_shared<SplitView>();
-        split->SetHeight(200.0f);
-        split->SetSplitterWidth(8.0f);
-        split->SetMinFirst(120.0f);
-        split->SetMinSecond(120.0f);
-        {
-            auto leftPane = std::make_shared<Card>();
-            if (auto lg = leftPane->GetLayoutAs<GridLayout>()) {
-                auto nested = std::make_shared<PageHost>();
-                auto btns = std::make_shared<RowBox>();
-                btns->SetSpacing(6.0f);
-                for (int i = 1; i <= 3; ++i) {
-                    auto pg = std::make_shared<Page>();
-                    if (auto g = pg->GetLayoutAs<GridLayout>()) g->AddChild(std::make_shared<Label>(L"交叉页 " + std::to_wstring(i)), 0, 0);
-                    nested->AddPage(pg);
-                    auto b = std::make_shared<Button>(L"页" + std::to_wstring(i));
-                    b->SetWidth(44.0f);
-                    b->SetHeight(26.0f);
-                    b->Connect(b->Clicked, [nested, i]() { nested->NavigateTo(i - 1); });
-                    btns->AddChild(b);
-                }
-                nested->SetHeight(120.0f);
-                lg->AddChild(btns, 0, 0);
-                lg->AddChild(nested, 1, 0);
-            }
-            auto rightPane = std::make_shared<ListView>();
-            rightPane->SetButtonMode(true);
-            for (int i = 1; i <= 8; ++i) rightPane->AddItem(L"列表项 " + std::to_wstring(i));
-            split->SetFirst(leftPane);
-            split->SetSecond(rightPane);
-        }
-        grid1->AddChild(split, 14, 0, 1, 2);
+        // （原页面1上的「新控件」——TabView / RadioGroup / ProgressRing / SplitView——已拆到
+        //   单独一页「新控件」，便于二分定位"持续更新"来源；见下方 pageNew）
     }
 
     // ---------- 页面2：输入与滚动 ----------
@@ -1532,6 +1454,109 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     // 所有页面加入 PageHost
+    // ---------- 新控件页 A：TabView + RadioGroup ----------
+    auto pageNewA = std::make_shared<Page>();
+    auto pageNewAOuter = pageNewA->GetLayoutAs<GridLayout>();
+    auto ga = std::make_shared<GridLayout>();
+    if (pageNewAOuter) {   // 和「基础控件」页一样：整页纵向滚动（否则直接网格会缩到自然宽 → 内容挤左）
+        auto sv = std::make_shared<ScrollViewer>();
+        sv->SetContentMargin(Thickness(8, 8, 8, 8));
+        sv->SetContent(ga);
+        pageNewAOuter->AddChild(sv, 0, 0);
+    }
+    {
+        if (ga) {
+            ga->SetSpacing(10, 10);
+            ga->SetColumnStretch(0, 1.0f); ga->SetColumnStretch(1, 1.0f);   // 列撑满（而不是靠控件权重把控件拉变形）
+            auto tabs = std::make_shared<TabView>();
+            tabs->SetHeight(150.0f);
+            static const Icon kTabIcons[] = { Icon::Home, Icon::Search, Icon::Settings, Icon::Folder,
+                                              Icon::File, Icon::Person, Icon::Calendar, Icon::Mail,
+                                              Icon::Image, Icon::Favorite, Icon::View, Icon::Info };
+            for (int i = 1; i <= 12; ++i) {
+                auto content = std::make_shared<Label>(L"  这里是「页签 " + std::to_wstring(i) + L"」的内容。");
+                auto tabLabel = std::make_shared<Label>(L"页签 " + std::to_wstring(i));
+                tabLabel->SetIcon(kTabIcons[i - 1]);
+                tabs->AddTab(tabLabel, content, (i % 3 == 0));
+            }
+            tabs->Connect(tabs->TabCloseRequested, [tabs](int idx) { tabs->RemoveTab(idx); });
+            ga->AddChild(tabs, 0, 0, 1, 2);
+
+            auto radios = std::make_shared<RadioGroup>();
+            radios->AddItem(L"单选 A（默认选中）", true);
+            radios->AddItem(L"单选 B");
+            radios->AddItem(L"单选 C");
+            radios->AddItem(L"单选 D（禁用）");
+            if (auto d = radios->GetButton(3)) d->SetEnabled(false);
+            ga->AddChild(radios, 1, 0, 1, 2);
+
+            auto radiosH = std::make_shared<RadioGroup>();
+            radiosH->SetOrientation(RadioGroup::Orientation::Horizontal);
+            radiosH->AddItem(L"甲", true);
+            radiosH->AddItem(L"乙");
+            radiosH->AddItem(L"丙");
+            ga->AddChild(radiosH, 2, 0, 1, 2);
+        }
+    }
+
+    // ---------- 新控件页 B：ProgressRing + SplitView ----------
+    auto pageNewB = std::make_shared<Page>();
+    auto pageNewBOuter = pageNewB->GetLayoutAs<GridLayout>();
+    auto gb = std::make_shared<GridLayout>();
+    if (pageNewBOuter) {
+        auto sv = std::make_shared<ScrollViewer>();
+        sv->SetContentMargin(Thickness(8, 8, 8, 8));
+        sv->SetContent(gb);
+        pageNewBOuter->AddChild(sv, 0, 0);
+    }
+    {
+        if (gb) {
+            gb->SetSpacing(10, 10);
+            gb->SetColumnStretch(0, 1.0f); gb->SetColumnStretch(1, 1.0f);
+            auto ringRow = std::make_shared<RowBox>();
+            ringRow->SetSpacing(16.0f);
+            auto ring1 = std::make_shared<ProgressRing>(36.0f); ring1->SetValue(0.35f);
+            auto ring2 = std::make_shared<ProgressRing>(36.0f); ring2->SetValue(0.72f);
+            ring2->SetColor(Color::FromArgb(255, 16, 124, 16));
+            ringRow->AddChild(ring1);
+            ringRow->AddChild(ring2);
+            gb->AddChild(ringRow, 0, 0, 1, 2);
+
+            auto split = std::make_shared<SplitView>();
+            split->SetHeight(200.0f);
+            split->SetSplitterWidth(8.0f);
+            split->SetMinFirst(120.0f);
+            split->SetMinSecond(120.0f);
+            {
+                auto leftPane = std::make_shared<Card>();
+                if (auto lg = leftPane->GetLayoutAs<GridLayout>()) {
+                    auto nested = std::make_shared<PageHost>();
+                    auto btns = std::make_shared<RowBox>();
+                    btns->SetSpacing(6.0f);
+                    for (int i = 1; i <= 3; ++i) {
+                        auto pg = std::make_shared<Page>();
+                        if (auto g = pg->GetLayoutAs<GridLayout>()) g->AddChild(std::make_shared<Label>(L"交叉页 " + std::to_wstring(i)), 0, 0);
+                        nested->AddPage(pg);
+                        auto b = std::make_shared<Button>(L"页" + std::to_wstring(i));
+                        b->SetWidth(44.0f);
+                        b->SetHeight(26.0f);
+                        b->Connect(b->Clicked, [nested, i]() { nested->NavigateTo(i - 1); });
+                        btns->AddChild(b);
+                    }
+                    nested->SetHeight(120.0f);
+                    lg->AddChild(btns, 0, 0);
+                    lg->AddChild(nested, 1, 0);
+                }
+                auto rightPane = std::make_shared<ListView>();
+                rightPane->SetButtonMode(true);
+                for (int i = 1; i <= 8; ++i) rightPane->AddItem(L"列表项 " + std::to_wstring(i));
+                split->SetFirst(leftPane);
+                split->SetSecond(rightPane);
+            }
+            gb->AddChild(split, 1, 0, 1, 2);
+        }
+    }
+
     mainHost->AddPage(page1);
     mainHost->AddPage(page2);
     mainHost->AddPage(page3);
@@ -1542,6 +1567,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     mainHost->AddPage(page8);
     mainHost->AddPage(page9);
     mainHost->AddPage(page10);
+    mainHost->AddPage(pageNewA);
+    mainHost->AddPage(pageNewB);
 
     // 主页面导航：记录当前索引，根据相对位置设置上下方向
     auto currentMainIndex = std::make_shared<int>(0);

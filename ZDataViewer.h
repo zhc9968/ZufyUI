@@ -666,6 +666,8 @@ namespace ZufyUI {
             MouseLeave.Fire();
         }
         void OnMouseMove(float x, float y) override {
+            int prevHover = hoveredIndex_;
+            bool prevScrollHover = isScrollBarHovered_;
             if (isDraggingScroll_) {
                 float trackY = arrangedRect_.y;
                 float trackHeight = arrangedRect_.height;
@@ -698,12 +700,13 @@ namespace ZufyUI {
             if (!arrangedRect_.Contains(x, y)) {
                 hoveredIndex_ = -1;
                 isScrollBarHovered_ = false;
+                if (hoveredIndex_ != prevHover || isScrollBarHovered_ != prevScrollHover) RequestRepaint();
                 return;
             }
             isScrollBarHovered_ = (showScrollBar_ && x >= arrangedRect_.x + arrangedRect_.width - scrollBarWidth_);
             if (showScrollBar_ && x >= arrangedRect_.x + arrangedRect_.width - scrollBarWidth_) {
                 hoveredIndex_ = -1;
-                RequestRepaint();
+                if (hoveredIndex_ != prevHover || isScrollBarHovered_ != prevScrollHover) RequestRepaint();
                 return;
             }
             float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
@@ -718,7 +721,7 @@ namespace ZufyUI {
                 auto it = hp ? itemTips_.find(hp) : itemTips_.end();
                 SetToolTip((hp && it != itemTips_.end()) ? it->second : std::wstring());
             }
-            RequestRepaint();
+            if (hoveredIndex_ != prevHover || isScrollBarHovered_ != prevScrollHover) RequestRepaint();
             MouseMove.Fire(x, y);
         }
         bool OnContextMenu(float x, float y) override {
@@ -1928,6 +1931,8 @@ namespace ZufyUI {
             }
             if (!arrangedRect_.Contains(x, y)) return;
 
+            int prevRow = hoveredRow_, prevCol = hoveredCol_;
+            bool prevVH = isVerticalHovered_, prevHH = isHorizontalHovered_;
             isVerticalHovered_ = (showVerticalScrollBar_ && x >= arrangedRect_.x + arrangedRect_.width - scrollBarWidth_);
             isHorizontalHovered_ = (showHorizontalScrollBar_ && y >= arrangedRect_.y + arrangedRect_.height - scrollBarWidth_);
 
@@ -1949,7 +1954,7 @@ namespace ZufyUI {
                 else SetCursor(LoadCursor(nullptr, IDC_ARROW));
                 hoveredRow_ = -1;
                 hoveredCol_ = -1;
-                RequestRepaint();
+                if (hoveredRow_ != prevRow || hoveredCol_ != prevCol || isVerticalHovered_ != prevVH || isHorizontalHovered_ != prevHH) RequestRepaint();
                 return;
             }
             else {
@@ -1972,7 +1977,7 @@ namespace ZufyUI {
                 auto it = cellTips_.find(CellKey(hoveredRow_, hoveredCol_));
                 SetToolTip((hoveredRow_ >= 0 && it != cellTips_.end()) ? it->second : std::wstring());
             }
-            RequestRepaint();
+            if (hoveredRow_ != prevRow || hoveredCol_ != prevCol || isVerticalHovered_ != prevVH || isHorizontalHovered_ != prevHH) RequestRepaint();
             MouseMove.Fire(x, y);
         }
         bool OnContextMenu(float x, float y) override {
@@ -3628,12 +3633,14 @@ namespace ZufyUI {
                     return;
                 }
             }
+            auto prevNode = hoveredNode_;
+            bool prevVH = isVerticalHovered_, prevHH = isHorizontalHovered_;
             if (!arrangedRect_.Contains(x, y)) {
                 hoveredNode_ = nullptr;
                 isVerticalHovered_ = false;
                 isHorizontalHovered_ = false;
                 SetCursor(LoadCursor(nullptr, IDC_ARROW));
-                RequestRepaint();
+                if (hoveredNode_ != prevNode || isVerticalHovered_ != prevVH || isHorizontalHovered_ != prevHH) RequestRepaint();
                 return;
             }
 
@@ -3658,7 +3665,7 @@ namespace ZufyUI {
                 else SetCursor(LoadCursor(nullptr, IDC_ARROW));
                 hoveredNode_ = nullptr;
                 SetToolTip(std::wstring());
-                RequestRepaint();
+                if (hoveredNode_ != prevNode || isVerticalHovered_ != prevVH || isHorizontalHovered_ != prevHH) RequestRepaint();
                 return;
             }
             else {
@@ -3672,7 +3679,7 @@ namespace ZufyUI {
             else
                 hoveredNode_ = nullptr;
             SetToolTip(hoveredNode_ ? hoveredNode_->tooltip : std::wstring());
-            RequestRepaint();
+            if (hoveredNode_ != prevNode || isVerticalHovered_ != prevVH || isHorizontalHovered_ != prevHH) RequestRepaint();
         }
 
         void OnMouseDown(float x, float y) override {

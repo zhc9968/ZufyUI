@@ -1052,6 +1052,7 @@ int WINAPI WinMain(...) {
 - **模态 / 父子窗口**：`Window::SetOwner(owner)` 建立 owned 子窗口（始终在所有者之上、随其最小化）；`Window::RunModal(owner)` 以模态运行（禁用所有者、嵌套消息循环、关闭后恢复）。模态期间点击被禁用的所有者窗口，模态窗口会**闪烁**提示。
 - **窗口句柄与悬垂**：元素内部用**窗口 id** 记录所属窗口（而不是裸指针），窗口销毁后 `GetWindow()` 返回 `nullptr`，从根本上避免“元素持有已销毁窗口指针”导致的崩溃。
 - **共享资源**：`ID2D1Factory` 与系统计时器精度（`timeBeginPeriod`）由应用核心统一管理，多窗口共享。
+- **独立渲染线程**：默认（`ZUFYUI_RENDER_THREAD`）下，框架用独立 render 线程负责**合成 / `Present` / vblank 节拍**，UI 线程只做消息、输入、布局、动画并标脏（`RequestRepaint()` 会自动**合并去抖**）。因此元素的 **`Draw()` 运行在 render 线程**，而 `Measure` / `Arrange` / `UpdateAnimation` 运行在 UI 线程，两者由内部锁串行、不会并发。自定义控件若在 `Draw()` 里读自己的可变状态，请让该状态只在 `Draw()` / 动画中更新，或自行加锁。编译期把 `ZUFYUI_RENDER_THREAD` 设为 `0` 即退回单线程 `WM_PAINT` 路径。
 - **向后兼容**：单窗口写法仍然有效——`Window win; win.Create(...); win.Show(); win.Run();`（1.8.0 起 `Create` 不再自动显示，需显式 `Show()`）；`Run()` 会转发到应用级消息循环。
 
 ## 多窗口常见坑
