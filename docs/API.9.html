@@ -365,6 +365,14 @@ class Window {
     virtual bool OnWindowTimer(int id);       // WM_TIMER（应用自定义 id）
     std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);   // 基于信号的循环定时器（见下）
 
+    // ---- 帧率上限（A3，可选）----
+    // fps&lt;=0 或不设置 = 跟随显示器刷新（默认）；&gt;0 = 限制动画平均出帧率（降 GPU/CPU）。
+    // 每窗口可覆盖进程默认；SetFrameRateLimit(0) 显式取消上限。
+    void SetFrameRateLimit(int fps);
+    int  GetFrameRateLimit() const;
+    static void SetDefaultFrameRateLimit(int fps);
+    static int  GetDefaultFrameRateLimit();
+
     // ---- 自绘 ----
     virtual void RenderContent(ID2D1DeviceContext* rt);   // 默认画元素树；可重写完全自绘
     float GetClientWidthDip() const; float GetClientHeightDip() const; float GetDpiScale() const;
@@ -411,7 +419,7 @@ std::shared_ptr&lt;Timer&gt; Window::CreateTimer(int intervalMs = 1000);
 <header class="chapter-header"><span class="chapter-eyebrow">第 9 章</span><h1>窗口 Window</h1><p class="chapter-summary">创建、背景、标题栏与根布局</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-08356112', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-7c6b1f8f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Backdrop</span><span class="w"> </span><span class="n">DefaultBackdrop</span><span class="p">;</span><span class="w">              </span><span class="c1">// None</span>
@@ -531,7 +539,7 @@ std::shared_ptr&lt;Timer&gt; Window::CreateTimer(int intervalMs = 1000);
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ReleaseMouseCapture</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">elem</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-08356112" style="display: none;">class Window {
+<pre id="code-7c6b1f8f" style="display: none;">class Window {
     static Backdrop DefaultBackdrop;              // None
     static DWORD DefaultBackdropColor;            // 0
     static Color DefaultBackgroundColor;          // 透明
@@ -676,7 +684,7 @@ std::shared_ptr&lt;Timer&gt; Window::CreateTimer(int intervalMs = 1000);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-42378680', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-62e6edd9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// ---- 创建参数（可重写；默认=普通顶层窗口）----</span>
@@ -695,6 +703,14 @@ std::shared_ptr&lt;Timer&gt; Window::CreateTimer(int intervalMs = 1000);
 <span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">);</span><span class="w">       </span><span class="c1">// WM_TIMER（应用自定义 id）</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Timer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">intervalMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span><span class="w">   </span><span class="c1">// 基于信号的循环定时器（见下）</span>
 
+<span class="w">    </span><span class="c1">// ---- 帧率上限（A3，可选）----</span>
+<span class="w">    </span><span class="c1">// fps&lt;=0 或不设置 = 跟随显示器刷新（默认）；&gt;0 = 限制动画平均出帧率（降 GPU/CPU）。</span>
+<span class="w">    </span><span class="c1">// 每窗口可覆盖进程默认；SetFrameRateLimit(0) 显式取消上限。</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFrameRateLimit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fps</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="nf">GetFrameRateLimit</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultFrameRateLimit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fps</span><span class="p">);</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="nf">GetDefaultFrameRateLimit</span><span class="p">();</span>
+
 <span class="w">    </span><span class="c1">// ---- 自绘 ----</span>
 <span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">RenderContent</span><span class="p">(</span><span class="n">ID2D1DeviceContext</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">);</span><span class="w">   </span><span class="c1">// 默认画元素树；可重写完全自绘</span>
 <span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetClientWidthDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetClientHeightDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetDpiScale</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -702,7 +718,7 @@ std::shared_ptr&lt;Timer&gt; Window::CreateTimer(int intervalMs = 1000);
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetContentOpacity</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">opacity</span><span class="p">);</span><span class="w">    </span><span class="c1">// 整窗内容不透明度(0..1)，弹出层渐显/淡出用</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-42378680" style="display: none;">class Window {
+<pre id="code-62e6edd9" style="display: none;">class Window {
     // ---- 创建参数（可重写；默认=普通顶层窗口）----
     virtual DWORD GetCreateStyle()   const;   // 默认 WS_OVERLAPPEDWINDOW
     virtual DWORD GetCreateExStyle() const;   // 默认 WS_EX_NOREDIRECTIONBITMAP
@@ -718,6 +734,14 @@ std::shared_ptr&lt;Timer&gt; Window::CreateTimer(int intervalMs = 1000);
     virtual bool OnWindowKeyDown(int vk);     // 键盘（派发给焦点元素前）
     virtual bool OnWindowTimer(int id);       // WM_TIMER（应用自定义 id）
     std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);   // 基于信号的循环定时器（见下）
+
+    // ---- 帧率上限（A3，可选）----
+    // fps&lt;=0 或不设置 = 跟随显示器刷新（默认）；&gt;0 = 限制动画平均出帧率（降 GPU/CPU）。
+    // 每窗口可覆盖进程默认；SetFrameRateLimit(0) 显式取消上限。
+    void SetFrameRateLimit(int fps);
+    int  GetFrameRateLimit() const;
+    static void SetDefaultFrameRateLimit(int fps);
+    static int  GetDefaultFrameRateLimit();
 
     // ---- 自绘 ----
     virtual void RenderContent(ID2D1DeviceContext* rt);   // 默认画元素树；可重写完全自绘
@@ -735,7 +759,7 @@ std::shared_ptr&lt;Timer&gt; Window::CreateTimer(int intervalMs = 1000);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d0b009b9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-3bd48136', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Timer</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Tick</span><span class="p">;</span><span class="w">                    </span><span class="c1">// 到点触发（UI 线程）</span>
@@ -754,7 +778,7 @@ std::shared_ptr&lt;Timer&gt; Window::CreateTimer(int intervalMs = 1000);
 <span class="c1">// 便捷入口（推荐）：</span>
 <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Timer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Window</span><span class="o">::</span><span class="n">CreateTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">intervalMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
 </pre></div>
-<pre id="code-d0b009b9" style="display: none;">class Timer {
+<pre id="code-3bd48136" style="display: none;">class Timer {
     ZSignal&lt;&gt; Tick;                    // 到点触发（UI 线程）
     inline static int DefaultInterval; // 1000
 

@@ -909,6 +909,14 @@ class Window {
     virtual bool OnWindowTimer(int id);       // WM_TIMER（应用自定义 id）
     std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);   // 基于信号的循环定时器（见下）
 
+    // ---- 帧率上限（A3，可选）----
+    // fps<=0 或不设置 = 跟随显示器刷新（默认）；>0 = 限制动画平均出帧率（降 GPU/CPU）。
+    // 每窗口可覆盖进程默认；SetFrameRateLimit(0) 显式取消上限。
+    void SetFrameRateLimit(int fps);
+    int  GetFrameRateLimit() const;
+    static void SetDefaultFrameRateLimit(int fps);
+    static int  GetDefaultFrameRateLimit();
+
     // ---- 自绘 ----
     virtual void RenderContent(ID2D1DeviceContext* rt);   // 默认画元素树；可重写完全自绘
     float GetClientWidthDip() const; float GetClientHeightDip() const; float GetDpiScale() const;

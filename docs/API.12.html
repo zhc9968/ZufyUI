@@ -561,7 +561,7 @@ class TreeView : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5928992b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-24e1cbaa', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">NumberBox</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span><span class="w">               </span><span class="c1">// 提交后（回车 / 失焦 / 步进）</span>
@@ -586,7 +586,7 @@ class TreeView : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetPlaceholder</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-5928992b" style="display: none;">class NumberBox : public UIElement {
+<pre id="code-24e1cbaa" style="display: none;">class NumberBox : public UIElement {
     ZSignal&lt;double&gt; ValueChanged;               // 提交后（回车 / 失焦 / 步进）
     ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   // 每次文本变化（可做实时校验）
 
@@ -619,7 +619,7 @@ class TreeView : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-296436d3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-7be3c0bc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SplitView</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// Vertical = 左右（竖分隔条）</span>
@@ -635,7 +635,7 @@ class TreeView : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSplitterColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetHoverColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-296436d3" style="display: none;">class SplitView : public UIElement {
+<pre id="code-7be3c0bc" style="display: none;">class SplitView : public UIElement {
     enum class Orientation { Vertical, Horizontal };   // Vertical = 左右（竖分隔条）
     ZSignal&lt;float&gt; SplitChanged;                       // 新比例 0..1
 
@@ -658,7 +658,7 @@ class TreeView : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-56645558', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-759f8913', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
 
@@ -730,7 +730,7 @@ class TreeView : public UIElement {
 <span class="w">    </span><span class="c1">//       SetAlternatingRowColor / SetMarqueeEnabled / SetButtonMode / SetButtonSpacing 等</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-56645558" style="display: none;">enum class SelectionMode { Single, Extended, Multi, None };
+<pre id="code-759f8913" style="display: none;">enum class SelectionMode { Single, Extended, Multi, None };
 
 class ListView : public UIElement {
     ZSignal&lt;int&gt; SelectionChanged;
@@ -814,7 +814,7 @@ class ListView : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-90c84256', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-ff206435', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Cell</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Column</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
 
@@ -901,7 +901,7 @@ class ListView : public UIElement {
 <span class="w">    </span><span class="c1">//   SetHeaderBackgroundColor / SetTextColor / SetGridLineColor / SetScrollBarColors 等</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-90c84256" style="display: none;">enum class SelectionMode { Cell, Row, Column, None };
+<pre id="code-ff206435" style="display: none;">enum class SelectionMode { Cell, Row, Column, None };
 
 class TableView : public UIElement {
     ZSignal&lt;int,int&gt; CellClicked;
@@ -1002,7 +1002,7 @@ class TableView : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-238f769e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-4d2a58d5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">TreeNode</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">columns</span><span class="p">;</span><span class="w">       </span><span class="c1">// Label 化：每列一个真 Label（第 0 列为节点文本）</span>
@@ -1023,7 +1023,7 @@ class TableView : public UIElement {
 <span class="w">    </span><span class="n">TreeNode</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">cols</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-238f769e" style="display: none;">struct TreeNode {
+<pre id="code-4d2a58d5" style="display: none;">struct TreeNode {
     std::vector&lt;std::shared_ptr&lt;Label&gt;&gt; columns;       // Label 化：每列一个真 Label（第 0 列为节点文本）
     TreeNode* parent = nullptr;                        // 非拥有
     std::vector&lt;std::shared_ptr&lt;TreeNode&gt;&gt; children;
@@ -1051,7 +1051,7 @@ class TableView : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c0dba615', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-5ce0dc51', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">CheckMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Linked</span><span class="p">,</span><span class="w"> </span><span class="n">Independent</span><span class="w"> </span><span class="p">};</span><span class="w">          </span><span class="c1">// 勾选父子联动/独立</span>
@@ -1125,7 +1125,7 @@ class TableView : public UIElement {
 <span class="w">    </span><span class="c1">// 框选：SetMarqueeEnabled / SetMarqueeCheckSync</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-c0dba615" style="display: none;">enum class SelectionMode { Single, Extended, Multi };
+<pre id="code-5ce0dc51" style="display: none;">enum class SelectionMode { Single, Extended, Multi };
 enum class CheckMode { Linked, Independent };          // 勾选父子联动/独立
 
 class TreeView : public UIElement {
