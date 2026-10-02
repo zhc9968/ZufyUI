@@ -1588,6 +1588,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // 多窗口相关演示（新建窗口 / owned / 模态）已移入主窗口"多窗口"页。
 
+    // A3：帧率上限（0 = 不限/跟随显示器刷新）。改成 60 可限制动画平均出帧率以降低 GPU/CPU。
+    win.SetFrameRateLimit(0);
+
     win.Show();            // 显示由应用决定
     win.SetMinSize(800, 600);
     win.Run();
