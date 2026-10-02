@@ -2133,6 +2133,14 @@ virtual bool OnWindowTimer(int id);     // WM_TIMER (app-defined id)
 virtual void OnWindowSize();            // WM_SIZE (final layout that depends on client width)
 void SetInputBlocked(bool on);          // block mouse/keyboard input for this window
 std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);   // signal-based repeating timer (see Timer)
+
+// ---- Frame-rate limit (A3, optional) ----
+// fps<=0 or unset = follow the display refresh (default); >0 = cap the average animation frame rate (lowers GPU/CPU).
+// Per-window override of the process default; SetFrameRateLimit(0) explicitly removes the cap.
+void SetFrameRateLimit(int fps);
+int  GetFrameRateLimit() const;
+static void SetDefaultFrameRateLimit(int fps);
+static int  GetDefaultFrameRateLimit();
 ```
 
 ## Timer
