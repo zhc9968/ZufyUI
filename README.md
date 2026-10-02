@@ -158,7 +158,7 @@ win.SetCustomTitleBar(bar);
 - `TabView` / `ProgressRing` / `SplitView` 的 `Draw` 增加 `arrangedRect_` 非有限值守卫，避免布局未就绪 / 退化尺寸触发 Direct2D 几何断言。
 - 版本 **1.13.0 → 1.14.0**。
 
-### 2026-09-27 — 菜单重构：弹出层继承 Window（根治每次 +90MB）+ 窗口底层开放
+### 2026-10-01 — 菜单重构：弹出层继承 Window（根治每次 +90MB）+ 窗口底层开放
 
 **菜单（重要架构重构）**
 - 右键 / 独立 / 子菜单的弹出层改为**继承 `Window`**（`MenuWindowBase : Window` + `MenuWindow : MenuWindowBase`），走 **DComp + 进程级共享 D3D/D2D 设备** —— **根治「每弹一次菜单约 +90MB」**（旧实现是 `WS_EX_LAYERED + UpdateLayeredWindow + DIB + 自建 D2D 工厂/DC 渲染目标`，每个菜单一套软件渲染设备）。

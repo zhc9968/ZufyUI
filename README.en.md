@@ -158,7 +158,7 @@ A tour of the widgets (first page of the demo):
 - `TabView` / `ProgressRing` / `SplitView` `Draw` now guard against non-finite `arrangedRect_`, avoiding Direct2D geometry assertions from not-yet-laid-out / degenerate sizes.
 - Version **1.13.0 -> 1.14.0**.
 
-### 2026-09-27 — Menu rework: popup layer now derives from Window (fixes ~+90MB per open) + openable Window internals
+### 2026-10-01 — Menu rework: popup layer now derives from Window (fixes ~+90MB per open) + openable Window internals
 
 **Menu (major architecture rework)**
 - Right-click / standalone / submenu popups now **derive from `Window`** (`MenuWindowBase : Window` + `MenuWindow : MenuWindowBase`) and use **DComp + the process-shared D3D/D2D device** — fixing **~+90MB per menu open** (the old code used `WS_EX_LAYERED + UpdateLayeredWindow + DIB + its own D2D factory/DC render target`, i.e. a separate software render device per menu).
