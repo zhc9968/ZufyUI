@@ -298,6 +298,7 @@ int WINAPI WinMain(...) {
 - **Modal / owned windows**: `Window::SetOwner(owner)` creates an owned child (stays above and minimizes with the owner); `Window::RunModal(owner)` runs a window modally (disables the owner, nested loop, restores on close). While modal, clicking the disabled owner **flashes** the modal window.
 - **Window handle &amp; dangling**: elements store the owning window as an **id** (not a raw pointer); after the window is destroyed `GetWindow()` returns `nullptr`, eliminating crashes from elements holding a dangling window pointer.
 - **Shared resources**: the `ID2D1Factory` and the system timer period (`timeBeginPeriod`) are managed by the application core and shared by all windows.
+- **Independent render thread**: by default (`ZUFYUI_RENDER_THREAD`) a dedicated render thread handles **composition / `Present` / the vblank cadence**, while the UI thread only does messages, input, layout and animation and marks dirty (`RequestRepaint()` is **coalesced**). As a result **`Draw()` runs on the render thread** while `Measure` / `Arrange` / `UpdateAnimation` run on the UI thread; internal locking serializes them so they never overlap. If a custom control reads its own mutable state inside `Draw()`, update that state only in `Draw()` / animations or guard it yourself. Define `ZUFYUI_RENDER_THREAD=0` to fall back to the single-threaded `WM_PAINT` path.
 - **Backward compatible**: the single-window style still works — `Window win; win.Create(...); win.Show(); win.Run();` (since 1.8.0 `Create` no longer auto-shows; call `Show()`); `Run()` forwards to the app-level loop.
 
 ## Multi-window pitfalls
@@ -342,7 +343,7 @@ float LocalToContentY(float ly) const;
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-17f1f834', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d5cea538', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Application</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateWindow</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span>
@@ -356,7 +357,7 @@ float LocalToContentY(float ly) const;
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Application</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-17f1f834" style="display: none;">class Application {
+<pre id="code-d5cea538" style="display: none;">class Application {
     std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title);
     std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title, Window* owner); // owned child
     void AddWindow(const std::shared_ptr&lt;Window&gt;&amp; w);
@@ -372,7 +373,7 @@ float LocalToContentY(float ly) const;
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a726d1cd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-fb721364', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="nf">WinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">Application</span><span class="w"> </span><span class="n">app</span><span class="p">;</span>
@@ -382,7 +383,7 @@ float LocalToContentY(float ly) const;
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span><span class="w">                    </span><span class="c1">// one shared message loop</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-a726d1cd" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+<pre id="code-fb721364" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     ZufyUI::Application app;
     auto w1 = app.CreateWindow(1000, 700, L"Main");
     auto w2 = app.CreateWindow(640, 480, L"Tool");
@@ -403,7 +404,7 @@ float LocalToContentY(float ly) const;
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-51c0b030', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-0fa8af0e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">AppInfo</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">displayName</span><span class="p">;</span><span class="w">      </span><span class="c1">// display name (toast / jump list / taskbar grouping)</span>
@@ -414,7 +415,7 @@ float LocalToContentY(float ly) const;
 <span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">                 </span><span class="c1">// free function</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">Application::RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">    </span><span class="c1">// forwards to the above (equivalent)</span>
 </pre></div>
-<pre id="code-51c0b030" style="display: none;">struct AppInfo {
+<pre id="code-0fa8af0e" style="display: none;">struct AppInfo {
     std::wstring displayName;      // display name (toast / jump list / taskbar grouping)
     std::wstring aumid;            // unique id; empty = derived from displayName
     std::shared_ptr&lt;Image&gt; icon;   // icon (optional)
@@ -427,11 +428,11 @@ bool Application::RegisterApp(const AppInfo&amp; info);    // forwards to the ab
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-95804961', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-eb57bd1f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION</span>
 </pre></div>
-<pre id="code-95804961" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION</pre>
+<pre id="code-eb57bd1f" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION</pre>
 </div>
 <p>Without it, <code>RegisterApp</code> only sets the process AUMID (<strong>no side effects</strong>) and writes no registry / files.</p>
 <p><strong>What the library does when authorized</strong>:</p>
@@ -445,7 +446,7 @@ bool Application::RegisterApp(const AppInfo&amp; info);    // forwards to the ab
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-17f3f4dd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d5be509f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION   </span><span class="c1">// must be before the include</span>
 <span class="p">...</span>
@@ -456,7 +457,7 @@ bool Application::RegisterApp(const AppInfo&amp; info);    // forwards to the ab
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">().</span><span class="n">Run</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-17f3f4dd" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION   // must be before the include
+<pre id="code-d5be509f" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION   // must be before the include
 ...
 int WINAPI WinMain(...) {
     RegisterApp(AppInfo{ L"MyApp", L"ZufyUI.MyApp", myIcon });   // aumid may be empty = derived
@@ -482,6 +483,7 @@ int WINAPI WinMain(...) {
 <li><strong>Modal / owned windows</strong>: <code>Window::SetOwner(owner)</code> creates an owned child (stays above and minimizes with the owner); <code>Window::RunModal(owner)</code> runs a window modally (disables the owner, nested loop, restores on close). While modal, clicking the disabled owner <strong>flashes</strong> the modal window.</li>
 <li><strong>Window handle &amp; dangling</strong>: elements store the owning window as an <strong>id</strong> (not a raw pointer); after the window is destroyed <code>GetWindow()</code> returns <code>nullptr</code>, eliminating crashes from elements holding a dangling window pointer.</li>
 <li><strong>Shared resources</strong>: the <code>ID2D1Factory</code> and the system timer period (<code>timeBeginPeriod</code>) are managed by the application core and shared by all windows.</li>
+<li><strong>Independent render thread</strong>: by default (<code>ZUFYUI_RENDER_THREAD</code>) a dedicated render thread handles <strong>composition / <code>Present</code> / the vblank cadence</strong>, while the UI thread only does messages, input, layout and animation and marks dirty (<code>RequestRepaint()</code> is <strong>coalesced</strong>). As a result <strong><code>Draw()</code> runs on the render thread</strong> while <code>Measure</code> / <code>Arrange</code> / <code>UpdateAnimation</code> run on the UI thread; internal locking serializes them so they never overlap. If a custom control reads its own mutable state inside <code>Draw()</code>, update that state only in <code>Draw()</code> / animations or guard it yourself. Define <code>ZUFYUI_RENDER_THREAD=0</code> to fall back to the single-threaded <code>WM_PAINT</code> path.</li>
 <li><strong>Backward compatible</strong>: the single-window style still works — <code>Window win; win.Create(...); win.Show(); win.Run();</code> (since 1.8.0 <code>Create</code> no longer auto-shows; call <code>Show()</code>); <code>Run()</code> forwards to the app-level loop.</li>
 </ul>
 <h2 id="multi-window-pitfalls">Multi-window pitfalls</h2>
@@ -533,14 +535,14 @@ int WINAPI WinMain(...) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7f16a5ff', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-a2bdb9a8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">float</span><span class="w"> </span><span class="nf">ContentToLocalX</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">cx</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// content X -&gt; local X (with scroll offset)</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">ContentToLocalY</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">cy</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">LocalToContentX</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">lx</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// local X -&gt; content X</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">LocalToContentY</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">ly</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-7f16a5ff" style="display: none;">float ContentToLocalX(float cx) const;   // content X -&gt; local X (with scroll offset)
+<pre id="code-a2bdb9a8" style="display: none;">float ContentToLocalX(float cx) const;   // content X -&gt; local X (with scroll offset)
 float ContentToLocalY(float cy) const;
 float LocalToContentX(float lx) const;   // local X -&gt; content X
 float LocalToContentY(float ly) const;</pre>

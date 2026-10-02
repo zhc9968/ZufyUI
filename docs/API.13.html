@@ -282,7 +282,7 @@ class Image {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2de3df75', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-66883f84', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ImageManager</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">ImageManager</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
@@ -297,7 +297,7 @@ class Image {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Clear</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-2de3df75" style="display: none;">class ImageManager {
+<pre id="code-66883f84" style="display: none;">class ImageManager {
     static ImageManager&amp; Instance();
     IWICImagingFactory* Factory();                        // 共享的 WIC 工厂
     void RegisterCache(const std::shared_ptr&lt;ImageDeviceCache&gt;&amp;);
@@ -318,7 +318,7 @@ class ImageDeviceCache {                                  // 某个 Image 在“
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9f141017', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-bc335993', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Image</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Format</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Png</span><span class="p">,</span><span class="w"> </span><span class="n">Jpeg</span><span class="p">,</span><span class="w"> </span><span class="n">Bmp</span><span class="p">,</span><span class="w"> </span><span class="n">Gif</span><span class="p">,</span><span class="w"> </span><span class="n">Tiff</span><span class="w"> </span><span class="p">};</span>
@@ -360,7 +360,7 @@ class ImageDeviceCache {                                  // 某个 Image 在“
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Encode</span><span class="p">(</span><span class="n">Format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Format</span><span class="o">::</span><span class="n">Png</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">quality</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.9f</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-9f141017" style="display: none;">class Image {
+<pre id="code-bc335993" style="display: none;">class Image {
     enum class Format { Png, Jpeg, Bmp, Gif, Tiff };
     enum class Interpolation { Nearest, Linear };
     struct DrawOptions { float opacity = 1.0f; Interpolation interpolation = Interpolation::Linear; };
