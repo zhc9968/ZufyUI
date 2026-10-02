@@ -82,8 +82,8 @@
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 14
-#define ZufyUI_VERSION_PATCH 1
-#define ZufyUI_VERSION_STRING L"1.14.1"
+#define ZufyUI_VERSION_PATCH 2
+#define ZufyUI_VERSION_STRING L"1.14.2"
 
 // ---------- 独立渲染线程（架构 B，实验已通过） ----------
 // 0 = 关闭（默认，行为与之前完全一致）；1 = 开启：渲染在专用 render 线程、UI 线程只标脏。
@@ -97,6 +97,10 @@
 // 0 = 回退 v1.14.0 行为：ContinueFrame→InvalidateRect 续帧。
 #ifndef ZUFYUI_VBLANK_CLOCK
 #define ZUFYUI_VBLANK_CLOCK 1
+#endif
+
+#ifndef CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
 #endif
 
 #ifndef DWMWA_BORDER_COLOR
@@ -318,6 +322,28 @@ class MenuWindowBase;
                 auto* task = new std::function<void()>(std::move(fn));
                 PostMessage(g_uiDispatcherWindow, WM_UI_TASK, 0, (LPARAM)task);
             }
+        }
+
+        // A3：单调高精度时刻（毫秒，QPC）。帧率上限用它做时基，避免 GetTickCount64 的 ~15.6ms 粗粒度。
+        inline double NowMs() {
+            static LARGE_INTEGER f = [] { LARGE_INTEGER x; QueryPerformanceFrequency(&x); return x; }();
+            LARGE_INTEGER c; QueryPerformanceCounter(&c);
+            return (double)c.QuadPart * 1000.0 / (double)f.QuadPart;
+        }
+
+        // A3：高精度短睡（帧率上限用）。thread_local 一个高精度 waitable timer；不可用时退化为 Sleep。
+        inline void PreciseSleepMs(double ms) {
+            if (ms <= 0.0) return;
+            static thread_local HANDLE t = CreateWaitableTimerExW(nullptr, nullptr,
+                CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+            if (t) {
+                LARGE_INTEGER due; due.QuadPart = -(LONGLONG)(ms * 10000.0);   // 负 = 相对时间（100ns）
+                if (SetWaitableTimer(t, &due, 0, nullptr, nullptr, FALSE)) {
+                    WaitForSingleObject(t, (DWORD)ms + 2);
+                    return;
+                }
+            }
+            Sleep((DWORD)ms);
         }
 
         struct ConnectionState {
@@ -2646,6 +2672,13 @@ class MenuWindowBase;
             // d2dFactory_ 由 AppCore 共享，不在此释放
         }
 
+        // A3：帧率上限 —— 不限时跟随显示器 vblank；>0 限制动画平均出帧率（降 GPU/CPU）。
+        //   每窗口覆盖进程默认；SetFrameRateLimit(0) 显式取消上限（不再走默认）。
+        void SetFrameRateLimit(int fps) { frameRateLimit_ = (fps < 0) ? 0 : fps; }
+        int  GetFrameRateLimit() const { return frameRateLimit_ >= 0 ? frameRateLimit_ : s_defaultFrameRateLimit; }
+        static void SetDefaultFrameRateLimit(int fps) { s_defaultFrameRateLimit = (fps < 0) ? 0 : fps; }
+        static int  GetDefaultFrameRateLimit() { return s_defaultFrameRateLimit; }
+
         void SetMouseCapture(UIElement* elem) { mouseCaptureElement_ = elem; }
         void ReleaseMouseCapture(UIElement* elem) {
             if (mouseCaptureElement_ == elem) mouseCaptureElement_ = nullptr;
@@ -3845,10 +3878,18 @@ class MenuWindowBase;
                         }
                     }
                     if (HasRenderWork()) {
-                        // 只保留"排队"这一种驱动：真正的动画由 OnPaint 末尾的 present 驱动（vblank 节拍）。
+                        // 只保留"排队"这一种驱动：真正的动画由 present 驱动（vblank 节拍）。
                         // 这里不要再 RDW_UPDATENOW 同步画 —— 会和 present 驱动叠成"每帧画两遍"，更耗 GPU 还堵消息泵（右键/淡入被拖）。
                         // 同样加让位闸门：本线程若有别的窗口（弹窗/对话框）等着画，先别插本窗的 WM_PAINT。
+#if ZUFYUI_VBLANK_CLOCK
+                        // A1：动画期间由 render 线程的 vblank tick 驱动续帧。若这里再 InvalidateRect，会与 tick
+                        //   形成"每帧两条驱动"（各触发一次 AdvanceFrame+RequestRender → 每 vblank 两帧 → 占用翻倍）。
+                        //   故动画期间让位给 tick；非动画期（tooltip / 标题轮询 / 一次性重绘）仍走 WM_PAINT。
+                        if (!uiAnimating_.load() && !HasSiblingWindowNeedingPaint())
+                            InvalidateRect(hwnd_, nullptr, FALSE);
+#else
                         if (!HasSiblingWindowNeedingPaint()) InvalidateRect(hwnd_, nullptr, FALSE);
+#endif
                     }
                     // 若无工作，则什么都不做，定时器继续运行
                 }
@@ -4421,6 +4462,16 @@ class MenuWindowBase;
         void RenderOnThread() {
             renderRequested_.store(false);
             if (IsIconic(hwnd_)) return;   // 最小化：不出帧（Present 会 DXGI_STATUS_OCCLUDED / 后备缓冲可能失效）
+            // A3：帧率上限 —— 距上一帧不足 1/fps 就在锁外精确补齐间隔（限平均出帧率，降 GPU/CPU）。
+            if (frameRateLimit_ != 0) {
+                int lim = (frameRateLimit_ > 0) ? frameRateLimit_ : s_defaultFrameRateLimit;
+                if (lim > 0) {
+                    double now = detail::NowMs();
+                    double interval = 1000.0 / lim;
+                    if (lastPresentMs_ > 0.0 && now - lastPresentMs_ < interval)
+                        detail::PreciseSleepMs(interval - (now - lastPresentMs_));
+                }
+            }
             HRESULT hr = E_FAIL;
             {
                 std::lock_guard<std::mutex> lk(renderLock_);
@@ -4511,6 +4562,7 @@ class MenuWindowBase;
                 if (SUCCEEDED(hr) && swapChain_) {
                     DXGI_PRESENT_PARAMETERS pp{};
                     hr = swapChain_->Present1(1, 0, &pp);
+                    lastPresentMs_ = detail::NowMs();   // A3：帧率上限的时基
                 }
             }
             pendingRepaint_.clear();
@@ -5461,6 +5513,9 @@ class MenuWindowBase;
         // 新增成员
         std::mutex renderLock_;                       // render 线程：保护 DC 操作段（不覆盖 DwmFlush）
         std::atomic<bool> renderRequested_{ false };  // UI→render 帧请求去抖
+        int frameRateLimit_ = -1;                     // A3：-1=未设(用进程默认) / 0=显式不限 / >0=fps 上限
+        double lastPresentMs_ = 0.0;                  // A3：上次 Present 时刻（QPC ms）
+        static inline int s_defaultFrameRateLimit = 0; // A3：进程默认帧率上限（0=不限）
         std::atomic<bool> uiAnimating_{ false };      // UI 线程发布：本帧是否有活跃动画（render 据此决定续帧）
         std::atomic<bool> frameTickPending_{ false }; // A1：render→UI 的动画推进 tick 去抖（防 PostMessage 积压）
         std::atomic<bool> resizePending_{ false };    // UI→render：待处理 resize（render 线程锁内 ResizeBuffers）

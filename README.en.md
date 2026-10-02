@@ -142,6 +142,12 @@ A tour of the widgets (first page of the demo):
 
 ## Changelog
 
+### 2026-10-02 — Fix A1 double-drive (doubled CPU/GPU) + A3 frame-rate cap (v1.14.2)
+
+- **Fix (critical)**: A1's vblank tick and the old `WM_TIMER -> HasRenderWork -> InvalidateRect -> WM_PAINT` path were **both** driving frames during animation, each triggering `AdvanceFrame + RequestRender` -> **potentially two frames per vblank -> doubled GPU/CPU** (this was the "smooth but more expensive" root cause). Now, while animating, `WM_TIMER` yields to the tick and no longer calls `InvalidateRect`; non-animation work (tooltip / title polling / one-off repaints) still goes through `WM_PAINT`.
+- **A3 frame-rate cap**: `Window::SetFrameRateLimit(fps)` / `GetFrameRateLimit()`, plus static `Window::SetDefaultFrameRateLimit(fps)` / `GetDefaultFrameRateLimit()`. **`0` or unset = follow the display refresh (default, no behavior change)**; `>0` caps the average animation frame rate. Implemented with `detail::NowMs()` (QPC monotonic ms) + `detail::PreciseSleepMs()` (high-resolution waitable timer, falls back to `Sleep`) to pad the interval before composition. The demo now has `win.SetFrameRateLimit(0);` (change to `60` to test the lower load).
+- Version **1.14.1 -> 1.14.2**.
+
 ### 2026-10-02 — A1 frame pacing: drop the WM_PAINT round-trip for animation continuation (fixes 120/60 jitter) + restore the indeterminate ProgressRing demo (v1.14.1)
 
 - **A1 frame pacing (`ZUFYUI_VBLANK_CLOCK`, default 1)**: animation continuation no longer goes through `ContinueFrame -> InvalidateRect -> WM_PAINT` — WM_PAINT is only synthesized when the queue has no higher-priority message and can be delayed by input, which makes the **frame-start time vary a lot -> `120<->60` jitter**. Instead the render thread directly `PostMessage(WM_RENDER_TICK)`s the UI thread to run `AdvanceFrame()` (the "layout + animation + collect active animations" block extracted from `OnPaint`), debounced by `frameTickPending_`. Set to 0 to fall back to the v1.14.0 behavior.

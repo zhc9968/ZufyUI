@@ -142,6 +142,12 @@ win.SetCustomTitleBar(bar);
 
 ## 更新日志
 
+### 2026-10-02 — 修复 A1「双驱动」占用翻倍 + A3 帧率上限（v1.14.2）
+
+- **修复（关键）**：A1 的 vblank tick 与旧的 `WM_TIMER → HasRenderWork → InvalidateRect → WM_PAINT` 在动画期间**同时驱动**，各触发一次 `AdvanceFrame + RequestRender` → **每 vblank 可能出两帧 → GPU/CPU 翻倍**（这就是"稳了但更耗"的根因）。现**动画期间 `WM_TIMER` 让位给 tick，不再插 `InvalidateRect`**；非动画期（tooltip / 标题轮询 / 一次性重绘）仍走 `WM_PAINT`。
+- **A3 帧率上限**：`Window::SetFrameRateLimit(fps)` / `GetFrameRateLimit()`，静态 `Window::SetDefaultFrameRateLimit(fps)` / `GetDefaultFrameRateLimit()`。**`0` 或未设 = 跟随显示器刷新（默认，不改变现状）**；`>0` 限制动画平均出帧率。实现用 `detail::NowMs()`（QPC 单调毫秒）+ `detail::PreciseSleepMs()`（高精度 waitable timer，不可用退化 `Sleep`），在合成前补齐间隔。demo 加了 `win.SetFrameRateLimit(0);`（改成 `60` 即可测降占用）。
+- 版本 **1.14.1 → 1.14.2**。
+
 ### 2026-10-02 — A1 帧节拍：动画续帧去 WM_PAINT 往返（消 120/60 抖动）+ 恢复不定态 ProgressRing 演示（v1.14.1）
 
 - **A1 帧节拍（`ZUFYUI_VBLANK_CLOCK`，默认 1）**：动画续帧不再走 `ContinueFrame → InvalidateRect → WM_PAINT`——WM_PAINT 只在队列无更高优先级消息时才合成，会被输入消息推迟，**帧开始时刻方差大 → `120↔60` 抖动**；改为渲染线程直接 `PostMessage(WM_RENDER_TICK)` 让 UI 线程跑 `AdvanceFrame()`（从 `OnPaint` 抽出的「布局 + 动画 + 收集活跃动画」），并用 `frameTickPending_` 去抖防积压。置 0 回退 v1.14.0 行为。
