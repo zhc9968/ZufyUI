@@ -82,13 +82,21 @@
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 14
-#define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.14.0"
+#define ZufyUI_VERSION_PATCH 1
+#define ZufyUI_VERSION_STRING L"1.14.1"
 
 // ---------- 独立渲染线程（架构 B，实验已通过） ----------
 // 0 = 关闭（默认，行为与之前完全一致）；1 = 开启：渲染在专用 render 线程、UI 线程只标脏。
 #ifndef ZUFYUI_RENDER_THREAD
 #define ZUFYUI_RENDER_THREAD 1
+#endif
+
+// ---------- A1 帧节拍：vblank 主导续帧（替代 WM_PAINT 往返） ----------
+// 1 = 动画续帧由 render 线程 PostMessage(WM_RENDER_TICK) 直接驱动 UI AdvanceFrame（去掉 InvalidateRect→WM_PAINT
+//     队列往返，降低帧开始时刻的方差 → 消 120/60 抖动）；
+// 0 = 回退 v1.14.0 行为：ContinueFrame→InvalidateRect 续帧。
+#ifndef ZUFYUI_VBLANK_CLOCK
+#define ZUFYUI_VBLANK_CLOCK 1
 #endif
 
 #ifndef DWMWA_BORDER_COLOR
@@ -268,6 +276,7 @@ class MenuWindowBase;
         inline std::thread::id g_uiThreadId;
         inline HWND g_uiDispatcherWindow = nullptr;
         inline constexpr UINT WM_UI_TASK = WM_APP + 1;
+        inline constexpr UINT WM_RENDER_TICK = WM_APP + 2;   // A1：render 线程 → UI 的动画推进 tick
         inline void CloseAllOpenMenus();   // 定义在文件后部（需要 Window 完整类型）
         inline MenuWindowBase* g_activeMenu = nullptr;   // 当前打开的菜单（根）；窗口把键盘转发给它
         inline bool ForwardKeyToActiveMenu(int vk);      // 定义在 MenuWindow 之后（需要完整类型）
@@ -3790,6 +3799,17 @@ class MenuWindowBase;
                 return 0;
             }
             case WM_DISPLAYCHANGE: InvalidateRect(hwnd_, nullptr, FALSE); UpdateTimerState(); return 0;
+#if ZUFYUI_VBLANK_CLOCK
+            case detail::WM_RENDER_TICK: {   // A1：render 线程驱动的动画推进（替代 WM_PAINT 续帧）
+                frameTickPending_.store(false);
+                if (IsIconic(hwnd_)) return 0;
+                if (uiAnimating_.load()) {
+                    { std::lock_guard<std::mutex> lk(renderLock_); AdvanceFrame(); }
+                    RequestRender();
+                }
+                return 0;
+            }
+#endif
             case WM_TIMER:
                 if (OnWindowTimer((int)wParam)) return 0;
                 if (frameworkTimers_.count((UINT_PTR)wParam)) { FireFrameworkTimer((UINT_PTR)wParam); return 0; }
@@ -4447,7 +4467,17 @@ class MenuWindowBase;
         }
         // render 线程出一帧后：若仍需出帧（有动画），重触发 UI 线程 OnPaint（更新动画）→ 再 RequestRender，
         // 使帧节拍由 render 线程的 DwmFlush(vblank) 主导（恢复顺滑）；动画停了就不再触发 → 空闲。
-        void ContinueFrame() { if (uiAnimating_.load()) InvalidateRect(hwnd_, nullptr, FALSE); }
+        void ContinueFrame() {
+#if ZUFYUI_VBLANK_CLOCK
+            // A1：续帧不经 WM_PAINT 队列 —— 直接 PostMessage 让 UI 线程跑 AdvanceFrame。
+            //   WM_PAINT 只在队列无更高优先级消息时才合成，会被输入消息推迟（帧开始时刻方差大）；
+            //   普通 posted 消息按 FIFO 处理，latency 方差更小 → 消抖动。frameTickPending_ 去抖防积压。
+            if (uiAnimating_.load() && !frameTickPending_.exchange(true))
+                PostMessage(hwnd_, detail::WM_RENDER_TICK, 0, 0);
+#else
+            if (uiAnimating_.load()) InvalidateRect(hwnd_, nullptr, FALSE);
+#endif
+        }
 
         // 单帧渲染：合成 → 交换链后备缓冲 → Present；返回 EndDraw/Present 的 HRESULT。
         // 由 render 线程调用（见 RenderOnThread）或单线程路径（OnPaint）调用。
@@ -4487,26 +4517,9 @@ class MenuWindowBase;
             return hr;
         }
 
-        void OnPaint() {
-            PAINTSTRUCT ps;
-            BeginPaint(hwnd_, &ps);
-            if (IsIconic(hwnd_)) { EndPaint(hwnd_, &ps); return; }
-
-#if ZUFYUI_RENDER_THREAD
-            // renderTarget_/cacheContext_ 由 render 线程自建；UI 线程这里只做布局/动画
-#else
-            if (!renderTarget_) {
-                if (FAILED(CreateDeviceResources())) {
-                    EndPaint(hwnd_, &ps);
-                    return;
-                }
-            }
-#endif
-#if ZUFYUI_RENDER_THREAD
-            // UI 线程的布局/动画会改元素树；render 线程合成时会读它 —— Phase 1 用粗锁串行化。
-            std::lock_guard<std::mutex> _frameLock(renderLock_);
-#endif
-
+        // A1：推进一帧的"UI 侧"工作（布局 + 动画 + 收集活跃动画 + 发布 uiAnimating_）。
+        // 调用者必须已持有 renderLock_（ZUFYUI_RENDER_THREAD=1 时）；WM_PAINT 与 WM_RENDER_TICK 共用。
+        void AdvanceFrame() {
             RECT rc; GetClientRect(hwnd_, &rc);
             float clientWidthDip = (rc.right - rc.left) * 96.0f / dpi_;
             float clientHeightDip = (rc.bottom - rc.top) * 96.0f / dpi_;
@@ -4587,13 +4600,24 @@ class MenuWindowBase;
 #if ZUFYUI_RENDER_THREAD
             uiAnimating_.store(!activeAnimScratch_.empty());   // 发布"是否还有动画"，供 render 线程决定是否续帧
 #endif
+        }
 
-            // 4. 合成绘制 —— 已抽成 RenderFrame()（Phase 0：仍在本线程调用，行为不变）
+        void OnPaint() {
+            PAINTSTRUCT ps;
+            BeginPaint(hwnd_, &ps);
+            if (IsIconic(hwnd_)) { EndPaint(hwnd_, &ps); return; }
+
+            // 4. 合成绘制 —— 已抽成 RenderFrame()。
 #if ZUFYUI_RENDER_THREAD
-            // 渲染交给独立 render 线程：OnPaint 只做"布局/动画 + 标脏唤醒"，不再自己出帧/自续。
+            // A1：UI 侧只做布局/动画（AdvanceFrame），再标脏唤醒 render 线程；不再自己出帧/自续。
             // 无条件请求：一次 WM_PAINT 就是一次真实出画请求（例如菜单窗刚显示）；空闲由"没有 WM_PAINT"来停。
+            { std::lock_guard<std::mutex> _frameLock(renderLock_); AdvanceFrame(); }
             RequestRender();
 #else
+            if (!renderTarget_) {
+                if (FAILED(CreateDeviceResources())) { EndPaint(hwnd_, &ps); return; }
+            }
+            AdvanceFrame();
             HRESULT hr = RenderFrame();
 
             // 实验 2：present 驱动下一帧。Present1(1) 返回时≈刚过一个 vblank，
@@ -5438,6 +5462,7 @@ class MenuWindowBase;
         std::mutex renderLock_;                       // render 线程：保护 DC 操作段（不覆盖 DwmFlush）
         std::atomic<bool> renderRequested_{ false };  // UI→render 帧请求去抖
         std::atomic<bool> uiAnimating_{ false };      // UI 线程发布：本帧是否有活跃动画（render 据此决定续帧）
+        std::atomic<bool> frameTickPending_{ false }; // A1：render→UI 的动画推进 tick 去抖（防 PostMessage 积压）
         std::atomic<bool> resizePending_{ false };    // UI→render：待处理 resize（render 线程锁内 ResizeBuffers）
         std::atomic<UINT> pendingResizeW_{ 0 }, pendingResizeH_{ 0 };
         std::unordered_set<UIElement*> pendingRepaint_;

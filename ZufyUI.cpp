@@ -1518,8 +1518,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             auto ring1 = std::make_shared<ProgressRing>(36.0f); ring1->SetValue(0.35f);
             auto ring2 = std::make_shared<ProgressRing>(36.0f); ring2->SetValue(0.72f);
             ring2->SetColor(Color::FromArgb(255, 16, 124, 16));
+            auto ring3 = std::make_shared<ProgressRing>(36.0f); ring3->SetIndeterminate(true);   // 不定态：持续旋转
             ringRow->AddChild(ring1);
             ringRow->AddChild(ring2);
+            ringRow->AddChild(ring3);
             gb->AddChild(ringRow, 0, 0, 1, 2);
 
             auto split = std::make_shared<SplitView>();

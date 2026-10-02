@@ -142,6 +142,13 @@ win.SetCustomTitleBar(bar);
 
 ## 更新日志
 
+### 2026-10-02 — A1 帧节拍：动画续帧去 WM_PAINT 往返（消 120/60 抖动）+ 恢复不定态 ProgressRing 演示（v1.14.1）
+
+- **A1 帧节拍（`ZUFYUI_VBLANK_CLOCK`，默认 1）**：动画续帧不再走 `ContinueFrame → InvalidateRect → WM_PAINT`——WM_PAINT 只在队列无更高优先级消息时才合成，会被输入消息推迟，**帧开始时刻方差大 → `120↔60` 抖动**；改为渲染线程直接 `PostMessage(WM_RENDER_TICK)` 让 UI 线程跑 `AdvanceFrame()`（从 `OnPaint` 抽出的「布局 + 动画 + 收集活跃动画」），并用 `frameTickPending_` 去抖防积压。置 0 回退 v1.14.0 行为。
+- 抽出 `Window::AdvanceFrame()`，`WM_PAINT` 与新的 tick 共用；`DwmFlush` 节拍不变（present 仍对齐 vblank）。
+- **恢复 demo「新控件B」页的不定态 `ProgressRing`（持续旋转）**——v1.14.0 阶段 0 误删（那是功能演示，不是临时诊断件）。
+- 版本 **1.14.0 → 1.14.1**。
+
 ### 2026-10-02 — 独立渲染线程（架构 B）+ 悬停重绘优化（v1.14.0）
 
 **独立渲染线程（架构 B）**

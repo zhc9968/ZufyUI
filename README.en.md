@@ -142,6 +142,13 @@ A tour of the widgets (first page of the demo):
 
 ## Changelog
 
+### 2026-10-02 — A1 frame pacing: drop the WM_PAINT round-trip for animation continuation (fixes 120/60 jitter) + restore the indeterminate ProgressRing demo (v1.14.1)
+
+- **A1 frame pacing (`ZUFYUI_VBLANK_CLOCK`, default 1)**: animation continuation no longer goes through `ContinueFrame -> InvalidateRect -> WM_PAINT` — WM_PAINT is only synthesized when the queue has no higher-priority message and can be delayed by input, which makes the **frame-start time vary a lot -> `120<->60` jitter**. Instead the render thread directly `PostMessage(WM_RENDER_TICK)`s the UI thread to run `AdvanceFrame()` (the "layout + animation + collect active animations" block extracted from `OnPaint`), debounced by `frameTickPending_`. Set to 0 to fall back to the v1.14.0 behavior.
+- Extracted `Window::AdvanceFrame()`, shared by `WM_PAINT` and the new tick; `DwmFlush` pacing is unchanged (present still aligns to vblank).
+- **Restored the indeterminate `ProgressRing` (continuous spinner) on the demo "New controls B" page** — mistakenly removed during the v1.14.0 phase-0 cleanup (it was a feature demo, not a temporary diagnostic).
+- Version **1.14.0 -> 1.14.1**.
+
 ### 2026-10-02 — Independent render thread (arch B) + hover repaint optimization (v1.14.0)
 
 **Independent render thread (arch B)**
