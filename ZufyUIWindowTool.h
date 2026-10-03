@@ -14,8 +14,12 @@
 #include <unordered_map>
 #include <shellapi.h>
 #include <shlobj.h>
+#include <shobjidl.h>   // IFileOpenDialog / IFileSaveDialog（新版文件对话框）
+#include <commdlg.h>    // ChooseColor（颜色对话框）
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "comdlg32.lib")
 
 // windows.h 里 MessageBox 是 MessageBoxW 的宏，会和 ZufyUI::MessageBox 撞；这里撤掉宏。
 // 之后要用 Win32 的请显式写 MessageBoxW / MessageBoxA。
@@ -942,17 +946,29 @@ namespace ZufyUI {
         ZSignal<> BalloonTimeout;
 
     private:
-        static constexpr UINT kCallbackMsg = WM_APP + 2;
+        static constexpr UINT kCallbackMsg = WM_APP + 0x400;   // 远离库内部消息号（如 WM_RENDER_TICK=WM_APP+2），避免撞号被误当回调用
 
         void ApplyTip(const std::wstring& tip) {
             currentTip_ = tip;
             wcsncpy_s(nid_.szTip, tip.c_str(), _TRUNCATE);
         }
         void ShowMenuAtCursor() {
-            if (!menu_) return;
+            if (!menu_) {
+#ifdef ZufyUI_DEBUG
+                ZufyUI_DEBUG_LOG_W(L"[ZufyUI] Tray ShowMenuAtCursor: menu_ is null (SetMenu not called?)\n");
+#endif
+                return;
+            }
             POINT pt;
             GetCursorPos(&pt);
             menu_->ShowAt(pt.x, pt.y);
+#ifdef ZufyUI_DEBUG
+            {
+                wchar_t b[128];
+                swprintf(b, 128, L"[ZufyUI] Tray ShowMenuAtCursor: ShowAt at %d,%d\n", (int)pt.x, (int)pt.y);
+                ZufyUI_DEBUG_LOG_W(b);
+            }
+#endif
         }
         HICON CurrentIcon() {
             if (!badgeOn_) return baseIcon_;
@@ -1077,6 +1093,9 @@ namespace ZufyUI {
             }
             if (msg == kCallbackMsg) {
                 UINT ev = LOWORD(l);
+#ifdef ZufyUI_DEBUG
+                { wchar_t b[64]; swprintf(b, 64, L"[ZufyUI] Tray callback ev=0x%04X\n", (unsigned)ev); ZufyUI_DEBUG_LOG_W(b); }
+#endif
                 switch (ev) {
                 case NIN_SELECT: {   // v4：左键单击；双击系统不再单发 WM_LBUTTONDBLCLK，需要自己按时间判定
                     DWORD now = GetTickCount();
@@ -1292,5 +1311,179 @@ namespace ZufyUI {
 
     // Application 转发到自由函数（定义在 ZufyUI.h 的 Application 类里声明）
     inline bool Application::RegisterApp(const AppInfo& info) { return ZufyUI::RegisterApp(info); }
+
+    // ============================================================================
+    // 系统对话框：文件/文件夹选择 + 颜色选择
+    // ----------------------------------------------------------------------------
+    // 文件/文件夹：新版 COM 接口 IFileOpenDialog / IFileSaveDialog（替代过时的
+    //   GetOpenFileName/GetSaveFileName），支持：文件类型过滤(FileFilter，多组选型)、
+    //   多选(FOS_ALLOWMULTISELECT)、选文件夹(FOS_PICKFOLDERS)、另存为(IFileSaveDialog)、
+    //   初始目录 / 默认文件名 / 默认扩展名 / 强制文件系统项。
+    // 颜色：Windows 通用颜色对话框(ChooseColor)。
+    //
+    // 用法：
+    //   FileDialogOptions o;
+    //   o.title = L"选择图片";
+    //   o.filters = { { L"图片", { L"*.png", L"*.jpg", L"*.bmp" } }, { L"文本", { L"*.txt" } } };
+    //   auto files  = FileDialog::OpenFiles(win.GetHwnd(), o);   // 多选
+    //   auto folder = FileDialog::PickFolder(win.GetHwnd());     // 选文件夹
+    //   auto color  = ColorDialog::Pick(win.GetHwnd(), Color(1,0,0,1));  // 选颜色
+    // ============================================================================
+    struct FileFilter {
+        std::wstring label;                    // 显示名，如 "图片"
+        std::vector<std::wstring> patterns;    // 如 { "*.png", "*.jpg" }
+    };
+
+    struct FileDialogOptions {
+        std::wstring title;
+        std::wstring initialDir;               // 初始目录
+        std::wstring defaultFileName;          // 另存为默认文件名
+        std::wstring defaultExtension;         // 另存为默认扩展名（如 "png"）
+        std::vector<FileFilter> filters;       // 类型选型
+        int filterIndex = 1;                   // 1-based，默认选中项
+        bool addAllFiles = true;               // 追加"所有文件 (*.*)"
+        bool pickFolders = false;              // 选文件夹
+        bool multiSelect = false;              // 多选
+        bool save = false;                     // 另存为
+        bool forceFilesystem = true;           // 只返回真实文件系统项
+    };
+
+    class FileDialog {
+    public:
+        static std::vector<std::wstring> Open(HWND owner, const FileDialogOptions& o = {}) {
+            FileDialogOptions x = o; x.save = false; return Run(owner, x);
+        }
+        // 打开并支持多选（返回全部所选）
+        static std::vector<std::wstring> OpenFiles(HWND owner, const FileDialogOptions& o = {}) {
+            FileDialogOptions x = o; x.save = false; x.multiSelect = true; return Run(owner, x);
+        }
+        // 选文件夹（可多选）
+        static std::vector<std::wstring> PickFolders(HWND owner, const FileDialogOptions& o = {}) {
+            FileDialogOptions x = o; x.save = false; x.pickFolders = true; return Run(owner, x);
+        }
+        // 另存为
+        static std::vector<std::wstring> Save(HWND owner, const FileDialogOptions& o = {}) {
+            FileDialogOptions x = o; x.save = true; return Run(owner, x);
+        }
+        static std::optional<std::wstring> OpenOne(HWND owner, const FileDialogOptions& o = {}) {
+            auto v = Open(owner, o); return v.empty() ? std::nullopt : std::optional<std::wstring>(v.front());
+        }
+        static std::optional<std::wstring> PickFolder(HWND owner, const FileDialogOptions& o = {}) {
+            auto v = PickFolders(owner, o); return v.empty() ? std::nullopt : std::optional<std::wstring>(v.front());
+        }
+        static std::optional<std::wstring> SaveOne(HWND owner, const FileDialogOptions& o = {}) {
+            auto v = Save(owner, o); return v.empty() ? std::nullopt : std::optional<std::wstring>(v.front());
+        }
+        // 给"类型"下拉用的显示名列表（含可选的"所有文件"）
+        static std::vector<std::wstring> FilterLabels(const std::vector<FileFilter>& filters, bool addAllFiles = true) {
+            std::vector<std::wstring> out;
+            for (auto& f : filters) out.push_back(f.label);
+            if (addAllFiles) out.push_back(L"所有文件");
+            return out;
+        }
+
+    private:
+        static std::vector<std::wstring> Run(HWND owner, const FileDialogOptions& o) {
+            std::vector<std::wstring> result;
+            HRESULT hrCo = ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+            bool needUninit = (hrCo == S_OK);   // S_FALSE=已初始化(勿 Uninit)；RPC_E_CHANGED_MODE=MTA(CoCreate 会失败→返回空)
+
+            ComPtr<IFileOpenDialog> openDlg;
+            ComPtr<IFileSaveDialog> saveDlg;
+            IFileDialog* dlg = nullptr;
+            if (o.save) {
+                if (FAILED(::CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&saveDlg)))) { if (needUninit) ::CoUninitialize(); return result; }
+                dlg = saveDlg.Get();
+            }
+            else {
+                if (FAILED(::CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&openDlg)))) { if (needUninit) ::CoUninitialize(); return result; }
+                dlg = openDlg.Get();
+            }
+
+            DWORD flags = 0; dlg->GetOptions(&flags);
+            if (o.forceFilesystem) flags |= FOS_FORCEFILESYSTEM;
+            if (o.pickFolders) flags |= FOS_PICKFOLDERS;
+            if (o.multiSelect) flags |= FOS_ALLOWMULTISELECT;
+            if (o.save) flags |= FOS_OVERWRITEPROMPT;
+            else if (!o.multiSelect) flags |= FOS_FILEMUSTEXIST;
+            dlg->SetOptions(flags);
+
+            if (!o.title.empty()) dlg->SetTitle(o.title.c_str());
+            if (o.save && !o.defaultFileName.empty()) dlg->SetFileName(o.defaultFileName.c_str());
+            if (o.save && !o.defaultExtension.empty()) dlg->SetDefaultExtension(o.defaultExtension.c_str());
+
+            std::vector<std::wstring> names, pats;
+            if (!o.filters.empty()) {
+                for (auto& f : o.filters) {
+                    std::wstring pat;
+                    for (size_t i = 0; i < f.patterns.size(); ++i) { if (i) pat += L";"; pat += f.patterns[i]; }
+                    names.push_back(f.label); pats.push_back(pat);
+                }
+                if (o.addAllFiles) { names.push_back(L"所有文件"); pats.push_back(L"*.*"); }
+                std::vector<COMDLG_FILTERSPEC> specs; specs.reserve(names.size());
+                for (size_t i = 0; i < names.size(); ++i) specs.push_back({ names[i].c_str(), pats[i].c_str() });
+                dlg->SetFileTypes((UINT)specs.size(), specs.data());
+                int fi = max(1, min((int)specs.size(), o.filterIndex));
+                dlg->SetFileTypeIndex((UINT)fi);
+            }
+
+            if (!o.initialDir.empty()) {
+                ComPtr<IShellItem> folder;
+                if (SUCCEEDED(::SHCreateItemFromParsingName(o.initialDir.c_str(), nullptr, IID_PPV_ARGS(&folder))))
+                    dlg->SetFolder(folder.Get());
+            }
+
+            if (SUCCEEDED(dlg->Show(owner))) {
+                if (o.multiSelect && !o.save && openDlg) {
+                    ComPtr<IShellItemArray> items;
+                    if (SUCCEEDED(openDlg->GetResults(&items)) && items) {
+                        DWORD n = 0; items->GetCount(&n);
+                        for (DWORD i = 0; i < n; ++i) {
+                            ComPtr<IShellItem> it;
+                            if (SUCCEEDED(items->GetItemAt(i, &it)) && it) {
+                                PWSTR p = nullptr;
+                                if (SUCCEEDED(it->GetDisplayName(SIGDN_FILESYSPATH, &p)) && p) { result.push_back(p); ::CoTaskMemFree(p); }
+                            }
+                        }
+                    }
+                }
+                else {
+                    ComPtr<IShellItem> it;
+                    if (o.save && saveDlg) saveDlg->GetResult(&it);
+                    else if (openDlg) openDlg->GetResult(&it);
+                    if (it) { PWSTR p = nullptr; if (SUCCEEDED(it->GetDisplayName(SIGDN_FILESYSPATH, &p)) && p) { result.push_back(p); ::CoTaskMemFree(p); } }
+                }
+            }
+            if (needUninit) ::CoUninitialize();
+            return result;
+        }
+    };
+
+    // ---------- 颜色选择 ----------
+    class ColorDialog {
+    public:
+        struct Options {
+            bool fullOpen = true;          // 展开完整调色板
+            bool allowCustom = true;       // 允许自定义色槽
+            std::vector<Color> custom;     // 预置自定义色（最多 16）
+        };
+        static std::optional<Color> Pick(HWND owner, Color initial = Color(1, 0, 0, 1), const Options& opt = {}) {
+            COLORREF cust[16] = {};
+            size_t n = min(opt.custom.size(), (size_t)16);
+            for (size_t i = 0; i < n; ++i)
+                cust[i] = RGB((int)(opt.custom[i].r * 255 + 0.5f), (int)(opt.custom[i].g * 255 + 0.5f), (int)(opt.custom[i].b * 255 + 0.5f));
+            CHOOSECOLORW cc = {};
+            cc.lStructSize = sizeof(cc);
+            cc.hwndOwner = owner;
+            cc.rgbResult = RGB((int)(initial.r * 255 + 0.5f), (int)(initial.g * 255 + 0.5f), (int)(initial.b * 255 + 0.5f));
+            cc.lpCustColors = cust;
+            cc.Flags = CC_RGBINIT | CC_ANYCOLOR;
+            if (opt.fullOpen && opt.allowCustom) cc.Flags |= CC_FULLOPEN;
+            if (!opt.allowCustom) cc.Flags |= CC_PREVENTFULLOPEN;
+            if (::ChooseColorW(&cc))
+                return Color(GetRValue(cc.rgbResult) / 255.0f, GetGValue(cc.rgbResult) / 255.0f, GetBValue(cc.rgbResult) / 255.0f, initial.a);
+            return std::nullopt;
+        }
+    };
 
 } // namespace ZufyUI

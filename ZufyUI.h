@@ -84,14 +84,28 @@
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 15
+#define ZufyUI_VERSION_MINOR 16
 #define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.15.0"
+#define ZufyUI_VERSION_STRING L"1.16.0"
 
-// ---------- 独立渲染线程（架构 B，实验已通过） ----------
-// 0 = 关闭（默认，行为与之前完全一致）；1 = 开启：渲染在专用 render 线程、UI 线程只标脏。
+// ---------- 可选：启用 Common Controls v6（主题化）----------
+// 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
+//   Common Controls v6 的 manifest 依赖 → 系统公共控件/对话框（颜色对话框 ChooseColor、
+//   MessageBox 等）以 v6 主题样式呈现，而不是 v5"老样式"。
+// 为什么默认不开：manifest 是**整个应用程序**级别的，可能与其它清单/依赖冲突或
+//   改变全局外观，库不替应用做这个全局决定；需要时由应用自行 #define。
+#ifdef ZUFYUI_ENABLE_COMCTL_V6
+#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#endif
+
+// ---------- 独立渲染线程（架构 B）——实验特性，默认关闭、不建议开启 ----------
+// 0 = 关闭（默认；单线程绘制，行为稳定、推荐）。
+// 1 = 开启：渲染放到专用 render 线程，UI 线程只标脏。
+//   ⚠️ 该机制目前不稳定、bug 较多：弹窗空白、悬停/tooltip 与按钮 hover 更新延迟、
+//      嵌套页面切换延迟、大数据量（虚拟列表）偶发崩溃等。不建议在正式项目开启；
+//      仅在确需 vblank 级顺滑且能承担调试成本时谨慎试用。
 #ifndef ZUFYUI_RENDER_THREAD
-#define ZUFYUI_RENDER_THREAD 1
+#define ZUFYUI_RENDER_THREAD 0
 #endif
 
 // ---------- A1 帧节拍：vblank 主导续帧（替代 WM_PAINT 往返） ----------
@@ -842,6 +856,18 @@ class MenuWindowBase;
         // 亚克力/材质参数发生变化时触发：所有窗口重新应用背景（重建 DComp 效果图 / 重绘）。
         // 应用改完 Window::Acrylic* 参数后，调用 Window::SetBackgroundParams(Backdrop::Acrylic, Window::AcrylicParams) 或直接 Fire 本信号。
         inline ZSignal<> ReloadAcrylic;
+
+        // 库内部错误（窗口/菜单/合成后端/设备创建失败等）——应用可订阅以提示或兜底。
+        // 参数为可读错误描述。库仍按原语义返回失败（不抛异常、不改变控制流）。
+        inline ZSignal<const std::wstring&> Error;
+    }
+
+    namespace detail {
+        // 上报一个库内部错误：调试输出 + 触发 UIZSignals::Error。
+        inline void ReportError(const std::wstring& msg) {
+            ZufyUI_DEBUG_LOG_W(msg.c_str());
+            UIZSignals::Error.Fire(msg);
+        }
     }
 
     // ---------- 基础元素 ----------
@@ -1168,6 +1194,12 @@ class MenuWindowBase;
         void SetToolTip(const std::wstring& text) { tooltip_ = text; }
         virtual std::wstring GetToolTip() const { return tooltip_; }
 
+        // ---------- 光标 ----------
+        // 控件在 OnMouseMove 里调 SetCursor 时记录"期望光标"（成员函数吞掉 Win32 ::SetCursor），
+        // 由 Window::WM_SETCURSOR 按当前悬停元素回设 —— 避免 DefWindowProc 每次鼠标移动都重置成类箭头导致闪烁。
+        void SetCursor(HCURSOR c) { desiredCursor_ = c; ::SetCursor(c); }
+        HCURSOR GetDesiredCursor() const { return desiredCursor_; }
+
         // ---------- 阴影（默认关闭；元素设置，Window 合成进缓存）----------
         void SetShadow(bool enable) { shadowEnabled_ = enable; cacheValid_ = false; RequestRepaint(); }
         bool HasShadow() const { return shadowEnabled_; }
@@ -1185,6 +1217,7 @@ class MenuWindowBase;
         }
         bool enabled_ = true;
         std::wstring tooltip_;
+        HCURSOR desiredCursor_ = nullptr;   // 控件最近一次请求的光标（见 SetCursor / WM_SETCURSOR）
         bool shadowEnabled_ = false;
         D2D1_COLOR_F shadowColor_ = D2D1::ColorF(0.0f, 0.0f, 0.02f, 0.42f);
         float shadowBlur_ = 10.0f;
@@ -1265,6 +1298,8 @@ class MenuWindowBase;
         // 定义在 Window 之后：未命中时需持 renderLock_ 再解析
         IDWriteTextFormat* GetFontFormatCached() const;
         void InvalidateFontCache();   // 加锁失效缓存（定义在 Window 之后）
+        // 定义在 Window 之后：拿到本元素所属窗口的 renderLock_（未挂载时返回空锁）。容器改自身数据(树/过渡态)时用它串行 render 线程。
+        std::unique_lock<std::recursive_mutex> GuardRender() const;
 
         // 字体变化时的回调（默认：失效缓存 + 重新布局）
         virtual void OnFontChanged() {
@@ -2063,6 +2098,7 @@ class MenuWindowBase;
         }
 
         void AddPage(std::shared_ptr<Page> page) {
+            auto _rg = GuardRender();
             if (!page) return;
             pages_.push_back(page);
             page->SetParent(this);
@@ -2070,6 +2106,7 @@ class MenuWindowBase;
             InvalidateLayout();
         }
         void RemovePage(int index) {
+            auto _rg = GuardRender();
             if (index < 0 || index >= (int)pages_.size()) return;
             pages_.erase(pages_.begin() + index);
             if (pages_.empty()) currentIndex_ = -1;
@@ -2080,6 +2117,7 @@ class MenuWindowBase;
             RequestRepaint();
         }
         void ClearPages() {
+            auto _rg = GuardRender();
             pages_.clear(); currentIndex_ = -1;
             animating_ = false; fromIndex_ = -1; toIndex_ = -1;
             MarkChildrenDirty();
@@ -2092,13 +2130,15 @@ class MenuWindowBase;
         }
         // 直接切到某页（无过渡）：用于整表重建后恢复选中
         void SetCurrentIndexInstant(int index) {
-            if (index < -1 || index >= (int)pages_.size()) return;
+            auto _rg = GuardRender();
+            if (index < 0 || index >= (int)pages_.size()) return;
             animating_ = false; currentIndex_ = index; fromIndex_ = -1; toIndex_ = -1;
             MarkChildrenDirty();
             RequestRepaint();
         }
 
         void NavigateTo(int index) {
+            auto _rg = GuardRender();
             if (index < 0 || index >= (int)pages_.size() || index == currentIndex_) return;
             fromIndex_ = currentIndex_;
             toIndex_ = index;
@@ -2708,6 +2748,16 @@ class MenuWindowBase;
         //   容器若在 UI 线程改自己的数据（如 vector push_back 重分配）会与 render 读并发 → 悬垂/堆损坏。
         std::unique_lock<std::recursive_mutex> LockRender() { return std::unique_lock<std::recursive_mutex>(renderLock_); }
 
+        // 在 UI 线程同步出一帧到本窗口（持 renderLock_，与 render 线程串行）。
+        //   render 线程模式下 WM_PAINT 不同步出帧（OnPaint 只 AdvanceFrame+RequestRender），
+        //   弹出层首次显示（如菜单淡入前）必须靠这个同步把内容画好，否则淡入的是空内容 → "窗口在但不显示"。
+        void RenderNowSync() {
+            std::lock_guard<std::recursive_mutex> lk(renderLock_);
+            if (dying_.load()) return;
+            if (!renderTarget_) { if (FAILED(CreateDeviceResources())) return; }
+            RenderFrame();
+        }
+
         // A3：帧率上限 —— 不限时跟随显示器 vblank；>0 限制动画平均出帧率（降 GPU/CPU）。
         //   每窗口覆盖进程默认；SetFrameRateLimit(0) 显式取消上限（不再走默认）。
         void SetFrameRateLimit(int fps) { frameRateLimit_.store((fps < 0) ? 0 : fps, std::memory_order_relaxed); }
@@ -2851,7 +2901,7 @@ class MenuWindowBase;
             hwnd_ = CreateWindowExW(GetCreateExStyle(), L"ZufyUIWindowClass", title.c_str(), style,
                 cposX, cposY, physicalWidth, physicalHeight,
                 hwndOwner, nullptr, GetModuleHandle(nullptr), this);
-            if (!hwnd_) return false;
+            if (!hwnd_) { detail::ReportError(L"Window::Create: CreateWindowExW failed"); return false; }
 
             dpi_ = GetDpiForWindow(hwnd_);
             if (dpi_ == 0) dpi_ = 96;
@@ -2859,11 +2909,11 @@ class MenuWindowBase;
               lastClientW_ = (UINT)(rc0.right - rc0.left); lastClientH_ = (UINT)(rc0.bottom - rc0.top); }
 
             d2dFactory_ = core_->GetFactory();   // 共享工厂（进程级）
-            if (!d2dFactory_) return false;
+            if (!d2dFactory_) { detail::ReportError(L"Window::Create: D2D factory unavailable"); return false; }
 #if ZUFYUI_RENDER_THREAD
             // DComp/交换链是 STA → UI 线程建共享设备 + 合成后端；renderTarget_/cacheContext_ 交 render 线程自建（每线程自持 DC）
             core_->GetD2DDevice();
-            if (FAILED(CreateCompositionBackend())) return false;
+            if (FAILED(CreateCompositionBackend())) { detail::ReportError(L"Window::Create: CreateCompositionBackend failed"); return false; }
 #else
             if (FAILED(CreateDeviceResources())) return false;
             if (FAILED(CreateCompositionBackend())) return false;
@@ -4042,8 +4092,12 @@ class MenuWindowBase;
             }
             case WM_SETCURSOR:
                 if (currentHovered_ && currentHovered_->IsTextInput()) {
-                    SetCursor(LoadCursor(nullptr, IDC_IBEAM));
+                    ::SetCursor(LoadCursor(nullptr, IDC_IBEAM));
                     return TRUE;
+                }
+                // 按当前悬停元素回设它最近一次在 OnMouseMove 里请求的光标（否则让 DefWindowProc 用类箭头）
+                if (currentHovered_) {
+                    if (HCURSOR c = currentHovered_->GetDesiredCursor()) { ::SetCursor(c); return TRUE; }
                 }
                 break;
             case WM_SHOWWINDOW:
@@ -4523,8 +4577,9 @@ class MenuWindowBase;
                 if (lim > 0) {
                     double now = detail::NowMs();
                     double interval = 1000.0 / lim;
-                    if (lastPresentMs_ > 0.0 && now - lastPresentMs_ < interval)
-                        detail::PreciseSleepMs(interval - (now - lastPresentMs_));
+                    double lp = lastPresentMs_.load(std::memory_order_relaxed);
+                    if (lp > 0.0 && now - lp < interval)
+                        detail::PreciseSleepMs(interval - (now - lp));
                 }
             }
             HRESULT hr = E_FAIL;
@@ -4537,8 +4592,9 @@ class MenuWindowBase;
                     if (swapChain_ && nw && nh) ResizeSwapChain(nw, nh);
                 }
                 if (dying_.load()) return false;   // 锁内二次确认：析构可能在等锁期间已开始
-                hr = RenderFrame();
+                hr = RenderFrame(false);   // 只录/画，不 Present（Present 移出 renderLock_）
             }
+            if (SUCCEEDED(hr)) hr = PresentFrame();   // 锁外 Present：只持 gpuLock_，不再让 UI 在 renderLock_ 上等一整帧
 #if ZUFYUI_RENDER_THREAD
             DwmFlush();   // 锁外节拍：等 DWM 合成一拍
 #endif
@@ -4596,7 +4652,7 @@ class MenuWindowBase;
 
         // 单帧渲染：合成 → 交换链后备缓冲 → Present；返回 EndDraw/Present 的 HRESULT。
         // 由 render 线程调用（见 RenderOnThread）或单线程路径（OnPaint）调用。
-        HRESULT RenderFrame() {
+        HRESULT RenderFrame(bool present = true) {
             SetGlobalDpiScale(dpi_ / 96.0f);
             // 预通道：先把脏的元素缓存画好（独立 DC，独立 BeginDraw/EndDraw）——必须在主帧 BeginDraw 之前
             DrawDirtyCaches(rootElement_.get());
@@ -4623,13 +4679,21 @@ class MenuWindowBase;
                 focusDirty_ = false;
                 hr = renderTarget_->EndDraw();
                 renderTarget_->SetTarget(nullptr);
-                if (SUCCEEDED(hr) && swapChain_) {
-                    DXGI_PRESENT_PARAMETERS pp{};
-                    hr = swapChain_->Present1(1, 0, &pp);
-                    lastPresentMs_ = detail::NowMs();   // A3：帧率上限的时基
-                }
+                // 说明：Present 默认在这里发生（单线程路径 / RenderNowSync 的同步出帧）。
+                // render 线程路径传 present=false，把 Present 放到 renderLock_ 之外（PresentFrame），
+                // 避免 UI 输入/定时处理在 renderLock_ 上等一整帧 → 托盘/菜单/悬停延迟。
+                if (SUCCEEDED(hr) && present) hr = PresentFrame();
             }
             pendingRepaint_.clear();
+            return hr;
+        }
+        // 只做 Present（持 gpuLock_，与建/弃设备串行）。可被 render 线程（锁外）或 UI 线程（RenderNowSync）调用。
+        HRESULT PresentFrame() {
+            std::lock_guard<std::mutex> g(gpuLock_);
+            if (!swapChain_) return S_OK;
+            DXGI_PRESENT_PARAMETERS pp{};
+            HRESULT hr = swapChain_->Present1(1, 0, &pp);
+            lastPresentMs_.store(detail::NowMs(), std::memory_order_relaxed);   // A3：帧率上限的时基
             return hr;
         }
 
@@ -4830,6 +4894,7 @@ class MenuWindowBase;
         }
 
         void OnMouseLeave() {
+            std::lock_guard<std::recursive_mutex> lk(renderLock_);   // 与 render 线程读 mouse/tooltip 状态串行
             if (currentHovered_) { currentHovered_->OnMouseLeave(); currentHovered_ = nullptr; }
             tooltipTarget_ = nullptr; tooltipProgress_ = 0.0f;
         }
@@ -4904,6 +4969,12 @@ class MenuWindowBase;
 
         void UpdateHover(float x, float y) {
             if (!rootElement_ && !customTitleBar_) return;
+            // 有菜单打开 / 输入被模态屏蔽时：本窗口元素不再悬停（防"悬停穿透"到菜单/模态之下）
+            if (detail::g_activeMenu || inputBlocked_) {
+                if (currentHovered_) { currentHovered_->OnMouseLeave(); currentHovered_ = nullptr; }
+                tooltipTarget_ = nullptr; tooltipProgress_ = 0.0f;
+                return;
+            }
             UIElement* hit = HitTestElement(x, y);
             if (hit && !hit->IsEffectivelyEnabled()) hit = nullptr;
             if (hit != currentHovered_) {
@@ -4985,11 +5056,12 @@ class MenuWindowBase;
 
         HRESULT CreateCompositionBackend() {
             if (contentVisual_) return S_OK;
+            std::lock_guard<std::mutex> g(gpuLock_);   // 与锁外的 PresentFrame 串行（重建交换链期间不能 Present）
             compositor_ = core_ ? core_->GetCompositor() : nullptr;
-            if (!compositor_) return E_FAIL;
+            if (!compositor_) { detail::ReportError(L"CreateCompositionBackend: compositor null (COM apartment MTA?)"); return E_FAIL; }
             ComPtr<ICompositorDesktopInterop> interop;
-            if (FAILED(compositor_->QueryInterface(IID_PPV_ARGS(&interop)))) return E_FAIL;
-            if (FAILED(interop->CreateDesktopWindowTarget(hwnd_, TRUE, &dcompTarget_))) return E_FAIL;
+            if (FAILED(compositor_->QueryInterface(IID_PPV_ARGS(&interop)))) { detail::ReportError(L"CreateCompositionBackend: no ICompositorDesktopInterop"); return E_FAIL; }
+            if (FAILED(interop->CreateDesktopWindowTarget(hwnd_, TRUE, &dcompTarget_))) { detail::ReportError(L"CreateCompositionBackend: CreateDesktopWindowTarget failed"); return E_FAIL; }
             if (FAILED(compositor_->CreateSpriteVisual(&rootVisual_))) return E_FAIL;
             ComPtr<IVisual2> r2;
             if (SUCCEEDED(rootVisual_->QueryInterface(IID_PPV_ARGS(&r2)))) r2->put_RelativeSizeAdjustment({ 1.f, 1.f });
@@ -4997,7 +5069,7 @@ class MenuWindowBase;
             RECT rc; GetClientRect(hwnd_, &rc);
             clientWidthDip_ = (rc.right - rc.left) * 96.0f / dpi_;
             clientHeightDip_ = (rc.bottom - rc.top) * 96.0f / dpi_;
-            if (FAILED(CreateSwapChain((UINT)(rc.right - rc.left), (UINT)(rc.bottom - rc.top)))) return E_FAIL;
+            if (FAILED(CreateSwapChain((UINT)(rc.right - rc.left), (UINT)(rc.bottom - rc.top)))) { detail::ReportError(L"CreateCompositionBackend: CreateSwapChain failed"); return E_FAIL; }
 
             ComPtr<ICompositionSurface> surf;
             ComPtr<ICompositorInterop> cinterop;
@@ -5294,6 +5366,7 @@ class MenuWindowBase;
         }
 
         void DiscardDeviceResources() {
+            std::lock_guard<std::mutex> g(gpuLock_);   // 与锁外的 PresentFrame 串行（建/弃交换链期间不能 Present）
             // 手动背景图层持有 swapchain/visual，设备重建时必须先拆掉
             if (wallpaperVisual_) wallpaperVisual_->put_Brush(nullptr);
             wallpaperVisual_.Reset(); wallpaperSwap_.Reset(); wallpaperBitmap_.Reset();
@@ -5591,6 +5664,7 @@ class MenuWindowBase;
 
         // 新增成员
         mutable std::recursive_mutex renderLock_;     // render 线程：保护 DC 操作段（不覆盖 DwmFlush）；recursive；mutable 供 const 读取方加锁
+        mutable std::mutex gpuLock_;                  // 只护「交换链/设备资源」跨线程：Present 与 建/弃 设备串行（不与 renderLock_ 内其它 DC 操作混用）
         std::atomic<bool> renderRequested_{ false };  // UI→render 帧请求去抖
         std::atomic<bool> dying_{ false };            // 窗口析构中：render 线程跳过（防 UAF）
         // 生存令牌：脱离 this 内存。render 线程批处理前先 pin（inFlight++），析构先置 alive=false
@@ -5603,7 +5677,7 @@ class MenuWindowBase;
         };
         std::shared_ptr<RenderLiveness> live_ = std::make_shared<RenderLiveness>();
         std::atomic<int> frameRateLimit_{ -1 };        // A3：-1=未设(用进程默认) / 0=显式不限 / >0=fps 上限
-        double lastPresentMs_ = 0.0;                  // A3：上次 Present 时刻（QPC ms）
+        std::atomic<double> lastPresentMs_{ 0.0 };    // A3：上次 Present 时刻（QPC ms）；Present 可在 render 线程或 UI 线程(RenderNowSync)发生
         static inline std::atomic<int> s_defaultFrameRateLimit{ 0 }; // A3：进程默认帧率上限（0=不限）
         std::atomic<bool> uiAnimating_{ false };      // UI 线程发布：本帧是否有活跃动画（render 据此决定续帧）
         std::atomic<bool> frameTickPending_{ false }; // A1：render→UI 的动画推进 tick 去抖（防 PostMessage 积压）
@@ -5651,6 +5725,10 @@ class MenuWindowBase;
     inline UIElement::~UIElement() {
         // 从所属窗口的待重绘集合里移除自己（防悬垂裸指针）
         if (Window* w = GetWindow()) w->ForgetPendingRepaint(this);
+    }
+    inline std::unique_lock<std::recursive_mutex> UIElement::GuardRender() const {
+        if (Window* w = GetWindow()) return w->LockRender();
+        return std::unique_lock<std::recursive_mutex>();
     }
     inline void UIElement::InvalidateLayout() {
         // measureDirty_ 冒泡到根（父需读子新 desiredSize，C1 正确）；
@@ -5783,10 +5861,15 @@ class MenuWindowBase;
             // 注意：菜单窗口自身的 WM_PAINT 在"主窗口有持续动画"时可能被压后，所以这里先同步画一帧把内容渲染好；
             // 之后淡入只改 DComp 透明度，不需要重绘。（WM_TIMER 已不再被 present 循环饿死。）
             SetContentOpacity(0.0f);
+#if ZUFYUI_RENDER_THREAD
+            // 渲染线程模式：WM_PAINT 不同步出帧 → 必须在这里同步画一帧，否则淡入的是空内容（菜单"不出来"）。
+            if (h) RenderNowSync();
+#else
             if (h) RedrawWindow(h, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
+#endif
             StartFade();
             openedTick_ = GetTickCount();
-            prevLButtonDown_ = true;
+            prevLButtonDown_ = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;   // 记录开菜单瞬间左键的真实状态（右键弹菜单时通常为松开）
             if (standalone_ && h) SetTimer(h, kPollTimerId, 30, nullptr);
         }
         void Hide() {
@@ -5807,6 +5890,7 @@ class MenuWindowBase;
         void SetStandalone(bool on) { standalone_ = on; }
         MenuWindowBase* ParentPopup() const { return parent_; }
         MenuWindowBase* ChildPopup() const { return childPopup_.get(); }
+        bool WasCreated() const { return created_; }   // CreatePopup 是否成功（供 Menu::ShowAt 判断，不静默失败）
 
         // 键盘转发（Base 默认不处理；MenuWindow 覆盖）
         virtual bool OnMenuKeyDown(int vk) { (void)vk; return false; }
@@ -5814,7 +5898,12 @@ class MenuWindowBase;
         // 屏幕点是否在“本弹出层 + 其子弹出层”的窗口矩形内（供主窗口判断“只有点菜单外才关菜单”）
         bool IsPointInPopupTree(POINT ptScreen) {
             HWND h = GetHwnd();
-            if (h) { RECT rc; GetWindowRect(h, &rc); if (PtInRect(&rc, ptScreen)) return true; }
+            if (h) {
+                RECT rc; GetWindowRect(h, &rc);
+                int s = MulDiv(shadowDip_, (int)GetDpiScale(), 96);   // 用"内容"矩形（去掉阴影外扩），避免把阴影带当成菜单内
+                RECT content = { rc.left + s, rc.top + s, rc.right - s, rc.bottom - s };
+                if (PtInRect(&content, ptScreen)) return true;
+            }
             if (childPopup_ && childPopup_->IsPointInPopupTree(ptScreen)) return true;
             return false;
         }
@@ -5884,6 +5973,7 @@ class MenuWindowBase;
         static constexpr UINT_PTR kPollTimerId = 6;
 
         int contentWidthDip_ = 0, contentHeightDip_ = 0;
+        bool created_ = false;   // CreatePopup 是否成功
         int screenX_ = 0, screenY_ = 0;
         int shadowDip_ = 10;
         bool standalone_ = false;
@@ -5908,7 +5998,16 @@ class MenuWindowBase;
             ownerHwnd_ = ownerHwnd;
             EnsureTextFormats();          // 先建文本格式，量宽才准确（否则窗口过窄、文字被裁）
             CalculateWindowSizeDip();
-            CreatePopup(windowWidthDip_, windowHeightDip_, x, y);
+            bool ok = CreatePopup(windowWidthDip_, windowHeightDip_, x, y);
+            created_ = ok && (GetHwnd() != nullptr);   // 记录创建结果，供 Menu::ShowAt 判断，不静默失败
+#ifdef ZufyUI_DEBUG
+            {
+                wchar_t b[160];
+                swprintf(b, 160, L"[ZufyUI] MenuWindow ctor: CreatePopup=%d hwnd=%p lastErr=%lu\n",
+                         ok ? 1 : 0, (void*)GetHwnd(), (unsigned long)GetLastError());
+                ZufyUI_DEBUG_LOG_W(b);
+            }
+#endif
         }
 
         static std::shared_ptr<MenuWindow>& StandaloneHolder() {
@@ -6373,9 +6472,13 @@ class MenuWindowBase;
     inline void Menu::ShowAt(int screenX, int screenY) {
         detail::InitializeUIThread();
         detail::CloseAllOpenMenus();
-        HWND owner = detail::g_uiDispatcherWindow ? detail::g_uiDispatcherWindow : GetDesktopWindow();
         auto& holder = MenuWindow::StandaloneHolder();
-        holder = std::make_shared<MenuWindow>(shared_from_this(), owner, screenX, screenY);
+        holder = std::make_shared<MenuWindow>(shared_from_this(), nullptr, screenX, screenY);
+        if (!holder || !holder->WasCreated()) {   // 创建失败（Compositor/D2D/窗口类）→ 不静默：发错误信号并清空持有
+            detail::ReportError(L"Menu::ShowAt: menu window creation FAILED (hwnd=null)");
+            holder.reset();
+            return;
+        }
         holder->SetStandalone(true);
         holder->ShowAtPoint(screenX, screenY);
     }

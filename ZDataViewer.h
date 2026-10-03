@@ -3752,6 +3752,7 @@ namespace ZufyUI {
         void PrepareNodeCellLabel(const std::shared_ptr<Label>& lb, const std::shared_ptr<TreeNode>& node) const {
             if (!lb) return;
             lb->SetUseCache(false);
+            lb->SetTextOverflow(Label::TextOverflow::Ellipsis);   // 空间不足时省略号，而不是整条消失
             FontSpec spec = GetEffectiveFontSpec();
             if (!(lb->GetEffectiveFontSpec() == spec)) lb->SetFont(spec);
             if (lb->GetHorizontalAlignment() != Label::HAlign::Left ||
@@ -3811,12 +3812,14 @@ namespace ZufyUI {
                         // 第一列文字左起点必须与 Draw 里 xCursor 完全一致：缩进 + 指示条 + 勾选框 + 图标
                         float textLeft = colX + 8.0f;
                         if (c == 0) {
-                            textLeft = GetNodeTextStartX(node) + 2.0f + indicatorWidth_ + 4.0f;
-                            if (node->checkable) textLeft += kNodeCheckBoxSize + 6.0f;
-                            if (!node->icon.empty()) textLeft += 20.0f;
+                            textLeft = GetFirstColDecor(node, colX + colWidth).textLeft;   // 与 Draw 一致（含装饰隐藏）
+                            // 深缩进/窄列时文字起点会落到列右边界外 → 压回列内，保证至少 20px 显示（配合省略号，不整条消失）
+                            float maxTextLeft = (colX + colWidth - 8.0f) - 20.0f;
+                            if (textLeft > maxTextLeft) textLeft = maxTextLeft;
+                            if (textLeft < colX + 2.0f) textLeft = colX + 2.0f;
                         }
                         float availW = (colX + colWidth - 8.0f) - textLeft;
-                        if (availW < 0.0f) availW = 0.0f;
+                        if (availW < 20.0f) availW = 20.0f;
                         lb->Arrange(Rect(textLeft, itemY - bleedY, availW, rowHeight_ + bleedY * 2.0f));
                         // 裁到内容视口：不压表头 / 不画到横向滚动条 / 横向拖动不漫出左右边界
                         lb->SetClipRect(contentClip);
@@ -3900,9 +3903,10 @@ namespace ZufyUI {
                     D2D1_RECT_F cellRect = D2D1::RectF(cellX, itemY, cellX + colWidth, itemY + rowHeight_);
                     if (c == 0) {
                         float indentX = GetNodeTextStartX(node);
+                        FirstColDecor dec = GetFirstColDecor(node, cellRect.right);
 
                         // 展开/折叠箭头
-                        if (!node->children.empty() && (node->depth > 0 || rootDecorated_)) {
+                        if (dec.triangle) {
                             std::wstring arrow = node->expanded ? L"\u25BC" : L"\u25B6";
                             if (!textBrush_) rt->CreateSolidColorBrush(effTextColor, textBrush_.GetAddressOf());
                             else textBrush_->SetColor(effTextColor);
@@ -3926,7 +3930,7 @@ namespace ZufyUI {
                         float xCursor = indentX + 2.0f + indicatorWidth_ + 4.0f;
 
                         // 勾选框（复用 CheckBox 控件：蓝底渐显 + 对勾左→右绘制）
-                        if (node->checkable) {
+                        if (dec.check) {
                             float size = kNodeCheckBoxSize;
                             float cy = (cellRect.top + cellRect.bottom) / 2.0f;
                             D2D1_RECT_F cbRect = D2D1::RectF(xCursor, cy - size / 2.0f, xCursor + size, cy + size / 2.0f);
@@ -3939,7 +3943,7 @@ namespace ZufyUI {
                         }
 
                         // 前置图标
-                        if (!node->icon.empty() && fmt) {
+                        if (dec.icon && fmt) {
                             if (!iconBrush_) rt->CreateSolidColorBrush(effTextColor, iconBrush_.GetAddressOf());
                             else iconBrush_->SetColor(effTextColor);
                             D2D1_RECT_F iconRect = D2D1::RectF(xCursor, cellRect.top, xCursor + 18.0f, cellRect.bottom);
@@ -4642,6 +4646,31 @@ namespace ZufyUI {
             }
             return indentX;
         }
+
+        // 首列装饰（三角/勾选/图标）布局：空间不足时依次隐藏 图标 → 勾选 → 三角，保证文本有最小显示宽度。
+        // Draw 与 RefreshChildren 共用，保证文字起点一致。
+        struct FirstColDecor { bool triangle = false; bool check = false; bool icon = false; float textLeft = 0.0f; };
+        FirstColDecor GetFirstColDecor(std::shared_ptr<TreeNode> node, float cellRight) const {
+            FirstColDecor d;
+            if (!node) { d.textLeft = GetNodeTextStartX(node); return d; }
+            bool tri = !node->children.empty() && (node->depth > 0 || rootDecorated_);
+            bool chk = node->checkable;
+            bool ico = !node->icon.empty();
+            float indentX = GetNodeTextStartX(node);
+            float base = indentX + 2.0f + indicatorWidth_ + 4.0f;   // 指示条区之后的起点
+            const float kMinText = 20.0f;
+            auto decoW = [&]() { return (chk ? (kNodeCheckBoxSize + 6.0f) : 0.0f) + (ico ? 20.0f : 0.0f); };
+            while (cellRight - (base + decoW()) < kMinText) {   // 空间不足 → 依次隐藏
+                if (ico) { ico = false; continue; }
+                if (chk) { chk = false; continue; }
+                if (tri) { tri = false; continue; }
+                break;
+            }
+            d.triangle = tri; d.check = chk; d.icon = ico;
+            d.textLeft = base + decoW();
+            return d;
+        }
+
 
         std::shared_ptr<TreeNode> FindNode(TreeNode* rawPtr) const {
             std::function<std::shared_ptr<TreeNode>(const std::vector<std::shared_ptr<TreeNode>>&)> search =

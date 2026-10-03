@@ -13,6 +13,8 @@ ZufyUI is a **header-only** Windows desktop UI framework built directly on Direc
 - Online docs: <https://zhc9968.github.io/ZufyUI/>
 - API Reference (English): <https://zhc9968.github.io/ZufyUI/docs/API.en.html>
 
+> ⚠️ **The independent render thread (compile switch `ZUFYUI_RENDER_THREAD`) is experimental: off by default, unstable, buggy, and not recommended.** See the "Independent render thread" section in the API reference.
+
 ## Features
 
 - **Direct2D custom drawing**: hardware-accelerated rendering, Acrylic background, rounded corners, and shadows for a modern look.
@@ -141,6 +143,25 @@ A tour of the widgets (first page of the demo):
 ![ZufyUI demo](docs/images/demo-main.png)
 
 ## Changelog
+
+### 2026-10-03 — Render thread off by default + system dialogs (file/folder/color) + stability fixes (v1.16.0)
+
+**Independent render thread now off by default**
+- `ZUFYUI_RENDER_THREAD` defaults to **`0`** (single-threaded `WM_PAINT`, stable). The mechanism is currently **unstable and buggy** (blank popups, delayed hover/tooltip and nested page switches, occasional crashes with large data, ...) and is **not recommended**; set it to `1` only if you really need vblank-level smoothness and can afford the debugging cost. Noted in README / API docs.
+
+**New system dialogs (`ZufyUIWindowTool.h`)**
+- **File / folder**: `FileDialog` (modern `IFileOpenDialog` / `IFileSaveDialog`) — supports **type filters** (multiple `FileFilter` groups), **multi-select**, **folder picking**, **save-as**, initial directory / default name / default extension; `Open` / `OpenFiles` / `PickFolders` / `Save` + `*One` convenience + `FilterLabels`.
+- **Color**: `ColorDialog::Pick(owner, initial, opts)` (`ChooseColor`) with preset custom colors.
+- **Opt-in macro** `ZUFYUI_ENABLE_COMCTL_V6`: when defined, the library injects the Common Controls v6 manifest dependency (`ChooseColor` / `MessageBox` get themed). Because the manifest is **application-wide**, it is **off by default** and left to the application.
+
+**Stability / correctness fixes**
+- Render-thread structure: `Present1` moved out of `renderLock_` (a `gpuLock_` guards swap chain / device resources); `PageHost` transition state / `pages_` mutations now locked; popups render synchronously on first show via `RenderNowSync`; new library error signal `UIZSignals::Error` (menu/window/composition-backend creation failures are reported, not silent).
+- **Cursor**: added "desired cursor" tracking; `WM_SETCURSOR` re-applies it per hovered element, fixing the flicker where a control's own cursor was repeatedly reset.
+- **Hover pass-through**: while a menu is open or input is modal-blocked, main-window elements no longer hover.
+- **TreeView first column**: when space is tight, hide icon / checkbox / triangle in order and clamp the text start into the column so the text **ellipsizes** (instead of disappearing).
+- **TrayIcon**: callback message no longer collides with `WM_RENDER_TICK`; `MenuWindow` creation failures are no longer silent.
+
+- Version **1.15.0 -> 1.16.0**.
 
 ### 2026-10-03 — Data-view virtualization + cross-thread concurrency hardening (v1.15.0)
 

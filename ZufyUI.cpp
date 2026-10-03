@@ -284,6 +284,70 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         grid2->AddChild(revealBox, 5, 0);
         grid2->AddChild(phColorBox, 5, 1);
 
+        // ---------- 系统对话框测试：打开文件(多选) / 文件夹 / 另存为 / 颜色 ----------
+        {
+            auto dlgTitle = std::make_shared<Label>(L"系统对话框测试：打开(可多选) / 文件夹 / 另存为 / 颜色（新版 IFileDialog + ChooseColor）");
+            dlgTitle->SetTextColor(Color::FromArgb(255, 40, 40, 40));
+            grid2->AddChild(dlgTitle, 6, 0, 1, 2);
+
+            auto dlgResult = std::make_shared<Label>(L"结果：（点下面按钮后显示在这里）");
+            dlgResult->SetTextColor(Color::FromArgb(255, 0, 100, 180));
+            grid2->AddChild(dlgResult, 8, 0, 1, 2);
+
+            auto dlgRow = std::make_shared<RowBox>();
+            dlgRow->SetSpacing(8.0f);
+            auto setRes = [dlgResult](const std::wstring& s) { dlgResult->SetText(s); };
+            auto mkBtn = [](Icon ic, const std::wstring& text) {
+                auto b = std::make_shared<Button>(text);
+                b->SetIcon(ic);
+                return b;
+            };
+
+            auto bOpen = mkBtn(Icon::Open, L"打开文件(多选)");
+            bOpen->Connect(bOpen->Clicked, [w = &win, setRes]() {
+                FileDialogOptions o;
+                o.title = L"选择文件（可多选）";
+                o.filters = { { L"图片", { L"*.png", L"*.jpg", L"*.jpeg", L"*.bmp", L"*.gif" } },
+                              { L"文本", { L"*.txt", L"*.log" } } };
+                auto files = FileDialog::OpenFiles(w->GetHwnd(), o);
+                if (files.empty()) { setRes(L"打开文件：已取消"); return; }
+                std::wstring s = L"打开文件：共 " + std::to_wstring(files.size()) + L" 个 → " + files.front();
+                if (files.size() > 1) s += L" …";
+                setRes(s);
+                });
+            auto bFolder = mkBtn(Icon::Folder, L"选文件夹(多选)");
+            bFolder->Connect(bFolder->Clicked, [w = &win, setRes]() {
+                FileDialogOptions o; o.title = L"选择文件夹（可多选）"; o.multiSelect = true;
+                auto folders = FileDialog::PickFolders(w->GetHwnd(), o);
+                if (folders.empty()) { setRes(L"选文件夹：已取消"); return; }
+                setRes(L"选文件夹：共 " + std::to_wstring(folders.size()) + L" 个 → " + folders.front());
+                });
+            auto bSave = mkBtn(Icon::Save, L"另存为");
+            bSave->Connect(bSave->Clicked, [w = &win, setRes]() {
+                FileDialogOptions o;
+                o.title = L"另存为"; o.defaultFileName = L"output"; o.defaultExtension = L"txt";
+                o.filters = { { L"文本", { L"*.txt" } } };
+                auto path = FileDialog::SaveOne(w->GetHwnd(), o);
+                setRes(path ? (L"另存为：" + *path) : L"另存为：已取消");
+                });
+            auto bColor = mkBtn(Icon::Edit, L"选择颜色");
+            bColor->Connect(bColor->Clicked, [w = &win, setRes, dlgResult]() {
+                ColorDialog::Options co;
+                co.custom = { Color(1, 0, 0, 1), Color(0, 1, 0, 1), Color(0, 0, 1, 1) };
+                auto c = ColorDialog::Pick(w->GetHwnd(), Color(0.2f, 0.6f, 1.0f, 1.0f), co);
+                if (!c) { setRes(L"颜色：已取消"); return; }
+                wchar_t buf[96];
+                swprintf(buf, 96, L"颜色：R=%d G=%d B=%d", (int)(c->r * 255 + 0.5f), (int)(c->g * 255 + 0.5f), (int)(c->b * 255 + 0.5f));
+                dlgResult->SetTextColor(*c);   // 文字直接用所选颜色，直观
+                setRes(buf);
+                });
+            dlgRow->AddChild(bOpen);
+            dlgRow->AddChild(bFolder);
+            dlgRow->AddChild(bSave);
+            dlgRow->AddChild(bColor);
+            grid2->AddChild(dlgRow, 7, 0, 1, 2);
+        }
+
         // 新特性：滚动条可见性 / 内边距 / 实例颜色 / 滚动事件
         scrollView->SetVerticalScrollBarVisibility(ScrollViewer::ScrollBarVisibility::Always);
         scrollView->SetContentMargin(Thickness(8, 8, 8, 8));
@@ -1221,6 +1285,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         auto loadAppImage = []() -> std::shared_ptr<Image> {
             return Image::FromResource(IDI_APPICON, RT_GROUP_ICON);
         };
+
+        // 保证"无论从哪个按钮添加托盘，右键都有菜单"（否则 menu_ 为空 → 右键不弹菜单）
+        {
+            auto trayMenu = std::make_shared<Menu>();
+            trayMenu->AddItem(L"显示并激活 (2→3→1)", [w = &win]() { w->ShowActivate(Window::ActivateMode::All); });
+            trayMenu->AddItem(L"提升到 Z 序", [w = &win]() { w->ShowActivate(Window::ActivateMode::Raise); });
+            trayMenu->AddItem(L"闪烁任务栏", [w = &win]() { w->Flash(5); });
+            trayMenu->AddSeparator();
+            trayMenu->AddItem(L"退出", [w = &win]() { w->Close(); });
+            s_tray.SetMenu(trayMenu);
+        }
 
         auto trayBtn = std::make_shared<Button>(L"托盘图标：添加/移除");
         trayBtn->Connect(trayBtn->Clicked, [mbResult, w = &win, loadAppImage]() {

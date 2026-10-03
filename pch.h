@@ -10,6 +10,7 @@
 // 显式授权本库替应用做「应用身份自注册」（写 HKCU 注册表 + 把图标缓存到本地、退出清缓存）。
 // 不上报/不联网，仅本机；不定义则 RegisterApp 只设置进程 AUMID，零副作用。
 #define ZUFYUI_ALLOW_APP_REGISTRATION
+#define ZUFYUI_ENABLE_COMCTL_V6
 
 // ---- Win32 / 系统 ----
 #include <windows.h>

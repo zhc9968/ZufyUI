@@ -13,6 +13,8 @@ ZufyUI 是一个**纯头文件**的 Windows 桌面 UI 框架，直接建立在 D
 - 在线文档：<https://zhc9968.github.io/ZufyUI/>
 - API 参考：<https://zhc9968.github.io/ZufyUI/docs/API.html>
 
+> ⚠️ **独立渲染线程（编译开关 `ZUFYUI_RENDER_THREAD`）为实验特性，默认关闭、不稳定、bug 较多、不建议开启。** 详见 API 参考「独立渲染线程」一节。
+
 ## 特性
 
 - **Direct2D 自绘**：硬件加速渲染，亚克力（Acrylic）背景、圆角、阴影，观感现代。
@@ -141,6 +143,25 @@ win.SetCustomTitleBar(bar);
 ![ZufyUI 示例程序](docs/images/demo-main.png)
 
 ## 更新日志
+
+### 2026-10-03 — 渲染线程默认关闭 + 系统对话框（文件/文件夹/颜色）+ 稳定性修复（v1.16.0）
+
+**独立渲染线程改为默认关闭**
+- `ZUFYUI_RENDER_THREAD` 默认 **`0`**（单线程 `WM_PAINT`，稳定）；该机制目前**不稳定、bug 较多**（弹窗空白、悬停/hover 与嵌套页面切换延迟、大数据量偶发崩溃等），**不建议开启**；仅在确需 vblank 级顺滑且能承担调试成本时置 `1` 试用。README / API 文档已注明。
+
+**新增系统对话框（`ZufyUIWindowTool.h`）**
+- **文件/文件夹**：`FileDialog`（新版 `IFileOpenDialog` / `IFileSaveDialog`）——支持**类型过滤**（`FileFilter` 多组）、**多选**、**选文件夹**、**另存为**、初始目录 / 默认名 / 默认扩展名；`Open` / `OpenFiles` / `PickFolders` / `Save` + `*One` 便捷版 + `FilterLabels`。
+- **颜色**：`ColorDialog::Pick(owner, initial, opts)`（`ChooseColor`），支持预置自定义色。
+- **可选宏** `ZUFYUI_ENABLE_COMCTL_V6`：定义后本库注入 Common Controls v6 的 manifest 依赖（`ChooseColor` / `MessageBox` 等主题化）；因 manifest 是**应用级**的，**默认不开**，由应用自行决定。
+
+**稳定性 / 正确性修复**
+- 渲染线程结构修复：`Present1` 移出 `renderLock_`（`gpuLock_` 护交换链/设备资源）；`PageHost` 过渡态 / `pages_` 变更统一加锁；弹窗首次显示 `RenderNowSync` 同步出帧；新增库内错误信号 `UIZSignals::Error`（菜单/窗口/合成后端创建失败会上报，不再静默）。
+- **光标**：新增"期望光标"跟踪，`WM_SETCURSOR` 按悬停元素回设，修控件自设光标被反复重置导致的闪烁。
+- **悬停穿透**：有菜单打开或模态屏蔽时，主窗口元素不再悬停。
+- **TreeView 首列**：空间不足时依次隐藏 图标 / 勾选 / 三角，并把文字起点压回列内、文本以**省略号**显示（不再整条消失）。
+- **TrayIcon**：回调消息号不再与 `WM_RENDER_TICK` 撞号；`MenuWindow` 创建失败不再静默。
+
+- 版本 **1.15.0 → 1.16.0**。
 
 ### 2026-10-03 — 数据视图虚拟化 + 跨线程并发收口（v1.15.0）
 
