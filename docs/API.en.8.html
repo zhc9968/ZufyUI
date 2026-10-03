@@ -338,7 +338,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2b83d0ad', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-3a7e50f5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TabView</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">    </span><span class="c1">// selected tab index</span>
@@ -374,7 +374,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoTransitionDirection</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-2b83d0ad" style="display: none;">class TabView : public UIElement {
+<pre id="code-3a7e50f5" style="display: none;">class TabView : public UIElement {
     ZSignal&lt;int&gt; SelectionChanged;    // selected tab index
     ZSignal&lt;int&gt; TabCloseRequested;   // a tab's x was clicked (application decides whether to remove)
 
@@ -422,7 +422,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ae7bf358', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-58c5d06b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuItem</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
@@ -445,7 +445,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span><span class="w">    </span><span class="c1">// per-item font (defaults to Menu::font)</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-ae7bf358" style="display: none;">class MenuItem {
+<pre id="code-58c5d06b" style="display: none;">class MenuItem {
     enum class Type { Normal, Separator, Submenu };
     std::wstring text;
     std::function&lt;void()&gt; callback;
@@ -470,7 +470,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-be4abe35', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-714fd459', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Menu</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">{};</span><span class="w">              </span><span class="c1">// global default menu font</span>
@@ -490,7 +490,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">                    </span><span class="c1">// pop up at the mouse cursor</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-be4abe35" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
+<pre id="code-714fd459" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
     inline static FontSpec DefaultFont{};              // global default menu font
     void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
     void AddCheckItem(const std::wstring&amp; text, bool checked,
@@ -520,7 +520,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5c39c36d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-aeb022bc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// Popup base: only the popup's system interaction; no notion of "menu items"</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MenuWindowBase</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
@@ -546,7 +546,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuWindow</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">StandaloneHolder</span><span class="p">();</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-5c39c36d" style="display: none;">// Popup base: only the popup's system interaction; no notion of "menu items"
+<pre id="code-aeb022bc" style="display: none;">// Popup base: only the popup's system interaction; no notion of "menu items"
 class MenuWindowBase : public Window {
     bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // content size in DIP; shadow margin added
     void ShowAtPoint(int screenX, int screenY);   // pop up at a screen point (auto-clamped to the work area)

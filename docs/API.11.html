@@ -703,7 +703,7 @@ class Slider : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3faafcd2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-2c75b422', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TextHAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="w"> </span><span class="p">};</span>
 
@@ -714,7 +714,7 @@ class Slider : public UIElement {
 <span class="w">    </span><span class="n">IDWriteTextFormat</span><span class="o">*</span><span class="w"> </span><span class="n">textFormat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">forceNoWrap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
 <span class="w">    </span><span class="n">TextHAlign</span><span class="w"> </span><span class="n">align</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TextHAlign</span><span class="o">::</span><span class="n">Left</span><span class="p">);</span>
 </pre></div>
-<pre id="code-3faafcd2" style="display: none;">enum class TextHAlign { Left, Center, Right };
+<pre id="code-2c75b422" style="display: none;">enum class TextHAlign { Left, Center, Right };
 
 inline void DrawTextWithEllipsis(ID2D1RenderTarget* rt,
     const std::wstring&amp; text, const D2D1_RECT_F&amp; rect,
@@ -730,7 +730,7 @@ inline void DrawTextWithEllipsis(ID2D1RenderTarget* rt,
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0ceec2a8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-9eb82eb5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TextOverflow</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Wrap</span><span class="p">,</span><span class="w"> </span><span class="n">Ellipsis</span><span class="w"> </span><span class="p">};</span>
 
@@ -776,7 +776,7 @@ inline void DrawTextWithEllipsis(ID2D1RenderTarget* rt,
 <span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">GetChildCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-0ceec2a8" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
+<pre id="code-9eb82eb5" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
 
 class Label : public UIElement {
     Label(const std::wstring&amp; text = L"Label");
@@ -833,7 +833,7 @@ class Label : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-88f476b3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-de72c3f9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// 图标字体：Win11 = "Segoe Fluent Icons"，Win10 = "Segoe MDL2 Assets"（运行期自动探测回退）</span>
 <span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">IconFontFamily</span><span class="p">();</span>
@@ -867,7 +867,7 @@ class Label : public UIElement {
 
 <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">FontIcon</span><span class="o">&gt;</span><span class="w"> </span><span class="n">MakeFontIcon</span><span class="p">(</span><span class="n">Icon</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">16.0f</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">黑</span><span class="p">);</span>
 </pre></div>
-<pre id="code-88f476b3" style="display: none;">// 图标字体：Win11 = "Segoe Fluent Icons"，Win10 = "Segoe MDL2 Assets"（运行期自动探测回退）
+<pre id="code-de72c3f9" style="display: none;">// 图标字体：Win11 = "Segoe Fluent Icons"，Win10 = "Segoe MDL2 Assets"（运行期自动探测回退）
 const std::wstring&amp; IconFontFamily();
 
 enum class Icon : unsigned short {   // 枚举值 = 字体码点本身（不维护平行码点表）
@@ -909,7 +909,7 @@ std::shared_ptr&lt;FontIcon&gt; MakeFontIcon(Icon, float size = 16.0f, Color = �
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-94f0c41c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b87b06fc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Button</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span>
@@ -943,7 +943,7 @@ std::shared_ptr&lt;FontIcon&gt; MakeFontIcon(Icon, float size = 16.0f, Color = �
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultSize</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">height</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-94f0c41c" style="display: none;">class Button : public UIElement {
+<pre id="code-b87b06fc" style="display: none;">class Button : public UIElement {
     ZSignal&lt;&gt; Clicked;
     ZSignal&lt;bool&gt; Toggled;               // 仅 SetCheckable(true) 后有意义
 
@@ -986,7 +986,7 @@ std::shared_ptr&lt;FontIcon&gt; MakeFontIcon(Icon, float size = 16.0f, Color = �
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f10fbfe7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-5af32db3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TextBox</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span>
@@ -1032,7 +1032,7 @@ std::shared_ptr&lt;FontIcon&gt; MakeFontIcon(Icon, float size = 16.0f, Color = �
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetImeEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsImeEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-f10fbfe7" style="display: none;">class TextBox : public UIElement {
+<pre id="code-5af32db3" style="display: none;">class TextBox : public UIElement {
     ZSignal&lt;const std::wstring&amp;&gt; TextChanged;
     ZSignal&lt;&gt; ReturnPressed;
 
@@ -1091,7 +1091,7 @@ std::shared_ptr&lt;FontIcon&gt; MakeFontIcon(Icon, float size = 16.0f, Color = �
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1fd4f5b1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-fd28cd5f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ComboBox</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span>
@@ -1135,7 +1135,7 @@ std::shared_ptr&lt;FontIcon&gt; MakeFontIcon(Icon, float size = 16.0f, Color = �
 <span class="w">    </span><span class="c1">// 样式：SetNormalBgColor / SetHoverBgColor / SetBorderColor / SetIndicatorColor / SetListItemHeight 等</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-1fd4f5b1" style="display: none;">class ComboBox : public UIElement {
+<pre id="code-fd28cd5f" style="display: none;">class ComboBox : public UIElement {
     ZSignal&lt;int&gt; SelectionChanged;
     ZSignal&lt;&gt; DropDownOpened;
     ZSignal&lt;&gt; DropDownClosed;
@@ -1189,7 +1189,7 @@ std::shared_ptr&lt;FontIcon&gt; MakeFontIcon(Icon, float size = 16.0f, Color = �
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d5b7795d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-05bf1108', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ToggleSwitch</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span>
@@ -1205,7 +1205,7 @@ std::shared_ptr&lt;FontIcon&gt; MakeFontIcon(Icon, float size = 16.0f, Color = �
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationSpeed</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">speed</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-d5b7795d" style="display: none;">class ToggleSwitch : public UIElement {
+<pre id="code-05bf1108" style="display: none;">class ToggleSwitch : public UIElement {
     ZSignal&lt;bool&gt; Toggled;
 
     ToggleSwitch(bool initialState = false);
@@ -1227,7 +1227,7 @@ std::shared_ptr&lt;FontIcon&gt; MakeFontIcon(Icon, float size = 16.0f, Color = �
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-585abcad', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-1bc2ab4a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">State</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Unchecked</span><span class="p">,</span><span class="w"> </span><span class="n">PartiallyChecked</span><span class="p">,</span><span class="w"> </span><span class="n">Checked</span><span class="w"> </span><span class="p">};</span>
 
@@ -1255,7 +1255,7 @@ std::shared_ptr&lt;FontIcon&gt; MakeFontIcon(Icon, float size = 16.0f, Color = �
 <span class="w">                        </span><span class="n">ComPtr</span><span class="o">&lt;</span><span class="n">ID2D1SolidColorBrush</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">brush</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-585abcad" style="display: none;">enum class State { Unchecked, PartiallyChecked, Checked };
+<pre id="code-1bc2ab4a" style="display: none;">enum class State { Unchecked, PartiallyChecked, Checked };
 
 class CheckBox : public UIElement {
     ZSignal&lt;bool&gt; Toggled;
@@ -1291,7 +1291,7 @@ class CheckBox : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-efbdc0f8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-6d8d970a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">RadioButton</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CheckedChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// 自身勾选态变化</span>
@@ -1328,7 +1328,7 @@ class CheckBox : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMutualExclusion</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">GetMutualExclusion</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-efbdc0f8" style="display: none;">class RadioButton : public UIElement {
+<pre id="code-6d8d970a" style="display: none;">class RadioButton : public UIElement {
     ZSignal&lt;bool&gt; CheckedChanged;   // 自身勾选态变化
     ZSignal&lt;&gt; Clicked;
 
@@ -1375,7 +1375,7 @@ class RadioGroup : public LayoutHost {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e96b788d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-149c8447', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ScrollBarVisibility</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Auto</span><span class="p">,</span><span class="w"> </span><span class="n">Always</span><span class="p">,</span><span class="w"> </span><span class="n">Hidden</span><span class="w"> </span><span class="p">};</span>
 
@@ -1406,7 +1406,7 @@ class RadioGroup : public LayoutHost {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ScrollBy</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">deltaX</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">deltaY</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">animated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-e96b788d" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
+<pre id="code-149c8447" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
 
 class ScrollViewer : public UIElement {
     ZSignal&lt;float, float&gt; ScrollChanged;     // (offsetX, offsetY)
@@ -1446,7 +1446,7 @@ class ScrollViewer : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c512da3d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-80b2585e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ScrollBar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">animate</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span><span class="w">  </span><span class="c1">// 用户拖动/点轨道 → (新值, 是否平滑)</span>
@@ -1462,7 +1462,7 @@ class ScrollViewer : public UIElement {
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">ShrunkWidthRatio</span><span class="p">;</span><span class="w">   </span><span class="c1">// 完全收缩时粗细 = barWidth × 该值（默认 0.30）</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-c512da3d" style="display: none;">class ScrollBar : public UIElement {
+<pre id="code-80b2585e" style="display: none;">class ScrollBar : public UIElement {
     std::function&lt;void(float value, bool animate)&gt; ValueChanged;  // 用户拖动/点轨道 → (新值, 是否平滑)
 
     explicit ScrollBar(bool vertical);      // true=纵向, false=横向
@@ -1487,7 +1487,7 @@ class ScrollViewer : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-6a29ed5b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-8bc93a44', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ProgressBar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
@@ -1507,7 +1507,7 @@ class ScrollViewer : public UIElement {
 <span class="w">    </span><span class="c1">// ... 其余默认值/颜色 setter</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-6a29ed5b" style="display: none;">class ProgressBar : public UIElement {
+<pre id="code-8bc93a44" style="display: none;">class ProgressBar : public UIElement {
     ZSignal&lt;float&gt; ValueChanged;
 
     ProgressBar();
@@ -1534,7 +1534,7 @@ class ScrollViewer : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-fb032e75', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-bfabc035', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ProgressRing</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ProgressRing</span><span class="p">();</span>
@@ -1547,7 +1547,7 @@ class ScrollViewer : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationSpeed</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-fb032e75" style="display: none;">class ProgressRing : public UIElement {
+<pre id="code-bfabc035" style="display: none;">class ProgressRing : public UIElement {
     ProgressRing();
     explicit ProgressRing(float size);
     void SetValue(float v);            // 0..1（变化走缓动）
@@ -1567,7 +1567,7 @@ class ScrollViewer : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-be9314d4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e6ec5bda', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Slider</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
@@ -1585,7 +1585,7 @@ class ScrollViewer : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetThumbSize</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTrackHeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-be9314d4" style="display: none;">class Slider : public UIElement {
+<pre id="code-e6ec5bda" style="display: none;">class Slider : public UIElement {
     ZSignal&lt;float&gt; ValueChanged;
     ZSignal&lt;&gt; SliderReleased;           // 拖拽结束（或键盘调整结束）
 
