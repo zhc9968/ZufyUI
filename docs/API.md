@@ -222,6 +222,7 @@ btn->Connect(btn->Clicked, [b]() { b->SetText(L"..."); });
 | `RepaintRequest` | `UIElement*` | 控件请求重绘 | `RequestRepaint()` 的底层 |
 | `LayoutInvalidated` | — | 全局布局失效 | `InvalidateLayout()` 的底层 |
 | `DeviceReset` | — | 渲染设备资源被丢弃/重建（设备丢失、DPI 变化、窗口销毁等） | 订阅者应清理按渲染目标/设备缓存的东西（如 `ImageManager` 的图像位图缓存） |
+| `Error` | `const std::wstring&` | 库内部错误（窗口 / 菜单 / 合成后端 / 设备创建失败等） | 应用可订阅以提示或兜底；库仍按原语义返回失败（不抛异常、不改变控制流） |
 
 > 这些是“全局单例信号”，不是某个控件的成员。连接它们时同样建议登记到一个明确的 `ConnectionGroup`，否则需要自行在合适时机断开。
 
@@ -1060,7 +1061,7 @@ int WINAPI WinMain(...) {
 - **模态 / 父子窗口**：`Window::SetOwner(owner)` 建立 owned 子窗口（始终在所有者之上、随其最小化）；`Window::RunModal(owner)` 以模态运行（禁用所有者、嵌套消息循环、关闭后恢复）。模态期间点击被禁用的所有者窗口，模态窗口会**闪烁**提示。
 - **窗口句柄与悬垂**：元素内部用**窗口 id** 记录所属窗口（而不是裸指针），窗口销毁后 `GetWindow()` 返回 `nullptr`，从根本上避免“元素持有已销毁窗口指针”导致的崩溃。
 - **共享资源**：`ID2D1Factory` 与系统计时器精度（`timeBeginPeriod`）由应用核心统一管理，多窗口共享。
-- **独立渲染线程**：默认（`ZUFYUI_RENDER_THREAD`）下，框架用独立 render 线程负责**合成 / `Present` / vblank 节拍**，UI 线程只做消息、输入、布局、动画并标脏（`RequestRepaint()` 会自动**合并去抖**）。因此元素的 **`Draw()` 运行在 render 线程**，而 `Measure` / `Arrange` / `UpdateAnimation` 运行在 UI 线程，两者由内部锁串行、不会并发。自定义控件若在 `Draw()` 里读自己的可变状态，请让该状态只在 `Draw()` / 动画中更新，或自行加锁。编译期把 `ZUFYUI_RENDER_THREAD` 设为 `0` 即退回单线程 `WM_PAINT` 路径。
+- **独立渲染线程（实验特性，默认关闭、不建议开启）**：`ZUFYUI_RENDER_THREAD` 默认为 **`0`** —— 单线程 `WM_PAINT` 绘制，行为稳定，**推荐**。置 `1` 会启用独立 render 线程（负责**合成 / `Present` / vblank 节拍**，UI 线程只做消息/输入/布局/动画并标脏）。⚠️ **该机制目前不稳定、bug 较多**（弹窗/菜单空白、悬停/`tooltip` 与按钮 hover 更新延迟、嵌套页面切换延迟、大数据量虚拟列表偶发崩溃等），**不建议在正式项目开启**；仅在确需 vblank 级顺滑且能承担调试成本时谨慎试用。
 - **向后兼容**：单窗口写法仍然有效——`Window win; win.Create(...); win.Show(); win.Run();`（1.8.0 起 `Create` 不再自动显示，需显式 `Show()`）；`Run()` 会转发到应用级消息循环。
 
 ## 多窗口常见坑
@@ -2315,6 +2316,73 @@ virtual bool OnWindowTimer(int id);     // WM_TIMER
 virtual void OnWindowSize();            // WM_SIZE（依赖客户区宽度的收尾布局）
 void SetInputBlocked(bool on);          // 屏蔽本窗口鼠标/键盘输入
 ```
+
+###chapter: 系统对话框 | FileDialog（文件/文件夹）· ColorDialog（颜色）
+
+> 定义在 `ZufyUIWindowTool.h`。文件/文件夹用**新版 COM 接口** `IFileOpenDialog` / `IFileSaveDialog`（替代过时的 `GetOpenFileName` / `GetSaveFileName`），支持类型过滤、多选、选文件夹、另存为。颜色用 Windows 通用 `ChooseColor`。
+
+## FileDialog
+
+```cpp
+struct FileFilter {
+    std::wstring label;                  // 显示名，如 "图片"
+    std::vector<std::wstring> patterns;  // 如 { "*.png", "*.jpg" }
+};
+
+struct FileDialogOptions {
+    std::wstring title;
+    std::wstring initialDir;             // 初始目录
+    std::wstring defaultFileName;        // 另存为默认文件名
+    std::wstring defaultExtension;       // 另存为默认扩展名（如 "png"）
+    std::vector<FileFilter> filters;     // 类型选型（可多组）
+    int  filterIndex = 1;                // 1-based，默认选中第几组
+    bool addAllFiles = true;             // 追加“所有文件 (*.*)”
+    bool pickFolders = false;            // 选文件夹
+    bool multiSelect = false;            // 多项批量
+    bool save = false;                   // 另存为
+    bool forceFilesystem = true;         // 只返回真实文件系统项
+};
+
+class FileDialog {
+public:
+    static std::vector<std::wstring> Open(HWND owner, const FileDialogOptions& = {});
+    static std::vector<std::wstring> OpenFiles(HWND owner, const FileDialogOptions& = {});    // 多选
+    static std::vector<std::wstring> PickFolders(HWND owner, const FileDialogOptions& = {});  // 文件夹（可多选）
+    static std::vector<std::wstring> Save(HWND owner, const FileDialogOptions& = {});
+    static std::optional<std::wstring> OpenOne(HWND, const FileDialogOptions& = {});
+    static std::optional<std::wstring> PickFolder(HWND, const FileDialogOptions& = {});
+    static std::optional<std::wstring> SaveOne(HWND, const FileDialogOptions& = {});
+    static std::vector<std::wstring> FilterLabels(const std::vector<FileFilter>&, bool addAllFiles = true);
+};
+```
+
+- 返回**绝对路径**（多选返回全部）；用户取消返回空。
+- **类型过滤** = `filters`；**多项批量** = `multiSelect`（或直接 `OpenFiles`）；**文件夹** = `pickFolders`（`FOS_PICKFOLDERS`）；**另存为** = `IFileSaveDialog` + `defaultFileName` / `defaultExtension`。
+- COM 自动 `CoInitializeEx(STA)`，仅在本次初始化时 `CoUninitialize`；`RPC_E_CHANGED_MODE`（MTA）下 `CoCreateInstance` 失败→返回空。
+- 用法：
+```cpp
+FileDialogOptions o;
+o.title = L"选择图片";
+o.filters = { { L"图片", { L"*.png", L"*.jpg", L"*.bmp" } }, { L"文本", { L"*.txt" } } };
+o.multiSelect = true;
+auto files  = FileDialog::OpenFiles(win.GetHwnd(), o);   // 多选
+auto folder = FileDialog::PickFolder(win.GetHwnd());     // 选文件夹
+```
+
+## ColorDialog
+
+```cpp
+class ColorDialog {
+public:
+    struct Options { bool fullOpen = true; bool allowCustom = true; std::vector<Color> custom; };
+    static std::optional<Color> Pick(HWND owner, Color initial = Color(1,0,0,1), const Options& = {});
+};
+```
+- 基于 Windows 通用颜色对话框 `ChooseColor`；返回颜色的 alpha 保留 `initial` 的 alpha，取消返回 `std::nullopt`。
+
+## 主题化：Common Controls v6（可选）
+
+`ChooseColor` / `MessageBox` 等系统公共控件的观感取决于应用的 **manifest**。在包含本库头之前 `#define ZUFYUI_ENABLE_COMCTL_V6`，本库会注入 Common Controls v6 的 manifest 依赖（主题化）。因 manifest 是**应用级**的，可能与其它清单/依赖冲突，**默认关闭**，由应用自行决定。
 
 ###chapter: 附录 | 信号一览、默认值速查与常见坑
 

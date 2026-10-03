@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>附录 · ZufyUI API 参考</title>
+    <style>
+
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2980b9;
+    --text-color: #333;
+    --bg-color: #f9f9f9;
+    --code-bg: #f0f0f0;
+    --border-color: #ddd;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --error-color: #e74c3c;
+    --muted-color: #6b7785;
+    --hover-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    --active-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    --toc-active-bg: rgba(52,152,219,0.10);
+    --panel-bg: #ffffff;
+}
+html[data-theme="dark"] {
+    --primary-color: #5dade2;
+    --secondary-color: #3498db;
+    --text-color: #e6e6e6;
+    --bg-color: #1b2631;
+    --code-bg: #2c3e50;
+    --border-color: #4a5a68;
+    --muted-color: #9aa7b4;
+    --hover-shadow: 0 8px 16px rgba(0,0,0,0.4);
+    --active-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    --toc-active-bg: rgba(93,173,226,0.15);
+    --panel-bg: #22303c;
+}
+* { box-sizing: border-box; }
+body {
+    font-family: 'Noto Sans SC', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.8; color: var(--text-color); background-color: var(--bg-color);
+    margin: 0; padding: 0; text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+}
+.layout { display: flex; align-items: flex-start; gap: 32px; max-width: 1440px; margin: 0 auto; padding: 16px 24px 90px; }
+.content { flex: 1 1 auto; min-width: 0; max-width: 1080px; }
+
+/* ---------- 侧栏 ---------- */
+.toc-sidebar {
+    position: sticky; top: 44px; flex: 0 0 260px; width: 260px;
+    max-height: calc(100vh - 100px); overflow-y: auto; font-size: 0.85rem;
+    padding-right: 4px;
+}
+.sidebar-head { display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; letter-spacing: 0.08em; color: var(--muted-color); text-transform: uppercase; padding: 0 0 8px 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; }
+.toc-collapse { background: none; border: 1px solid var(--border-color); color: var(--muted-color); cursor: pointer; font-size: 1.25rem; line-height: 1; padding: 2px 12px; border-radius: 6px; transition: all .2s ease; }
+.toc-collapse:hover { background: var(--toc-active-bg); color: var(--primary-color); }
+.sidebar-section { margin-bottom: 20px; }
+.sidebar-heading { font-size: 0.72rem; letter-spacing: 0.08em; color: var(--muted-color); text-transform: uppercase; padding: 4px 0 6px 12px; }
+
+/* ---------- 章节列表 ---------- */
+.chapter-list { list-style: none; margin: 0; padding: 0; }
+.chapter-list a { display: flex; gap: 8px; align-items: baseline; color: var(--muted-color); text-decoration: none; font-size: 0.85rem; line-height: 1.5; padding: 5px 8px 5px 12px; border-left: 2px solid transparent; transition: all .2s ease; word-break: break-word; }
+.chapter-list a:hover { color: var(--primary-color); }
+.chapter-list li.active > a { color: var(--primary-color); border-left-color: var(--primary-color); background: var(--toc-active-bg); font-weight: 600; }
+.chapter-list .chapter-index { font-size: 0.72rem; opacity: 0.65; min-width: 15px; text-align: center; }
+
+/* ---------- 大纲 ---------- */
+.toc-list, .toc-sublist { list-style: none; margin: 0; padding: 0; }
+.toc-sublist { padding-left: 14px; border-left: 1px solid var(--border-color); margin-left: 6px; }
+.toc-row { display: flex; align-items: center; gap: 4px; }
+.toc-row > a { flex: 1 1 auto; min-width: 0; }
+.toc-caret { flex: 0 0 auto; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: none; background: none; cursor: pointer; color: var(--muted-color); font-size: 0.95rem; line-height: 1; padding: 0; border-radius: 4px; }
+.toc-caret:hover { color: var(--primary-color); background: var(--toc-active-bg); }
+.toc-caret-space { flex: 0 0 auto; width: 24px; }
+.toc-caret .arrow { display: inline-block; transition: transform .2s ease; }
+.toc-item.collapsed > .toc-row .arrow { transform: rotate(-90deg); }
+.toc-item.collapsed > .toc-sublist { display: none; }
+.toc-list a { display: block; flex: 1 1 auto; color: var(--muted-color); text-decoration: none; line-height: 1.5; padding: 4px 4px; border-left: 2px solid transparent; transition: color .2s ease, border-color .2s ease, background .2s ease; word-break: break-word; }
+.toc-list a:hover { color: var(--primary-color); }
+.toc-list a.active { color: var(--primary-color); border-left-color: var(--primary-color); background: var(--toc-active-bg); font-weight: 600; }
+
+/* ---------- 折叠整栏 ---------- */
+.toc-toggle { position: fixed; top: 14px; left: 14px; z-index: 200; display: none; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); font-size: 1.15rem; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.15); transition: transform .2s ease; }
+.toc-toggle:hover { transform: scale(1.08); color: var(--primary-color); }
+body.toc-collapsed .toc-sidebar { display: none; }
+body.toc-collapsed .toc-toggle { display: flex; }
+body.no-sidebar .toc-sidebar { display: none; }
+body.no-sidebar .toc-toggle { display: none; }
+
+/* ---------- 主题切换 ---------- */
+.theme-toggle { position: fixed; top: 14px; right: 18px; z-index: 200; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-color); font-size: 1.15rem; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.15); transition: transform .2s ease; }
+.theme-toggle:hover { transform: scale(1.08) rotate(15deg); color: var(--primary-color); }
+
+/* ---------- 面包屑 ---------- */
+.breadcrumb { font-size: 0.85rem; color: var(--muted-color); margin-bottom: 14px; }
+.breadcrumb a { color: var(--primary-color); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb .sep { margin: 0 8px; opacity: .5; }
+
+/* ---------- 阅读辅助 ---------- */
+.reading-aid { margin: 0 0 16px; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+.reading-aid-toggle { width: 100%; text-align: left; background: var(--panel-bg); border: none; padding: 10px 14px; cursor: pointer; color: var(--muted-color); font-size: 0.86rem; display: flex; align-items: center; gap: 8px; transition: background .2s ease, color .2s ease; }
+.reading-aid-toggle:hover { background: var(--toc-active-bg); color: var(--primary-color); }
+.reading-aid-toggle .ra-icon { display: inline-block; transition: transform .2s ease; }
+.reading-aid.open .ra-icon { transform: rotate(90deg); }
+.reading-aid-body { display: none; border-top: 1px solid var(--border-color); background: var(--code-bg); max-height: 520px; overflow: auto; }
+.reading-aid.open .reading-aid-body { display: block; }
+.reading-aid-body pre { margin: 0; border-radius: 0; border-left: 4px solid var(--primary-color); background: var(--code-bg); white-space: pre-wrap; word-break: break-word; font-size: 0.85em; }
+.ai-read-hint { display: none; }
+
+/* ---------- 章节页头 ---------- */
+.chapter-header { margin: 0 0 8px; padding-bottom: 12px; border-bottom: 2px solid var(--primary-color); }
+.chapter-header .chapter-eyebrow { font-size: 0.78rem; letter-spacing: 0.1em; color: var(--muted-color); text-transform: uppercase; }
+.chapter-header h1 { margin: 0.15em 0 0.2em; border: none; padding: 0; }
+.chapter-header .chapter-summary { margin: 0; color: var(--muted-color); font-size: 0.95rem; }
+
+/* ---------- 章节预览卡片 ---------- */
+.chapter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; margin: 24px 0; }
+.chapter-card { display: block; text-decoration: none; color: inherit; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px 18px; transition: all .25s ease; }
+.chapter-card:hover { transform: translateY(-4px); border-color: var(--primary-color); box-shadow: var(--hover-shadow); }
+.chapter-card .card-no { font-size: 0.72rem; letter-spacing: 0.08em; color: var(--muted-color); text-transform: uppercase; }
+.chapter-card h3 { margin: 0.2em 0 0.4em; color: var(--primary-color); border: none; font-size: 1.1rem; }
+.chapter-card p { margin: 0; font-size: 0.85rem; color: var(--muted-color); text-align: left; }
+
+/* ---------- 上一章 / 下一章 跳转框 ---------- */
+.chapter-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 52px 0 8px; }
+.chapter-nav a { display: block; text-decoration: none; color: inherit; border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 18px; background: var(--panel-bg); transition: all .25s ease; }
+.chapter-nav a:hover { border-color: var(--primary-color); box-shadow: var(--hover-shadow); transform: translateY(-2px); }
+.chapter-nav .nav-label { font-size: 0.75rem; color: var(--muted-color); }
+.chapter-nav .nav-title { display: block; color: var(--primary-color); font-weight: 600; margin: 2px 0; font-size: 1rem; }
+.chapter-nav .nav-desc { font-size: 0.82rem; color: var(--muted-color); display: block; }
+.chapter-nav .next { text-align: right; }
+
+/* ---------- 正文排版 ---------- */
+p { margin: 1.2em 0; text-align: justify; letter-spacing: 0.02em; }
+img { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: all 0.3s ease; margin: 15px 0; display: block; }
+img:hover { transform: scale(1.02); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+.code-header { display: flex; justify-content: space-between; align-items: center; background-color: rgba(0,0,0,0.1); padding: 5px 10px; border-radius: 5px 5px 0 0; font-size: 0.8em; }
+.code-language { color: var(--text-color); opacity: 0.8; font-weight: bold; }
+.copy-btn { background-color: var(--primary-color); color: white; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 0.7em; transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, filter .18s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transform: scale(1); }
+.copy-btn.hover, .copy-btn:hover { transform: scale(1.12); filter: brightness(1.15); box-shadow: 0 3px 10px rgba(0,0,0,0.28); }
+.copy-btn:active { transform: scale(0.96); }
+.copy-btn.copied { background-color: #2ecc71; transform: scale(1.12); }
+pre, code, .highlight { font-family: 'Fira Code', 'Consolas', 'Monaco', 'Andale Mono', 'Noto Sans SC', monospace; font-size: 0.95em; line-height: 1.5; }
+pre { padding: 15px; overflow-x: auto; border-radius: 0 0 5px 5px; border-left: 4px solid var(--primary-color); tab-size: 4; background-color: var(--code-bg); margin: 0; }
+.highlight { background-color: var(--code-bg); border-radius: 0 0 5px 5px; padding: 0; margin: 0; }
+.code-container { position: relative; margin: 20px 0; border-radius: 5px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); background-color: var(--code-bg); overflow: hidden; }
+.back-to-top { position: fixed; bottom: 30px; right: 30px; background-color: var(--primary-color); color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; visibility: hidden; transition: all 0.3s ease; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 100; }
+.back-to-top.show { opacity: 1; visibility: visible; }
+.back-to-top:hover { transform: scale(1.1); }
+h1, h2, h3, h4 { color: var(--primary-color); margin-top: 1.5em; transition: color 0.3s ease; scroll-margin-top: 78px; }
+h1 { border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; }
+code { font-family: 'Consolas', 'Courier New', monospace; background-color: var(--code-bg); padding: 2px 5px; border-radius: 3px; }
+.green { background-color: #e8f8f5; border-left: 4px solid var(--success-color); padding: 15px; margin: 20px 0; border-radius: 0 5px 5px 0; }
+.orange { background-color: #fff8e6; border-left: 4px solid var(--warning-color); padding: 15px; margin: 20px 0; border-radius: 0 5px 5px 0; }
+.red { background-color: #ffebee; border-left: 4px solid var(--error-color); padding: 15px; margin: 20px 0; border-radius: 0 5px 5px 0; }
+table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+th, td { border: 1px solid var(--border-color); padding: 8px 12px; text-align: left; }
+tr:hover td { background-color: rgba(0,0,0,0.05); }
+th { background-color: var(--primary-color); color: white; }
+.feature-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin: 20px 0; }
+.feature-item { background-color: rgba(127,127,127,0.08); padding: 15px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.3s ease; cursor: pointer; border: 1px solid rgba(127,127,127,0.12); }
+.feature-item:hover { transform: translateY(-5px) scale(1.02); box-shadow: var(--hover-shadow); z-index: 2; }
+ul { padding-left: 20px; }
+li { margin: 5px 0; }
+pre { line-height: 125%; }
+.highlight { background: #f8f8f8; }
+.highlight .hll { background-color: #ffffcc }
+.highlight .c, .highlight .ch, .highlight .cm, .highlight .cpf, .highlight .c1, .highlight .cs { color: #3D7B7B; font-style: italic }
+.highlight .k, .highlight .kc, .highlight .kd, .highlight .kn, .highlight .kr, .highlight .nb, .highlight .bp { color: #008000; font-weight: bold }
+.highlight .o, .highlight .ow { color: #666 }
+.highlight .s, .highlight .sa, .highlight .sb, .highlight .sc, .highlight .dl, .highlight .sd, .highlight .s2, .highlight .sh, .highlight .sx, .highlight .s1, .highlight .sr { color: #BA2121 }
+.highlight .m, .highlight .mb, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo, .highlight .il { color: #666 }
+.highlight .nc, .highlight .nn, .highlight .nf, .highlight .fm { color: #0000FF }
+.highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi, .highlight .vm { color: #19177C }
+@media (max-width: 1000px) {
+    .layout { flex-direction: column; gap: 0; padding: 20px 14px 80px; }
+    .toc-sidebar { position: static; width: auto; flex: none; max-height: none; margin-bottom: 20px; }
+    .content { max-width: 100%; }
+    .chapter-nav { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+    .feature-list, .chapter-grid { grid-template-columns: 1fr; }
+    .back-to-top { width: 40px; height: 40px; bottom: 20px; right: 20px; }
+}
+
+    </style>
+</head>
+<body class="">
+    <div class="ai-read-hint">
+面向 AI 智能体：本页的「阅读辅助」区块内含有与正文完全一致的原始 Markdown 源码，已去除 HTML 标签与动画特效。建议 AI 直接读取该区块，以更低的噪声快速理解内容。
+    </div>
+    <!-- AI-READ: the .reading-aid element contains this page's raw Markdown source, identical to the rendered content but without HTML/animations. -->
+    <button class="toc-toggle" id="tocToggle" title="显示目录">&#9776;</button>
+    <button class="theme-toggle" id="themeToggle" title="切换主题（浅色/深色）">&#9789;</button>
+
+    <div class="layout">
+        <aside class="toc-sidebar" id="tocSidebar">
+            <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>系统对话框</a></li><li class="active"><a href="API.16.html"><span class="chapter-index">16</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="信号一览更新后"><div class="toc-row"><a href="#信号一览更新后" data-target="信号一览更新后">信号一览（更新后）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="常用默认值速查"><div class="toc-row"><a href="#常用默认值速查" data-target="常用默认值速查">常用默认值速查</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="常见坑实战最容易踩"><div class="toc-row"><a href="#常见坑实战最容易踩" data-target="常见坑实战最容易踩">常见坑（实战最容易踩）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="完整示例"><div class="toc-row"><a href="#完整示例" data-target="完整示例">完整示例</a><span class="toc-caret-space"></span></div></li></ul></div>
+        </aside>
+        <main class="content">
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## 信号一览（更新后）
+
+| 类 | 信号 | 参数 |
+| --- | --- | --- |
+| `Button` | `Clicked` / `Toggled` | — / `bool` |
+| `CheckBox` | `Toggled` / `StateChanged` | `bool` / `State` |
+| `TextBox` | `TextChanged` / `ReturnPressed` | `const std::wstring&amp;` / — |
+| `ComboBox` | `SelectionChanged` / `DropDownOpened` / `DropDownClosed` | `int` / — / — |
+| `ToggleSwitch` | `Toggled` | `bool` |
+| `ProgressBar` | `ValueChanged` | `float` |
+| `Slider` | `ValueChanged` / `SliderReleased` | `float` / — |
+| `ScrollViewer` | `ScrollChanged` | `float, float` |
+| `ListView` | `SelectionChanged` / `ItemClicked` / `ItemDoubleClicked` / `SelectionChangedMulti` / `ItemCheckStateChanged` / `ItemRightClicked` | `int` / `int` / `int` / `std::vector&lt;int&gt;` / `int,bool` / `int` |
+| `TableView` | `CellClicked` / `CellDoubleClicked` / `HeaderClicked` / `CurrentCellChanged` / `SelectionChangedCells` / `ItemCheckStateChanged` / `CellRightClicked` | `int,int` / `int,int` / `int` / `int,int` / `vector&lt;pair&lt;int,int&gt;&gt;` / `int,bool` / `int,int` |
+| `TrayIcon` | `Clicked` / `DoubleClicked` / `RightClicked` / `HoverEnter` / `HoverLeave` / `Selected` / `BalloonClicked` / `BalloonDismissed` / `BalloonTimeout` | — |
+| `Menu` | `ItemSelected` | `int` |
+| `TreeView` | `SelectionChanged` / `NodeClicked` / `ItemDoubleClicked` / `ItemRightClicked` / `HeaderClicked` / `SelectionChangedMulti` / `ExpandChanged` / `ItemCheckStateChanged` | 见上 |
+| `FontManager` | `GlobalFontChanged` | — |
+| `UIZSignals` | `DrawOverlay` / `GlobalMouseDown` / `WindowDeactivated` / `ElementCaptureRequest` / `ElementCaptureRelease` / `RepaintRequest` / `LayoutInvalidated` / `DeviceReset` | 见第 4 章 |
+
+## 常用默认值速查
+
+| 项 | 值 |
+| --- | --- |
+| 全局字体 | `Segoe UI` / `14.0f` |
+| 窗口默认背景 | `Backdrop::None` / tint `0` |
+| 根布局 margin / spacing | `20` / `10` |
+| 帧时间上限 `deltaTime` | `0.033s` |
+| 窗口定时器 | `16ms`，`timeBeginPeriod(1)` |
+| 阴影默认 | 颜色 `(0,0,0.02,0.42)`，`blur 10`，`offset (0,3)` |
+| ToolTip 悬停延迟 | `0.5s` |
+| Label | 字号 `16`，`Ellipsis`，垂直居中 |
+| Button | `120×36`，圆角 `4`，蓝底白字 |
+| TextBox | `160×30`，字号 `14`，光标闪烁 `0.5s` |
+| ComboBox | `160×30`，列表项高 `24` |
+| ToggleSwitch | `50×24` |
+| CheckBox | 尺寸 `16`，圆角 `4` |
+| ScrollViewer | 滚动条宽 `8`，最小长度 `20`，滚轮步长 `30` |
+| ProgressBar | `200×20` |
+| Slider | `160×24`，范围 `[0,100]`，轨道高 `4`，滑块 `14` |
+| ListView | `200×200`，行高 `28` |
+| TableView | `400×300`，表头 `26`，默认行高 `24`，最小列宽 `40` |
+| TreeView | `400×300`，行高 `24`，缩进 `16` |
+
+## 常见坑（实战最容易踩）
+
+1. **颜色分量是 `[0,1]`**：`Color(255,0,0)` 是错的；用 `Color(1,0,0)` 或 `FromArgb(255,255,0,0)`。
+2. **信号里捕获了宿主的 `shared_ptr`**：形成引用环导致整棵子树泄漏。改捕获原始指针或 `weak_ptr`（见第 4 章）。
+3. **改属性后忘记重绘**：框架提供的 setter 通常已 `RequestRepaint()`；若你直接改内部数据，要自己调。
+4. **元素不可见后仍想更新其状态**：`SetVisible(false)` 会释放缓存，但布局仍保留；重新显示时会重建。
+5. **禁用不等于隐藏**：`SetEnabled(false)` 仍占布局、仍显示（灰色）；隐藏用 `SetVisible(false)`。
+6. **焦点环只在 Tab 时出现**：鼠标点击获得焦点不画环，这是刻意行为，不是 bug。
+7. **`deltaTime` 已被钳制**：写动画时按“秒”计算即可，不用再自己防超大 `dt`。
+8. **数据视图排序后附加信息错位**：当前版本已通过“按项目绑定 / 元数据重映射”修复；但如果你**自己重排**内部容器，需要自行维护这些信息。
+9. **`PageHost::NavigateTo` 是异步的**：动画结束后 `GetCurrentIndex()` 才变化。
+10. **`GetChildren()` 返回引用**：不要缓存它在手的同时去修改元素的子列表；遍历中调用是安全的。
+
+## 完整示例
+
+```cpp
+#include "ZDataViewer.h"
+using namespace ZufyUI;
+
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+    Window win;
+    if (!win.Create(900, 600, L"ZufyUI 示例")) return 1;
+
+    auto root = win.GetRootColumnBox();
+    root-&gt;SetSpacing(10);
+
+    // 顶部：开关 + 滑块 + 进度条
+    auto row = std::make_shared&lt;RowBox&gt;();
+    row-&gt;SetSpacing(10);
+
+    auto toggle = std::make_shared&lt;ToggleSwitch&gt;(false);
+    auto slider = std::make_shared&lt;Slider&gt;();
+    slider-&gt;SetRange(0.0f, 1.0f);
+    slider-&gt;SetStep(0.1f);
+    slider-&gt;SetSnapToStep(true);
+    auto bar = std::make_shared&lt;ProgressBar&gt;();
+    bar-&gt;SetShowText(true);
+
+    toggle-&gt;Connect(toggle-&gt;Toggled, [bar](bool on) { bar-&gt;SetIndeterminate(on); });
+    slider-&gt;Connect(slider-&gt;ValueChanged, [bar](float v) { bar-&gt;SetValue(v); });
+
+    row-&gt;AddChild(toggle);
+    row-&gt;AddChild(slider);
+    row-&gt;AddChild(bar);
+    root-&gt;AddChild(row);
+
+    // 中间：列表（含禁用项、颜色、提示、排序）
+    auto list = std::make_shared&lt;ListView&gt;();
+    list-&gt;SetFillHeight(true);
+    list-&gt;SetSelectionMode(ListView::SelectionMode::Extended);
+    list-&gt;SetCheckable(true);
+    for (int i = 1; i &lt;= 20; ++i)
+        list-&gt;AddItem(L"项目 " + std::to_wstring(i));
+    list-&gt;SetItemDisabled(2, true);                                  // 第 3 项禁用
+    list-&gt;SetItemTextColor(3, Color::FromArgb(255, 200, 60, 60));    // 第 4 项红字
+    list-&gt;SetItemToolTip(1, L"这是第 2 项的提示");
+    list-&gt;SetSortComparator([](const std::wstring&amp; a, const std::wstring&amp; b) { return a &lt; b; });
+    list-&gt;SetShowSortIndicator(true);
+    list-&gt;SetSelectedIndex(0);
+    root-&gt;AddChild(list);
+
+    win.Show();          // 1.8.0 起 Create 不再自动显示，由应用调用 Show()
+    win.Run();
+    return 0;
+}
+```</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 16 章 · 附录</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 16 章</span><h1>附录</h1><p class="chapter-summary">信号一览、默认值速查与常见坑</p></header><h2 id="信号一览更新后">信号一览（更新后）</h2>
+<table>
+<thead>
+<tr>
+<th>类</th>
+<th>信号</th>
+<th>参数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Button</code></td>
+<td><code>Clicked</code> / <code>Toggled</code></td>
+<td>— / <code>bool</code></td>
+</tr>
+<tr>
+<td><code>CheckBox</code></td>
+<td><code>Toggled</code> / <code>StateChanged</code></td>
+<td><code>bool</code> / <code>State</code></td>
+</tr>
+<tr>
+<td><code>TextBox</code></td>
+<td><code>TextChanged</code> / <code>ReturnPressed</code></td>
+<td><code>const std::wstring&amp;</code> / —</td>
+</tr>
+<tr>
+<td><code>ComboBox</code></td>
+<td><code>SelectionChanged</code> / <code>DropDownOpened</code> / <code>DropDownClosed</code></td>
+<td><code>int</code> / — / —</td>
+</tr>
+<tr>
+<td><code>ToggleSwitch</code></td>
+<td><code>Toggled</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
+<td><code>ProgressBar</code></td>
+<td><code>ValueChanged</code></td>
+<td><code>float</code></td>
+</tr>
+<tr>
+<td><code>Slider</code></td>
+<td><code>ValueChanged</code> / <code>SliderReleased</code></td>
+<td><code>float</code> / —</td>
+</tr>
+<tr>
+<td><code>ScrollViewer</code></td>
+<td><code>ScrollChanged</code></td>
+<td><code>float, float</code></td>
+</tr>
+<tr>
+<td><code>ListView</code></td>
+<td><code>SelectionChanged</code> / <code>ItemClicked</code> / <code>ItemDoubleClicked</code> / <code>SelectionChangedMulti</code> / <code>ItemCheckStateChanged</code> / <code>ItemRightClicked</code></td>
+<td><code>int</code> / <code>int</code> / <code>int</code> / <code>std::vector&lt;int&gt;</code> / <code>int,bool</code> / <code>int</code></td>
+</tr>
+<tr>
+<td><code>TableView</code></td>
+<td><code>CellClicked</code> / <code>CellDoubleClicked</code> / <code>HeaderClicked</code> / <code>CurrentCellChanged</code> / <code>SelectionChangedCells</code> / <code>ItemCheckStateChanged</code> / <code>CellRightClicked</code></td>
+<td><code>int,int</code> / <code>int,int</code> / <code>int</code> / <code>int,int</code> / <code>vector&lt;pair&lt;int,int&gt;&gt;</code> / <code>int,bool</code> / <code>int,int</code></td>
+</tr>
+<tr>
+<td><code>TrayIcon</code></td>
+<td><code>Clicked</code> / <code>DoubleClicked</code> / <code>RightClicked</code> / <code>HoverEnter</code> / <code>HoverLeave</code> / <code>Selected</code> / <code>BalloonClicked</code> / <code>BalloonDismissed</code> / <code>BalloonTimeout</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Menu</code></td>
+<td><code>ItemSelected</code></td>
+<td><code>int</code></td>
+</tr>
+<tr>
+<td><code>TreeView</code></td>
+<td><code>SelectionChanged</code> / <code>NodeClicked</code> / <code>ItemDoubleClicked</code> / <code>ItemRightClicked</code> / <code>HeaderClicked</code> / <code>SelectionChangedMulti</code> / <code>ExpandChanged</code> / <code>ItemCheckStateChanged</code></td>
+<td>见上</td>
+</tr>
+<tr>
+<td><code>FontManager</code></td>
+<td><code>GlobalFontChanged</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>UIZSignals</code></td>
+<td><code>DrawOverlay</code> / <code>GlobalMouseDown</code> / <code>WindowDeactivated</code> / <code>ElementCaptureRequest</code> / <code>ElementCaptureRelease</code> / <code>RepaintRequest</code> / <code>LayoutInvalidated</code> / <code>DeviceReset</code></td>
+<td>见第 4 章</td>
+</tr>
+</tbody>
+</table>
+<h2 id="常用默认值速查">常用默认值速查</h2>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全局字体</td>
+<td><code>Segoe UI</code> / <code>14.0f</code></td>
+</tr>
+<tr>
+<td>窗口默认背景</td>
+<td><code>Backdrop::None</code> / tint <code>0</code></td>
+</tr>
+<tr>
+<td>根布局 margin / spacing</td>
+<td><code>20</code> / <code>10</code></td>
+</tr>
+<tr>
+<td>帧时间上限 <code>deltaTime</code></td>
+<td><code>0.033s</code></td>
+</tr>
+<tr>
+<td>窗口定时器</td>
+<td><code>16ms</code>，<code>timeBeginPeriod(1)</code></td>
+</tr>
+<tr>
+<td>阴影默认</td>
+<td>颜色 <code>(0,0,0.02,0.42)</code>，<code>blur 10</code>，<code>offset (0,3)</code></td>
+</tr>
+<tr>
+<td>ToolTip 悬停延迟</td>
+<td><code>0.5s</code></td>
+</tr>
+<tr>
+<td>Label</td>
+<td>字号 <code>16</code>，<code>Ellipsis</code>，垂直居中</td>
+</tr>
+<tr>
+<td>Button</td>
+<td><code>120×36</code>，圆角 <code>4</code>，蓝底白字</td>
+</tr>
+<tr>
+<td>TextBox</td>
+<td><code>160×30</code>，字号 <code>14</code>，光标闪烁 <code>0.5s</code></td>
+</tr>
+<tr>
+<td>ComboBox</td>
+<td><code>160×30</code>，列表项高 <code>24</code></td>
+</tr>
+<tr>
+<td>ToggleSwitch</td>
+<td><code>50×24</code></td>
+</tr>
+<tr>
+<td>CheckBox</td>
+<td>尺寸 <code>16</code>，圆角 <code>4</code></td>
+</tr>
+<tr>
+<td>ScrollViewer</td>
+<td>滚动条宽 <code>8</code>，最小长度 <code>20</code>，滚轮步长 <code>30</code></td>
+</tr>
+<tr>
+<td>ProgressBar</td>
+<td><code>200×20</code></td>
+</tr>
+<tr>
+<td>Slider</td>
+<td><code>160×24</code>，范围 <code>[0,100]</code>，轨道高 <code>4</code>，滑块 <code>14</code></td>
+</tr>
+<tr>
+<td>ListView</td>
+<td><code>200×200</code>，行高 <code>28</code></td>
+</tr>
+<tr>
+<td>TableView</td>
+<td><code>400×300</code>，表头 <code>26</code>，默认行高 <code>24</code>，最小列宽 <code>40</code></td>
+</tr>
+<tr>
+<td>TreeView</td>
+<td><code>400×300</code>，行高 <code>24</code>，缩进 <code>16</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="常见坑实战最容易踩">常见坑（实战最容易踩）</h2>
+<ol>
+<li><strong>颜色分量是 <code>[0,1]</code></strong>：<code>Color(255,0,0)</code> 是错的；用 <code>Color(1,0,0)</code> 或 <code>FromArgb(255,255,0,0)</code>。</li>
+<li><strong>信号里捕获了宿主的 <code>shared_ptr</code></strong>：形成引用环导致整棵子树泄漏。改捕获原始指针或 <code>weak_ptr</code>（见第 4 章）。</li>
+<li><strong>改属性后忘记重绘</strong>：框架提供的 setter 通常已 <code>RequestRepaint()</code>；若你直接改内部数据，要自己调。</li>
+<li><strong>元素不可见后仍想更新其状态</strong>：<code>SetVisible(false)</code> 会释放缓存，但布局仍保留；重新显示时会重建。</li>
+<li><strong>禁用不等于隐藏</strong>：<code>SetEnabled(false)</code> 仍占布局、仍显示（灰色）；隐藏用 <code>SetVisible(false)</code>。</li>
+<li><strong>焦点环只在 Tab 时出现</strong>：鼠标点击获得焦点不画环，这是刻意行为，不是 bug。</li>
+<li><strong><code>deltaTime</code> 已被钳制</strong>：写动画时按“秒”计算即可，不用再自己防超大 <code>dt</code>。</li>
+<li><strong>数据视图排序后附加信息错位</strong>：当前版本已通过“按项目绑定 / 元数据重映射”修复；但如果你<strong>自己重排</strong>内部容器，需要自行维护这些信息。</li>
+<li><strong><code>PageHost::NavigateTo</code> 是异步的</strong>：动画结束后 <code>GetCurrentIndex()</code> 才变化。</li>
+<li><strong><code>GetChildren()</code> 返回引用</strong>：不要缓存它在手的同时去修改元素的子列表；遍历中调用是安全的。</li>
+</ol>
+<h2 id="完整示例">完整示例</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-1400a05c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZDataViewer.h"</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="nf">WinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Window</span><span class="w"> </span><span class="n">win</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">win</span><span class="p">.</span><span class="n">Create</span><span class="p">(</span><span class="mi">900</span><span class="p">,</span><span class="w"> </span><span class="mi">600</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"ZufyUI 示例"</span><span class="p">))</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">win</span><span class="p">.</span><span class="n">GetRootColumnBox</span><span class="p">();</span>
+<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">SetSpacing</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// 顶部：开关 + 滑块 + 进度条</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">row</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">RowBox</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">SetSpacing</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">toggle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">ToggleSwitch</span><span class="o">&gt;</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">slider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Slider</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">SetRange</span><span class="p">(</span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">);</span>
+<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">SetStep</span><span class="p">(</span><span class="mf">0.1f</span><span class="p">);</span>
+<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">SetSnapToStep</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">ProgressBar</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetShowText</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">toggle</span><span class="o">-&gt;</span><span class="n">Connect</span><span class="p">(</span><span class="n">toggle</span><span class="o">-&gt;</span><span class="n">Toggled</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="n">bar</span><span class="p">](</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetIndeterminate</span><span class="p">(</span><span class="n">on</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">Connect</span><span class="p">(</span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">ValueChanged</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="n">bar</span><span class="p">](</span><span class="kt">float</span><span class="w"> </span><span class="n">v</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetValue</span><span class="p">(</span><span class="n">v</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+
+<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">toggle</span><span class="p">);</span>
+<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">slider</span><span class="p">);</span>
+<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
+<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">row</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// 中间：列表（含禁用项、颜色、提示、排序）</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">list</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">ListView</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetFillHeight</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetSelectionMode</span><span class="p">(</span><span class="n">ListView</span><span class="o">::</span><span class="n">SelectionMode</span><span class="o">::</span><span class="n">Extended</span><span class="p">);</span>
+<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetCheckable</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span>
+<span class="w">        </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">AddItem</span><span class="p">(</span><span class="sa">L</span><span class="s">"项目 "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">to_wstring</span><span class="p">(</span><span class="n">i</span><span class="p">));</span>
+<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetItemDisabled</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span><span class="w">                                  </span><span class="c1">// 第 3 项禁用</span>
+<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetItemTextColor</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="o">::</span><span class="n">FromArgb</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="mi">60</span><span class="p">));</span><span class="w">    </span><span class="c1">// 第 4 项红字</span>
+<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetItemToolTip</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"这是第 2 项的提示"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetSortComparator</span><span class="p">([](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">b</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetShowSortIndicator</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetSelectedIndex</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">list</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">win</span><span class="p">.</span><span class="n">Show</span><span class="p">();</span><span class="w">          </span><span class="c1">// 1.8.0 起 Create 不再自动显示，由应用调用 Show()</span>
+<span class="w">    </span><span class="n">win</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<pre id="code-1400a05c" style="display: none;">#include "ZDataViewer.h"
+using namespace ZufyUI;
+
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+    Window win;
+    if (!win.Create(900, 600, L"ZufyUI 示例")) return 1;
+
+    auto root = win.GetRootColumnBox();
+    root-&gt;SetSpacing(10);
+
+    // 顶部：开关 + 滑块 + 进度条
+    auto row = std::make_shared&lt;RowBox&gt;();
+    row-&gt;SetSpacing(10);
+
+    auto toggle = std::make_shared&lt;ToggleSwitch&gt;(false);
+    auto slider = std::make_shared&lt;Slider&gt;();
+    slider-&gt;SetRange(0.0f, 1.0f);
+    slider-&gt;SetStep(0.1f);
+    slider-&gt;SetSnapToStep(true);
+    auto bar = std::make_shared&lt;ProgressBar&gt;();
+    bar-&gt;SetShowText(true);
+
+    toggle-&gt;Connect(toggle-&gt;Toggled, [bar](bool on) { bar-&gt;SetIndeterminate(on); });
+    slider-&gt;Connect(slider-&gt;ValueChanged, [bar](float v) { bar-&gt;SetValue(v); });
+
+    row-&gt;AddChild(toggle);
+    row-&gt;AddChild(slider);
+    row-&gt;AddChild(bar);
+    root-&gt;AddChild(row);
+
+    // 中间：列表（含禁用项、颜色、提示、排序）
+    auto list = std::make_shared&lt;ListView&gt;();
+    list-&gt;SetFillHeight(true);
+    list-&gt;SetSelectionMode(ListView::SelectionMode::Extended);
+    list-&gt;SetCheckable(true);
+    for (int i = 1; i &lt;= 20; ++i)
+        list-&gt;AddItem(L"项目 " + std::to_wstring(i));
+    list-&gt;SetItemDisabled(2, true);                                  // 第 3 项禁用
+    list-&gt;SetItemTextColor(3, Color::FromArgb(255, 200, 60, 60));    // 第 4 项红字
+    list-&gt;SetItemToolTip(1, L"这是第 2 项的提示");
+    list-&gt;SetSortComparator([](const std::wstring&amp; a, const std::wstring&amp; b) { return a &lt; b; });
+    list-&gt;SetShowSortIndicator(true);
+    list-&gt;SetSelectedIndex(0);
+    root-&gt;AddChild(list);
+
+    win.Show();          // 1.8.0 起 Create 不再自动显示，由应用调用 Show()
+    win.Run();
+    return 0;
+}</pre>
+</div>
+<nav class="chapter-nav"><a class="prev" href="API.15.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">系统对话框</span><span class="nav-desc">FileDialog（文件/文件夹）· ColorDialog（颜色）</span></a><a class="next" href="API.html"><span class="nav-label">返回目录 &#8594;</span><span class="nav-title">回到章节目录</span></a></nav>
+        </main>
+    </div>
+
+    <div class="back-to-top" id="backToTop" title="返回顶部">&#8593;</div>
+
+    <script>
+
+(function () {
+    var root = document.documentElement;
+
+    // -------- 主题切换 --------
+    var themeBtn = document.getElementById('themeToggle');
+    var saved = null;
+    try { saved = localStorage.getItem('md2html-theme'); } catch (e) {}
+    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = saved || (prefersDark ? 'dark' : 'light');
+    function applyTheme(t) {
+        root.setAttribute('data-theme', t);
+        if (themeBtn) themeBtn.textContent = (t === 'dark') ? '\u2600' : '\u263D';
+    }
+    applyTheme(theme);
+    if (themeBtn) themeBtn.addEventListener('click', function () {
+        theme = (root.getAttribute('data-theme') === 'dark') ? 'light' : 'dark';
+        try { localStorage.setItem('md2html-theme', theme); } catch (e) {}
+        applyTheme(theme);
+    });
+
+    // -------- 整栏折叠 --------
+    var collapseBtn = document.getElementById('tocCollapse');
+    var showBtn = document.getElementById('tocToggle');
+    var collapsed = false;
+    try { collapsed = localStorage.getItem('md2html-sidebar-collapsed') === '1'; } catch (e) {}
+    function applyCollapse(c) {
+        document.body.classList.toggle('toc-collapsed', c);
+        try { localStorage.setItem('md2html-sidebar-collapsed', c ? '1' : '0'); } catch (e) {}
+    }
+    applyCollapse(collapsed);
+    if (collapseBtn) collapseBtn.addEventListener('click', function () { applyCollapse(true); });
+    if (showBtn) showBtn.addEventListener('click', function () { applyCollapse(false); });
+
+    // -------- 大纲逐级折叠（记忆） --------
+    var tocState = {};
+    try { tocState = JSON.parse(localStorage.getItem('md2html-toc-state') || '{}'); } catch (e) { tocState = {}; }
+    document.querySelectorAll('.toc-caret[data-toc]').forEach(function (btn) {
+        var slug = btn.getAttribute('data-toc');
+        var li = btn.closest('li');
+        if (tocState[slug]) li.classList.add('collapsed');
+        btn.addEventListener('click', function (e) {
+            e.preventDefault(); e.stopPropagation();
+            li.classList.toggle('collapsed');
+            tocState[slug] = li.classList.contains('collapsed');
+            try { localStorage.setItem('md2html-toc-state', JSON.stringify(tocState)); } catch (err) {}
+        });
+    });
+
+    // -------- 大纲滚动高亮 + 点击跳转 --------
+    var links = Array.prototype.slice.call(document.querySelectorAll('.toc-list a[data-target]'));
+    var targets = links.map(function (a) { return document.getElementById(a.getAttribute('data-target')); });
+    var sidebar = document.getElementById('tocSidebar');
+    function spy() {
+        var pos = window.scrollY + 140;
+        var current = -1;
+        for (var i = 0; i < targets.length; i++) {
+            var t = targets[i];
+            if (t && t.offsetParent !== null && t.offsetTop <= pos) current = i;
+        }
+        links.forEach(function (a, i) { a.classList.toggle('active', i === current); });
+        // 让高亮项保持在目录可视区域内
+        if (current >= 0 && sidebar && !document.body.classList.contains('toc-collapsed')) {
+            var link = links[current];
+            var lr = link.getBoundingClientRect();
+            var sr = sidebar.getBoundingClientRect();
+            if (lr.top < sr.top + 8 || lr.bottom > sr.bottom - 8) {
+                sidebar.scrollTop += (lr.top - sr.top) - sidebar.clientHeight / 2 + lr.height / 2;
+            }
+        }
+    }
+    window.addEventListener('scroll', spy, { passive: true });
+    window.addEventListener('resize', spy);
+    spy();
+    links.forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            var el = document.getElementById(this.getAttribute('data-target'));
+            if (el) {
+                e.preventDefault();
+                var y = el.getBoundingClientRect().top + window.scrollY - 80;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+                if (history.replaceState) history.replaceState(null, '', '#' + this.getAttribute('data-target'));
+            }
+        });
+    });
+
+    // -------- 返回顶部 --------
+    var backToTopBtn = document.getElementById('backToTop');
+    if (backToTopBtn) {
+        window.addEventListener('scroll', function () {
+            backToTopBtn.classList.toggle('show', window.pageYOffset > 300);
+        });
+        backToTopBtn.addEventListener('click', function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    // -------- 阅读辅助 ----------
+    var raToggle = document.getElementById('readingAidToggle');
+    if (raToggle) raToggle.addEventListener('click', function () {
+        raToggle.closest('.reading-aid').classList.toggle('open');
+    });
+
+    // -------- 窄屏自动折叠大纲 ----------
+    var narrow = window.matchMedia('(max-width: 1024px)');
+    function applyResponsive() {
+        if (narrow.matches) document.body.classList.add('toc-collapsed');
+        else applyCollapse(collapsed);
+    }
+    applyResponsive();
+    if (narrow.addEventListener) narrow.addEventListener('change', applyResponsive);
+})();
+
+// -------- 代码复制：悬停放大高亮，不移位 --------
+function copyCode(id, btn) {
+    var codeElement = document.getElementById(id);
+    var textArea = document.createElement('textarea');
+    textArea.value = codeElement.textContent;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        if (document.execCommand('copy')) {
+            btn.classList.add('copied');
+            btn.textContent = '已复制!';
+            setTimeout(function () {
+                btn.classList.remove('copied');
+                btn.textContent = '复制';
+            }, 2000);
+        }
+    } catch (err) { console.error('复制失败:', err); }
+    document.body.removeChild(textArea);
+}
+function animateButton(btn) { btn.classList.add('hover'); }
+function resetButton(btn) { btn.classList.remove('hover'); }
+function animateFeature(item) { item.style.transform = 'translateY(-5px) scale(1.02)'; item.style.boxShadow = '0 8px 16px rgba(0,0,0,0.1)'; item.style.zIndex = '2'; }
+function resetFeature(item) { item.style.transform = ''; item.style.boxShadow = ''; item.style.zIndex = ''; }
+
+    </script>
+</body>
+</html>

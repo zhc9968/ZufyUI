@@ -222,6 +222,7 @@ btn->Connect(btn->Clicked, [b]() { b->SetText(L"..."); });
 | `RepaintRequest` | `UIElement*` | a control requests repaint | backs `RequestRepaint()` |
 | `LayoutInvalidated` | — | global layout invalidation | backs `InvalidateLayout()` |
 | `DeviceReset` | — | render device resources discarded/recreated (device loss, DPI change, window destroy) | subscribers should clear device/render-target-keyed caches (e.g. `ImageManager` bitmap caches) |
+| `Error` | `const std::wstring&` | library-internal errors (window / menu / composition-backend / device creation failures) | apps can subscribe to notify or fall back; the library still returns failure as before (no throw, no control-flow change) |
 
 > These are global singleton signals, not members of a control. When connecting them, register the connection in a well-defined `ConnectionGroup` or disconnect it yourself at the right time.
 
@@ -1004,7 +1005,7 @@ int WINAPI WinMain(...) {
 - **Modal / owned windows**: `Window::SetOwner(owner)` creates an owned child (stays above and minimizes with the owner); `Window::RunModal(owner)` runs a window modally (disables the owner, nested loop, restores on close). While modal, clicking the disabled owner **flashes** the modal window.
 - **Window handle & dangling**: elements store the owning window as an **id** (not a raw pointer); after the window is destroyed `GetWindow()` returns `nullptr`, eliminating crashes from elements holding a dangling window pointer.
 - **Shared resources**: the `ID2D1Factory` and the system timer period (`timeBeginPeriod`) are managed by the application core and shared by all windows.
-- **Independent render thread**: by default (`ZUFYUI_RENDER_THREAD`) a dedicated render thread handles **composition / `Present` / the vblank cadence**, while the UI thread only does messages, input, layout and animation and marks dirty (`RequestRepaint()` is **coalesced**). As a result **`Draw()` runs on the render thread** while `Measure` / `Arrange` / `UpdateAnimation` run on the UI thread; internal locking serializes them so they never overlap. If a custom control reads its own mutable state inside `Draw()`, update that state only in `Draw()` / animations or guard it yourself. Define `ZUFYUI_RENDER_THREAD=0` to fall back to the single-threaded `WM_PAINT` path.
+- **Independent render thread (experimental; off by default, not recommended)**: `ZUFYUI_RENDER_THREAD` defaults to **`0`** — single-threaded `WM_PAINT` rendering, which is stable and **recommended**. Setting it to `1` enables a dedicated render thread (composition / `Present` / vblank cadence; the UI thread only does messages/input/layout/animation and marks dirty). ⚠️ **This mechanism is currently unstable and buggy** (blank popups/menus, delayed hover/tooltip and button-hover updates, delayed nested page switches, occasional crashes with large virtualized lists, etc.). **Not recommended for production**; use it only when you truly need vblank-level smoothness and can afford the debugging cost.
 - **Backward compatible**: the single-window style still works — `Window win; win.Create(...); win.Show(); win.Run();` (since 1.8.0 `Create` no longer auto-shows; call `Show()`); `Run()` forwards to the app-level loop.
 
 ## Multi-window pitfalls
@@ -2225,6 +2226,73 @@ std::shared_ptr<Timer> Window::CreateTimer(int intervalMs = 1000);
   ```
 - Holding the `shared_ptr` keeps it alive; the window **auto-detaches the timer when it is destroyed** (a later `Start()` becomes a no-op, no dangling pointer); destroying the timer auto-`Stop`s + unregisters it.
 - Manual form: `Timer t; t.Attach(win); t.Start(ms);`.
+
+###chapter: System dialogs | FileDialog (file/folder) · ColorDialog (color)
+
+> Defined in `ZufyUIWindowTool.h`. File/folder use the **modern COM interfaces** `IFileOpenDialog` / `IFileSaveDialog` (replacing the obsolete `GetOpenFileName` / `GetSaveFileName`), supporting type filters, multi-select, folder picking and save-as. Color uses the Windows common `ChooseColor`.
+
+## FileDialog
+
+```cpp
+struct FileFilter {
+    std::wstring label;                  // e.g. "Images"
+    std::vector<std::wstring> patterns;  // e.g. { "*.png", "*.jpg" }
+};
+
+struct FileDialogOptions {
+    std::wstring title;
+    std::wstring initialDir;             // initial directory
+    std::wstring defaultFileName;        // save-as default file name
+    std::wstring defaultExtension;       // save-as default extension (e.g. "png")
+    std::vector<FileFilter> filters;     // type filters (multiple groups)
+    int  filterIndex = 1;                // 1-based, default selected group
+    bool addAllFiles = true;             // append "All files (*.*)"
+    bool pickFolders = false;            // pick folders
+    bool multiSelect = false;            // multi-select
+    bool save = false;                   // save-as
+    bool forceFilesystem = true;         // only return real filesystem items
+};
+
+class FileDialog {
+public:
+    static std::vector<std::wstring> Open(HWND owner, const FileDialogOptions& = {});
+    static std::vector<std::wstring> OpenFiles(HWND owner, const FileDialogOptions& = {});    // multi-select
+    static std::vector<std::wstring> PickFolders(HWND owner, const FileDialogOptions& = {});  // folders (multi allowed)
+    static std::vector<std::wstring> Save(HWND owner, const FileDialogOptions& = {});
+    static std::optional<std::wstring> OpenOne(HWND, const FileDialogOptions& = {});
+    static std::optional<std::wstring> PickFolder(HWND, const FileDialogOptions& = {});
+    static std::optional<std::wstring> SaveOne(HWND, const FileDialogOptions& = {});
+    static std::vector<std::wstring> FilterLabels(const std::vector<FileFilter>&, bool addAllFiles = true);
+};
+```
+
+- Returns **absolute paths** (all selected for multi-select); empty on cancel.
+- **Type filter** = `filters`; **multi-select** = `multiSelect` (or just `OpenFiles`); **folders** = `pickFolders` (`FOS_PICKFOLDERS`); **save-as** = `IFileSaveDialog` + `defaultFileName` / `defaultExtension`.
+- COM auto `CoInitializeEx(STA)`, `CoUninitialize` only when this call initialized it; under `RPC_E_CHANGED_MODE` (MTA) `CoCreateInstance` fails and an empty result is returned.
+- Example:
+```cpp
+FileDialogOptions o;
+o.title = L"Pick images";
+o.filters = { { L"Images", { L"*.png", L"*.jpg", L"*.bmp" } }, { L"Text", { L"*.txt" } } };
+o.multiSelect = true;
+auto files  = FileDialog::OpenFiles(win.GetHwnd(), o);
+auto folder = FileDialog::PickFolder(win.GetHwnd());
+```
+
+## ColorDialog
+
+```cpp
+class ColorDialog {
+public:
+    struct Options { bool fullOpen = true; bool allowCustom = true; std::vector<Color> custom; };
+    static std::optional<Color> Pick(HWND owner, Color initial = Color(1,0,0,1), const Options& = {});
+};
+```
+- Uses the Windows common color dialog `ChooseColor`; the returned color keeps `initial`'s alpha. Returns `std::nullopt` on cancel.
+
+## Theming: Common Controls v6 (optional)
+
+The look of system common controls (`ChooseColor`, `MessageBox`, ...) depends on the application **manifest**. Define `ZUFYUI_ENABLE_COMCTL_V6` before including the library header and the library injects the Common Controls v6 manifest dependency (themed). Because the manifest is **application-wide**, it is **off by default** and left to the application.
 
 ###chapter: Appendix | Signal list, default values, and common pitfalls
 
