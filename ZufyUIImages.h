@@ -17,6 +17,7 @@
 #include <wincodec.h>
 #include <objbase.h>
 #include <mutex>
+#include <atomic>
 #include <vector>
 #include <memory>
 #include <string>
@@ -30,7 +31,7 @@ namespace ZufyUI {
     // ImageDeviceCache：某个 Image 在“每个渲染目标”上的 D2D 位图缓存
     // ------------------------------------------------------------------
     // R2：设备世代。每次 DeviceReset 递增，使"渲染目标地址被复用"时的旧缓存 key 自动失效。
-    inline unsigned long long g_imageDeviceEpoch = 0;
+    inline std::atomic<unsigned long long> g_imageDeviceEpoch{ 0 };   // UI 线程写(DeviceReset) / render 线程读(Image::Draw) → atomic
     struct ImageCacheKey {
         unsigned long long epoch; ID2D1RenderTarget* rt;
         bool operator==(const ImageCacheKey& o) const { return epoch == o.epoch && rt == o.rt; }
@@ -45,7 +46,7 @@ namespace ZufyUI {
     public:
         ID2D1Bitmap* Get(ID2D1RenderTarget* rt, IWICBitmapSource* src) {
             if (!rt || !src) return nullptr;
-            ImageCacheKey key{ g_imageDeviceEpoch, rt };
+            ImageCacheKey key{ g_imageDeviceEpoch.load(std::memory_order_relaxed), rt };
             {
                 std::lock_guard<std::mutex> lock(mtx_);
                 auto it = map_.find(key);
@@ -94,7 +95,7 @@ namespace ZufyUI {
         // 设备丢失/重建时调用：清空所有图像在各渲染目标上的 D2D 位图缓存
         void ClearAllDeviceCaches() {
             std::lock_guard<std::mutex> lock(mtx_);
-            ++g_imageDeviceEpoch;   // R2：设备换代，旧地址 key 全部失效
+            g_imageDeviceEpoch.fetch_add(1, std::memory_order_relaxed);   // R2：设备换代，旧地址 key 全部失效
             for (auto it = caches_.begin(); it != caches_.end(); ) {
                 if (auto c = it->lock()) { c->Clear(); ++it; }
                 else it = caches_.erase(it);

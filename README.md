@@ -142,6 +142,35 @@ win.SetCustomTitleBar(bar);
 
 ## 更新日志
 
+### 2026-10-03 — 数据视图虚拟化 + 跨线程并发收口（v1.15.0）
+
+**数据视图（ListView / TableView / TreeView）虚拟化**
+- 改为**按视口虚拟化**：只对可见行创建 / 布局 / 绘制单元格（池化复用 Label），**百万级数据**不再因行数爆炸。`ListView` / `TableView` 新增：
+  - **隐藏**：`SetItemHidden` / `IsItemHidden` / `ClearHidden`；
+  - **筛选**：`SetFilter(pred)`（谓词按源行号）/ `ClearFilter`；
+  - **可见序排序**：`SetViewComparator` + `SortView` / `ClearViewSort`；
+  - **两套坐标**：`VisibleCount` / `SourceOfVisible` / `VisibleOfSource` / `TextAtVisible` / `SetSelectedVisible` / `GetSelectedVisible`（可见序），其余既有 API 一律**源行号**。
+- `ListView` 数据 API 统一为 **`*Item*`**（`SetItemCount` / `SetItem` / `AddItem` / `SetItemHidden` / `SetItemToolTip` / `GetItemText` 等），移除重复的 `*Row*`。
+- `TreeView`：新增 **`BeginUpdate` / `EndUpdate`**（批量重建可见列表，消除逐个 `AddRoot/AddChild` 的 O(N²)）、**`SetNodeText` / `GetNodeText`**（按列写文本，空列自动补 Label）、**`SetNodeTooltip` / `GetNodeTooltip`**。
+- **`GetChildren` 纯读化**：所有容器的子元素列表统一在「更新阶段」由 `RefreshChildren()` 重建，`GetChildren()` 只读——render 线程不再于渲染期改元素树。
+
+**跨线程并发收口（独立渲染线程 架构 B）**
+- **窗口析构 UAF 根治**：引入脱离 `this` 内存的**生存令牌**（`alive` + `inFlight`）；render 线程批处理前先 pin，析构置 `alive=false` 并**等 `inFlight` 归零**（`condition_variable`，不烧 CPU）后才拆卸。
+- `ComboBox` / `TabView` / `TreeView` 等**输入与数据变更**统一持 `renderLock_`；补 `Window::OnMouseUp` 锁（修 `UpdateHover → OnMouseEnter/Leave` 的 hover 动画字段竞态）。
+- `g_imageDeviceEpoch` / `frameRateLimit_` / `windowId_` 改**原子**；`AppCore` 窗口注册表加 `shared_mutex`；`WM_SIZE` resize 请求打包成 64 位原子；`~UIElement` 从待重绘集合反注册；字体缓存改**事件驱动**（`GetFontFormat` 快路径无锁，不再每帧拷贝 `wstring`）；`ComboBox::overlayConn_` 断连改由 UI 线程执行。
+- **丢帧修复**：`renderRequested_` 在帧处理完后清除，并补偿一次唤醒，消除「去抖窗口丢唤醒 → 多等一帧到 WM_TIMER」。
+
+**ComboBox 修复**
+- 下拉**几何统一**（`UpdateListGeometry`，UI 与 render 共用）：命中区 / 箭头方向不再用「上一帧」的值。
+- **禁用状态跨过滤持久**（内部按源索引存储）；新增源索引选中 API `SetSelectedSourceIndex` / `GetSelectedSourceIndex` / `SourceIndexOf`。
+
+**其它修复**
+- `TreeView`：`Clear()` 清可见索引映射；`GetNodeAtY` 表头不再误判；`VK_UP/DOWN` 首末回绕；列布局改用版本号判断（不再每帧算列签名）；`rootDecorated_=false` 时根节点箭头与命中区保持一致。
+- `TabView`：`AddTab/InsertTab/RemoveTab/ClearTabs` 在选中变化时补发 `SelectionChanged`。
+- `TextBox::Copy/Paste` 用所属窗口 `HWND` 打开剪贴板。
+
+- 版本 **1.14.2 → 1.15.0**。
+
 ### 2026-10-02 — 修复 A1「双驱动」占用翻倍 + A3 帧率上限（v1.14.2）
 
 - **修复（关键）**：A1 的 vblank tick 与旧的 `WM_TIMER → HasRenderWork → InvalidateRect → WM_PAINT` 在动画期间**同时驱动**，各触发一次 `AdvanceFrame + RequestRender` → **每 vblank 可能出两帧 → GPU/CPU 翻倍**（这就是"稳了但更耗"的根因）。现**动画期间 `WM_TIMER` 让位给 tick，不再插 `InvalidateRect`**；非动画期（tooltip / 标题轮询 / 一次性重绘）仍走 `WM_PAINT`。

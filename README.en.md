@@ -142,6 +142,35 @@ A tour of the widgets (first page of the demo):
 
 ## Changelog
 
+### 2026-10-03 — Data-view virtualization + cross-thread concurrency hardening (v1.15.0)
+
+**Data views (ListView / TableView / TreeView) virtualization**
+- Now **viewport-virtualized**: cell labels are created / arranged / drawn only for visible rows (pooled label reuse), so **millions of rows** no longer blow up the visual tree. `ListView` / `TableView` gain:
+  - **Hide**: `SetItemHidden` / `IsItemHidden` / `ClearHidden`;
+  - **Filter**: `SetFilter(pred)` (predicate takes the source row) / `ClearFilter`;
+  - **View-order sort**: `SetViewComparator` + `SortView` / `ClearViewSort`;
+  - **Two coordinate systems**: `VisibleCount` / `SourceOfVisible` / `VisibleOfSource` / `TextAtVisible` / `SetSelectedVisible` / `GetSelectedVisible` (visible order); every other existing API keeps using the **source row**.
+- `ListView` data API unified to **`*Item*`** (`SetItemCount` / `SetItem` / `AddItem` / `SetItemHidden` / `SetItemToolTip` / `GetItemText`, ...); the duplicate `*Row*` forms were removed.
+- `TreeView`: new **`BeginUpdate` / `EndUpdate`** (rebuild the visible list once, removing the O(N^2) cost of adding nodes one by one), **`SetNodeText` / `GetNodeText`** (write a cell by column; empty slots auto-create a Label), **`SetNodeTooltip` / `GetNodeTooltip`**.
+- **`GetChildren` made read-only**: every container now rebuilds its child list in the update phase via `RefreshChildren()`; `GetChildren()` just reads — the render thread no longer mutates the element tree while rendering.
+
+**Cross-thread concurrency hardening (independent render thread, arch B)**
+- **Window-destruction UAF eliminated**: a **liveness token** (`alive` + `inFlight`) that lives outside the window's memory. The render thread pins before each batch; destruction sets `alive=false` then **waits for `inFlight` to reach 0** (via `condition_variable`, no busy-spin) before tearing anything down.
+- `ComboBox` / `TabView` / `TreeView` input/data mutations now hold `renderLock_`; added the lock to `Window::OnMouseUp` (fixes the hover-animation-field race via `UpdateHover -> OnMouseEnter/Leave`).
+- `g_imageDeviceEpoch` / `frameRateLimit_` / `windowId_` made **atomic**; `AppCore`'s window registry guarded by a `shared_mutex`; `WM_SIZE` resize packed into a single 64-bit atomic; `~UIElement` unregisters from the pending-repaint set; font cache is now **event-driven** (`GetFontFormat` fast path is lock-free, no per-frame `wstring` copy); `ComboBox::overlayConn_` disconnect moved to the UI thread.
+- **Lost-wakeup fix**: `renderRequested_` is cleared after a frame is processed and re-armed once, removing the "debounce window drops a wake -> wait one extra frame for WM_TIMER" case.
+
+**ComboBox fixes**
+- Dropdown **geometry unified** (`UpdateListGeometry`, shared by UI and render): hit-testing / arrow direction no longer use a stale previous-frame value.
+- **Disabled state survives filtering** (stored by source index internally); added source-index selection API `SetSelectedSourceIndex` / `GetSelectedSourceIndex` / `SourceIndexOf`.
+
+**Other fixes**
+- `TreeView`: `Clear()` resets the visible-index map; `GetNodeAtY` no longer mis-hits the header; `VK_UP/DOWN` wrap at the ends; column layout tracked by a version counter (no per-frame column signature); the root arrow and its hit region agree when `rootDecorated_=false`.
+- `TabView`: `AddTab/InsertTab/RemoveTab/ClearTabs` now emit `SelectionChanged` when the selection changes.
+- `TextBox::Copy/Paste` open the clipboard with the owning window's `HWND`.
+
+- Version **1.14.2 -> 1.15.0**.
+
 ### 2026-10-02 — Fix A1 double-drive (doubled CPU/GPU) + A3 frame-rate cap (v1.14.2)
 
 - **Fix (critical)**: A1's vblank tick and the old `WM_TIMER -> HasRenderWork -> InvalidateRect -> WM_PAINT` path were **both** driving frames during animation, each triggering `AdvanceFrame + RequestRender` -> **potentially two frames per vblank -> doubled GPU/CPU** (this was the "smooth but more expensive" root cause). Now, while animating, `WM_TIMER` yields to the tick and no longer calls `InvalidateRect`; non-animation work (tooltip / title polling / one-off repaints) still goes through `WM_PAINT`.

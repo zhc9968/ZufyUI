@@ -536,20 +536,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             listView->AddItem(L"新增项 " + std::to_wstring(counter++));
             });
 
-        auto listButtons = std::make_shared<RowBox>();
-        listButtons->SetSpacing(10);
+        auto listButtons = std::make_shared<GridLayout>();
+        listButtons->SetSpacing(6, 6);
+        int _lbCol = 0;
+        auto addLB = [&listButtons, &_lbCol](const std::shared_ptr<Button>& b) { listButtons->AddChild(b, _lbCol % 4, _lbCol / 4); _lbCol++; };
         auto btnSortList = std::make_shared<Button>(L"排序");
         btnSortList->Connect(btnSortList->Clicked, [listView]() {
             static bool asc = true;
             listView->Sort(asc);
             asc = !asc;
             });
-        listButtons->AddChild(btnAddItem);
-        listButtons->AddChild(btnClearList);
-        listButtons->AddChild(btnSortList);
+        addLB(btnAddItem);
+        addLB(btnClearList);
+        addLB(btnSortList);
         auto btnNoneMode = std::make_shared<Button>(L"无选择模式");
         btnNoneMode->Connect(btnNoneMode->Clicked, [listView]() { listView->SetSelectionMode(ListView::SelectionMode::None); });
-        listButtons->AddChild(btnNoneMode);
+        addLB(btnNoneMode);
 
         // 新 API 测试按钮
         auto btnBatch = std::make_shared<Button>(L"批量+50 (BeginUpdate)");
@@ -558,7 +560,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             for (int k = 0; k < 50; ++k) listView->AddItem(L"批量项 " + std::to_wstring(k + 1));
             listView->EndUpdate();
             });
-        listButtons->AddChild(btnBatch);
+        addLB(btnBatch);
         auto btnRich = std::make_shared<Button>(L"富项 (图标+内嵌 Label)");
         btnRich->Connect(btnRich->Clicked, [listView]() {
             auto rich = std::make_shared<Label>(L"富项 ");
@@ -568,7 +570,35 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             rich->AddChild(inner);           // 内嵌 Label → 走 Window 合成递归画出来
             listView->AddItem(rich);
             });
-        listButtons->AddChild(btnRich);
+        addLB(btnRich);
+        auto btnVirt = std::make_shared<Button>(L"虚拟 20万");
+        btnVirt->Connect(btnVirt->Clicked, [listView]() {
+            listView->SetItemCount(200000);
+            for (int i = 0; i < 200000; ++i)
+                listView->SetItem(i, L"虚拟行 " + std::to_wstring(i) + ((i % 7 == 0) ? L" *" : L""));
+            });
+        addLB(btnVirt);
+        auto btnHide = std::make_shared<Button>(L"隐藏偶数行");
+        btnHide->Connect(btnHide->Clicked, [listView]() {
+            for (int i = 0; i < listView->GetItemCount(); i += 2) listView->SetItemHidden(i, true);
+            });
+        addLB(btnHide);
+        auto btnFilter = std::make_shared<Button>(L"筛选含7");
+        btnFilter->Connect(btnFilter->Clicked, [listView]() {
+            listView->SetFilter([listView](int i) { return listView->GetItemText(i).find(L"7") != std::wstring::npos; });
+            });
+        addLB(btnFilter);
+        auto btnSortV = std::make_shared<Button>(L"按文本排序");
+        btnSortV->Connect(btnSortV->Clicked, [listView]() {
+            listView->SetViewComparator([listView](int a, int b) { return listView->GetItemText(a) < listView->GetItemText(b); });
+            listView->SortView(true);
+            });
+        addLB(btnSortV);
+        auto btnResetV = std::make_shared<Button>(L"重置视图");
+        btnResetV->Connect(btnResetV->Clicked, [listView]() {
+            listView->ClearHidden(); listView->ClearFilter(); listView->ClearViewSort();
+            });
+        addLB(btnResetV);
 
         grid4->AddChild(listView, 1, 0);
         grid4->AddChild(lblListInfo, 1, 1);
@@ -643,6 +673,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             asc = !asc;
             });
         modeButtons->AddChild(btnSortTable);
+        auto btnHideRows = std::make_shared<Button>(L"隐藏偶数行");
+        btnHideRows->Connect(btnHideRows->Clicked, [tableView]() {
+            for (int i = 0; i < tableView->GetRowCount(); i += 2) tableView->SetItemHidden(i, true);
+            });
+        modeButtons->AddChild(btnHideRows);
+        auto btnFilterRows = std::make_shared<Button>(L"筛选含1");
+        btnFilterRows->Connect(btnFilterRows->Clicked, [tableView]() {
+            tableView->SetFilter([tableView](int r) { return tableView->GetItemText(r, 0).find(L"1") != std::wstring::npos; });
+            });
+        modeButtons->AddChild(btnFilterRows);
+        auto btnResetRows = std::make_shared<Button>(L"重置视图");
+        btnResetRows->Connect(btnResetRows->Clicked, [tableView]() {
+            tableView->ClearHidden(); tableView->ClearFilter(); tableView->ClearViewSort();
+            });
+        modeButtons->AddChild(btnResetRows);
+        auto btnBigTable = std::make_shared<Button>(L"表格 1 万行");
+        btnBigTable->Connect(btnBigTable->Clicked, [tableView]() {
+            tableView->SetRowCount(10000);
+            for (int r = 0; r < 10000; ++r) {
+                tableView->SetItem(r, 0, L"用户 " + std::to_wstring(r + 1));
+                tableView->SetItem(r, 1, std::to_wstring(18 + r % 40));
+                tableView->SetItem(r, 2, (r % 3 == 0) ? L"北京" : (r % 3 == 1) ? L"上海" : L"广州");
+                tableView->SetItem(r, 3, L"备注 " + std::to_wstring(r));
+            }
+            });
+        modeButtons->AddChild(btnBigTable);
         auto btnHideCol = std::make_shared<Button>(L"隐藏备注列");
         btnHideCol->Connect(btnHideCol->Clicked, [tableView, b = btnHideCol.get()]() {
             bool vis = tableView->IsColumnVisible(3);
@@ -824,7 +880,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             });
         bSort->Connect(bSort->Clicked, [tree]() {
             tree->SortChildren(nullptr, true, [](const std::shared_ptr<TreeNode>& a, const std::shared_ptr<TreeNode>& b) {
-                return a->columns[0] < b->columns[0];
+                const std::wstring ta = (a->columns.empty() || !a->columns[0]) ? L"" : a->columns[0]->GetText();
+                const std::wstring tb = (b->columns.empty() || !b->columns[0]) ? L"" : b->columns[0]->GetText();
+                return ta < tb;   // 按首列文本排序（原来比较 shared_ptr 是指针地址）
                 });
             });
         bAll->Connect(bAll->Clicked, [tree]() { tree->SelectAll(); });

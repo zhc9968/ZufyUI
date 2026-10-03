@@ -1659,6 +1659,58 @@ class SplitView : public UIElement {
 - 拖动时**立即跟手**并**重新标记两栏**（子控件宽度变了要重排）；两栏各自 `SetClipRect(栏矩形 ± 出血)`，高亮/阴影不被裁。
 - 想要 3/4 栏：**嵌套** SplitView 即可（与 Qt `QSplitter` 同思路）。
 
+## 数据视图虚拟化：隐藏 / 筛选 / 可见序排序（v1.15.0）
+
+`ListView` / `TableView` 改为**按视口虚拟化**：只对可见行创建 / 布局 / 绘制单元格（池化复用 Label），百万级数据也不会因行数爆炸。并新增**隐藏 / 筛选 / 可见序排序**，对外提供**可见序 ↔ 源行号**两套坐标。
+
+**坐标约定（重要）**：既有所有 API（`SetSelectedIndex` / `SetItem` / `SetItemDisabled` / `GetItemText` / 信号参数等）一律用**源行号**（数据里的下标，不受隐藏 / 筛选 / 排序影响）；只有下列 `Visible*` / `*Visible` / `TextAtVisible` 用**可见序**。隐藏 / 被过滤行不计入可见序。
+
+**ListView**
+```cpp
+void SetItemCount(int n);                         // 批量设置行数（比逐条 AddItem 快）
+void SetItemHidden(int src, bool hidden = true);  // 按源行号隐藏
+bool IsItemHidden(int src) const;
+void ClearHidden();
+void SetFilter(std::function<bool(int src)> pred);          // 谓词参数 = 源行号
+void ClearFilter();
+void SetViewComparator(std::function<bool(int a, int b)>);  // 参数 = 源行号
+void SortView(bool ascending = true);
+void ClearViewSort();
+int  VisibleCount() const;                         // 可见行数
+int  SourceOfVisible(int vi) const;                // 可见序 → 源行号
+int  VisibleOfSource(int src) const;               // 源行号 → 可见序
+std::wstring TextAtVisible(int vi) const;
+void SetSelectedVisible(int vi);
+int  GetSelectedVisible() const;
+```
+
+**TableView**：同款 `SetItemHidden` / `IsItemHidden` / `ClearHidden` / `SetFilter` / `ClearFilter` / `SetViewComparator` / `SortView` / `ClearViewSort` / `VisibleCount` / `SourceOfVisible` / `VisibleOfSource`（参数均为**源行号**；`GetRowHeightAt(row)` 亦按源行号）。
+
+```cpp
+// 示例：隐藏偶数行、只保留含 “7” 的项、按文本可见序排序
+lv->SetFilter([](int src) { return src % 2 == 0 || /*...*/ true; });
+lv->SetItemHidden(3);
+lv->SetViewComparator([](int a, int b) { /* 按源行号取文本比较 */ return a < b; });
+lv->SortView(true);
+```
+
+**TreeView（批量 / 文本 / 提示）**
+```cpp
+void BeginUpdate(); void EndUpdate();   // 批量增删 / 展开：只重建一次可见列表（避免逐个 Add 的 O(N²)）
+void SetNodeText(std::shared_ptr<TreeNode> node, int col, const std::wstring& text);  // 空列自动建 Label
+std::wstring GetNodeText(std::shared_ptr<TreeNode> node, int col) const;
+void SetNodeTooltip(std::shared_ptr<TreeNode> node, const std::wstring& text);
+std::wstring GetNodeTooltip(std::shared_ptr<TreeNode> node) const;
+```
+
+**ComboBox（源索引 / 禁用持久）**
+```cpp
+void SetSelectedSourceIndex(int srcIndex);   // 按 allItems_ 源索引选中
+int  GetSelectedSourceIndex() const;
+int  SourceIndexOf(int visibleIndex) const;  // 可见索引 → 源索引
+```
+- `SetItemDisabled` / `IsItemDisabled` 仍收**可见索引**，但内部按**源索引**存储 → **过滤（输入编辑文本）后不再丢失禁用状态**；仅 `SetItems` 换数据集时重置。
+
 ## ListView
 
 ```cpp

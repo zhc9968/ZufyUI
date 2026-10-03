@@ -93,17 +93,35 @@ namespace ZufyUI {
         }
         void AddItem(std::shared_ptr<Label> label) {
             if (!label) return;
+            auto _rg = RenderGuard();
+            viewDirty_ = true;
             PrepareItemLabel(label);
-            items_.push_back(label);
-            label->SetParent(this);
+            if (virtual_) {
+                int src = (int)vtext_.size();
+                vtext_.push_back(label->GetText());
+                label->SetParent(this);
+                richRows_[src] = label;              // 富项整行
+            } else {
+                items_.push_back(label);
+                label->SetParent(this);
+            }
             if (batchUpdate_ == 0) { UpdateScrollInfo(); InvalidateLayout(); RequestRepaint(); }
         }
         void AddItem(const std::wstring& text) {
+            if (virtual_) {
+                auto _rg = RenderGuard();
+                vtext_.push_back(text);
+                viewDirty_ = true;
+                if (batchUpdate_ == 0) { UpdateScrollInfo(); InvalidateLayout(); RequestRepaint(); }
+                return;
+            }
             auto label = std::make_shared<Label>(text);
             label->SetTextColor(Color(textColor_.r, textColor_.g, textColor_.b, textColor_.a));
             AddItem(label);
         }
         void InsertItem(int index, std::shared_ptr<Label> label) {
+            auto _rg = RenderGuard();
+            viewDirty_ = true;
             if (index < 0 || index >(int)items_.size() || !label) return;
             PrepareItemLabel(label);
             items_.insert(items_.begin() + index, label);
@@ -124,6 +142,8 @@ namespace ZufyUI {
         }
         int batchUpdate_ = 0;
         void RemoveItem(int index) {
+            auto _rg = RenderGuard();
+            viewDirty_ = true;
             if (index < 0 || index >= (int)items_.size()) return;
             {
                 Label* p = items_[index].get();
@@ -147,12 +167,23 @@ namespace ZufyUI {
             if (batchUpdate_ == 0) { UpdateScrollInfo(); InvalidateLayout(); RequestRepaint(); }
         }
         void Clear() {
+            auto _rg = RenderGuard();
+            viewDirty_ = true;
+            virtual_ = false;
             items_.clear();
+            vtext_.clear();
+            richRows_.clear();
+            hiddenRows_.clear();
+            disabledRows_.clear();
+            filter_ = nullptr;
+            viewCmp_ = nullptr;
+            viewSortActive_ = false;
             multiSel_.clear();
             checked_.clear();
             disabledItems_.clear();
             itemTextColors_.clear();
             itemTips_.clear();
+            rowTextColors_.clear();
             selectedIndex_ = -1;
             hoveredIndex_ = -1;
             scrollOffsetY_ = 0.0f;
@@ -163,7 +194,17 @@ namespace ZufyUI {
             RequestRepaint();
         }
         void SetItem(int index, std::shared_ptr<Label> label) {
-            if (index < 0 || index >= (int)items_.size() || !label) return;
+            auto _rg = RenderGuard();
+            viewDirty_ = true;
+            if (!label) return;
+            if (virtual_) {   // 虚拟模式：替换该源行为富项整行
+                if (index < 0 || index >= (int)vtext_.size()) return;
+                PrepareItemLabel(label); label->SetParent(this);
+                richRows_[index] = label; vtext_[index] = label->GetText();
+                childrenDirty_ = true; InvalidateLayout(); RequestRepaint();
+                return;
+            }
+            if (index < 0 || index >= (int)items_.size()) return;
             Label* oldP = items_[index].get();
             Label* newP = label.get();
             if (oldP && oldP != newP) {
@@ -180,22 +221,31 @@ namespace ZufyUI {
             RequestRepaint();
         }
         void SetItem(int index, const std::wstring& text) {
+            auto _rg = RenderGuard();
+            if (virtual_) {
+                if (index < 0 || index >= (int)vtext_.size()) return;
+                vtext_[index] = text;
+                auto it = richRows_.find(index);
+                if (it != richRows_.end() && it->second) it->second->SetTextFast(text);
+                childrenDirty_ = true; RequestRepaint();
+                return;
+            }
             auto label = std::make_shared<Label>(text);
             label->SetTextColor(Color(textColor_.r, textColor_.g, textColor_.b, textColor_.a));
             SetItem(index, label);
         }
         std::shared_ptr<Label> GetItemLabel(int index) const {
+            if (virtual_) { auto it = richRows_.find(index); return it != richRows_.end() ? it->second : nullptr; }
             if (index < 0 || index >= (int)items_.size()) return nullptr;
             return items_[index];
         }
-        std::wstring GetItemText(int index) const {
-            auto label = GetItemLabel(index);
-            return label ? label->GetText() : L"";
-        }
-        int GetItemCount() const { return (int)items_.size(); }
+        std::wstring GetItemText(int index) const { return SourceText(index); }
+
 
         // ---------- 扩展：插入 / 移动 / 排序 ----------
         void InsertItems(int index, const std::vector<std::wstring>& texts) {
+            auto _rg = RenderGuard();
+            viewDirty_ = true;
             if (index < 0 || index > (int)items_.size()) index = (int)items_.size();
             for (int k = 0; k < (int)texts.size(); ++k) {
                 auto label = std::make_shared<Label>(texts[k]);
@@ -208,6 +258,8 @@ namespace ZufyUI {
             UpdateScrollInfo(); InvalidateLayout(); RequestRepaint();
         }
         bool MoveItem(int from, int to) {
+            auto _rg = RenderGuard();
+            viewDirty_ = true;
             if (from < 0 || from >= (int)items_.size()) return false;
             if (to < 0 || to >= (int)items_.size()) return false;
             auto item = items_[from];
@@ -218,6 +270,8 @@ namespace ZufyUI {
             return true;
         }
         void SwapItems(int a, int b) {
+            auto _rg = RenderGuard();
+            viewDirty_ = true;
             if (a < 0 || a >= (int)items_.size() || b < 0 || b >= (int)items_.size()) return;
             std::swap(items_[a], items_[b]);
             RequestRepaint();
@@ -247,11 +301,11 @@ namespace ZufyUI {
         void ClearMultiSelection() { multiSel_.clear(); RequestRepaint(); }
         void SelectAll() {
             if (selectionMode_ == SelectionMode::Single) return;
-            for (int i = 0; i < (int)items_.size(); ++i) multiSel_.insert(i);
+            for (int i = 0; i < GetItemCount(); ++i) multiSel_.insert(i);
             RequestRepaint();
         }
         void ToggleIndexSelection(int index) {
-            if (index < 0 || index >= (int)items_.size()) return;
+            if (index < 0 || index >= GetItemCount()) return;
             if (multiSel_.count(index)) multiSel_.erase(index);
             else multiSel_.insert(index);
             selectedIndex_ = index;
@@ -277,13 +331,13 @@ namespace ZufyUI {
         }
         // 每项状态数组（长度 = 项目数）：框选/选中 与 勾选 分开
         std::vector<bool> GetSelectionStates() const {
-            std::vector<bool> v(items_.size(), false);
-            for (int i = 0; i < (int)items_.size(); ++i) v[i] = IsIndexSelected(i);
+            std::vector<bool> v((size_t)GetItemCount(), false);
+            for (int i = 0; i < GetItemCount(); ++i) v[i] = IsIndexSelected(i);
             return v;
         }
         std::vector<bool> GetCheckStates() const {
-            std::vector<bool> v(items_.size(), false);
-            for (int i = 0; i < (int)items_.size(); ++i) v[i] = checked_.count(i) > 0;
+            std::vector<bool> v((size_t)GetItemCount(), false);
+            for (int i = 0; i < GetItemCount(); ++i) v[i] = checked_.count(i) > 0;
             return v;
         }
         std::vector<int> GetCheckedIndices() const {
@@ -295,7 +349,7 @@ namespace ZufyUI {
         void SetCheckable(bool enable) { itemsCheckable_ = enable; if (!enable) checked_.clear(); RequestRepaint(); }
         bool IsCheckable() const { return itemsCheckable_; }
         void SetItemChecked(int index, bool checked) {
-            if (index < 0 || index >= (int)items_.size()) return;
+            if (index < 0 || index >= GetItemCount()) return;
             bool cur = checked_.count(index) > 0;
             if (cur == checked) return;
             if (checked) checked_.insert(index); else checked_.erase(index);
@@ -308,7 +362,7 @@ namespace ZufyUI {
 
         // 选择
         void SetSelectedIndex(int index) {
-            if (index < -1 || index >= (int)items_.size()) return;
+            if (index < -1 || index >= GetItemCount()) return;
             multiSel_.clear();
             if (selectedIndex_ != index) {
                 selectedIndex_ = index;
@@ -329,46 +383,56 @@ namespace ZufyUI {
 
         // ---------- 单项禁用 / 文字颜色 / ToolTip / 排序 ----------
         void SetItemDisabled(int index, bool disabled = true) {
-            if (index < 0 || index >= (int)items_.size()) return;
+            if (index < 0 || index >= GetItemCount()) return;
+            if (virtual_) { if (disabled) disabledRows_.insert(index); else disabledRows_.erase(index); RequestRepaint(); return; }
             Label* p = items_[index].get();
             if (disabled) disabledItems_.insert(p); else disabledItems_.erase(p);
             if (items_[index]) items_[index]->SetEnabled(!disabled);   // Label 化：禁用态由 Label 画
             RequestRepaint();
         }
-        bool IsItemDisabled(int index) const { return index >= 0 && index < (int)items_.size() && disabledItems_.count(items_[index].get()) > 0; }
+        bool IsItemDisabled(int index) const {
+            if (virtual_) return disabledRows_.count(index) > 0;
+            return index >= 0 && index < (int)items_.size() && disabledItems_.count(items_[index].get()) > 0;
+        }
         int FindEnabledFrom(int from, int step) const {
+            int n = GetItemCount();
             int i = from + step;
-            while (i >= 0 && i < (int)items_.size() && IsItemDisabled(i)) i += step;
-            return (i >= 0 && i < (int)items_.size()) ? i : -1;
+            while (i >= 0 && i < n && IsItemDisabled(i)) i += step;
+            return (i >= 0 && i < n) ? i : -1;
         }
 
         void SetItemTextColor(int index, Color color) {
-            if (index < 0 || index >= (int)items_.size()) return;
+            if (index < 0 || index >= GetItemCount()) return;
+            if (virtual_) { rowTextColors_[index] = color.ToD2D(); childrenDirty_ = true; RequestRepaint(); return; }
             itemTextColors_[items_[index].get()] = color.ToD2D();
             if (items_[index]) items_[index]->SetTextColor(color);   // Label 化：颜色由 Label 画
             RequestRepaint();
         }
         void ClearItemTextColor(int index) {
-            if (index >= 0 && index < (int)items_.size()) {
-                itemTextColors_.erase(items_[index].get());
-                if (items_[index]) items_[index]->SetTextColor(Color(textColor_.r, textColor_.g, textColor_.b, textColor_.a));
-            }
+            if (index < 0 || index >= GetItemCount()) return;
+            if (virtual_) { rowTextColors_.erase(index); childrenDirty_ = true; RequestRepaint(); return; }
+            itemTextColors_.erase(items_[index].get());
+            if (items_[index]) items_[index]->SetTextColor(Color(textColor_.r, textColor_.g, textColor_.b, textColor_.a));
             RequestRepaint();
         }
 
         void SetItemToolTip(int index, const std::wstring& tip) {
-            if (index < 0 || index >= (int)items_.size()) return;
+            if (index < 0 || index >= GetItemCount()) return;
+            if (virtual_) { if (tip.empty()) rowTips_.erase(index); else rowTips_[index] = tip; return; }
             Label* p = items_[index].get();
             if (tip.empty()) itemTips_.erase(p); else itemTips_[p] = tip;
         }
         std::wstring GetItemToolTip(int index) const {
-            if (index < 0 || index >= (int)items_.size()) return L"";
+            if (index < 0 || index >= GetItemCount()) return L"";
+            if (virtual_) { auto it = rowTips_.find(index); return it == rowTips_.end() ? std::wstring() : it->second; }
             auto it = itemTips_.find(items_[index].get());
             return it == itemTips_.end() ? std::wstring() : it->second;
         }
 
         void SetSortComparator(std::function<bool(const std::wstring&, const std::wstring&)> cmp) { sortComparator_ = std::move(cmp); }
         void Sort(bool ascending = true) {
+            auto _rg = RenderGuard();
+            viewDirty_ = true;
             sortAscending_ = ascending;
             std::shared_ptr<Label> selLabel = (selectedIndex_ >= 0 && selectedIndex_ < (int)items_.size()) ? items_[selectedIndex_] : nullptr;
             auto cmp = sortComparator_;
@@ -472,43 +536,74 @@ namespace ZufyUI {
             float eff = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
             first = 0; last = -1;
             if (eff <= 0.0f) return;
+            EnsureView();
+            int vc = (int)view_.size();
             float snapped = Snap(scrollOffsetY_);
             first = (int)(snapped / eff); if (first < 0) first = 0;
             last = (int)((snapped + arrangedRect_.height) / eff);
-            if (last > (int)items_.size() - 1) last = (int)items_.size() - 1;
+            if (last > vc - 1) last = vc - 1;
         }
-        const std::vector<UIElement*>& GetChildren() const override {
+        void RefreshChildren() override {   // 只在 update/layout 阶段（UI 线程）调用；GetChildren 不再改树
             float eff = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
             float snapped = Snap(scrollOffsetY_);
-            // 命中缓存要覆盖所有影响子元素布局的输入：滚动量、项数、行高、勾选框、容器矩形。
-            // 逐字段比较（不用 float 编码 key：项数×1e6 与行高×1e5 的字段区间会重叠并丢精度）
+            EnsureView();
+            // 命中缓存要覆盖所有影响子元素布局的输入：滚动量、可见数、视图版本、行高、勾选框、容器矩形。
             if (!childrenDirty_ &&
                 snapped == lastChildrenScrollY_ && eff == lastChildrenEff_ &&
-                items_.size() == lastChildrenCount_ && itemsCheckable_ == lastChildrenCheckable_ &&
+                view_.size() == lastChildrenCount_ && viewVersion_ == lastViewVersion_ &&
+                itemsCheckable_ == lastChildrenCheckable_ &&
                 arrangedRect_.x == lastChildrenArrX_ && arrangedRect_.y == lastChildrenArrY_ &&
-                arrangedRect_.width == lastChildrenArrW_)
-                return childrenView_;
+                arrangedRect_.width == lastChildrenArrW_ && arrangedRect_.height == lastChildrenArrH_)
+                return;
             childrenDirty_ = false;
             lastChildrenScrollY_ = snapped; lastChildrenEff_ = eff;
-            lastChildrenCount_ = items_.size(); lastChildrenCheckable_ = itemsCheckable_;
+            lastChildrenCount_ = view_.size(); lastViewVersion_ = viewVersion_; lastChildrenCheckable_ = itemsCheckable_;
             lastChildrenArrX_ = arrangedRect_.x; lastChildrenArrY_ = arrangedRect_.y;
-            lastChildrenArrW_ = arrangedRect_.width;
+            lastChildrenArrW_ = arrangedRect_.width; lastChildrenArrH_ = arrangedRect_.height;
             childrenView_.clear();
-            if (eff <= 0.0f) return childrenView_;
+            if (eff <= 0.0f) return;
             float left = arrangedRect_.x + (buttonMode_ ? 4.0f : 0.0f) + 8.0f;   // 按钮模式 itemRect 左移 4（与原绘制一致）
             if (itemsCheckable_) left += 15.0f + 6.0f;
             float right = arrangedRect_.x + arrangedRect_.width - (showScrollBar_ ? scrollBarWidth_ : 0) - 8.0f;
             float w = right - left; if (w < 0.0f) w = 0.0f;
             const float bleedY = 3.0f;
             int first, last; VisibleRange(first, last);
-            for (int i = first; i <= last; ++i) {
-                if (!items_[i]) continue;
-                float y = arrangedRect_.y + i * eff - snapped;      // 就地摆到滚动后的位置
-                items_[i]->Arrange(Rect(left, y - bleedY, w, itemHeight_ + bleedY * 2.0f));
-                childrenView_.push_back(items_[i].get());
+            int need = last - first + 1; if (need < 0) need = 0;
+            if ((int)pool_.size() < need) {
+                int old = (int)pool_.size();
+                pool_.resize(need); poolSrc_.resize(need, -1);
+                for (int k = old; k < need; ++k) { pool_[k] = std::make_shared<Label>(); PreparePoolLabel(pool_[k]); pool_[k]->SetParent(const_cast<ListView*>(this)); }
             }
-            return childrenView_;
+            for (int vi = first; vi <= last; ++vi) {
+                int src = (vi >= 0 && vi < (int)view_.size()) ? view_[vi] : -1;
+                if (src < 0) continue;
+                float y = arrangedRect_.y + vi * eff - snapped;      // 就地摆到滚动后的位置
+                Rect rr(left, y - bleedY, w, itemHeight_ + bleedY * 2.0f);
+                        std::shared_ptr<Label> rich = nullptr;
+                if (virtual_) { auto it = richRows_.find(src); if (it != richRows_.end()) rich = it->second; }
+                else if (src < (int)items_.size()) rich = items_[src];
+                Rect rowClip(arrangedRect_.x, arrangedRect_.y,
+                    arrangedRect_.width - (showScrollBar_ ? scrollBarWidth_ : 0.0f), arrangedRect_.height);
+                if (rich) { rich->Arrange(rr); rich->SetClipRect(rowClip); childrenView_.push_back(rich.get()); continue; }
+                int k = vi - first;
+                auto& lb = pool_[k];
+                if (!lb) continue;
+                if (poolSrc_[k] != src) {
+                    poolSrc_[k] = src;
+                    lb->SetTextFast(SourceText(src));   // 自身脏、不冒泡、不重绘
+                    lb->Measure(Size(w, itemHeight_));  // 必须重测（否则盒宽陈旧 → 省略号）
+                }
+                {   // 颜色每帧设（Label::SetTextColor 颜色没变会短路）——修"颜色改了看不到"
+                    auto cIt = rowTextColors_.find(src);
+                    D2D1_COLOR_F tc = (cIt != rowTextColors_.end()) ? cIt->second : textColor_;
+                    lb->SetTextColor(Color(tc.r, tc.g, tc.b, tc.a));
+                }
+                lb->Arrange(rr);
+                lb->SetClipRect(rowClip);              // 裁到内容视口（不压滚动条）
+                childrenView_.push_back(lb.get());
+            }
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
         // 裁剪只给子元素用；向外扩 2px，避免 ListView 自己的描边/阴影被切
         std::optional<D2D1_RECT_F> GetClipRect() const override {
             return D2D1::RectF(arrangedRect_.x - 2.0f, arrangedRect_.y - 2.0f,
@@ -517,8 +612,9 @@ namespace ZufyUI {
         mutable float lastChildrenScrollY_ = -1e30f;
         mutable float lastChildrenEff_ = -1e30f;
         mutable size_t lastChildrenCount_ = (size_t)-1;
+        mutable int lastViewVersion_ = -1;
         mutable bool lastChildrenCheckable_ = false;
-        mutable float lastChildrenArrX_ = -1e30f, lastChildrenArrY_ = -1e30f, lastChildrenArrW_ = -1e30f;
+        mutable float lastChildrenArrX_ = -1e30f, lastChildrenArrY_ = -1e30f, lastChildrenArrW_ = -1e30f, lastChildrenArrH_ = -1e30f;
 
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_) return;
@@ -537,15 +633,18 @@ namespace ZufyUI {
             rt->PushAxisAlignedClip(clipRect, D2D1_ANTIALIAS_MODE_ALIASED);
 
             float snapped = Snap(scrollOffsetY_);
+            EnsureView();
+            int vc = (int)view_.size();
             int firstVisible = (int)(snapped / effectiveRowHeight);
             int lastVisible = (int)((snapped + arrangedRect_.height) / effectiveRowHeight);
-            lastVisible = min(lastVisible, (int)items_.size() - 1);
+            lastVisible = min(lastVisible, vc - 1);
             if (firstVisible < 0) firstVisible = 0;
 
             IDWriteTextFormat* fmt = GetFontFormat();
 
-            for (int i = firstVisible; i <= lastVisible && i < (int)items_.size(); ++i) {
-                float itemY = arrangedRect_.y + i * effectiveRowHeight - snapped;
+            for (int vi = firstVisible; vi <= lastVisible && vi < vc; ++vi) {
+                int i = view_[vi];   // 源行号（选择/悬停/勾选/交替色都按它）
+                float itemY = arrangedRect_.y + vi * effectiveRowHeight - snapped;
                 D2D1_RECT_F itemRect = D2D1::RectF(arrangedRect_.x, itemY,
                     arrangedRect_.x + viewportWidth, itemY + itemHeight_);
 
@@ -585,7 +684,7 @@ namespace ZufyUI {
                 }
             }
 
-            if (showSortIndicator_ && !items_.empty() && fmt) {
+            if (showSortIndicator_ && GetItemCount() > 0 && fmt) {
                 if (!sortIndicatorBrush_) rt->CreateSolidColorBrush(sortIndicatorColor_, sortIndicatorBrush_.GetAddressOf());
                 else sortIndicatorBrush_->SetColor(sortIndicatorColor_);
                 if (sortIndicatorBrush_) {
@@ -608,7 +707,7 @@ namespace ZufyUI {
                 if (marqueeBorderBrush_) rt->DrawRectangle(mr, marqueeBorderBrush_.Get(), 2.0f);
             }
 
-            if (items_.empty() && !emptyText_.empty()) {
+            if (GetItemCount() == 0 && !emptyText_.empty()) {
                 D2D1_RECT_F er = D2D1::RectF(arrangedRect_.x + 8.0f, arrangedRect_.y,
                     arrangedRect_.x + viewportWidth - 8.0f, arrangedRect_.y + arrangedRect_.height);
                 if (!textBrush_) rt->CreateSolidColorBrush(textColor_, textBrush_.GetAddressOf());
@@ -616,8 +715,8 @@ namespace ZufyUI {
                 if (fmt) rt->DrawText(emptyText_.c_str(), (UINT32)emptyText_.length(), fmt, er, textBrush_.Get());
             }
 
-            // 指示条
-            if (selectedIndex_ >= 0 && selectedIndex_ < (int)items_.size()) {
+            // 指示条（位置由 UpdateIndicatorTarget 按可见序算好）
+            if (VisibleOfSource(selectedIndex_) >= 0) {
                 float indicatorTop = arrangedRect_.y + indicatorY_ - Snap(scrollOffsetY_);
                 float indicatorHeight = itemHeight_ * indicatorHeightRatio_;
                 float indicatorOffset = (itemHeight_ - indicatorHeight) / 2.0f;
@@ -666,6 +765,7 @@ namespace ZufyUI {
             MouseLeave.Fire();
         }
         void OnMouseMove(float x, float y) override {
+            auto _rg = RenderGuard();   // 与 render 线程的 GetChildren/EnsureView 串行（避免惰性重建 view_ 的竞态）
             int prevHover = hoveredIndex_;
             bool prevScrollHover = isScrollBarHovered_;
             if (isDraggingScroll_) {
@@ -711,13 +811,15 @@ namespace ZufyUI {
             }
             float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
             float relY = LocalToContentY(y);
-            int idx = (int)(relY / effectiveRowHeight);
-            if (idx >= 0 && idx < (int)items_.size())
-                hoveredIndex_ = idx;
-            else
-                hoveredIndex_ = -1;
-            {
-                Label* hp = (hoveredIndex_ >= 0 && hoveredIndex_ < (int)items_.size()) ? items_[hoveredIndex_].get() : nullptr;
+            int vi = (int)(relY / effectiveRowHeight);
+            int src = (vi >= 0 && vi < VisibleCount()) ? SourceOfVisible(vi) : -1;
+            hoveredIndex_ = src;
+            if (virtual_) {
+                auto it = (src >= 0) ? rowTips_.find(src) : rowTips_.end();
+                SetToolTip((src >= 0 && it != rowTips_.end()) ? it->second : std::wstring());
+            }
+            else {
+                Label* hp = (src >= 0 && src < (int)items_.size()) ? items_[src].get() : nullptr;
                 auto it = hp ? itemTips_.find(hp) : itemTips_.end();
                 SetToolTip((hp && it != itemTips_.end()) ? it->second : std::wstring());
             }
@@ -725,20 +827,22 @@ namespace ZufyUI {
             MouseMove.Fire(x, y);
         }
         bool OnContextMenu(float x, float y) override {
+            auto _rg = RenderGuard();
             lastContextRow_ = -1;
             if (arrangedRect_.Contains(x, y)) {
                 float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
                 float relY = LocalToContentY(y);
-                int idx = (int)(relY / effectiveRowHeight);
-                if (idx >= 0 && idx < (int)items_.size()) {
-                    lastContextRow_ = idx;
-                    ItemRightClicked(idx);
+                int vi = (int)(relY / effectiveRowHeight);
+                if (vi >= 0 && vi < VisibleCount()) {
+                    lastContextRow_ = SourceOfVisible(vi);
+                    ItemRightClicked(lastContextRow_);
                 }
             }
             return false;   // 继续弹默认右键菜单（若设了 SetContextMenu / 工厂）
         }
 
         void OnMouseDown(float x, float y) override {
+            auto _rg = RenderGuard();
             if (!arrangedRect_.Contains(x, y)) return;
             if (showScrollBar_) {
                 float trackX = arrangedRect_.x + arrangedRect_.width - scrollBarWidth_;
@@ -764,7 +868,8 @@ namespace ZufyUI {
             }
             float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
             float relY = LocalToContentY(y);
-            int idx = (int)(relY / effectiveRowHeight);
+            int vi = (int)(relY / effectiveRowHeight);
+            int idx = (vi >= 0 && vi < VisibleCount()) ? SourceOfVisible(vi) : -1;
 
             pressActive_ = true;
             marqueeActive_ = false;
@@ -773,10 +878,10 @@ namespace ZufyUI {
             marqueeCurCX_ = pressStartCX_;
             marqueeCurCY_ = pressStartCY_;
 
-            if (idx >= 0 && idx < (int)items_.size() && !IsItemDisabled(idx)) {
+            if (idx >= 0 && !IsItemDisabled(idx)) {
                 if (itemsCheckable_) {
                     float eff = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
-                    float itemTop = arrangedRect_.y + idx * eff - Snap(scrollOffsetY_);
+                    float itemTop = arrangedRect_.y + vi * eff - Snap(scrollOffsetY_);
                     float cy = itemTop + itemHeight_ / 2.0f;
                     float cbX = arrangedRect_.x + 8.0f;
                     if (x >= cbX && x <= cbX + 15.0f && y >= cy - 7.5f && y <= cy + 7.5f) {
@@ -807,8 +912,11 @@ namespace ZufyUI {
                     }
                     else if (shift && selectedIndex_ >= 0) {
                         multiSel_.clear();
-                        int a = min(selectedIndex_, idx), b = max(selectedIndex_, idx);
-                        for (int k = a; k <= b; ++k) multiSel_.insert(k);
+                        int va = VisibleOfSource(selectedIndex_), vb = VisibleOfSource(idx);
+                        if (va >= 0 && vb >= 0) {
+                            int a = min(va, vb), b = max(va, vb);
+                            for (int k = a; k <= b; ++k) multiSel_.insert(SourceOfVisible(k));
+                        }
                         RequestRepaint();
                     }
                     else {
@@ -844,36 +952,35 @@ namespace ZufyUI {
             return false;
         }
         void OnKeyDown(WPARAM key, LPARAM lParam) override {
-            if (!IsFocusable() || items_.empty()) return;
+            auto _rg = RenderGuard();
+            int vc = VisibleCount();
+            if (!IsFocusable() || vc == 0) return;
+            int cur = GetSelectedVisible();
+            auto pick = [&](int v) { if (v >= 0 && v < vc) SetSelectedIndex(SourceOfVisible(v)); };
+            auto nextEnabled = [&](int from, int step) -> int {
+                for (int k = from; k >= 0 && k < vc; k += step) if (!IsItemDisabled(SourceOfVisible(k))) return k;
+                return -1;
+            };
             switch (key) {
-            case VK_UP: { int n = FindEnabledFrom(selectedIndex_ >= 0 ? selectedIndex_ : (int)items_.size(), -1); if (n >= 0) SetSelectedIndex(n); break; }
-            case VK_DOWN: { int n = FindEnabledFrom(selectedIndex_ >= 0 ? selectedIndex_ : -1, 1); if (n >= 0) SetSelectedIndex(n); break; }
-            case VK_HOME: { int n = FindEnabledFrom(-1, 1); if (n >= 0) SetSelectedIndex(n); break; }
-            case VK_END: { int n = FindEnabledFrom((int)items_.size(), -1); if (n >= 0) SetSelectedIndex(n); break; }
-            case VK_PRIOR: {
-                int page = max(1, (int)(arrangedRect_.height / itemHeight_));
-                int target = max(0, (selectedIndex_ < 0 ? 0 : selectedIndex_) - page);
-                int n = FindEnabledFrom(target - 1, 1); if (n >= 0) SetSelectedIndex(n); break;
-            }
-            case VK_NEXT: {
-                int page = max(1, (int)(arrangedRect_.height / itemHeight_));
-                int target = min((int)items_.size() - 1, (selectedIndex_ < 0 ? 0 : selectedIndex_) + page);
-                int n = FindEnabledFrom(target + 1, -1); if (n >= 0) SetSelectedIndex(n); break;
-            }
-            default:
-                break;
+            case VK_UP: { int v = nextEnabled((cur < 0 ? vc : cur) - 1, -1); if (v >= 0) pick(v); break; }
+            case VK_DOWN: { int v = nextEnabled(cur + 1, 1); if (v >= 0) pick(v); break; }
+            case VK_HOME: { int v = nextEnabled(0, 1); if (v >= 0) pick(v); break; }
+            case VK_END: { int v = nextEnabled(vc - 1, -1); if (v >= 0) pick(v); break; }
+            case VK_PRIOR: { int page = max(1, (int)(arrangedRect_.height / itemHeight_)); pick(max(0, (cur < 0 ? 0 : cur) - page)); break; }
+            case VK_NEXT: { int page = max(1, (int)(arrangedRect_.height / itemHeight_)); pick(min(vc - 1, (cur < 0 ? 0 : cur) + page)); break; }
+            default: break;
             }
             KeyDown.Fire(key, lParam);
         }
         // 首字母定位（type-ahead）
         void OnChar(wchar_t ch) override {
-            if (ch < 32 || items_.empty()) return;
+            if (ch < 32 || GetItemCount() == 0) return;
             wchar_t lower = (ch >= L'A' && ch <= L'Z') ? (wchar_t)(ch + 32) : ch;
             DWORD now = GetTickCount();
             if (now - typeAheadTime_ > 900) typeAheadChars_.clear();
             typeAheadTime_ = now;
             typeAheadChars_.push_back(lower);
-            int n = (int)items_.size();
+            int n = GetItemCount();
             int start = (selectedIndex_ >= 0 && selectedIndex_ < n) ? selectedIndex_ : -1;
             for (int off = 0; off < n; ++off) {
                 int i = (start + 1 + off) % n;
@@ -964,18 +1071,28 @@ namespace ZufyUI {
             float y0 = min(pressStartCY_, marqueeCurCY_);
             float y1 = max(pressStartCY_, marqueeCurCY_);
             float eff = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
+            EnsureView();
+            std::unordered_set<int> prev = multiSel_;
             multiSel_.clear();
-            for (int i = 0; i < (int)items_.size(); ++i) {
-                float top = i * eff, bottom = top + eff;
-                if (!(bottom < y0 || top > y1)) multiSel_.insert(i);
+            // 框选按"屏幕位置"选：位置 = 可见序 × 行高，只在命中窗口内遍历（O(命中数) 而非 O(N)）
+            int vc = (int)view_.size();
+            int first = (eff > 0.0f) ? (int)(y0 / eff) : 0;
+            int last = (eff > 0.0f) ? (int)(y1 / eff) + 1 : vc - 1;
+            if (first < 0) first = 0;
+            if (last > vc - 1) last = vc - 1;
+            for (int vi = first; vi <= last; ++vi) {
+                float top = vi * eff, bottom = top + eff;
+                if (!(bottom < y0 || top > y1)) multiSel_.insert(view_[vi]);
             }
             if (marqueeCheckSync_ && itemsCheckable_) {
-                for (int i = 0; i < (int)items_.size(); ++i) {
-                    bool now = multiSel_.count(i) > 0;
-                    bool was = checked_.count(i) > 0;
+                std::unordered_set<int> affected = multiSel_;   // 新旧并集（只遍历变动过的行）
+                for (int s : prev) affected.insert(s);
+                for (int src : affected) {   // 双向同步：框选结果 = 勾选状态
+                    bool now = multiSel_.count(src) > 0;
+                    bool was = checked_.count(src) > 0;
                     if (now != was) {
-                        if (now) checked_.insert(i); else checked_.erase(i);
-                        ItemCheckStateChanged(i, now);
+                        if (now) checked_.insert(src); else checked_.erase(src);
+                        ItemCheckStateChanged(src, now);
                     }
                 }
             }
@@ -984,7 +1101,8 @@ namespace ZufyUI {
         }
 
         void UpdateScrollInfo() {
-            float contentHeight = items_.size() * (buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_);
+            EnsureView();
+            float contentHeight = view_.size() * (buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_);
             showScrollBar_ = contentHeight > arrangedRect_.height;
             maxScrollY_ = max(0.0f, contentHeight - arrangedRect_.height);
             scrollOffsetY_ = clamp(scrollOffsetY_, 0.0f, maxScrollY_);
@@ -993,8 +1111,10 @@ namespace ZufyUI {
 
         void EnsureVisible(int index) {
             if (index < 0) return;
+            int vi = VisibleOfSource(index);
+            if (vi < 0) return;
             float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
-            float itemTop = index * effectiveRowHeight;
+            float itemTop = vi * effectiveRowHeight;
             float itemBottom = itemTop + itemHeight_;
             if (itemTop < scrollOffsetY_) {
                 targetScrollOffsetY_ = itemTop;
@@ -1006,12 +1126,12 @@ namespace ZufyUI {
         }
 
         void UpdateIndicatorTarget() {
-            if (selectedIndex_ >= 0 && selectedIndex_ < (int)items_.size()) {
-                targetIndicatorY_ = selectedIndex_ * (buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_);
+            EnsureView();
+            int vi = (selectedIndex_ >= 0) ? VisibleOfSource(selectedIndex_) : -1;
+            if (vi >= 0) {
+                targetIndicatorY_ = vi * (buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_);
             }
-            else {
-                targetIndicatorY_ = 0.0f;
-            }
+            // 选中项当前不可见：保持原 targetIndicatorY_（Draw 会按可见性跳过画），避免硬闪到 0
             if (indicatorY_ < 0.0f) indicatorY_ = targetIndicatorY_;
         }
 
@@ -1050,7 +1170,125 @@ namespace ZufyUI {
                     thumbWidth / 2, thumbWidth / 2), scrollThumbBrush_.Get());
         }
 
-        std::vector<std::shared_ptr<Label>> items_;
+    public:
+        // ========== 隐藏 / 筛选 / 排序 + 可见序（统一 API；源行号 = 唯一行标识）==========
+        //   单一 API：行数据用 *Item* 系列（AddItem/InsertItem/RemoveItem/SetItem/GetItemText/GetItemLabel/SetItemToolTip/…），
+        //             **内部自动池化**，无需区分"普通/虚拟"；批量设置行数用 SetItemCount(n)。
+        //   隐藏/筛选/排序：SetItemHidden / SetFilter / SetViewComparator+SortView（都作用于源行号；排序只改可见序）。
+        //   可见序（屏幕第几个）：VisibleCount / SourceOfVisible / VisibleOfSource / SetSelectedVisible / GetSelectedVisible。
+        //   勾选/禁用/富项都按**源行号**保持，不随可见序漂移（同 Qt model/view）。
+        //   src = 源行号（稳定）；vi = 可见序（随隐藏/筛选/排序变化）。
+        int GetItemCount() const { return virtual_ ? (int)vtext_.size() : (int)items_.size(); }
+        int VisibleCount() const { EnsureView(); return (int)view_.size(); }
+        int SourceOfVisible(int vi) const { EnsureView(); return (vi >= 0 && vi < (int)view_.size()) ? view_[vi] : -1; }
+        int VisibleOfSource(int src) const { EnsureView(); return (src >= 0 && src < (int)srcToView_.size()) ? srcToView_[src] : -1; }
+        std::wstring SourceText(int src) const {
+            if (src < 0) return L"";
+            if (virtual_) {
+                auto it = richRows_.find(src);   // 富行以它自己的文本为准
+                if (it != richRows_.end() && it->second) return it->second->GetText();
+                return (src < (int)vtext_.size()) ? vtext_[src] : std::wstring();
+            }
+            return (src < (int)items_.size() && items_[src]) ? items_[src]->GetText() : std::wstring();
+        }
+        std::wstring TextAtVisible(int vi) const { return SourceText(SourceOfVisible(vi)); }
+
+        // 虚拟源（纯文本行；不再"一源行一个 Label"）。富项仍可用 AddItem(shared_ptr<Label>)。
+        void SetItemCount(int n) {
+            auto _rg = RenderGuard();
+            virtual_ = true;
+            if (n < 0) n = 0;
+            vtext_.assign((size_t)n, std::wstring());
+            items_.clear();            // 从简单模式切来：释放旧 Label（否则永不回收）
+            richRows_.clear();         // 旧富项残留
+            hiddenRows_.clear();
+            disabledRows_.clear();
+            checked_.clear();
+            multiSel_.clear();
+            rowTips_.clear();
+            rowTextColors_.clear();
+            filter_ = nullptr; viewCmp_ = nullptr; viewSortActive_ = false;   // 与 Clear() 一致
+            selectedIndex_ = -1; hoveredIndex_ = -1;
+            scrollOffsetY_ = 0.0f; targetScrollOffsetY_ = 0.0f;
+            viewDirty_ = true; childrenDirty_ = true;
+            UpdateScrollInfo(); InvalidateLayout(); RequestRepaint();
+        }
+        // 隐藏（只标记，不删数据）
+        void SetItemHidden(int src, bool hidden = true) {
+            auto _rg = RenderGuard();
+            if (src < 0 || src >= GetItemCount()) return;
+            if (hidden) hiddenRows_.insert(src); else hiddenRows_.erase(src);
+            viewDirty_ = true; childrenDirty_ = true; InvalidateLayout(); RequestRepaint();
+        }
+        bool IsItemHidden(int src) const { return hiddenRows_.count(src) > 0; }
+        void ClearHidden() {
+            auto _rg = RenderGuard();
+            if (hiddenRows_.empty()) return;
+            hiddenRows_.clear(); viewDirty_ = true; childrenDirty_ = true; InvalidateLayout(); RequestRepaint();
+        }
+
+        // 筛选（谓词：源行号）
+        void SetFilter(std::function<bool(int)> pred) { auto _rg = RenderGuard(); filter_ = std::move(pred); viewDirty_ = true; childrenDirty_ = true; InvalidateLayout(); RequestRepaint(); }
+        void ClearFilter() { auto _rg = RenderGuard(); if (!filter_) return; filter_ = nullptr; viewDirty_ = true; childrenDirty_ = true; InvalidateLayout(); RequestRepaint(); }
+
+        // 排序（自定义比较器：源行号；稳定）
+        void SetViewComparator(std::function<bool(int,int)> cmp) { auto _rg = RenderGuard(); viewCmp_ = std::move(cmp); }
+        void SortView(bool ascending = true) { auto _rg = RenderGuard(); viewSortAsc_ = ascending; viewSortActive_ = (viewCmp_ != nullptr); viewDirty_ = true; childrenDirty_ = true; InvalidateLayout(); RequestRepaint(); }
+        void ClearViewSort() { auto _rg = RenderGuard(); viewCmp_ = nullptr; viewSortActive_ = false; viewDirty_ = true; childrenDirty_ = true; InvalidateLayout(); RequestRepaint(); }
+
+        // 选择：SetSelectedIndex/GetSelectedIndex 即源行号；下面是"可见序"便捷入口
+        void SetSelectedVisible(int vi) { SetSelectedIndex(SourceOfVisible(vi)); }
+        int  GetSelectedVisible() const { return VisibleOfSource(selectedIndex_); }
+
+        // ---- 内部：视图 + 池 ----
+        void EnsureView() const {
+            if (!viewDirty_) return;
+            viewDirty_ = false;
+            int n = GetItemCount();
+            view_.clear(); view_.reserve((size_t)n);
+            for (int i = 0; i < n; ++i) {
+                if (hiddenRows_.count(i)) continue;
+                if (filter_ && !filter_(i)) continue;
+                view_.push_back(i);
+            }
+            if (viewSortActive_ && viewCmp_) {
+                bool asc = viewSortAsc_;
+                std::stable_sort(view_.begin(), view_.end(), [&](int a, int b) { return asc ? viewCmp_(a, b) : viewCmp_(b, a); });
+            }
+            srcToView_.assign((size_t)n, -1);
+            for (int vi = 0; vi < (int)view_.size(); ++vi) srcToView_[(size_t)view_[vi]] = vi;
+            viewVersion_++;
+        }
+        std::unique_lock<std::recursive_mutex> RenderGuard() {
+            Window* w = GetWindow();
+            return w ? w->LockRender() : std::unique_lock<std::recursive_mutex>();
+        }
+        void PreparePoolLabel(std::shared_ptr<Label>& lb) const {
+            if (!lb) return;
+            lb->SetUseCache(false);
+            lb->SetFont(GetEffectiveFontSpec());
+            lb->SetAlignment(Label::HAlign::Left, Label::VAlign::Center);
+            lb->SetPadding(0.0f);
+        }
+
+    private:
+        std::vector<std::shared_ptr<Label>> items_;   // 源：简单模式/富项整行（虚拟模式为空）
+        bool virtual_ = false;                        // true = 源文本在 vtext_
+        std::vector<std::wstring> vtext_;
+        mutable std::vector<int> view_;               // 可见序：view_[vi] = 源行号
+        mutable std::vector<int> srcToView_;          // 源行号 → 可见序（-1 = 不可见）
+        mutable bool viewDirty_ = true;
+        mutable int viewVersion_ = 0;
+        std::unordered_set<int> hiddenRows_;
+        std::unordered_map<int, std::shared_ptr<Label>> richRows_;   // 虚拟模式：富项整行
+        std::unordered_set<int> disabledRows_;                        // 虚拟模式：逐行禁用
+        std::unordered_map<int, std::wstring> rowTips_;               // 虚拟模式：逐行 tooltip
+        std::unordered_map<int, D2D1_COLOR_F> rowTextColors_;         // 虚拟模式：逐行文字色
+        std::function<bool(int)> filter_;
+        std::function<bool(int,int)> viewCmp_;
+        bool viewSortActive_ = false, viewSortAsc_ = true;
+        mutable std::vector<std::shared_ptr<Label>> pool_;
+        mutable std::vector<int> poolSrc_;            // 池槽 → 源行号
         int selectedIndex_;
         int hoveredIndex_;
         float scrollOffsetY_;
@@ -1224,29 +1462,39 @@ namespace ZufyUI {
             height_ = DefaultHeight;
         }
 
+        // 数据变更与 render 线程串行（架构 B：GetChildren 在 render 线程读 data_）
+        std::unique_lock<std::recursive_mutex> RenderGuard() {
+            Window* w = GetWindow();
+            return w ? w->LockRender() : std::unique_lock<std::recursive_mutex>();
+        }
+
         // 数据模型
         void SetRowCount(int rows) {
+            auto _rg = RenderGuard();
             rows = max(0, rows);
             rowCount_ = rows;
-            data_.resize(rows);
-            for (auto& row : data_) row.resize(colCount_);
+            cellText_.assign((size_t)rows, std::vector<std::wstring>((size_t)colCount_));
+            richCells_.clear();
+            hiddenRows_.clear();
             if (selectedRow_ >= rows) selectedRow_ = -1;
             if (hoveredRow_ >= rows) hoveredRow_ = -1;
             disabledRows_.clear();
             rowHeights_.clear();
             cellTextColors_.clear();
             cellTips_.clear();
+            viewDirty_ = true;
             UpdateScrollInfo();
             UpdateIndicatorTarget();
             InvalidateLayout();
             RequestRepaint();
         }
         void SetColumnCount(int cols) {
+            auto _rg = RenderGuard();
             cols = max(0, cols);
             colCount_ = cols;
             headers_.resize(cols);
             columnWidths_.assign(cols, DefaultMinColumnWidth);
-            for (auto& row : data_) row.resize(cols);
+            for (auto& row : cellText_) row.resize((size_t)cols);
             if (selectedCol_ >= cols) selectedCol_ = -1;
             if (hoveredCol_ >= cols) hoveredCol_ = -1;
             cellTextColors_.clear();
@@ -1258,37 +1506,63 @@ namespace ZufyUI {
             InvalidateLayout();
             RequestRepaint();
         }
+        // ===== 行隐藏 / 筛选 / 排序 + 可见序（源行号 = 唯一行标识；内部自动池化）=====
+        void SetItemHidden(int src, bool hidden = true) { auto _rg = RenderGuard(); if (src < 0 || src >= rowCount_) return; if (hidden) hiddenRows_.insert(src); else hiddenRows_.erase(src); viewDirty_ = true; childrenDirty_ = true; UpdateScrollInfo(); RequestRepaint(); }
+        bool IsItemHidden(int src) const { return hiddenRows_.count(src) > 0; }
+        void ClearHidden() { auto _rg = RenderGuard(); if (hiddenRows_.empty()) return; hiddenRows_.clear(); viewDirty_ = true; childrenDirty_ = true; UpdateScrollInfo(); RequestRepaint(); }
+        void SetFilter(std::function<bool(int)> pred) { auto _rg = RenderGuard(); rowFilter_ = std::move(pred); viewDirty_ = true; childrenDirty_ = true; UpdateScrollInfo(); RequestRepaint(); }
+        void ClearFilter() { auto _rg = RenderGuard(); if (!rowFilter_) return; rowFilter_ = nullptr; viewDirty_ = true; childrenDirty_ = true; UpdateScrollInfo(); RequestRepaint(); }
+        void SetViewComparator(std::function<bool(int,int)> cmp) { auto _rg = RenderGuard(); rowViewCmp_ = std::move(cmp); }
+        void SortView(bool ascending = true) { auto _rg = RenderGuard(); rowSortAsc_ = ascending; rowSortActive_ = (rowViewCmp_ != nullptr); viewDirty_ = true; childrenDirty_ = true; UpdateScrollInfo(); RequestRepaint(); }
+        void ClearViewSort() { auto _rg = RenderGuard(); rowViewCmp_ = nullptr; rowSortActive_ = false; viewDirty_ = true; childrenDirty_ = true; UpdateScrollInfo(); RequestRepaint(); }
+        int VisibleCount() const { EnsureView(); return (int)view_.size(); }
+        int SourceOfVisible(int vi) const { EnsureView(); return (vi >= 0 && vi < (int)view_.size()) ? view_[vi] : -1; }
+        int VisibleOfSource(int src) const { EnsureView(); return (src >= 0 && src < (int)srcToView_.size()) ? srcToView_[src] : -1; }
+
         void SetItem(int row, int col, std::shared_ptr<Label> label) {
+            auto _rg = RenderGuard();
             if (row < 0 || row >= rowCount_ || col < 0 || col >= colCount_ || !label) return;
-            data_[row][col] = label;
-            label->SetParent(this);
-            InvalidateLayout();
-            RequestRepaint();
+            richCells_[CellKey(row, col)] = label;                       // 富项格整格用它
+            if (row < (int)cellText_.size() && col < (int)cellText_[row].size())
+                cellText_[row][(size_t)col] = label->GetText();
+            PrepareCellLabel(label, col); label->SetParent(this);
+            childrenDirty_ = true; InvalidateCellPool(); InvalidateLayout(); RequestRepaint();
         }
         void SetItem(int row, int col, const std::wstring& text) {
-            auto label = std::make_shared<Label>(text);
-            label->SetTextColor(Color(textColor_.r, textColor_.g, textColor_.b, textColor_.a));
-            SetItem(row, col, label);
+            auto _rg = RenderGuard();
+            if (row < 0 || row >= rowCount_ || col < 0 || col >= colCount_) return;
+            if (row < (int)cellText_.size() && col < (int)cellText_[row].size())
+                cellText_[row][(size_t)col] = text;
+            richCells_.erase(CellKey(row, col));                          // 纯文本覆盖富项
+            childrenDirty_ = true; InvalidateCellPool(); RequestRepaint();
         }
         std::shared_ptr<Label> GetItemLabel(int row, int col) const {
-            if (row < 0 || row >= rowCount_ || col < 0 || col >= colCount_) return nullptr;
-            if (row >= (int)data_.size() || col >= (int)data_[row].size()) return nullptr;
-            return data_[row][col];
+            auto it = richCells_.find(CellKey(row, col));
+            return it != richCells_.end() ? it->second : nullptr;
         }
         std::wstring GetItemText(int row, int col) const {
-            auto label = GetItemLabel(row, col);
-            return label ? label->GetText() : L"";
+            auto it = richCells_.find(CellKey(row, col));
+            if (it != richCells_.end() && it->second) return it->second->GetText();
+            if (row >= 0 && row < (int)cellText_.size() && col >= 0 && col < (int)cellText_[row].size())
+                return cellText_[row][(size_t)col];
+            return L"";
         }
 
         // ---------- 行列数量与增删 ----------
         int GetRowCount() const { return rowCount_; }
         int GetColumnCount() const { return colCount_; }
         void AppendRow() { InsertRow(rowCount_); }
+        void RemapRichRowInsert(int at) { std::unordered_map<long long,std::shared_ptr<Label>> m; for (auto& kv : richCells_){ int r=CellKeyRow(kv.first), c=CellKeyCol(kv.first); m[CellKey(r>=at?r+1:r,c)]=kv.second; } richCells_=std::move(m); }
+        void RemapRichRowRemove(int at) { std::unordered_map<long long,std::shared_ptr<Label>> m; for (auto& kv : richCells_){ int r=CellKeyRow(kv.first), c=CellKeyCol(kv.first); if(r==at) continue; m[CellKey(r>at?r-1:r,c)]=kv.second; } richCells_=std::move(m); }
+        void RemapRichColInsert(int at) { std::unordered_map<long long,std::shared_ptr<Label>> m; for (auto& kv : richCells_){ int r=CellKeyRow(kv.first), c=CellKeyCol(kv.first); m[CellKey(r,c>=at?c+1:c)]=kv.second; } richCells_=std::move(m); }
+        void RemapRichColRemove(int at) { std::unordered_map<long long,std::shared_ptr<Label>> m; for (auto& kv : richCells_){ int r=CellKeyRow(kv.first), c=CellKeyCol(kv.first); if(c==at) continue; m[CellKey(r,c>at?c-1:c)]=kv.second; } richCells_=std::move(m); }
         void InsertRow(int index) {
+            auto _rg = RenderGuard();
             if (index < 0 || index > rowCount_) index = rowCount_;
-            std::vector<std::shared_ptr<Label>> empty(colCount_);
-            data_.insert(data_.begin() + index, empty);
+            cellText_.insert(cellText_.begin() + index, std::vector<std::wstring>((size_t)colCount_));
+            RemapRichRowInsert(index);
             rowCount_++;
+            viewDirty_ = true;
             OnRowInserted(index);
             if (selectedRow_ >= index) selectedRow_++;
             {
@@ -1299,9 +1573,12 @@ namespace ZufyUI {
             UpdateScrollInfo(); UpdateIndicatorTarget(); InvalidateLayout(); RequestRepaint();
         }
         void RemoveRow(int index) {
+            auto _rg = RenderGuard();
             if (index < 0 || index >= rowCount_) return;
-            data_.erase(data_.begin() + index);
+            cellText_.erase(cellText_.begin() + index);
+            RemapRichRowRemove(index);
             rowCount_--;
+            viewDirty_ = true;
             OnRowRemoved(index);
             if (selectedRow_ == index) selectedRow_ = -1;
             else if (selectedRow_ > index) selectedRow_--;
@@ -1314,20 +1591,24 @@ namespace ZufyUI {
         }
         void AppendColumn() { InsertColumn(colCount_); }
         void InsertColumn(int index) {
+            auto _rg = RenderGuard();
             if (index < 0 || index > colCount_) index = colCount_;
             headers_.insert(headers_.begin() + index, L"");
             columnWidths_.insert(columnWidths_.begin() + index, DefaultMinColumnWidth);
-            for (auto& row : data_) row.insert(row.begin() + index, nullptr);
+            for (auto& row : cellText_) row.insert(row.begin() + index, std::wstring());
+            RemapRichColInsert(index);
             colCount_++;
             OnColumnInserted(index);
             if (selectedCol_ >= index) selectedCol_++;
             UpdateScrollInfo(); UpdateIndicatorTarget(); InvalidateLayout(); RequestRepaint();
         }
         void RemoveColumn(int index) {
+            auto _rg = RenderGuard();
             if (index < 0 || index >= colCount_) return;
             headers_.erase(headers_.begin() + index);
             if (index < (int)columnWidths_.size()) columnWidths_.erase(columnWidths_.begin() + index);
-            for (auto& row : data_) if (index < (int)row.size()) row.erase(row.begin() + index);
+            for (auto& row : cellText_) if (index < (int)row.size()) row.erase(row.begin() + index);
+            RemapRichColRemove(index);
             colCount_--;
             OnColumnRemoved(index);
             if (selectedCol_ == index) selectedCol_ = -1;
@@ -1355,10 +1636,10 @@ namespace ZufyUI {
 
         // ---------- 行禁用 ----------
         void SetRowDisabled(int row, bool disabled = true) {
+            auto _rg = RenderGuard();
             if (row < 0 || row >= rowCount_) return;
             if (disabled) disabledRows_.insert(row); else disabledRows_.erase(row);
-            if (row < (int)data_.size()) for (auto& lb : data_[row]) if (lb) lb->SetEnabled(!disabled);   // Label 化：禁用态由 Label 画
-            RequestRepaint();
+            childrenDirty_ = true; InvalidateCellPool(); RequestRepaint();   // 禁用态在池绑定时应用
         }
         bool IsRowDisabled(int row) const { return disabledRows_.count(row) > 0; }
 
@@ -1369,12 +1650,14 @@ namespace ZufyUI {
         void ScrollToCell(int row, int col) { EnsureVisible(row, col); RequestRepaint(); }
 
         void SetHorizontalHeaderLabels(const std::vector<std::wstring>& labels) {
+            auto _rg = RenderGuard();
             headers_ = labels;
             if (headers_.size() != colCount_) headers_.resize(colCount_);
             InvalidateLayout();
             RequestRepaint();
         }
         void SetColumnWidth(int col, float width) {
+            auto _rg = RenderGuard();
             if (col < 0 || col >= colCount_) return;
             columnWidths_[col] = max(DefaultMinColumnWidth, width);
             UpdateScrollInfo();
@@ -1389,12 +1672,13 @@ namespace ZufyUI {
         void SetColumnVisible(int col, bool visible) {
             if (col < 0 || col >= colCount_) return;
             if (visible) hiddenColumns_.erase(col); else hiddenColumns_.insert(col);
+            childrenDirty_ = true; InvalidateCellPool();
             UpdateScrollInfo();
             InvalidateLayout();
             RequestRepaint();
         }
         bool IsColumnVisible(int col) const { return col >= 0 && col < colCount_ && hiddenColumns_.count(col) == 0; }
-        void SetColumnAlignment(int col, TextHAlign align) { columnAlign_[col] = align; RequestRepaint(); }
+        void SetColumnAlignment(int col, TextHAlign align) { auto _rg = RenderGuard(); columnAlign_[col] = align; childrenDirty_ = true; InvalidateCellPool(); RequestRepaint(); }
         TextHAlign GetColumnAlignment(int col) const {
             auto it = columnAlign_.find(col);
             return it == columnAlign_.end() ? TextHAlign::Left : it->second;
@@ -1402,13 +1686,14 @@ namespace ZufyUI {
 
         // ---------- 单元格颜色 / ToolTip / 排序 ----------
         void SetCellTextColor(int row, int col, Color color) {
+            auto _rg = RenderGuard();
             if (row < 0 || row >= rowCount_ || col < 0 || col >= colCount_) return;
             cellTextColors_[CellKey(row, col)] = color.ToD2D();
-            if (row < (int)data_.size() && col < (int)data_[row].size() && data_[row][col]) data_[row][col]->SetTextColor(color);   // Label 化
-            RequestRepaint();
+            childrenDirty_ = true; InvalidateCellPool(); RequestRepaint();   // 颜色在池绑定时应用
         }
-        void ClearCellTextColor(int row, int col) { cellTextColors_.erase(CellKey(row, col)); RequestRepaint(); }
+        void ClearCellTextColor(int row, int col) { auto _rg = RenderGuard(); cellTextColors_.erase(CellKey(row, col)); childrenDirty_ = true; InvalidateCellPool(); RequestRepaint(); }
         void SetCellToolTip(int row, int col, const std::wstring& tip) {
+            auto _rg = RenderGuard();
             if (row < 0 || row >= rowCount_ || col < 0 || col >= colCount_) return;
             if (tip.empty()) cellTips_.erase(CellKey(row, col));
             else cellTips_[CellKey(row, col)] = tip;
@@ -1418,6 +1703,7 @@ namespace ZufyUI {
             columnComparators_[col] = std::move(cmp);
         }
         void SortByColumn(int col, bool ascending = true) {
+            auto _rg = RenderGuard();
             if (col < 0 || col >= colCount_ || rowCount_ <= 0) return;
             auto it = columnComparators_.find(col);
             auto cmp = (it != columnComparators_.end()) ? it->second
@@ -1425,23 +1711,29 @@ namespace ZufyUI {
             std::vector<int> perm(rowCount_);
             for (int i = 0; i < rowCount_; ++i) perm[i] = i;
             std::stable_sort(perm.begin(), perm.end(), [&](int ia, int ib) {
-                std::wstring ta = (col < (int)data_[ia].size() && data_[ia][col]) ? data_[ia][col]->GetText() : L"";
-                std::wstring tb = (col < (int)data_[ib].size() && data_[ib][col]) ? data_[ib][col]->GetText() : L"";
+                std::wstring ta = GetItemText(ia, col), tb = GetItemText(ib, col);
                 if (ascending) return cmp ? cmp(ta, tb) : (ta < tb);
                 return cmp ? cmp(tb, ta) : (ta > tb);
                 });
             std::vector<int> oldToNew(rowCount_, 0);
-            std::vector<std::vector<std::shared_ptr<Label>>> newData(rowCount_);
+            std::vector<std::vector<std::wstring>> newText(rowCount_);
+            std::unordered_map<long long, std::shared_ptr<Label>> newRich;
             for (int newPos = 0; newPos < rowCount_; ++newPos) {
                 int oldRow = perm[newPos];
                 oldToNew[oldRow] = newPos;
-                newData[newPos] = data_[oldRow];
+                newText[newPos] = cellText_[oldRow];
             }
-            data_ = std::move(newData);
+            for (auto& kv : richCells_) { int r = CellKeyRow(kv.first), c = CellKeyCol(kv.first); if (r >= 0 && r < rowCount_) newRich[CellKey(oldToNew[r], c)] = kv.second; }
+            cellText_ = std::move(newText);
+            richCells_ = std::move(newRich);
+            viewDirty_ = true;
             // 元数据随行重映射，排序后仍跟随原项目
             std::unordered_set<int> nd;
             for (int r : disabledRows_) if (r >= 0 && r < rowCount_) nd.insert(oldToNew[r]);
             disabledRows_ = std::move(nd);
+            std::unordered_set<int> nhr;
+            for (int r : hiddenRows_) if (r >= 0 && r < rowCount_) nhr.insert(oldToNew[r]);
+            hiddenRows_ = std::move(nhr);
             std::unordered_set<int> nck;
             for (int r : checkedRows_) if (r >= 0 && r < rowCount_) nck.insert(oldToNew[r]);
             checkedRows_ = std::move(nck);
@@ -1471,25 +1763,30 @@ namespace ZufyUI {
         bool IsSortAscending() const { return sortAscending_; }
         void SetShowSortIndicator(bool show) { showSortIndicator_ = show; RequestRepaint(); }
         void SetSortIndicatorColor(Color color) { sortIndicatorColor_ = color.ToD2D(); sortIndicatorBrush_.Reset(); RequestRepaint(); }
-        void SetRowHeight(float height) { rowHeight_ = height; UpdateScrollInfo(); UpdateIndicatorTarget(); InvalidateLayout(); RequestRepaint(); }
+        void SetRowHeight(float height) { auto _rg = RenderGuard(); rowHeight_ = height; metricsDirty_ = true; UpdateScrollInfo(); UpdateIndicatorTarget(); InvalidateLayout(); RequestRepaint(); }
         void SetRowHeightAt(int row, float height) {
+            auto _rg = RenderGuard();
             if (row < 0 || row >= rowCount_) return;
             rowHeights_[row] = max(8.0f, height);
+            metricsDirty_ = true;
             UpdateScrollInfo();
             UpdateIndicatorTarget();
             InvalidateLayout();
             RequestRepaint();
         }
-        float GetRowHeightAt(int row) const { return RowHeightAt(row); }
-        void ClearRowHeightAt(int row) { rowHeights_.erase(row); UpdateScrollInfo(); InvalidateLayout(); RequestRepaint(); }
-        void SetHeaderHeight(float height) { headerHeight_ = height; InvalidateLayout(); RequestRepaint(); }
-        void SetIndicatorWidth(float width) { indicatorWidth_ = width; RequestRepaint(); }
-        void SetIndicatorHeightRatio(float ratio) { indicatorHeightRatio_ = clamp(ratio, 0.1f, 1.0f); RequestRepaint(); }
-        void SetIndicatorColor(Color color) { indicatorColor_ = color.ToD2D(); indicatorBrush_.Reset(); RequestRepaint(); }
-        void SetIndicatorAnimationSpeed(float speed) { indicatorAnimSpeed_ = speed; }
+        float GetRowHeightAt(int row) const {   // row = 源行号（不经过视图）
+            auto it = rowHeights_.find(row);
+            return it != rowHeights_.end() ? it->second : rowHeight_;
+        }
+        void ClearRowHeightAt(int row) { auto _rg = RenderGuard(); rowHeights_.erase(row); metricsDirty_ = true; UpdateScrollInfo(); InvalidateLayout(); RequestRepaint(); }
+        void SetHeaderHeight(float height) { auto _rg = RenderGuard(); headerHeight_ = height; InvalidateLayout(); RequestRepaint(); }
+        void SetIndicatorWidth(float width) { auto _rg = RenderGuard(); indicatorWidth_ = width; RequestRepaint(); }
+        void SetIndicatorHeightRatio(float ratio) { auto _rg = RenderGuard(); indicatorHeightRatio_ = clamp(ratio, 0.1f, 1.0f); RequestRepaint(); }
+        void SetIndicatorColor(Color color) { auto _rg = RenderGuard(); indicatorColor_ = color.ToD2D(); indicatorBrush_.Reset(); RequestRepaint(); }
+        void SetIndicatorAnimationSpeed(float speed) { auto _rg = RenderGuard(); indicatorAnimSpeed_ = speed; }
 
         // 选择
-        void SetSelectionMode(SelectionMode mode) { selectionMode_ = mode; InvalidateLayout(); RequestRepaint(); }
+        void SetSelectionMode(SelectionMode mode) { auto _rg = RenderGuard(); selectionMode_ = mode; InvalidateLayout(); RequestRepaint(); }
         SelectionMode GetSelectionMode() const { return selectionMode_; }
         // 框选开关 / 框选与勾选同步 / 多选结果查询
         void SetMarqueeEnabled(bool e) { marqueeEnabled_ = e; if (!e) { marqueeActive_ = false; pressActive_ = false; } RequestRepaint(); }
@@ -1521,9 +1818,10 @@ namespace ZufyUI {
             }
             return v;
         }
-        void SetCheckable(bool enable) { itemsCheckable_ = enable; if (!enable) checkedRows_.clear(); RequestRepaint(); }
+        void SetCheckable(bool enable) { auto _rg = RenderGuard(); itemsCheckable_ = enable; if (!enable) checkedRows_.clear(); childrenDirty_ = true; RequestRepaint(); }
         bool IsCheckable() const { return itemsCheckable_; }
         void SetRowChecked(int row, bool checked) {
+            auto _rg = RenderGuard();
             if (row < 0 || row >= rowCount_) return;
             bool cur = checkedRows_.count(row) > 0;
             if (cur == checked) return;
@@ -1571,7 +1869,7 @@ namespace ZufyUI {
         void SetHeaderBackgroundColor(Color color) { headerBackgroundColor_ = color.ToD2D(); headerBgBrush_.Reset(); RequestRepaint(); }
         void SetTextColor(Color color) {
             textColor_ = color.ToD2D();
-            for (auto& row : data_) for (auto& label : row) if (label) label->SetTextColor(color);
+            for (auto& kv : richCells_) if (kv.second) kv.second->SetTextColor(color);
             textBrush_.Reset();
             RequestRepaint();
         }
@@ -1642,6 +1940,9 @@ namespace ZufyUI {
             childrenDirty_ = true;              // 重排过 → 可见单元格列表必须重建
         }
 
+        // 作废所有池槽绑定（下次 GetChildren 重绑）——视觉相关 API 改了内容/颜色/禁用/对齐后调用
+        void InvalidateCellPool() { for (auto& kk : poolCell_) kk = -1; }
+
         // Label 化：单元格 Label 的统一初始化（套 TableView 字体 / 列对齐 / 内边距，关自身缓存）
         void PrepareCellLabel(const std::shared_ptr<Label>& lb, int col) const {
             if (!lb) return;
@@ -1657,7 +1958,7 @@ namespace ZufyUI {
         }
 
         // Label 化：可见单元格 Label 作为子元素进入 Window 合成流程（就地摆到滚动后的位置）
-        const std::vector<UIElement*>& GetChildren() const override {
+        void RefreshChildren() override {   // 只在 update/layout 阶段（UI 线程）调用；GetChildren 不再改树
             // 命中缓存必须覆盖“所有影响单元格布局的几何”：滚动量、列宽（**顺序敏感**）、行高总和、行列数、控件矩形。
             // 不能只比列宽总和：交换两列宽度时总和不变，但每列的 x 位置全变。
             unsigned long long colSig = 1469598103934665603ull;
@@ -1666,61 +1967,88 @@ namespace ZufyUI {
                 unsigned bits = 0; std::memcpy(&bits, &w, sizeof(bits));
                 colSig = (colSig ^ (unsigned long long)bits) * 1099511628211ull;
             }
+            EnsureView();
             float totalH = TotalRowsHeight();
             float sx = Snap(scrollOffsetX_), sy = Snap(scrollOffsetY_);
             if (!childrenDirty_ &&
                 sx == lastScrollX_ && sy == lastScrollY_ && colSig == lastColSig_ && totalH == lastTotalH_ &&
-                rowCount_ == lastRowCount_ && colCount_ == lastColCount_ &&
+                view_.size() == (size_t)lastRowCount_ && viewVersion_ == lastViewVersion_ && colCount_ == lastColCount_ &&
                 arrangedRect_.x == lastArrX_ && arrangedRect_.y == lastArrY_ &&
                 arrangedRect_.width == lastArrW_ && arrangedRect_.height == lastArrH_)
-                return childrenView_;
+                return;
             childrenDirty_ = false;
             lastScrollX_ = sx; lastScrollY_ = sy; lastColSig_ = colSig; lastTotalH_ = totalH;
-            lastRowCount_ = rowCount_; lastColCount_ = colCount_;
+            lastRowCount_ = (int)view_.size(); lastViewVersion_ = viewVersion_; lastColCount_ = colCount_;
             lastArrX_ = arrangedRect_.x; lastArrY_ = arrangedRect_.y;
             lastArrW_ = arrangedRect_.width; lastArrH_ = arrangedRect_.height;
             childrenView_.clear();
-            if (rowCount_ <= 0 || colCount_ <= 0) return childrenView_;
+            if (view_.empty() || colCount_ <= 0) return;
             float headerOffset = headerVisible_ ? headerHeight_ : 0.0f;
             float viewportWidth = arrangedRect_.width - (showVerticalScrollBar_ ? scrollBarWidth_ : 0);
             float viewportHeight = arrangedRect_.height - (showHorizontalScrollBar_ ? scrollBarWidth_ : 0);
             Rect contentClip(arrangedRect_.x, arrangedRect_.y + headerOffset, viewportWidth, viewportHeight - headerOffset);
             int firstRow = RowAtY(scrollOffsetY_); if (firstRow < 0) firstRow = 0;
             int lastRow = RowAtY(scrollOffsetY_ + viewportHeight - headerOffset);
-            if (lastRow < 0) lastRow = rowCount_ - 1;
-            if (lastRow > rowCount_ - 1) lastRow = rowCount_ - 1;
+            if (lastRow < 0) lastRow = (int)view_.size() - 1;
+            if (lastRow > (int)view_.size() - 1) lastRow = (int)view_.size() - 1;
             const float bleedY = 3.0f;
+            int maxSlots = (lastRow - firstRow + 1) * colCount_; if (maxSlots < 0) maxSlots = 0;
+            if ((int)pool_.size() < maxSlots) {
+                int old = (int)pool_.size();
+                pool_.resize(maxSlots); poolCell_.resize(maxSlots, -1);
+                for (int kk = old; kk < maxSlots; ++kk) { pool_[kk] = std::make_shared<Label>(); pool_[kk]->SetParent(const_cast<TableView*>(this)); }
+            }
+            int k = 0;
             float colX = ContentToLocalX(0.0f);
             for (int col = 0; col < colCount_; ++col) {
                 float colWidth = GetEffectiveColumnWidth(col);
                 if (colWidth <= 0.0f) { colX += colWidth; continue; }
                 bool colVisible = (colX + colWidth >= arrangedRect_.x) && (colX <= arrangedRect_.x + viewportWidth);
                 if (colVisible) {
-                    for (int row = firstRow; row <= lastRow && row < rowCount_; ++row) {
-                        auto lb = GetItemLabel(row, col);
-                        if (!lb) continue;
-                        PrepareCellLabel(lb, col);
-                        float rowY = arrangedRect_.y + headerOffset + RowTop(row) - Snap(scrollOffsetY_);
-                        // 第一列要让出“指示条 + 勾选框”（与 Draw 里勾选框定位一致），其它列左右各留 8px，别贴边
+                    for (int vi = firstRow; vi <= lastRow; ++vi) {
+                        int row = view_[vi];
+                        float rowY = arrangedRect_.y + headerOffset + RowTop(vi) - Snap(scrollOffsetY_);
                         float textLeft = colX + 8.0f;
                         if (col == 0) textLeft += indicatorWidth_ + (itemsCheckable_ ? 21.0f : 0.0f);
                         float availW = (colX + colWidth - 8.0f) - textLeft;
                         if (availW < 0.0f) availW = 0.0f;
-                        lb->Arrange(Rect(textLeft, rowY - bleedY, availW, RowHeightAt(row) + bleedY * 2.0f));
-                        // 裁到“表头以下、滚动条以内”的内容视口（否则会压到表头/横向滚动条/漫出左右边界）
-                        lb->SetClipRect(contentClip);
+                        Rect rr(textLeft, rowY - bleedY, availW, RowHeightAt(vi) + bleedY * 2.0f);
+                        long long key = CellKey(row, col);
+                        auto rc = richCells_.find(key);
+                        if (rc != richCells_.end() && rc->second) {
+                            auto& rb = rc->second;
+                            PrepareCellLabel(rb, col);
+                            rb->Arrange(rr); rb->SetClipRect(contentClip);
+                            childrenView_.push_back(rb.get());
+                            continue;
+                        }
+                        if (k >= (int)pool_.size()) break;
+                        auto& lb = pool_[k];
+                        if (poolCell_[k] != key) {
+                            poolCell_[k] = key;
+                            lb->SetTextFast(GetItemText(row, col));
+                            PrepareCellLabel(lb, col);
+                            lb->Measure(Size(availW, RowHeightAt(vi)));
+                            auto cit = cellTextColors_.find(key);
+                            D2D1_COLOR_F tc = (cit != cellTextColors_.end()) ? cit->second : textColor_;
+                            lb->SetTextColor(Color(tc.r, tc.g, tc.b, tc.a));
+                            lb->SetEnabled(!disabledRows_.count(row));
+                        }
+                        lb->Arrange(rr); lb->SetClipRect(contentClip);
                         childrenView_.push_back(lb.get());
+                        k++;
                     }
                 }
                 colX += colWidth;
             }
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
         std::optional<D2D1_RECT_F> GetClipRect() const override {
             return D2D1::RectF(arrangedRect_.x - 2.0f, arrangedRect_.y - 2.0f,
                 arrangedRect_.x + arrangedRect_.width + 2.0f, arrangedRect_.y + arrangedRect_.height + 2.0f);
         }
         mutable float lastScrollX_ = -1e30f, lastScrollY_ = -1e30f, lastTotalH_ = -1e30f;
+        mutable int lastViewVersion_ = -1;
         mutable unsigned long long lastColSig_ = 0;
         mutable float lastArrX_ = -1e30f, lastArrY_ = -1e30f, lastArrW_ = -1e30f, lastArrH_ = -1e30f;
         mutable int lastRowCount_ = -1, lastColCount_ = -1;
@@ -1743,8 +2071,8 @@ namespace ZufyUI {
             int firstRow = RowAtY(scrollOffsetY_);
             if (firstRow < 0) firstRow = 0;
             int lastRow = RowAtY(scrollOffsetY_ + viewportHeight - headerOffset);
-            if (lastRow < 0) lastRow = rowCount_ - 1;
-            lastRow = min(lastRow, rowCount_ - 1);
+            if (lastRow < 0) lastRow = (int)view_.size() - 1;
+            lastRow = min(lastRow, (int)view_.size() - 1);
 
             IDWriteTextFormat* fmt = GetFontFormat();
             FontSpec spec = GetEffectiveFontSpec();
@@ -1754,15 +2082,16 @@ namespace ZufyUI {
                 float colWidth = GetEffectiveColumnWidth(col);
                 if (colWidth <= 0.0f) { colX += colWidth; continue; }
                 if (colX + colWidth >= arrangedRect_.x && colX <= arrangedRect_.x + viewportWidth) {
-                    for (int row = firstRow; row <= lastRow && row < rowCount_; ++row) {
+                    for (int row = firstRow; row <= lastRow && row < (int)view_.size(); ++row) {
+                        int src = view_[row];
                         float rowY = arrangedRect_.y + headerOffset + RowTop(row) - Snap(scrollOffsetY_);
                         D2D1_RECT_F cellRect = D2D1::RectF(colX, rowY, colX + colWidth, rowY + RowHeightAt(row));
 
-                        bool isSelected = cellSel_.count(CellKey(row, col)) > 0;
+                        bool isSelected = cellSel_.count(CellKey(src, col)) > 0;
                         if (!isSelected) {
-                            if (selectionMode_ == SelectionMode::Cell && row == selectedRow_ && col == selectedCol_)
+                            if (selectionMode_ == SelectionMode::Cell && src == selectedRow_ && col == selectedCol_)
                                 isSelected = true;
-                            else if (selectionMode_ == SelectionMode::Row && row == selectedRow_)
+                            else if (selectionMode_ == SelectionMode::Row && src == selectedRow_)
                                 isSelected = true;
                             else if (selectionMode_ == SelectionMode::Column && col == selectedCol_)
                                 isSelected = true;
@@ -1770,9 +2099,9 @@ namespace ZufyUI {
 
                         bool isHovered = false;
                         if (selectionMode_ == SelectionMode::Cell)
-                            isHovered = (row == hoveredRow_ && col == hoveredCol_);
+                            isHovered = (src == hoveredRow_ && col == hoveredCol_);
                         else if (selectionMode_ == SelectionMode::Row)
-                            isHovered = (row == hoveredRow_);
+                            isHovered = (src == hoveredRow_);
                         else if (selectionMode_ == SelectionMode::Column)
                             isHovered = (col == hoveredCol_);
 
@@ -1784,7 +2113,7 @@ namespace ZufyUI {
                             if (!hoverBrush_) rt->CreateSolidColorBrush(hoverColor_, hoverBrush_.GetAddressOf());
                             rt->FillRectangle(cellRect, hoverBrush_.Get());
                         }
-                        else if (alternatingRowColors_ && (row & 1)) {
+                        else if (alternatingRowColors_ && (src & 1)) {
                             if (!alternateBrush_) rt->CreateSolidColorBrush(alternateRowColor_, alternateBrush_.GetAddressOf());
                             rt->FillRectangle(cellRect, alternateBrush_.Get());
                         }
@@ -1796,7 +2125,7 @@ namespace ZufyUI {
                                 float size = 15.0f;
                                 float ccy = (cellRect.top + cellRect.bottom) / 2.0f;
                                 D2D1_RECT_F cbRect = D2D1::RectF(cellTextLeft, ccy - size / 2.0f, cellTextLeft + size, ccy + size / 2.0f);
-                                bool on = checkedRows_.count(row) > 0;
+                                bool on = checkedRows_.count(src) > 0;
                                 CheckBox::DrawBox(rt, cbRect, on ? 1.0f : 0.0f,
                                     on ? CheckBox::State::Checked : CheckBox::State::Unchecked,
                                     checkBoxColor_, checkMarkColor_, gridLineColor_, 4.0f, rowCheckBrush_);
@@ -1821,7 +2150,7 @@ namespace ZufyUI {
                 if (!gridLineBrush_) rt->CreateSolidColorBrush(gridLineColor_, gridLineBrush_.GetAddressOf());
                 else gridLineBrush_->SetColor(gridLineColor_);
                 if (gridLineBrush_) {
-                    for (int row = firstRow; row <= lastRow && row < rowCount_; ++row) {
+                    for (int row = firstRow; row <= lastRow && row < (int)view_.size(); ++row) {
                         float lineY = arrangedRect_.y + headerOffset + RowTop(row + 1) - Snap(scrollOffsetY_);
                         rt->DrawLine(D2D1::Point2F(arrangedRect_.x, lineY),
                             D2D1::Point2F(arrangedRect_.x + viewportWidth, lineY), gridLineBrush_.Get(), 1.0f);
@@ -1830,18 +2159,21 @@ namespace ZufyUI {
             }
 
             if (selectedRow_ >= 0) {
-                float indicatorTop = arrangedRect_.y + headerOffset + indicatorY_ - Snap(scrollOffsetY_);
-                float indicatorHeight = RowHeightAt(selectedRow_) * indicatorHeightRatio_;
-                float indicatorOffset = (RowHeightAt(selectedRow_) - indicatorHeight) / 2.0f;
-                float drawTop = indicatorTop + indicatorOffset;
-                float drawBottom = drawTop + indicatorHeight;
-
-                if (drawBottom > arrangedRect_.y + headerOffset && drawTop < arrangedRect_.y + viewportHeight) {
-                    if (!indicatorBrush_) rt->CreateSolidColorBrush(indicatorColor_, indicatorBrush_.GetAddressOf());
-                    else indicatorBrush_->SetColor(indicatorColor_);
-                    D2D1_RECT_F indicatorRect = D2D1::RectF(arrangedRect_.x, drawTop,
-                        arrangedRect_.x + indicatorWidth_, drawBottom);
-                    rt->FillRoundedRectangle(D2D1::RoundedRect(indicatorRect, indicatorWidth_ / 2, indicatorWidth_ / 2), indicatorBrush_.Get());
+                int selVi = VisibleOfSource(selectedRow_);
+                if (selVi >= 0) {
+                    float rh = RowHeightAt(selVi);
+                    float indicatorTop = arrangedRect_.y + headerOffset + indicatorY_ - Snap(scrollOffsetY_);
+                    float indicatorHeight = rh * indicatorHeightRatio_;
+                    float indicatorOffset = (rh - indicatorHeight) / 2.0f;
+                    float drawTop = indicatorTop + indicatorOffset;
+                    float drawBottom = drawTop + indicatorHeight;
+                    if (drawBottom > arrangedRect_.y + headerOffset && drawTop < arrangedRect_.y + viewportHeight) {
+                        if (!indicatorBrush_) rt->CreateSolidColorBrush(indicatorColor_, indicatorBrush_.GetAddressOf());
+                        else indicatorBrush_->SetColor(indicatorColor_);
+                        D2D1_RECT_F indicatorRect = D2D1::RectF(arrangedRect_.x, drawTop,
+                            arrangedRect_.x + indicatorWidth_, drawBottom);
+                        rt->FillRoundedRectangle(D2D1::RoundedRect(indicatorRect, indicatorWidth_ / 2, indicatorWidth_ / 2), indicatorBrush_.Get());
+                    }
                 }
             }
 
@@ -1900,6 +2232,7 @@ namespace ZufyUI {
             MouseLeave.Fire();
         }
         void OnMouseMove(float x, float y) override {
+            auto _rg = RenderGuard();
             if (isResizingColumn_) {
                 float dx = x - resizeStartMouseX_;
                 float newWidth = max(DefaultMinColumnWidth, resizeStartColumnWidth_ + dx);
@@ -1963,10 +2296,10 @@ namespace ZufyUI {
 
             float relX = LocalToContentX(x);
             float relY = y - arrangedRect_.y - (headerVisible_ ? headerHeight_ : 0) + Snap(scrollOffsetY_);
-            int row = RowAtY(relY);
+            int vi = RowAtY(relY);
             int col = GetColumnIndexAtX(relX);
-            if (row >= 0 && row < rowCount_ && col >= 0 && col < colCount_) {
-                hoveredRow_ = row;
+            if (vi >= 0 && vi < (int)view_.size() && col >= 0 && col < colCount_) {
+                hoveredRow_ = view_[vi];   // 源行号
                 hoveredCol_ = col;
             }
             else {
@@ -1981,23 +2314,25 @@ namespace ZufyUI {
             MouseMove.Fire(x, y);
         }
         bool OnContextMenu(float x, float y) override {
+            auto _rg = RenderGuard();
             lastContextRow_ = -1;
             lastContextCol_ = -1;
             if (arrangedRect_.Contains(x, y) && !(headerVisible_ && y <= arrangedRect_.y + headerHeight_)) {
                 float relX = LocalToContentX(x);
                 float relY = y - arrangedRect_.y - (headerVisible_ ? headerHeight_ : 0) + Snap(scrollOffsetY_);
-                int row = RowAtY(relY);
+                int vi = RowAtY(relY);
                 int col = GetColumnIndexAtX(relX);
-                if (row >= 0 && row < rowCount_ && col >= 0 && col < colCount_) {
-                    lastContextRow_ = row;
+                if (vi >= 0 && vi < (int)view_.size() && col >= 0 && col < colCount_) {
+                    lastContextRow_ = view_[vi];
                     lastContextCol_ = col;
-                    CellRightClicked(row, col);
+                    CellRightClicked(lastContextRow_, col);
                 }
             }
             return false;   // 继续弹默认右键菜单（若设了 SetContextMenu / 工厂）
         }
 
         void OnMouseDown(float x, float y) override {
+            auto _rg = RenderGuard();
             if (!arrangedRect_.Contains(x, y)) return;
 
             if (headerVisible_ && y <= arrangedRect_.y + headerHeight_) {
@@ -2022,8 +2357,8 @@ namespace ZufyUI {
             }
 
             if (showVerticalScrollBar_ && x >= arrangedRect_.x + arrangedRect_.width - scrollBarWidth_) {
-                float trackY = arrangedRect_.y;
-                float trackHeight = arrangedRect_.height - (showHorizontalScrollBar_ ? scrollBarWidth_ : 0);
+                float trackY = arrangedRect_.y + (headerVisible_ ? headerHeight_ : 0.0f);
+                float trackHeight = arrangedRect_.height - (showHorizontalScrollBar_ ? scrollBarWidth_ : 0) - (headerVisible_ ? headerHeight_ : 0.0f);
                 float thumbLength = max(scrollBarMinLength_, trackHeight * (trackHeight / (maxScrollY_ + trackHeight)));
                 float thumbY = trackY + (trackHeight - thumbLength) * (Snap(scrollOffsetY_) / maxScrollY_);
                 D2D1_RECT_F thumbRect = D2D1::RectF(arrangedRect_.x + arrangedRect_.width - scrollBarWidth_, thumbY,
@@ -2065,8 +2400,9 @@ namespace ZufyUI {
 
             float relX = LocalToContentX(x);
             float relY = y - arrangedRect_.y - (headerVisible_ ? headerHeight_ : 0) + Snap(scrollOffsetY_);
-            int row = RowAtY(relY);
+            int vi = RowAtY(relY);
             int col = GetColumnIndexAtX(relX);
+            int row = (vi >= 0 && vi < (int)view_.size()) ? view_[vi] : -1;   // 源行号
 
             pressActive_ = true;
             marqueeActive_ = false;
@@ -2075,7 +2411,7 @@ namespace ZufyUI {
             marqueeCurCX_ = relX;
             marqueeCurCY_ = relY;
 
-            if (row >= 0 && row < rowCount_ && col >= 0 && col < colCount_) {
+            if (row >= 0 && col >= 0 && col < colCount_) {
                 if (itemsCheckable_ && col == 0) {
                     float cbRelX = indicatorWidth_ + 8.0f;
                     if (relX >= cbRelX && relX <= cbRelX + 15.0f) {
@@ -2119,18 +2455,29 @@ namespace ZufyUI {
             return handled;
         }
         void OnKeyDown(WPARAM key, LPARAM lParam) override {
-            if (!IsFocusable() || rowCount_ == 0 || colCount_ == 0) return;
+            auto _rg = RenderGuard();
+            EnsureView();
+            if (!IsFocusable() || view_.empty() || colCount_ == 0) return;
             int row = selectedRow_;
             int col = selectedCol_;
             if (selectionMode_ == SelectionMode::Row) col = 0;
             else if (selectionMode_ == SelectionMode::Column) row = 0;
+            auto moveRow = [&](int dir) {   // 按可见序移动，跳过隐藏 + 禁用
+                int vi = VisibleOfSource(row);
+                if (vi < 0) vi = (dir > 0) ? -1 : (int)view_.size();
+                for (int k = vi + dir; k >= 0 && k < (int)view_.size(); k += dir) {
+                    int src = view_[k];
+                    if (!IsRowDisabled(src)) { row = src; return; }
+                }
+                row = (dir > 0) ? view_.back() : view_.front();
+            };
             switch (key) {
-            case VK_UP: { int r = row - 1; while (r >= 0 && IsRowDisabled(r)) r--; row = max(0, r); break; }
-            case VK_DOWN: { int r = row + 1; while (r < rowCount_ && IsRowDisabled(r)) r++; row = min(rowCount_ - 1, r); break; }
+            case VK_UP: moveRow(-1); break;
+            case VK_DOWN: moveRow(1); break;
             case VK_LEFT: col = max(0, col - 1); break;
             case VK_RIGHT: col = min(colCount_ - 1, col + 1); break;
-            case VK_HOME: row = 0; col = 0; break;
-            case VK_END: row = rowCount_ - 1; col = colCount_ - 1; break;
+            case VK_HOME: row = view_.front(); col = 0; break;
+            case VK_END: row = view_.back(); col = colCount_ - 1; break;
             default: return;
             }
             SetCurrentCell(row, col);
@@ -2218,7 +2565,8 @@ namespace ZufyUI {
             marqueeFillBrush_.Reset();
             marqueeBorderBrush_.Reset();
             rowCheckBrush_.Reset();
-            for (auto& row : data_) for (auto& label : row) if (label) label->ReleaseDeviceResources();
+            for (auto& kv : richCells_) if (kv.second) kv.second->ReleaseDeviceResources();
+            for (auto& l : pool_) if (l) l->ReleaseDeviceResources();
             UIElement::ReleaseDeviceResources();
         }
 
@@ -2236,29 +2584,54 @@ namespace ZufyUI {
         bool IsCellSelected(int row, int col) const { return cellSel_.count(CellKey(row, col)) > 0; }
 
         // ---------- 每行高度 ----------
-        void RebuildRowMetrics() {
-            rowTops_.assign(rowCount_ + 1, 0.0f);
-            for (int r = 0; r < rowCount_; ++r) {
-                float h = rowHeight_;
-                auto it = rowHeights_.find(r);
-                if (it != rowHeights_.end()) h = it->second;
-                rowTops_[r + 1] = rowTops_[r] + h;
+        // ---------- 可见行视图 + 可见序行度量 ----------
+        void EnsureView() const {
+            if (!viewDirty_ && !metricsDirty_) return;
+            if (viewDirty_) {
+                viewDirty_ = false;
+                int n = rowCount_;
+                view_.clear(); view_.reserve((size_t)n);
+                for (int i = 0; i < n; ++i) {
+                    if (hiddenRows_.count(i)) continue;
+                    if (rowFilter_ && !rowFilter_(i)) continue;
+                    view_.push_back(i);
+                }
+                if (rowSortActive_ && rowViewCmp_) {
+                    bool asc = rowSortAsc_;
+                    std::stable_sort(view_.begin(), view_.end(), [&](int a, int b) { return asc ? rowViewCmp_(a, b) : rowViewCmp_(b, a); });
+                }
+                srcToView_.assign((size_t)n, -1);
+                for (int vi = 0; vi < (int)view_.size(); ++vi) srcToView_[(size_t)view_[vi]] = vi;
             }
+            metricsDirty_ = false;
+            rowTops_.assign(view_.size() + 1, 0.0f);
+            for (int vi = 0; vi < (int)view_.size(); ++vi) {
+                float h = rowHeight_;
+                auto it = rowHeights_.find(view_[vi]);
+                if (it != rowHeights_.end()) h = it->second;
+                rowTops_[(size_t)vi + 1] = rowTops_[(size_t)vi] + h;
+            }
+            viewVersion_++;
         }
-        float RowTop(int r) const {
-            if (rowTops_.empty()) return 0.0f;
-            if (r < 0) return 0.0f;
-            if (r >= (int)rowTops_.size()) return rowTops_.back();
-            return rowTops_[r];
+        void RebuildRowMetrics() { metricsDirty_ = true; EnsureView(); }
+        float RowTop(int vi) const {
+            EnsureView();
+            if (rowTops_.empty() || vi < 0) return 0.0f;
+            if (vi >= (int)rowTops_.size()) return rowTops_.back();
+            return rowTops_[vi];
         }
-        float RowHeightAt(int r) const {
+        float RowHeightAt(int vi) const {
+            EnsureView();
             if (rowTops_.empty()) return rowHeight_;
-            if (r < 0 || r + 1 >= (int)rowTops_.size()) return rowHeight_;
-            return rowTops_[r + 1] - rowTops_[r];
+            if (vi < 0 || vi + 1 >= (int)rowTops_.size()) return rowHeight_;
+            return rowTops_[vi + 1] - rowTops_[vi];
         }
-        float TotalRowsHeight() const { return rowTops_.empty() ? 0.0f : rowTops_.back(); }        int RowAtY(float relY) const {
-            if (rowCount_ <= 0 || rowTops_.size() < 2) return -1;
-            int lo = 0, hi = rowCount_ - 1, res = -1;
+        float TotalRowsHeight() const { EnsureView(); return rowTops_.empty() ? 0.0f : rowTops_.back(); }
+        int RowAtY(float relY) const {
+            EnsureView();
+            int n = (int)view_.size();
+            if (n <= 0 || rowTops_.size() < 2) return -1;
+            int lo = 0, hi = n - 1, res = -1;
             while (lo <= hi) {
                 int m = (lo + hi) / 2;
                 if (rowTops_[m] <= relY) { res = m; lo = m + 1; }
@@ -2271,11 +2644,12 @@ namespace ZufyUI {
         void ApplyMarqueeSelection() {
             float x0 = min(pressStartCX_, marqueeCurCX_), x1 = max(pressStartCX_, marqueeCurCX_);
             float y0 = min(pressStartCY_, marqueeCurCY_), y1 = max(pressStartCY_, marqueeCurCY_);
+            EnsureView();
             cellSel_.clear();
-            std::vector<int> hitRows, hitCols;
-            for (int row = 0; row < rowCount_; ++row) {
-                float top = RowTop(row), bottom = RowTop(row + 1);
-                if (!(bottom < y0 || top > y1)) hitRows.push_back(row);
+            std::vector<int> hitRows, hitCols;   // hitRows = 源行号
+            for (int vi = 0; vi < (int)view_.size(); ++vi) {
+                float top = RowTop(vi), bottom = RowTop(vi + 1);
+                if (!(bottom < y0 || top > y1)) hitRows.push_back(view_[vi]);
             }
             float colX = 0;
             for (int col = 0; col < colCount_; ++col) {
@@ -2317,6 +2691,9 @@ namespace ZufyUI {
             std::unordered_set<int> nd;
             for (int r : disabledRows_) nd.insert(r >= index ? r + 1 : r);
             disabledRows_ = std::move(nd);
+            std::unordered_set<int> nhr;
+            for (int r : hiddenRows_) nhr.insert(r >= index ? r + 1 : r);
+            hiddenRows_ = std::move(nhr);
             std::unordered_map<int, float> nh;
             for (auto& kv : rowHeights_) nh[kv.first >= index ? kv.first + 1 : kv.first] = kv.second;
             rowHeights_ = std::move(nh);
@@ -2331,6 +2708,9 @@ namespace ZufyUI {
             std::unordered_set<int> nd;
             for (int r : disabledRows_) { if (r == index) continue; nd.insert(r > index ? r - 1 : r); }
             disabledRows_ = std::move(nd);
+            std::unordered_set<int> nhr;
+            for (int r : hiddenRows_) { if (r == index) continue; nhr.insert(r > index ? r - 1 : r); }
+            hiddenRows_ = std::move(nhr);
             std::unordered_map<int, float> nh;
             for (auto& kv : rowHeights_) { if (kv.first == index) continue; nh[kv.first > index ? kv.first - 1 : kv.first] = kv.second; }
             rowHeights_ = std::move(nh);
@@ -2342,6 +2722,9 @@ namespace ZufyUI {
             cellTips_ = std::move(nt);
         }
         void OnColumnInserted(int index) {
+            { std::unordered_set<int> nhc; for (int c : hiddenColumns_) nhc.insert(c >= index ? c + 1 : c); hiddenColumns_ = std::move(nhc); }
+            { std::unordered_map<int, TextHAlign> na; for (auto& kv : columnAlign_) na[kv.first >= index ? kv.first + 1 : kv.first] = kv.second; columnAlign_ = std::move(na); }
+            { std::unordered_map<int, std::function<bool(const std::wstring&, const std::wstring&)>> ncmp; for (auto& kv : columnComparators_) ncmp[kv.first >= index ? kv.first + 1 : kv.first] = kv.second; columnComparators_ = std::move(ncmp); }
             std::unordered_map<long long, D2D1_COLOR_F> nc;
             for (auto& kv : cellTextColors_) { int r = CellKeyRow(kv.first), c = CellKeyCol(kv.first); if (c >= index) c++; nc[CellKey(r, c)] = kv.second; }
             cellTextColors_ = std::move(nc);
@@ -2350,6 +2733,9 @@ namespace ZufyUI {
             cellTips_ = std::move(nt);
         }
         void OnColumnRemoved(int index) {
+            { std::unordered_set<int> nhc; for (int c : hiddenColumns_) { if (c == index) continue; nhc.insert(c > index ? c - 1 : c); } hiddenColumns_ = std::move(nhc); }
+            { std::unordered_map<int, TextHAlign> na; for (auto& kv : columnAlign_) { if (kv.first == index) continue; na[kv.first > index ? kv.first - 1 : kv.first] = kv.second; } columnAlign_ = std::move(na); }
+            { std::unordered_map<int, std::function<bool(const std::wstring&, const std::wstring&)>> ncmp; for (auto& kv : columnComparators_) { if (kv.first == index) continue; ncmp[kv.first > index ? kv.first - 1 : kv.first] = kv.second; } columnComparators_ = std::move(ncmp); }
             std::unordered_map<long long, D2D1_COLOR_F> nc;
             for (auto& kv : cellTextColors_) { int r = CellKeyRow(kv.first), c = CellKeyCol(kv.first); if (c == index) continue; if (c > index) c--; nc[CellKey(r, c)] = kv.second; }
             cellTextColors_ = std::move(nc);
@@ -2393,8 +2779,10 @@ namespace ZufyUI {
 
         void EnsureVisible(int row, int col) {
             if (row < 0 || col < 0) return;
-            float rowTop = headerHeight_ + RowTop(row);
-            float rowBottom = headerHeight_ + RowTop(row + 1);
+            int vi = VisibleOfSource(row);
+            if (vi < 0) return;
+            float rowTop = headerHeight_ + RowTop(vi);
+            float rowBottom = headerHeight_ + RowTop(vi + 1);
             if (rowTop < scrollOffsetY_) {
                 targetScrollOffsetY_ = rowTop;
             }
@@ -2416,8 +2804,8 @@ namespace ZufyUI {
         }
 
         void HandleVerticalScrollDrag(float mouseY) {
-            float trackY = arrangedRect_.y;
-            float trackHeight = arrangedRect_.height - (showHorizontalScrollBar_ ? scrollBarWidth_ : 0);
+            float trackY = arrangedRect_.y + (headerVisible_ ? headerHeight_ : 0.0f);
+            float trackHeight = arrangedRect_.height - (showHorizontalScrollBar_ ? scrollBarWidth_ : 0) - (headerVisible_ ? headerHeight_ : 0.0f);
             float thumbLength = max(scrollBarMinLength_, trackHeight * (trackHeight / (maxScrollY_ + trackHeight)));
             if (trackHeight > thumbLength) {
                 float ratio = (mouseY - dragStartMouseY_) / (trackHeight - thumbLength);
@@ -2441,8 +2829,9 @@ namespace ZufyUI {
             if (!headerBgBrush_) rt->CreateSolidColorBrush(headerBackgroundColor_, headerBgBrush_.GetAddressOf());
             else headerBgBrush_->SetColor(headerBackgroundColor_);
             if (headerBgBrush_) {
+                // 表头横跨整宽（含滚动条让出的那一列；滚动条从表头下方开始）
                 D2D1_RECT_F headerRect = D2D1::RectF(arrangedRect_.x, arrangedRect_.y,
-                    arrangedRect_.x + viewportWidth, arrangedRect_.y + headerHeight_);
+                    arrangedRect_.x + arrangedRect_.width, arrangedRect_.y + headerHeight_);
                 rt->FillRectangle(headerRect, headerBgBrush_.Get());
             }
 
@@ -2482,11 +2871,8 @@ namespace ZufyUI {
             if (!gridLineBrush_) rt->CreateSolidColorBrush(gridLineColor_, gridLineBrush_.GetAddressOf());
             else gridLineBrush_->SetColor(gridLineColor_);
             if (gridLineBrush_) {
-                rt->DrawLine(D2D1::Point2F(arrangedRect_.x + viewportWidth, arrangedRect_.y),
-                    D2D1::Point2F(arrangedRect_.x + viewportWidth, arrangedRect_.y + headerHeight_),
-                    gridLineBrush_.Get(), 1.0f);
                 rt->DrawLine(D2D1::Point2F(arrangedRect_.x, arrangedRect_.y + headerHeight_),
-                    D2D1::Point2F(arrangedRect_.x + viewportWidth, arrangedRect_.y + headerHeight_),
+                    D2D1::Point2F(arrangedRect_.x + arrangedRect_.width, arrangedRect_.y + headerHeight_),
                     gridLineBrush_.Get(), 1.0f);
             }
         }
@@ -2496,8 +2882,9 @@ namespace ZufyUI {
             float baseTrackWidth = scrollBarWidth_;
             float trackWidth = baseTrackWidth * (1.0f + 0.25f * verticalScrollHoverProgress_);
             float trackX = arrangedRect_.x + arrangedRect_.width - trackWidth;
-            float trackY = arrangedRect_.y;
-            float trackHeight = viewportHeight;
+            float headerOff = headerVisible_ ? headerHeight_ : 0.0f;
+            float trackY = arrangedRect_.y + headerOff;   // 从表头下方开始，不与表头重叠
+            float trackHeight = viewportHeight - headerOff;
 
             if (!scrollTrackBrush_) rt->CreateSolidColorBrush(scrollTrackColor_, scrollTrackBrush_.GetAddressOf());
             else scrollTrackBrush_->SetColor(scrollTrackColor_);
@@ -2562,12 +2949,8 @@ namespace ZufyUI {
         }
 
         void UpdateIndicatorTarget() {
-            if (selectedRow_ >= 0 && selectedRow_ < rowCount_) {
-                targetIndicatorY_ = RowTop(selectedRow_);
-            }
-            else {
-                targetIndicatorY_ = 0.0f;
-            }
+            int vi = (selectedRow_ >= 0) ? VisibleOfSource(selectedRow_) : -1;
+            if (vi >= 0) targetIndicatorY_ = RowTop(vi);
             if (indicatorY_ < 0.0f) indicatorY_ = targetIndicatorY_;
         }
 
@@ -2576,7 +2959,8 @@ namespace ZufyUI {
         std::unordered_set<int> hiddenColumns_;
         std::unordered_map<int, TextHAlign> columnAlign_;
         std::unordered_map<int, float> rowHeights_;
-        std::vector<float> rowTops_;
+        mutable std::vector<float> rowTops_;
+        mutable bool metricsDirty_ = true;
         std::unordered_map<long long, D2D1_COLOR_F> cellTextColors_;
         std::unordered_map<long long, std::wstring> cellTips_;
         std::unordered_map<int, std::function<bool(const std::wstring&, const std::wstring&)>> columnComparators_;
@@ -2585,7 +2969,19 @@ namespace ZufyUI {
         bool showSortIndicator_ = false;
         D2D1_COLOR_F sortIndicatorColor_ = D2D1::ColorF(0.0f, 0.47f, 0.84f, 1.0f);
         ComPtr<ID2D1SolidColorBrush> sortIndicatorBrush_;
-        std::vector<std::vector<std::shared_ptr<Label>>> data_;
+        // ---- 池化/视图（源行号 = 唯一行标识；列即列号）----
+        std::vector<std::vector<std::wstring>> cellText_;                 // 源：每格文本
+        std::unordered_map<long long, std::shared_ptr<Label>> richCells_; // 富项格（稀疏）：key=CellKey(row,col)
+        mutable std::vector<int> view_;               // 可见行序：view_[vi]=源行号
+        mutable std::vector<int> srcToView_;
+        mutable bool viewDirty_ = true;
+        mutable int viewVersion_ = 0;
+        std::unordered_set<int> hiddenRows_;
+        std::function<bool(int)> rowFilter_;
+        std::function<bool(int,int)> rowViewCmp_;
+        bool rowSortActive_ = false, rowSortAsc_ = true;
+        mutable std::vector<std::shared_ptr<Label>> pool_;   // 可见(行×列) 单元格池
+        mutable std::vector<long long> poolCell_;            // 槽 → CellKey(源行,列)
         std::vector<std::wstring> headers_;
         std::vector<float> columnWidths_;
         int selectedRow_, selectedCol_;
@@ -2711,6 +3107,8 @@ namespace ZufyUI {
         inline static float DefaultHorizontalStretchWeight = 1.0f;
         inline static float DefaultVerticalStretchWeight = 1.0f;
         inline static float DefaultColumnResizeHitWidth = 8.0f;
+        static constexpr float kNodeCheckBoxSize = 15.0f;   // 单元格勾选框边长（Draw 与命中区共用）
+        static constexpr float kNodeBaseIndent = 12.0f;     // 首列文字基准内缩
 
         ZSignal<std::shared_ptr<TreeNode>> SelectionChanged;   // 选中节点变化
         ZSignal<std::shared_ptr<TreeNode>> NodeClicked;        // 节点点击
@@ -2779,10 +3177,17 @@ namespace ZufyUI {
             indicatorX_ = -1.0f;
         }
 
+        // 与 render 线程串行（架构 B）：输入/数据变更不得与 render 的 RefreshChildren/Draw 并发改节点状态
+        std::unique_lock<std::recursive_mutex> RenderGuard() {
+            Window* w = GetWindow();
+            return w ? w->LockRender() : std::unique_lock<std::recursive_mutex>();
+        }
+
         // ---------- 列设置 ----------
         void SetColumnCount(int count) {
             count = max(1, count);
             columnCount_ = count;
+            ++columnLayoutVersion_;
             columnWidths_.assign(count, DefaultMinColumnWidth);
             headerLabels_.resize(count);
             std::function<void(std::shared_ptr<TreeNode>)> updateNode = [&](std::shared_ptr<TreeNode> node) {
@@ -2803,6 +3208,7 @@ namespace ZufyUI {
         void SetColumnWidth(int col, float width) {
             if (col < 0 || col >= columnCount_) return;
             columnWidths_[col] = max(DefaultMinColumnWidth, width);
+            ++columnLayoutVersion_;   // 列布局变了（RefreshChildren 靠它判断是否需重排，免每帧算列签名）
             UpdateScrollInfo();
             InvalidateLayout();
             RequestRepaint();
@@ -2882,6 +3288,8 @@ namespace ZufyUI {
         void Clear() {
             roots_.clear();
             visibleNodes_.clear();
+            visibleIndex_.clear();
+            visibleIndexDirty_ = true;   // 索引映射持有已释放 TreeNode* 的 key → 必须清空并置脏
             checkAnim_.clear();
             selectedNode_ = nullptr;
             hoveredNode_ = nullptr;
@@ -3227,6 +3635,7 @@ namespace ZufyUI {
         int GetTotalNodeCount() const { int c = 0; for (auto& r : roots_) c += CountRecursive(r); return c; }
         std::shared_ptr<TreeNode> GetNodeAtY(float y) const {
             float headerOffset = headerVisible_ ? headerHeight_ : 0;
+            if (y < arrangedRect_.y + headerOffset) return nullptr;   // 表头区域不算行（否则负索引截断会误返回某行）
             int idx = (int)((y - arrangedRect_.y - headerOffset + Snap(scrollOffsetY_)) / rowHeight_);
             if (idx >= 0 && idx < (int)visibleNodes_.size()) return visibleNodes_[idx];
             return nullptr;
@@ -3254,6 +3663,25 @@ namespace ZufyUI {
         void SetSortIndicator(int col, bool ascending) { sortColumn_ = col; sortAscending_ = ascending; RequestRepaint(); }
         void ClearSortIndicator() { sortColumn_ = -1; RequestRepaint(); }
         void SetNodeIcon(std::shared_ptr<TreeNode> node, const std::wstring& icon) { if (node) { node->icon = icon; RequestRepaint(); } }
+        // 便捷：按列写/读文本（列槽不存在或为空时自动创建 Label；列数不足自动补齐到 columnCount_）
+        void SetNodeText(std::shared_ptr<TreeNode> node, int col, const std::wstring& text) {
+            if (!node || col < 0) return;
+            if (col >= (int)node->columns.size()) node->columns.resize((size_t)max(columnCount_, col + 1));
+            if (!node->columns[col]) { node->columns[col] = std::make_shared<Label>(text); childrenDirty_ = true; }
+            else node->columns[col]->SetText(text);
+            RequestRepaint();
+        }
+        std::wstring GetNodeText(std::shared_ptr<TreeNode> node, int col) const {
+            if (!node || col < 0 || col >= (int)node->columns.size() || !node->columns[col]) return std::wstring();
+            return node->columns[col]->GetText();
+        }
+        // 便捷：悬停提示（框架经 TreeView::OnMouseMove → SetToolTip 渲染，无需额外绘制）
+        void SetNodeTooltip(std::shared_ptr<TreeNode> node, const std::wstring& text) {
+            if (!node) return;
+            node->tooltip = text;
+            RequestRepaint();
+        }
+        std::wstring GetNodeTooltip(std::shared_ptr<TreeNode> node) const { return node ? node->tooltip : std::wstring(); }
         bool IsNodeEnabled(std::shared_ptr<TreeNode> node) const { return node ? node->enabled : false; }
 
         void ScrollToNode(std::shared_ptr<TreeNode> node) {
@@ -3337,31 +3765,27 @@ namespace ZufyUI {
         }
 
         // Label 化：可见节点的单元格 Label 作为子元素进入 Window 合成/事件/裁剪流程（就地摆到滚动后的位置）
-        const std::vector<UIElement*>& GetChildren() const override {
-            // 命中缓存要覆盖所有影响单元格布局的几何（滚动量/列宽**顺序敏感**/行高/缩进/列数/可见节点数/控件矩形）；
-            // 不能只比列宽总和：交换两列宽度时总和不变，但每列的 x 位置全变。
-            unsigned long long colSig = 1469598103934665603ull;
-            for (int c = 0; c < columnCount_; ++c) {
-                float w = GetEffectiveColumnWidth(c);
-                unsigned bits = 0; std::memcpy(&bits, &w, sizeof(bits));
-                colSig = (colSig ^ (unsigned long long)bits) * 1099511628211ull;
-            }
+        void RefreshChildren() override {   // 只在 update/layout 阶段（UI 线程）调用；GetChildren 不再改树
+            if (visibleDirty_ && updateSuspends_ == 0) BuildVisibleList();   // 防御：BeginUpdate 忘记配 EndUpdate 也能刷新
+            // 命中缓存：先用便宜字段筛（滚动/行高/缩进/列数/可见数/矩形），列布局用版本号判断，
+            //   避免每帧重算列签名（列宽顺序敏感：交换两列宽度总和不变但每列 x 全变 → 用 version 覆盖）
             float sx = Snap(scrollOffsetX_), sy = Snap(scrollOffsetY_);
             if (!childrenDirty_ &&
-                sx == lastScrollX_ && sy == lastScrollY_ && colSig == lastColSig_ &&
+                sx == lastScrollX_ && sy == lastScrollY_ &&
                 rowHeight_ == lastRowHeight_ && columnCount_ == lastColCount_ && indent_ == lastIndent_ &&
                 (int)visibleNodes_.size() == lastVisibleCount_ &&
                 arrangedRect_.x == lastArrX_ && arrangedRect_.y == lastArrY_ &&
-                arrangedRect_.width == lastArrW_ && arrangedRect_.height == lastArrH_)
-                return childrenView_;
+                arrangedRect_.width == lastArrW_ && arrangedRect_.height == lastArrH_ &&
+                columnLayoutVersion_ == lastColVersion_)
+                return;
             childrenDirty_ = false;
-            lastScrollX_ = sx; lastScrollY_ = sy; lastColSig_ = colSig;
+            lastScrollX_ = sx; lastScrollY_ = sy; lastColVersion_ = columnLayoutVersion_;
             lastRowHeight_ = rowHeight_; lastColCount_ = columnCount_; lastIndent_ = indent_;
             lastVisibleCount_ = (int)visibleNodes_.size();
             lastArrX_ = arrangedRect_.x; lastArrY_ = arrangedRect_.y;
             lastArrW_ = arrangedRect_.width; lastArrH_ = arrangedRect_.height;
             childrenView_.clear();
-            if (visibleNodes_.empty() || columnCount_ <= 0 || rowHeight_ <= 0.0f) return childrenView_;
+            if (visibleNodes_.empty() || columnCount_ <= 0 || rowHeight_ <= 0.0f) return;
             float headerOffset = headerVisible_ ? headerHeight_ : 0.0f;
             float viewportWidth = arrangedRect_.width - (showVerticalScrollBar_ ? scrollBarWidth_ : 0);
             float viewportHeight = arrangedRect_.height - (showHorizontalScrollBar_ ? scrollBarWidth_ : 0);
@@ -3388,7 +3812,7 @@ namespace ZufyUI {
                         float textLeft = colX + 8.0f;
                         if (c == 0) {
                             textLeft = GetNodeTextStartX(node) + 2.0f + indicatorWidth_ + 4.0f;
-                            if (node->checkable) textLeft += 15.0f + 6.0f;
+                            if (node->checkable) textLeft += kNodeCheckBoxSize + 6.0f;
                             if (!node->icon.empty()) textLeft += 20.0f;
                         }
                         float availW = (colX + colWidth - 8.0f) - textLeft;
@@ -3401,14 +3825,15 @@ namespace ZufyUI {
                 }
                 colX += colWidth;
             }
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
         std::optional<D2D1_RECT_F> GetClipRect() const override {
             return D2D1::RectF(arrangedRect_.x - 2.0f, arrangedRect_.y - 2.0f,
                 arrangedRect_.x + arrangedRect_.width + 2.0f, arrangedRect_.y + arrangedRect_.height + 2.0f);
         }
         mutable float lastScrollX_ = -1e30f, lastScrollY_ = -1e30f, lastRowHeight_ = -1e30f, lastIndent_ = -1e30f;
-        mutable unsigned long long lastColSig_ = 0;
+        unsigned long long columnLayoutVersion_ = 0;           // 列宽/列数变更时自增
+        mutable unsigned long long lastColVersion_ = ~0ull;
         mutable float lastArrX_ = -1e30f, lastArrY_ = -1e30f, lastArrW_ = -1e30f, lastArrH_ = -1e30f;
         mutable int lastColCount_ = -1, lastVisibleCount_ = -1;
 
@@ -3502,7 +3927,7 @@ namespace ZufyUI {
 
                         // 勾选框（复用 CheckBox 控件：蓝底渐显 + 对勾左→右绘制）
                         if (node->checkable) {
-                            float size = 15.0f;
+                            float size = kNodeCheckBoxSize;
                             float cy = (cellRect.top + cellRect.bottom) / 2.0f;
                             D2D1_RECT_F cbRect = D2D1::RectF(xCursor, cy - size / 2.0f, xCursor + size, cy + size / 2.0f);
                             CheckBox::State cs = (node->checkState == TreeNode::CheckState::Checked) ? CheckBox::State::Checked
@@ -3595,6 +4020,7 @@ namespace ZufyUI {
         }
 
         void OnMouseMove(float x, float y) override {
+            auto _rg = RenderGuard();
             MouseMove.Fire(x, y);
             if (isResizingColumn_) {
                 float dx = x - resizeStartMouseX_;
@@ -3683,6 +4109,7 @@ namespace ZufyUI {
         }
 
         void OnMouseDown(float x, float y) override {
+            auto _rg = RenderGuard();
             MouseDown.Fire(x, y);
             if (!arrangedRect_.Contains(x, y)) return;
 
@@ -3759,15 +4186,16 @@ namespace ZufyUI {
             int idx = (int)(relY / rowHeight_);
             auto nodeAt = (idx >= 0 && idx < (int)visibleNodes_.size()) ? visibleNodes_[idx] : nullptr;
             if (nodeAt) {
-                if (!nodeAt->children.empty()) {
+                // 命中区与 Draw 的箭头可见条件一致：根节点在 rootDecorated_=false 时不显示箭头，也不响应点击
+                if (!nodeAt->children.empty() && (nodeAt->depth > 0 || rootDecorated_)) {
                     float indentX = GetNodeTextStartX(nodeAt);
-                    if (x >= indentX - 12.0f && x <= indentX) { ToggleNode(nodeAt); return; }
+                    if (x >= indentX - kNodeBaseIndent && x <= indentX) { ToggleNode(nodeAt); return; }
                 }
                 if (nodeAt->checkable) {
                     float indentX = GetNodeTextStartX(nodeAt);
                     float cbX = indentX + 2.0f + indicatorWidth_ + 4.0f;
                     float cy = arrangedRect_.y + headerOffset + idx * rowHeight_ - Snap(scrollOffsetY_) + rowHeight_ / 2.0f;
-                    if (x >= cbX && x <= cbX + 15.0f && y >= cy - 7.5f && y <= cy + 7.5f) {
+                    if (x >= cbX && x <= cbX + kNodeCheckBoxSize && y >= cy - kNodeCheckBoxSize / 2.0f && y <= cy + kNodeCheckBoxSize / 2.0f) {
                         auto st = (nodeAt->checkState == TreeNode::CheckState::Checked)
                             ? TreeNode::CheckState::Unchecked : TreeNode::CheckState::Checked;
                         SetNodeCheckState(nodeAt, st);
@@ -3826,6 +4254,7 @@ namespace ZufyUI {
         }
 
         void OnMouseUp(float x, float y) override {
+            auto _rg = RenderGuard();
             MouseUp.Fire(x, y);
             if (marqueeActive_) {
                 marqueeActive_ = false;
@@ -3871,14 +4300,16 @@ namespace ZufyUI {
         }
 
         void OnKeyDown(WPARAM key, LPARAM lParam) override {
+            auto _rg = RenderGuard();
             if (!IsFocusable() || visibleNodes_.empty()) return;
             int idx = GetVisibleIndex(selectedNode_);
             switch (key) {
             case VK_UP:
-                if (idx > 0) SetSelectedNode(visibleNodes_[idx - 1]);
+                // 从 -1/0 上移回绕到末行（与 ListView 行为一致）
+                SetSelectedNode(visibleNodes_[idx <= 0 ? (int)visibleNodes_.size() - 1 : idx - 1]);
                 break;
             case VK_DOWN:
-                if (idx < (int)visibleNodes_.size() - 1) SetSelectedNode(visibleNodes_[idx + 1]);
+                SetSelectedNode(visibleNodes_[idx >= (int)visibleNodes_.size() - 1 ? 0 : idx + 1]);
                 break;
             case VK_RIGHT:
                 if (selectedNode_ && !selectedNode_->children.empty() && !selectedNode_->expanded)
@@ -3995,6 +4426,7 @@ namespace ZufyUI {
         }
 
         bool OnContextMenu(float x, float y) override {
+            auto _rg = RenderGuard();
             auto node = GetNodeAtY(y);
             if (node) {
                 lastContextNode_ = node;
@@ -4134,7 +4566,21 @@ namespace ZufyUI {
             }
             EmitMultiSelection();
         }
+        // 批量构建：BeginUpdate/EndUpdate 之间多次 Add/Remove/Expand 只重建一次可见列表，
+        //   消除"逐个 Add 各重建一遍"的 O(N²)。典型用法：
+        //     tv->BeginUpdate(); for (...) tv->AddRoot(...); tv->EndUpdate();
+        void BeginUpdate() { ++updateSuspends_; }
+        void EndUpdate() {
+            if (updateSuspends_ > 0 && --updateSuspends_ == 0 && visibleDirty_) {
+                BuildVisibleList();
+                InvalidateLayout();
+                RequestRepaint();
+            }
+        }
+
         void BuildVisibleList() {
+            if (updateSuspends_ > 0) { visibleDirty_ = true; return; }   // 批量更新中：延迟到 EndUpdate
+            visibleDirty_ = false;
             visibleIndexDirty_ = true;   // P3：可见列表变了，索引映射必须重建
             childrenDirty_ = true;       // Label 化：可见节点集合可能变了，单元格 Label 列表必须重建
             float oldScrollX = scrollOffsetX_;
@@ -4190,10 +4636,9 @@ namespace ZufyUI {
 
         float GetNodeTextStartX(std::shared_ptr<TreeNode> node) const {
             int depth = GetNodeDepth(node);
-            const float kBaseOffset = 12.0f;
-            float indentX = ContentToLocalX(0.0f) + kBaseOffset + depth * indent_;
-            if (indentX < arrangedRect_.x + 12.0f) {
-                indentX = arrangedRect_.x + 12.0f;
+            float indentX = ContentToLocalX(0.0f) + kNodeBaseIndent + depth * indent_;
+            if (indentX < arrangedRect_.x + kNodeBaseIndent) {
+                indentX = arrangedRect_.x + kNodeBaseIndent;
             }
             return indentX;
         }
@@ -4222,6 +4667,8 @@ namespace ZufyUI {
         }
         mutable std::unordered_map<TreeNode*, int> visibleIndex_;
         mutable bool visibleIndexDirty_ = true;
+        int updateSuspends_ = 0;          // BeginUpdate/EndUpdate 嵌套深度
+        bool visibleDirty_ = false;       // 有延迟的可见列表重建待收尾
 
         float GetEffectiveColumnWidth(int col) const {
             if (col < 0 || col >= (int)columnWidths_.size()) return DefaultMinColumnWidth;

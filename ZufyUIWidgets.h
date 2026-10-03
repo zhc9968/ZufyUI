@@ -218,12 +218,19 @@ namespace ZufyUI {
             InvalidateLayout();
             RequestRepaint();
         }
+        // 虚拟列表 / 元素池"重绑"专用：只置自身布局脏（不冒泡到根），且不 RequestRepaint（重绘由容器驱动）。
+        void SetTextFast(const std::wstring& text) { text_ = text; InvalidateLayoutSelf(); }
         std::wstring GetText() const { return text_; }
-        void SetTextColor(Color color) { textColor_ = color; textBrush_.Reset(); RequestRepaint(); }
+        void SetTextColor(Color color) {
+            if (textColor_.r == color.r && textColor_.g == color.g &&
+                textColor_.b == color.b && textColor_.a == color.a) return;   // 颜色未变短路（池化每帧调用不重建刷子）
+            textColor_ = color; textBrush_.Reset(); RequestRepaint();
+        }
         Color GetTextColor() const { return textColor_; }
         void SetTextOverflow(TextOverflow mode) { overflow_ = mode; InvalidateLayout(); RequestRepaint(); }
         TextOverflow GetTextOverflow() const { return overflow_; }
         void SetAlignment(HAlign hAlign, VAlign vAlign) {
+            if (hAlign_ == hAlign && vAlign_ == vAlign) return;   // 未变短路（表格/树每帧调用不再触发布局）
             hAlign_ = hAlign;
             vAlign_ = vAlign;
             InvalidateLayout();
@@ -231,7 +238,11 @@ namespace ZufyUI {
         }
         HAlign GetHorizontalAlignment() const { return hAlign_; }
         VAlign GetVerticalAlignment() const { return vAlign_; }
-        void SetPadding(const Thickness& p) { padding_ = p; InvalidateLayout(); RequestRepaint(); }
+        void SetPadding(const Thickness& p) {
+            if (padding_.left == p.left && padding_.top == p.top &&
+                padding_.right == p.right && padding_.bottom == p.bottom) return;   // 未变短路
+            padding_ = p; InvalidateLayout(); RequestRepaint();
+        }
         // 背景色（a=0 表示不画）+ 圆角半径
         void SetBackgroundColor(Color c) { bgColor_ = c; bgBrush_.Reset(); RequestRepaint(); }
         Color GetBackgroundColor() const { return bgColor_; }
@@ -280,13 +291,13 @@ namespace ZufyUI {
         }
         size_t GetChildCount() const { return children_.size(); }
 
-        const std::vector<UIElement*>& GetChildren() const override {
-            if (!childrenDirty_) return childrenView_;
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
             childrenDirty_ = false;
             childrenView_.clear();
             for (auto& c : children_) if (c) childrenView_.push_back(c.get());
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
         void AttachWindowRecursive(Window* w) override {
             windowId_ = WindowIdOf(w);
             for (auto& c : children_) if (c) c->AttachWindowRecursive(w);
@@ -958,7 +969,7 @@ namespace ZufyUI {
         bool IsTextInput() const override { return imeEnabled_; }
 
         Rect GetImeCandidateRect() const override {
-            float cursorX = GetTextPositionX(cursorPos_ + (hasComposition_ ? min(compositionCursorPos_, (int)compositionText_.size()) : 0));
+            float cursorX = GetTextPositionX(cursorPos_ + (hasComposition_ ? max(0, min(compositionCursorPos_, (int)compositionText_.size())) : 0));
             return Rect(arrangedRect_.x + 5 + cursorX - scrollX_,
                 arrangedRect_.y,
                 1, arrangedRect_.height);
@@ -1072,7 +1083,7 @@ namespace ZufyUI {
             if (focused_ && showCursor_ && !readOnly_ && selectionStart_ == selectionEnd_) {
                 int globalCursorPos = cursorPos_;
                 if (hasComposition_) {
-                    globalCursorPos += min(compositionCursorPos_, (int)compositionText_.size());
+                    globalCursorPos += max(0, min(compositionCursorPos_, (int)compositionText_.size()));
                 }
                 float cursorX = GetTextPositionX(globalCursorPos) - scrollX_;
                 D2D1_POINT_2F pt1 = D2D1::Point2F(arrangedRect_.x + 5 + cursorX, arrangedRect_.y + 4);
@@ -1407,7 +1418,8 @@ namespace ZufyUI {
         void Copy() {
             if (selectionStart_ == selectionEnd_) return;
             std::wstring sel = text_.substr(selectionStart_, selectionEnd_ - selectionStart_);
-            if (OpenClipboard(GetActiveWindow())) {
+            HWND owner = GetWindow() ? GetWindow()->GetHwnd() : GetActiveWindow();
+            if (OpenClipboard(owner)) {
                 EmptyClipboard();
                 size_t size = (sel.size() + 1) * sizeof(wchar_t);
                 HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, size);
@@ -1420,7 +1432,8 @@ namespace ZufyUI {
             }
         }
         void Paste() {
-            if (!OpenClipboard(GetActiveWindow())) return;
+            HWND owner = GetWindow() ? GetWindow()->GetHwnd() : GetActiveWindow();
+            if (!OpenClipboard(owner)) return;
             HANDLE hData = GetClipboardData(CF_UNICODETEXT);
             if (hData) {
                 wchar_t* pData = (wchar_t*)GlobalLock(hData);
@@ -1469,7 +1482,7 @@ namespace ZufyUI {
         void EnsureCursorVisible() {
             int globalCursorPos = cursorPos_;
             if (hasComposition_ && !compositionText_.empty()) {
-                globalCursorPos += min(compositionCursorPos_, (int)compositionText_.size());
+                globalCursorPos += max(0, min(compositionCursorPos_, (int)compositionText_.size()));
             }
             float cursorX = GetTextPositionX(globalCursorPos);
             float leftPadding = 5.0f;
@@ -1607,6 +1620,7 @@ namespace ZufyUI {
             UIZSignals::GlobalMouseDown.connect(
                 [this](Window* w, float x, float y) {
                     if (w && w != GetWindow()) return;   // 只处理本窗口的点击
+                    auto _rg = RenderGuard();
                     if ((expanded_ || expandProgress_ > 0.01f) && !controlCaptureActive_) {
                         bool insideSelf = arrangedRect_.Contains(x, y) || IsPointInExpandedList(x, y);
                         if (!insideSelf) {
@@ -1621,6 +1635,7 @@ namespace ZufyUI {
             UIZSignals::WindowDeactivated.connect(
                 [this](Window* w) {
                     if (w && w != GetWindow()) return;   // 只处理本窗口失活
+                    auto _rg = RenderGuard();
                     if (expanded_ || expandProgress_ > 0.01f) CollapseInternal();
                 },
                 ConnectionThread::CurrentThread,
@@ -1670,16 +1685,24 @@ namespace ZufyUI {
         }
 
         void AddItem(const std::wstring& item) {
+            auto _rg = RenderGuard();
             allItems_.push_back(item);
             ApplyFilter();
         }
+        std::unique_lock<std::recursive_mutex> RenderGuard() {   // 数据变更与 render 线程（DrawOverlay 读 items_）串行
+            Window* w = GetWindow();
+            return w ? w->LockRender() : std::unique_lock<std::recursive_mutex>();
+        }
         void SetItems(const std::vector<std::wstring>& items) {
+            auto _rg = RenderGuard();
             allItems_ = items;
+            disabledItems_.clear();   // 新数据集：禁用状态一并重置
             editText_.clear();
             caretPos_ = 0;
             ApplyFilter();
         }
         void SetSelectedIndex(int index) {
+            auto _rg = RenderGuard();
             if (index >= 0 && index < (int)items_.size()) {
                 if (selectedIndex_ != index) {
                     selectedIndex_ = index;
@@ -1694,14 +1717,28 @@ namespace ZufyUI {
         }
         int GetSelectedIndex() const { return selectedIndex_; }
         std::wstring GetSelectedText() const { return selectedIndex_ >= 0 ? items_[selectedIndex_] : L""; }
+        // 源索引（allItems_）与可见索引（items_）互转：过滤开启时二者不同
+        void SetSelectedSourceIndex(int srcIndex) {
+            auto _rg = RenderGuard();
+            if (srcIndex < 0 || srcIndex >= (int)allItems_.size()) return;
+            for (int i = 0; i < (int)filteredToSource_.size(); ++i)
+                if (filteredToSource_[i] == srcIndex) { SetSelectedIndex(i); return; }
+        }
+        int GetSelectedSourceIndex() const {
+            return (selectedIndex_ >= 0 && selectedIndex_ < (int)filteredToSource_.size()) ? filteredToSource_[selectedIndex_] : -1;
+        }
+        int SourceIndexOf(int visibleIndex) const {
+            return (visibleIndex >= 0 && visibleIndex < (int)filteredToSource_.size()) ? filteredToSource_[visibleIndex] : -1;
+        }
 
         bool IsExpanded() const { return expanded_; }
         // 所属页面/元素被隐藏时自动收起下拉（避免隐藏页里的展开弹层继续通过全局 DrawOverlay 绘制）
         void OnVisibilityChanged(bool visible) override {
+            auto _rg = RenderGuard();
             if (!visible && (expanded_ || expandProgress_ > 0.01f)) CollapseInternal();
         }
         float GetExpandProgress() const { return expandProgress_; }
-        void Collapse() { CollapseInternal(); }
+        void Collapse() { auto _rg = RenderGuard(); CollapseInternal(); }
 
         // ---------- 可编辑 / 输入过滤 ----------
         void SetEditable(bool editable) { editable_ = editable; RequestRepaint(); }
@@ -1709,6 +1746,7 @@ namespace ZufyUI {
         void SetFilterEnabled(bool enable) { filterEnabled_ = enable; ApplyFilter(); }
         bool IsFilterEnabled() const { return filterEnabled_; }
         void SetEditText(const std::wstring& text) {
+            auto _rg = RenderGuard();
             editText_ = text;
             caretPos_ = (int)editText_.size();
             if (filterEnabled_) ApplyFilter(); else { UpdateToolTip(); RequestRepaint(); }
@@ -1717,17 +1755,29 @@ namespace ZufyUI {
         bool IsFocusable() const override { return editable_; }
         static std::wstring ToLower(std::wstring s) { for (auto& c : s) if (c >= L'A' && c <= L'Z') c = (wchar_t)(c + 32); return s; }
         void ApplyFilter() {
+            auto _rg = RenderGuard();
+            // 保留原选中：优先按"源索引"（重复文本也稳），退回按文本
+            int prevSrc = (selectedIndex_ >= 0 && selectedIndex_ < (int)filteredToSource_.size()) ? filteredToSource_[selectedIndex_] : -1;
             std::wstring prevSel = (selectedIndex_ >= 0 && selectedIndex_ < (int)items_.size()) ? items_[selectedIndex_] : L"";
-            if (!filterEnabled_ || editText_.empty()) items_ = allItems_;
+            items_.clear();
+            filteredToSource_.clear();
+            if (!filterEnabled_ || editText_.empty()) {
+                items_ = allItems_;
+                filteredToSource_.resize(allItems_.size());
+                for (int i = 0; i < (int)allItems_.size(); ++i) filteredToSource_[i] = i;
+            }
             else {
                 std::wstring key = ToLower(editText_);
-                items_.clear();
-                for (auto& s : allItems_) if (ToLower(s).find(key) != std::wstring::npos) items_.push_back(s);
+                for (int i = 0; i < (int)allItems_.size(); ++i)
+                    if (ToLower(allItems_[i]).find(key) != std::wstring::npos) {
+                        items_.push_back(allItems_[i]);
+                        filteredToSource_.push_back(i);
+                    }
             }
-            disabledItems_.clear();
+            if ((int)disabledItems_.size() < (int)allItems_.size()) disabledItems_.resize(allItems_.size(), false);   // 禁用状态按源索引保留，不再被过滤清空
             selectedIndex_ = -1;
             for (int i = 0; i < (int)items_.size(); ++i)
-                if (!prevSel.empty() && items_[i] == prevSel) { selectedIndex_ = i; break; }   // 保留原选中
+                if ((prevSrc >= 0 && filteredToSource_[i] == prevSrc) || (!prevSel.empty() && items_[i] == prevSel)) { selectedIndex_ = i; break; }
             if (selectedIndex_ < 0 && !items_.empty()) selectedIndex_ = 0;
             itemWidthsDirty_ = true;
             UpdateIndicatorPosition();
@@ -1738,35 +1788,50 @@ namespace ZufyUI {
 
         // ---------- 数据操作 / 占位符 / 每项禁用 / 开合信号 / 最大可见项 ----------
         void InsertItem(int index, const std::wstring& item) {
-            index = max(0, min((int)allItems_.size(), index));
+            auto _rg = RenderGuard();
+            int oldSize = (int)allItems_.size();
+            index = max(0, min(oldSize, index));
             allItems_.insert(allItems_.begin() + index, item);
+            if ((int)disabledItems_.size() < oldSize) disabledItems_.resize(oldSize, false);
+            disabledItems_.insert(disabledItems_.begin() + index, false);   // 禁用状态随源索引一起插入
             ApplyFilter();
         }
         void RemoveItemAt(int index) {
+            auto _rg = RenderGuard();
             if (index < 0 || index >= (int)allItems_.size()) return;
             allItems_.erase(allItems_.begin() + index);
+            if (index < (int)disabledItems_.size()) disabledItems_.erase(disabledItems_.begin() + index);
             ApplyFilter();
         }
         void RemoveItem(const std::wstring& item) {
+            auto _rg = RenderGuard();
             for (int i = 0; i < (int)allItems_.size(); ++i) if (allItems_[i] == item) { RemoveItemAt(i); return; }
         }
-        void ClearItems() { allItems_.clear(); items_.clear(); disabledItems_.clear(); selectedIndex_ = -1; UpdateIndicatorPosition(); InvalidateLayout(); RequestRepaint(); }
+        void ClearItems() { auto _rg = RenderGuard(); allItems_.clear(); items_.clear(); filteredToSource_.clear(); disabledItems_.clear(); selectedIndex_ = -1; UpdateIndicatorPosition(); InvalidateLayout(); RequestRepaint(); }
         int GetItemCount() const { return (int)items_.size(); }
         std::wstring GetItemAt(int index) const { return (index >= 0 && index < (int)items_.size()) ? items_[index] : L""; }
         const std::vector<std::wstring>& GetItems() const { return items_; }
+        // index 为“可见索引”（items_）；内部按源索引（allItems_）存储，过滤后不丢禁用状态
         void SetItemDisabled(int index, bool disabled = true) {
-            if (index < 0 || index >= (int)items_.size()) return;
-            if ((int)disabledItems_.size() < (int)items_.size()) disabledItems_.resize(items_.size(), false);
-            disabledItems_[index] = disabled;
+            auto _rg = RenderGuard();
+            if (index < 0 || index >= (int)filteredToSource_.size()) return;
+            int src = filteredToSource_[index];
+            if (src < 0 || src >= (int)allItems_.size()) return;
+            if ((int)disabledItems_.size() < (int)allItems_.size()) disabledItems_.resize(allItems_.size(), false);
+            disabledItems_[src] = disabled;
             RequestRepaint();
         }
-        bool IsItemDisabled(int index) const { return index >= 0 && index < (int)disabledItems_.size() && disabledItems_[index]; }
+        bool IsItemDisabled(int index) const {
+            if (index < 0 || index >= (int)filteredToSource_.size()) return false;
+            int src = filteredToSource_[index];
+            return src >= 0 && src < (int)disabledItems_.size() && disabledItems_[src];
+        }
         void SetPlaceholder(const std::wstring& placeholder) { placeholder_ = placeholder; RequestRepaint(); }
         const std::wstring& GetPlaceholder() const { return placeholder_; }
         void SetMaxVisibleItems(int count) { maxVisibleItems_ = max(0, count); InvalidateLayout(); RequestRepaint(); }
         int GetMaxVisibleItems() const { return maxVisibleItems_; }
-        void Expand() { ExpandInternal(); }
-        void SetOpen(bool open) { if (open) ExpandInternal(); else CollapseInternal(); }
+        void Expand() { auto _rg = RenderGuard(); ExpandInternal(); }
+        void SetOpen(bool open) { auto _rg = RenderGuard(); if (open) ExpandInternal(); else CollapseInternal(); }
         ZSignal<> DropDownOpened;
         ZSignal<> DropDownClosed;
 
@@ -1922,49 +1987,16 @@ namespace ZufyUI {
             IDWriteTextFormat* fmt = GetFontFormat();
             if (expandProgress_ <= 0.01f || items_.empty() || !fmt) return;
 
-            float fullListHeight = (float)items_.size() * listItemHeight_;
-            float visibleListHeight = fullListHeight;
-            if (maxVisibleItems_ > 0) visibleListHeight = min(fullListHeight, maxVisibleItems_ * listItemHeight_);
-            float currentListHeight = visibleListHeight * expandProgress_;
-
             D2D1_SIZE_F rtSize = rt->GetSize();
-            float windowHeightDip = rtSize.height;
-            float windowWidthDip = rtSize.width;
+            UpdateListGeometry(rtSize.width, rtSize.height);   // 目标几何：UI 命中与渲染共用（不再各算各的）
+            float currentListHeight = listViewHeight_ * expandProgress_;
+            if (currentListHeight <= 0.0f) return;
 
-            float belowSpace = windowHeightDip - (arrangedRect_.y + arrangedRect_.height);
-            float aboveSpace = arrangedRect_.y;
-            if (belowSpace < fullListHeight && aboveSpace > belowSpace) {
-                expandUp_ = true;
-            }
-            else {
-                expandUp_ = false;
-            }
+            float listY = expandUp_ ? (arrangedRect_.y - currentListHeight)
+                                    : (arrangedRect_.y + arrangedRect_.height);
+            if (expandUp_ && listY < 0.0f) listY = 0.0f;
 
-            float listY;
-            float availableHeight;
-
-            if (expandUp_) {
-                listY = arrangedRect_.y - currentListHeight;
-                availableHeight = aboveSpace;
-                if (availableHeight < 0) availableHeight = 0;
-                if (availableHeight < currentListHeight) currentListHeight = availableHeight;
-                if (listY < 0) listY = 0;
-            }
-            else {
-                listY = arrangedRect_.y + arrangedRect_.height;
-                availableHeight = belowSpace;
-                if (availableHeight < 0) availableHeight = 0;
-                if (availableHeight < currentListHeight) currentListHeight = availableHeight;
-            }
-
-            listViewHeight_ = currentListHeight;
-            if (listViewHeight_ <= 0.0f) return;
-
-            float totalContentHeight = fullListHeight;
-            listMaxScroll_ = max(0.0f, totalContentHeight - listViewHeight_);
-            listScrollOffset_ = clamp(listScrollOffset_, 0.0f, listMaxScroll_);
-
-            D2D1_RECT_F listRect = D2D1::RectF(arrangedRect_.x, listY, arrangedRect_.x + ListWidth(), listY + listViewHeight_);
+            D2D1_RECT_F listRect = D2D1::RectF(arrangedRect_.x, listY, arrangedRect_.x + ListWidth(), listY + currentListHeight);
 
             ComPtr<ID2D1RoundedRectangleGeometry> clipGeometry;
             ID2D1Factory* factory = nullptr;
@@ -1999,7 +2031,7 @@ namespace ZufyUI {
             rt->DrawRoundedRectangle(D2D1::RoundedRect(listRect, 4, 4), listBorderBrush_.Get(), 1.0f);
 
             int firstVisibleIndex = (int)(listScrollOffset_ / listItemHeight_);
-            int lastVisibleIndex = min((int)items_.size() - 1, (int)((listScrollOffset_ + listViewHeight_) / listItemHeight_));
+            int lastVisibleIndex = min((int)items_.size() - 1, (int)((listScrollOffset_ + currentListHeight) / listItemHeight_));
 
             for (int i = firstVisibleIndex; i <= lastVisibleIndex; ++i) {
                 float itemTop = listY + i * listItemHeight_ - listScrollOffset_;
@@ -2032,7 +2064,7 @@ namespace ZufyUI {
                 float indicatorOffset = (listItemHeight_ - indicatorHeight) / 2.0f;
                 float indicatorDrawTop = indicatorTop + indicatorOffset;
                 float indicatorBottom = indicatorDrawTop + indicatorHeight;
-                if (indicatorBottom > listY && indicatorDrawTop < listY + listViewHeight_) {
+                if (indicatorBottom > listY && indicatorDrawTop < listY + currentListHeight) {
                     if (!indicatorBrush_) rt->CreateSolidColorBrush(indicatorColor_, &indicatorBrush_);
                     else indicatorBrush_->SetColor(indicatorColor_);
                     D2D1_RECT_F indicatorRect = D2D1::RectF(indicatorX, indicatorDrawTop, indicatorX + indicatorWidth_, indicatorBottom);
@@ -2044,7 +2076,7 @@ namespace ZufyUI {
                 float trackWidth = 6.0f;
                 float trackX = arrangedRect_.x + ListWidth() - trackWidth - 2.0f;
                 float trackY = listY + 2.0f;
-                float trackHeight = listViewHeight_ - 4.0f;
+                float trackHeight = currentListHeight - 4.0f;
                 if (!scrollTrackBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0.9f, 0.9f, 0.9f, 0.8f), &scrollTrackBrush_);
                 else scrollTrackBrush_->SetColor(D2D1::ColorF(0.9f, 0.9f, 0.9f, 0.8f));
                 rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(trackX, trackY, trackX + trackWidth, trackY + trackHeight), trackWidth / 2, trackWidth / 2), scrollTrackBrush_.Get());
@@ -2082,6 +2114,9 @@ namespace ZufyUI {
             ConvergeValue(expandProgress_, expanded_ ? 1.0f : 0.0f, 0.001f);
             ConvergeValue(hoverProgress_, hovered_ ? 1.0f : 0.0f, 0.001f);
             ConvergeValue(indicatorY_, targetIndicatorY_, 0.1f);
+            // 收起动画已收敛到 0：在 UI 线程断连 DrawOverlay（render 线程只负责画，不碰 Connection）
+            if (!expanded_ && expandProgress_ <= 0.001f)
+                overlayConn_.disconnect();
         }
 
         bool HasActiveAnimation() const override {
@@ -2096,6 +2131,7 @@ namespace ZufyUI {
         void OnMouseLeave() override { hovered_ = false; hoveredItemIndex_ = -1; RequestRepaint(); MouseLeave.Fire(); }
 
         void OnMouseMove(float x, float y) override {
+            auto _rg = RenderGuard();
             if (!expanded_) {
                 hoveredItemIndex_ = -1;
                 MouseMove.Fire(x, y);
@@ -2119,6 +2155,7 @@ namespace ZufyUI {
         }
 
         void OnMouseDown(float x, float y) override {
+            auto _rg = RenderGuard();
             if (expanded_) {
                 bool insideList = IsPointInExpandedList(x, y);
                 bool insideSelf = arrangedRect_.Contains(x, y);
@@ -2148,6 +2185,7 @@ namespace ZufyUI {
         }
 
         void OnMouseUp(float x, float y) override {
+            auto _rg = RenderGuard();
             if (justExpanded_) {
                 justExpanded_ = false;
                 MouseUp.Fire(x, y);
@@ -2173,6 +2211,7 @@ namespace ZufyUI {
         }
 
         bool OnMouseWheel(float deltaX, float deltaY) override {
+            auto _rg = RenderGuard();
             if (expanded_ && listMaxScroll_ > 0) {
                 listScrollOffset_ = clamp(listScrollOffset_ - deltaY * 30.0f, 0.0f, listMaxScroll_);
                 RequestRepaint();
@@ -2182,6 +2221,7 @@ namespace ZufyUI {
         }
 
         void OnKeyDown(WPARAM key, LPARAM lParam) override {
+            auto _rg = RenderGuard();
             if (editable_) {
                 switch (key) {
                 case VK_BACK:
@@ -2238,6 +2278,7 @@ namespace ZufyUI {
             Blurred.Fire();
         }
         void OnChar(wchar_t ch) override {
+            auto _rg = RenderGuard();
             if (!editable_ || !focused_) return;
             if (ch < 32 || ch == L'\r' || ch == L'\n') return;
             if (caretPos_ < 0) caretPos_ = 0;
@@ -2348,10 +2389,35 @@ namespace ZufyUI {
                 [this](Window* w, ID2D1RenderTarget* rt) {
                     if (w != GetWindow()) return;                 // 只画在自己所属窗口上
                     if (expanded_ || expandProgress_ > 0.01f) DrawExpandedList(rt);
-                    if (!expanded_ && expandProgress_ <= 0.01f) overlayConn_.disconnect();  // 收起且动画结束 → 断连
+                    // 不再在 render 线程 disconnect（Connection 引用计数跨线程竞态）；
+                    // 收起动画结束后的断连改由 UI 线程的 UpdateAnimation 完成。
                 },
                 ConnectionThread::CurrentThread,
                 connectionGroup_);
+        }
+
+        // 下拉目标几何（动画结束态）：UI 命中/箭头方向与 render 共用同一份，避免"UI 命中用上一帧几何"
+        void UpdateListGeometry() {
+            UpdateListGeometry(0.0f, GetWindow() ? GetWindow()->GetClientHeightDip() : 0.0f);
+        }
+        void UpdateListGeometry(float /*windowW*/, float windowH) {
+            float fullListHeight = (float)items_.size() * listItemHeight_;
+            float visibleListHeight = fullListHeight;
+            if (maxVisibleItems_ > 0) visibleListHeight = min(fullListHeight, maxVisibleItems_ * listItemHeight_);
+            if (windowH <= 0.0f) {   // 窗口未就绪：不做屏幕 clamp（保证命中区非空）
+                listViewHeight_ = visibleListHeight;
+                listMaxScroll_ = max(0.0f, fullListHeight - listViewHeight_);
+                return;
+            }
+            float belowSpace = windowH - (arrangedRect_.y + arrangedRect_.height);
+            float aboveSpace = arrangedRect_.y;
+            expandUp_ = (belowSpace < fullListHeight && aboveSpace > belowSpace);
+            float avail = expandUp_ ? aboveSpace : belowSpace;
+            if (avail < 0.0f) avail = 0.0f;
+            if (avail < visibleListHeight) visibleListHeight = avail;
+            listViewHeight_ = visibleListHeight;                 // 目标高度（不再被 render 的动画值覆盖）
+            listMaxScroll_ = max(0.0f, fullListHeight - listViewHeight_);
+            listScrollOffset_ = clamp(listScrollOffset_, 0.0f, listMaxScroll_);
         }
 
         void ExpandInternal() {
@@ -2359,15 +2425,12 @@ namespace ZufyUI {
             EnsureOverlayConnected();   // 按需连接全局 DrawOverlay
             expanded_ = true;
             justExpanded_ = true;
-            expandUp_ = false;
             AcquireControlCapture();
             hoveredItemIndex_ = -1;
             pressedItemIndex_ = -1;
             pressedOnSelf_ = false;
             listScrollOffset_ = 0.0f;
-            float fullListHeight = (float)items_.size() * listItemHeight_;
-            if (maxVisibleItems_ > 0) fullListHeight = min(fullListHeight, maxVisibleItems_ * listItemHeight_);
-            listViewHeight_ = fullListHeight;
+            UpdateListGeometry();   // 立即算出目标几何（命中/箭头不再等于第一帧渲染后）
             InvalidateLayout();
             RequestRepaint();
             DropDownOpened();
@@ -2393,7 +2456,8 @@ namespace ZufyUI {
 
         std::vector<std::wstring> items_;
         std::vector<std::wstring> allItems_;
-        std::vector<bool> disabledItems_;
+        std::vector<bool> disabledItems_;      // 按源索引（allItems_）存储
+        std::vector<int> filteredToSource_;    // items_[i] 对应的 allItems_ 源索引
         std::wstring placeholder_;
         int maxVisibleItems_ = 0;
         bool editable_ = false;
@@ -3060,8 +3124,8 @@ namespace ZufyUI {
             // 无需绘制任何内容，子元素（内容、滚动条）会被 Window 自动绘制
         }
 
-        const std::vector<UIElement*>& GetChildren() const override {
-            if (!childrenDirty_) return childrenView_;
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
             childrenDirty_ = false;
             childrenView_.clear();
             if (content_)
@@ -3070,8 +3134,8 @@ namespace ZufyUI {
                 childrenView_.push_back(vScrollBar_.get());
             if (hScrollBar_)
                 childrenView_.push_back(hScrollBar_.get());
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
 
         void AttachWindowRecursive(Window* w) override {
             windowId_ = WindowIdOf(w);
@@ -4314,6 +4378,10 @@ namespace ZufyUI {
         }
 
         // ---------- 页签增删改 ----------
+        std::unique_lock<std::recursive_mutex> RenderGuard() {
+            Window* w = GetWindow();
+            return w ? w->LockRender() : std::unique_lock<std::recursive_mutex>();
+        }
         // 页签标题就是一个 Label（所以可直接 SetIcon 等）；Title 重载是便捷写法（内部包一个 Label）
         static std::shared_ptr<Label> MakeTabLabel(const std::wstring& title) {
             auto l = std::make_shared<Label>(title);
@@ -4324,30 +4392,36 @@ namespace ZufyUI {
             return AddTab(MakeTabLabel(title), content, closable);
         }
         int AddTab(std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
+            auto _rg = RenderGuard();
             if (!label) label = MakeTabLabel(L"");
             label->SetParent(this);
             Tab t; t.label = label; t.page = MakePage(content); t.closable = closable;
             tabs_.push_back(std::move(t));
             int idx = (int)tabs_.size() - 1;
             if (contentHost_) contentHost_->AddPage(tabs_[idx].page);
+            int oldSel = selectedIndex_;
             if (selectedIndex_ < 0) selectedIndex_ = 0;
             stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+            if (selectedIndex_ != oldSel) SelectionChanged(selectedIndex_);   // 首个页签自动选中也要通知
             return idx;
         }
         void InsertTab(int index, const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
             InsertTab(index, MakeTabLabel(title), content, closable);
         }
         void InsertTab(int index, std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
+            auto _rg = RenderGuard();
             if (index < 0) index = 0;
             if (index > (int)tabs_.size()) index = (int)tabs_.size();
             if (!label) label = MakeTabLabel(L"");
             label->SetParent(this);
             Tab t; t.label = label; t.page = MakePage(content); t.closable = closable;
             tabs_.insert(tabs_.begin() + index, std::move(t));
+            int oldSel = selectedIndex_;
             if (selectedIndex_ < 0) selectedIndex_ = 0;
             else if (index <= selectedIndex_) selectedIndex_++;
             RebuildHost();
             stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+            if (selectedIndex_ != oldSel) SelectionChanged(selectedIndex_);
         }
         void RebuildHost() {
             if (!contentHost_) return;
@@ -4356,21 +4430,29 @@ namespace ZufyUI {
             if (selectedIndex_ >= 0) contentHost_->SetCurrentIndexInstant(selectedIndex_);
         }
         void RemoveTab(int index) {
+            auto _rg = RenderGuard();
             if (index < 0 || index >= (int)tabs_.size()) return;
             if (contentHost_) contentHost_->RemovePage(index);
             tabs_.erase(tabs_.begin() + index);
+            int oldSel = selectedIndex_;
             if (tabs_.empty()) selectedIndex_ = -1;
             else if (selectedIndex_ > index) selectedIndex_--;
             else if (selectedIndex_ == index) selectedIndex_ = min(index, (int)tabs_.size() - 1);
             stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+            // 选定页被删或索引变化 → 通知（索引值相同但指向了不同页签也要通知）
+            if (selectedIndex_ != oldSel || oldSel == index) SelectionChanged(selectedIndex_);
         }
         void ClearTabs() {
+            auto _rg = RenderGuard();
+            int oldSel = selectedIndex_;
             tabs_.clear(); selectedIndex_ = -1;
             if (contentHost_) contentHost_->ClearPages();
             stripDirty_ = true; InvalidateLayout(); RequestRepaint();
+            if (selectedIndex_ != oldSel) SelectionChanged(selectedIndex_);
         }
         int GetTabCount() const { return (int)tabs_.size(); }
         void SetTabTitle(int index, const std::wstring& title) {
+            auto _rg = RenderGuard();
             if (index < 0 || index >= (int)tabs_.size()) return;
             if (!tabs_[index].label) { tabs_[index].label = MakeTabLabel(title); tabs_[index].label->SetParent(this); }
             else tabs_[index].label->SetText(title);
@@ -4382,6 +4464,7 @@ namespace ZufyUI {
         }
         // 直接替换/取回页签的 Label（可设图标、颜色、子控件等）
         void SetTabLabel(int index, std::shared_ptr<Label> label) {
+            auto _rg = RenderGuard();
             if (index < 0 || index >= (int)tabs_.size()) return;
             if (!label) label = MakeTabLabel(L"");
             label->SetParent(this);
@@ -4392,6 +4475,7 @@ namespace ZufyUI {
             return (index >= 0 && index < (int)tabs_.size()) ? tabs_[index].label : nullptr;
         }
         void SetTabContent(int index, std::shared_ptr<UIElement> content) {
+            auto _rg = RenderGuard();
             if (index < 0 || index >= (int)tabs_.size()) return;
             tabs_[index].page = MakePage(content);
             RebuildHost();
@@ -4401,12 +4485,14 @@ namespace ZufyUI {
             return (index >= 0 && index < (int)tabs_.size()) ? tabs_[index].page : nullptr;
         }
         void SetTabClosable(int index, bool closable) {
+            auto _rg = RenderGuard();
             if (index < 0 || index >= (int)tabs_.size()) return;
             tabs_[index].closable = closable; stripDirty_ = true; InvalidateLayout(); RequestRepaint();
         }
 
         // ---------- 选中 ----------
         void SetSelectedIndex(int index) {
+            auto _rg = RenderGuard();
             if (index < 0 || index >= (int)tabs_.size() || index == selectedIndex_) return;
             int oldIndex = selectedIndex_;
             selectedIndex_ = index;
@@ -4615,14 +4701,14 @@ namespace ZufyUI {
             }
         }
 
-        const std::vector<UIElement*>& GetChildren() const override {
-            if (!childrenDirty_) return childrenView_;
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
             childrenDirty_ = false;
             childrenView_.clear();
             if (contentHost_) childrenView_.push_back(contentHost_.get());
             if (hBar_) childrenView_.push_back(hBar_.get());
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
 
         void AttachWindowRecursive(Window* w) override {
             windowId_ = WindowIdOf(w);
@@ -5264,16 +5350,16 @@ namespace ZufyUI {
             rt->DrawLine(D2D1::Point2F(cx - e, cy - e), D2D1::Point2F(cx + e, cy + e), arrowBrush_.Get(), 1.4f);
             rt->DrawLine(D2D1::Point2F(cx + e, cy - e), D2D1::Point2F(cx - e, cy + e), arrowBrush_.Get(), 1.4f);
         }
-        const std::vector<UIElement*>& GetChildren() const override {
-            if (!childrenDirty_) return childrenView_;
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
             childrenDirty_ = false;
             childrenView_.clear();
             if (text_) childrenView_.push_back(text_.get());
             if (clearBtn_) childrenView_.push_back(clearBtn_.get());
             if (upBtn_) childrenView_.push_back(upBtn_.get());
             if (downBtn_) childrenView_.push_back(downBtn_.get());
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
         void AttachWindowRecursive(Window* w) override {
             windowId_ = WindowIdOf(w);
             if (text_) text_->AttachWindowRecursive(w);
@@ -5477,14 +5563,14 @@ namespace ZufyUI {
                 }
             }
         }
-        const std::vector<UIElement*>& GetChildren() const override {
-            if (!childrenDirty_) return childrenView_;
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
             childrenDirty_ = false;
             childrenView_.clear();
             if (first_) childrenView_.push_back(first_.get());
             if (second_) childrenView_.push_back(second_.get());
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
         void AttachWindowRecursive(Window* w) override {
             windowId_ = WindowIdOf(w);
             if (first_) first_->AttachWindowRecursive(w);

@@ -1571,6 +1571,58 @@ class SplitView : public UIElement {
 - Dragging follows the pointer immediately and **re-marks the two children** (their width changed -> re-layout); each pane gets `SetClipRect(pane rect ± bleed)` so highlights/shadows are not clipped.
 - For 3/4 panes: **nest** SplitViews (same idea as Qt's `QSplitter`).
 
+## Data-view virtualization: hide / filter / view-order sort (v1.15.0)
+
+`ListView` / `TableView` are now **viewport-virtualized**: cell labels are created / arranged / drawn only for visible rows (pooled label reuse), so millions of rows no longer blow up. New **hide / filter / view-order sort** plus a **visible-order <-> source-row** coordinate pair.
+
+**Coordinate rules (important)**: every existing API (`SetSelectedIndex` / `SetItem` / `SetItemDisabled` / `GetItemText` / signal arguments, ...) uses the **source row** (the index in your data — unaffected by hide / filter / sort). Only the `Visible*` / `*Visible` / `TextAtVisible` methods below use the **visible order**. Hidden / filtered-out rows are not counted in the visible order.
+
+**ListView**
+```cpp
+void SetItemCount(int n);                         // bulk row count (faster than AddItem in a loop)
+void SetItemHidden(int src, bool hidden = true);  // by source row
+bool IsItemHidden(int src) const;
+void ClearHidden();
+void SetFilter(std::function<bool(int src)> pred);          // predicate arg = source row
+void ClearFilter();
+void SetViewComparator(std::function<bool(int a, int b)>);  // args = source rows
+void SortView(bool ascending = true);
+void ClearViewSort();
+int  VisibleCount() const;
+int  SourceOfVisible(int vi) const;                // visible order -> source row
+int  VisibleOfSource(int src) const;               // source row -> visible order
+std::wstring TextAtVisible(int vi) const;
+void SetSelectedVisible(int vi);
+int  GetSelectedVisible() const;
+```
+
+**TableView**: the same `SetItemHidden` / `IsItemHidden` / `ClearHidden` / `SetFilter` / `ClearFilter` / `SetViewComparator` / `SortView` / `ClearViewSort` / `VisibleCount` / `SourceOfVisible` / `VisibleOfSource` (all by **source row**; `GetRowHeightAt(row)` is also by source row).
+
+```cpp
+// Example: hide a row, filter, then view-order sort
+lv->SetFilter([](int src) { return /* keep? */ true; });
+lv->SetItemHidden(3);
+lv->SetViewComparator([](int a, int b) { /* compare text via source rows */ return a < b; });
+lv->SortView(true);
+```
+
+**TreeView (bulk / text / tooltip)**
+```cpp
+void BeginUpdate(); void EndUpdate();   // rebuild the visible list once (removes the O(N^2) of adding one by one)
+void SetNodeText(std::shared_ptr<TreeNode> node, int col, const std::wstring& text);  // empty slot auto-creates a Label
+std::wstring GetNodeText(std::shared_ptr<TreeNode> node, int col) const;
+void SetNodeTooltip(std::shared_ptr<TreeNode> node, const std::wstring& text);
+std::wstring GetNodeTooltip(std::shared_ptr<TreeNode> node) const;
+```
+
+**ComboBox (source index / persistent disabled state)**
+```cpp
+void SetSelectedSourceIndex(int srcIndex);   // select by allItems_ source index
+int  GetSelectedSourceIndex() const;
+int  SourceIndexOf(int visibleIndex) const;  // visible index -> source index
+```
+- `SetItemDisabled` / `IsItemDisabled` still take a **visible index** but store internally by **source index**, so **disabled state is no longer lost when filtering**; only `SetItems` (new data set) resets it.
+
 ## ListView
 
 ```cpp

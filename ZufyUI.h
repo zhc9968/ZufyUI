@@ -41,7 +41,10 @@
 #include <cmath>
 #include <optional>
 #include <mutex>
+#include <shared_mutex>
+#include <condition_variable>
 #include <thread>
+#include <atomic>
 #include <utility>
 #include <tuple>
 #include <wrl/client.h>
@@ -81,9 +84,9 @@
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 14
-#define ZufyUI_VERSION_PATCH 2
-#define ZufyUI_VERSION_STRING L"1.14.2"
+#define ZufyUI_VERSION_MINOR 15
+#define ZufyUI_VERSION_PATCH 0
+#define ZufyUI_VERSION_STRING L"1.15.0"
 
 // ---------- 独立渲染线程（架构 B，实验已通过） ----------
 // 0 = 关闭（默认，行为与之前完全一致）；1 = 开启：渲染在专用 render 线程、UI 线程只标脏。
@@ -859,10 +862,13 @@ class MenuWindowBase;
             );
         }
 
-        virtual ~UIElement() = default;
+        virtual ~UIElement();
 
         // ---------- 布局相关 ----------
         void InvalidateLayout();   // 定义见文件末尾（需要 Window 完整类型才能路由到所属窗口）
+        // 只置"自身"布局脏（不冒泡到根、不整树路由）：元素池 / 虚拟列表"重绑"专用，
+        // 避免 O(深度) 冒泡 × 可见槽位；重绘由容器负责。
+        void InvalidateLayoutSelf() { measureDirty_ = true; selfArrangeDirty_ = true; }
         // 布局是否需要重算（第 2 期：两级脏位）
         bool NeedsLayout() const { return measureDirty_ || selfArrangeDirty_ || subtreeDirty_; }
 
@@ -951,6 +957,8 @@ class MenuWindowBase;
         virtual void Draw(ID2D1RenderTarget* rt) = 0;
 
         // ---------- 子元素列表（新增） ----------
+        // 更新阶段（UI 线程）预先重建"可见子元素列表"；GetChildren 在渲染阶段只做纯读取（不改树）。
+        virtual void RefreshChildren() {}
         virtual const std::vector<UIElement*>& GetChildren() const { return childrenView_; }
 
         // ---------- 缓存相关（新增） ----------
@@ -1066,7 +1074,7 @@ class MenuWindowBase;
         static int WindowIdOf(Window* w);
         // 把“所属窗口”沿子树传播：默认递归自己的子元素（重写者请自行递归，或调用基类）
         virtual void AttachWindowRecursive(Window* w) {
-            windowId_ = WindowIdOf(w);
+            windowId_.store(WindowIdOf(w));
             for (auto* c : GetChildren()) if (c) c->AttachWindowRecursive(w);
         }
         void SetVisible(bool visible) {
@@ -1205,9 +1213,7 @@ class MenuWindowBase;
 
         // 实例级字体覆盖
         void SetFont(const FontSpec& spec) {
-            fontOverride_ = spec;
-            cachedFormatRaw_ = nullptr;
-            cachedFormatValid_ = false;
+            StoreFontOverride(std::optional<FontSpec>(spec));   // 同锁内写 fontOverride_ + 失效缓存（定义在 Window 之后）
             InvalidateLayout();
             RequestRepaint();
         }
@@ -1227,13 +1233,13 @@ class MenuWindowBase;
             SetFont(spec);
         }
         void ClearFont() {
-            fontOverride_.reset();
-            cachedFormatRaw_ = nullptr;
-            cachedFormatValid_ = false;
+            StoreFontOverride(std::nullopt);
             InvalidateLayout();
             RequestRepaint();
         }
         bool HasFontOverride() const { return fontOverride_.has_value(); }
+        // 定义在 Window 之后：写 fontOverride_（含 std::wstring）需与 render 线程（经 GetEffectiveFontSpec 读取）串行
+        void StoreFontOverride(const std::optional<FontSpec>& spec);
 
         // 子类可重写：返回该类型的默认字体（例如 Label 用 16，TextBox 用 14）
         virtual std::optional<FontSpec> GetTypeDefaultFont() const { return std::nullopt; }
@@ -1245,22 +1251,24 @@ class MenuWindowBase;
             return FontManager::Instance().GetGlobalFont();
         }
 
-        // 获取共享的 IDWriteTextFormat（带每实例缓存，快速命中时零开销）
+        // 获取共享的 IDWriteTextFormat：缓存命中走无锁快路径；未命中才在锁内解析一次（FontManager 返回的 Format 永不淘汰）。
         IDWriteTextFormat* GetFontFormat() const {
-            FontSpec spec = GetEffectiveFontSpec();
-            if (cachedFormatValid_ && cachedSpec_ == spec && cachedFormatRaw_) {
-                return cachedFormatRaw_;
-            }
-            cachedFormatRaw_ = FontManager::Instance().GetFormat(spec);
-            cachedSpec_ = spec;
-            cachedFormatValid_ = (cachedFormatRaw_ != nullptr);
-            return cachedFormatRaw_;
+            if (cachedFontValid_.load(std::memory_order_acquire)) return cachedFontFormat_;
+            return GetFontFormatCached();   // 未命中：定义在 Window 之后（需 LockRender）
         }
+        // 需持 renderLock_（未挂载时无需）：写指针 + release 发布有效位
+        IDWriteTextFormat* EnsureFontCache() const {
+            cachedFontFormat_ = FontManager::Instance().GetFormat(GetEffectiveFontSpec());
+            cachedFontValid_.store(true, std::memory_order_release);
+            return cachedFontFormat_;
+        }
+        // 定义在 Window 之后：未命中时需持 renderLock_ 再解析
+        IDWriteTextFormat* GetFontFormatCached() const;
+        void InvalidateFontCache();   // 加锁失效缓存（定义在 Window 之后）
 
         // 字体变化时的回调（默认：失效缓存 + 重新布局）
         virtual void OnFontChanged() {
-            cachedFormatRaw_ = nullptr;
-            cachedFormatValid_ = false;
+            InvalidateFontCache();
             InvalidateLayout();
             RequestRepaint();
         }
@@ -1293,15 +1301,16 @@ class MenuWindowBase;
         std::shared_ptr<ConnectionGroup> connectionGroup_;
 
         bool useCache_; // 默认 true，可被重写
-        int windowId_ = 0;  // 所属窗口 id（0 表示未挂载）；用 id 而非裸指针，避免窗口销毁后悬垂
+        std::atomic<int> windowId_{ 0 };  // 所属窗口 id（0 表示未挂载）；用 id 而非裸指针，避免窗口销毁后悬垂
         mutable std::vector<UIElement*> childrenView_; // GetChildren 复用的视图缓冲，避免每帧分配
         mutable bool childrenDirty_ = true;            // 子元素列表变了才重建 childrenView_（由 SetParent 置脏）
 
         // ---------- 字体相关成员 ----------
+        // 事件驱动缓存：cachedFontFormat_ 只在持 renderLock_（或未挂载）时写一次；
+        // cachedFontValid_ 用 release/acquire 发布。Draw/Measure 走无锁快路径 → 不再每次拷贝 wstring + 哈希。
         std::optional<FontSpec> fontOverride_;
-        mutable IDWriteTextFormat* cachedFormatRaw_ = nullptr;
-        mutable FontSpec cachedSpec_;
-        mutable bool cachedFormatValid_ = false;
+        mutable IDWriteTextFormat* cachedFontFormat_ = nullptr;
+        mutable std::atomic<bool> cachedFontValid_{ false };
     };
 
     // ---------- 布局基类 ----------
@@ -1375,16 +1384,16 @@ class MenuWindowBase;
             // 布局容器自身无视觉内容，不绘制子元素（由 Window 合成）
         }
 
-        const std::vector<UIElement*>& GetChildren() const override {
-            if (!childrenDirty_) return childrenView_;
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
             childrenDirty_ = false;
             childrenView_.clear();
             for (auto& child : children_) childrenView_.push_back(child.get());
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
 
         void AttachWindowRecursive(Window* w) override {
-            windowId_ = WindowIdOf(w);
+            windowId_.store(WindowIdOf(w));
             for (auto& child : children_) child->AttachWindowRecursive(w);
         }
 
@@ -1479,16 +1488,16 @@ class MenuWindowBase;
             // 无自身视觉内容
         }
 
-        const std::vector<UIElement*>& GetChildren() const override {
-            if (!childrenDirty_) return childrenView_;
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
             childrenDirty_ = false;
             childrenView_.clear();
             for (auto& child : children_) childrenView_.push_back(child.get());
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
 
         void AttachWindowRecursive(Window* w) override {
-            windowId_ = WindowIdOf(w);
+            windowId_.store(WindowIdOf(w));
             for (auto& child : children_) child->AttachWindowRecursive(w);
         }
 
@@ -1747,16 +1756,16 @@ class MenuWindowBase;
             // 无自身视觉内容
         }
 
-        const std::vector<UIElement*>& GetChildren() const override {
-            if (!childrenDirty_) return childrenView_;
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
             childrenDirty_ = false;
             childrenView_.clear();
             for (auto& item : items_) childrenView_.push_back(item.element.get());
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
 
         void AttachWindowRecursive(Window* w) override {
-            windowId_ = WindowIdOf(w);
+            windowId_.store(WindowIdOf(w));
             for (auto& item : items_) if (item.element) item.element->AttachWindowRecursive(w);
         }
 
@@ -1817,16 +1826,16 @@ class MenuWindowBase;
             return std::dynamic_pointer_cast<T>(layout_);
         }
 
-        const std::vector<UIElement*>& GetChildren() const override {
-            if (!childrenDirty_) return childrenView_;
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
             childrenDirty_ = false;
             childrenView_.clear();
             if (layout_) childrenView_.push_back(layout_.get());
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
 
         void AttachWindowRecursive(Window* w) override {
-            windowId_ = WindowIdOf(w);
+            windowId_.store(WindowIdOf(w));
             if (layout_) layout_->AttachWindowRecursive(w);
         }
 
@@ -2144,8 +2153,8 @@ class MenuWindowBase;
             // 原来的 pages_[i]->Draw 是同一帧的重复背景绘制 + 与递归变换双通道。这里留空。
         }
 
-        const std::vector<UIElement*>& GetChildren() const override {
-            if (!childrenDirty_) return childrenView_;
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
             childrenDirty_ = false;
             childrenView_.clear();
             if (animating_) {
@@ -2157,11 +2166,11 @@ class MenuWindowBase;
             else if (currentIndex_ >= 0 && currentIndex_ < (int)pages_.size()) {
                 childrenView_.push_back(pages_[currentIndex_].get());
             }
-            return childrenView_;
         }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
 
         void AttachWindowRecursive(Window* w) override {
-            windowId_ = WindowIdOf(w);
+            windowId_.store(WindowIdOf(w));
             for (auto& p : pages_) if (p) p->AttachWindowRecursive(w);
         }
 
@@ -2216,7 +2225,6 @@ class MenuWindowBase;
             }
 #endif
 
-            bool justFinished = false;   // 只在“过渡完成的那一帧”为 true，避免每帧重复释放
             if (animating_) {
                 animProgress_ += deltaTime / animDuration_;
                 // 强制收敛：若进度接近 1.0（浮点误差），立即完成动画
@@ -2228,7 +2236,6 @@ class MenuWindowBase;
                     fromIndex_ = -1;
                     toIndex_ = -1;
                     MarkChildrenDirty();   // 子元素列表随 animating_ 变化
-                    justFinished = true;
                 }
                 // A6：过渡只改变换（GetChildRenderTransform），页面内容不变 —— 不再每帧 RequestRepaint 两个
                 // 页面（那会每帧重建两页的离屏缓存）。窗口重合成由 PageHost 的活跃动画 + lastActiveAnimElements_ 驱动。
@@ -2255,15 +2262,7 @@ class MenuWindowBase;
                 // 关键：释放时机从"过渡完成那一帧"(高频切换时 animProgress_ 被反复重置、justFinished 永不触发 → 从不释放)
                 // 改为"任何页由可见变不可见的那一帧"，避免隐藏页的离屏缓存无限累积。
                 if (wasVisible && !shouldBeVisible) pages_[i]->ReleaseDeviceResources();
-            }
-
-            if (justFinished) {
-                // 过渡刚结束的这一帧：释放非当前页面的设备资源（只做一次）
-                for (size_t i = 0; i < pages_.size(); ++i) {
-                    if (i != (size_t)currentIndex_ && pages_[i]) {
-                        pages_[i]->ReleaseDeviceResources();
-                    }
-                }
+                // 注：释放只在"可见→不可见那一帧"做一次（原 justFinished 分支重复释放已移除）。
             }
         }
 
@@ -2489,36 +2488,51 @@ class MenuWindowBase;
                 return noiseBrush_.Get();
             }
 
+            // 窗口注册表：UI 线程写、render 线程经 GetWindowById 读 → shared_mutex 保护。
             void AddWindow(Window* w) {
+                std::unique_lock<std::shared_mutex> lk(windowsMtx_);
                 if (w && std::find(windows_.begin(), windows_.end(), w) == windows_.end())
                     windows_.push_back(w);
             }
             void RemoveWindow(Window* w) {
-                windows_.erase(std::remove(windows_.begin(), windows_.end(), w), windows_.end());
-                for (auto it = windowsById_.begin(); it != windowsById_.end(); ) {
-                    if (it->second == w) it = windowsById_.erase(it); else ++it;
+                bool empty;
+                {
+                    std::unique_lock<std::shared_mutex> lk(windowsMtx_);
+                    windows_.erase(std::remove(windows_.begin(), windows_.end(), w), windows_.end());
+                    for (auto it = windowsById_.begin(); it != windowsById_.end(); ) {
+                        if (it->second == w) it = windowsById_.erase(it); else ++it;
+                    }
+                    empty = windows_.empty();
                 }
-                if (windows_.empty()) Quit(0);   // 最后一个窗口关闭才退出
+                if (empty) Quit(0);   // 最后一个窗口关闭才退出
             }
             // 分配窗口 id 并登记（元素只保存 id，窗口销毁后查找返回 nullptr，杜绝悬垂）
             int RegisterWindow(Window* w) {
+                std::unique_lock<std::shared_mutex> lk(windowsMtx_);
                 int id = nextWindowId_++;
                 windowsById_[id] = w;
-                AddWindow(w);
+                if (w && std::find(windows_.begin(), windows_.end(), w) == windows_.end())
+                    windows_.push_back(w);
                 return id;
             }
             void UnregisterWindow(int id, Window* w) {
-                windowsById_.erase(id);
-                windows_.erase(std::remove(windows_.begin(), windows_.end(), w), windows_.end());
-                if (windows_.empty()) Quit(0);
+                bool empty;
+                {
+                    std::unique_lock<std::shared_mutex> lk(windowsMtx_);
+                    windowsById_.erase(id);
+                    windows_.erase(std::remove(windows_.begin(), windows_.end(), w), windows_.end());
+                    empty = windows_.empty();
+                }
+                if (empty) Quit(0);
             }
             Window* GetWindowById(int id) const {
                 if (id == 0) return nullptr;
+                std::shared_lock<std::shared_mutex> lk(windowsMtx_);
                 auto it = windowsById_.find(id);
                 return it == windowsById_.end() ? nullptr : it->second;
             }
-            int WindowCount() const { return (int)windows_.size(); }
-            const std::vector<Window*>& Windows() const { return windows_; }
+            int WindowCount() const { std::shared_lock<std::shared_mutex> lk(windowsMtx_); return (int)windows_.size(); }
+            std::vector<Window*> Windows() const { std::shared_lock<std::shared_mutex> lk(windowsMtx_); return windows_; }   // 返回快照：可安全地从任意线程读
 
             int Run() {
                 InitializeUIThread();
@@ -2557,6 +2571,7 @@ class MenuWindowBase;
             ComPtr<ICompositionBrush> noiseBrush_;
             ComPtr<IUnknown> dqController_;   // 持有并释放，避免泄漏
             RenderHost* renderHost_ = nullptr;   // 独立渲染线程（ZUFYUI_RENDER_THREAD=1 时启用）
+            mutable std::shared_mutex windowsMtx_;   // 保护 windows_/windowsById_（render 线程读、UI 线程写）
             std::vector<Window*> windows_;
             std::unordered_map<int, Window*> windowsById_;
             int nextWindowId_ = 1;
@@ -2622,8 +2637,10 @@ class MenuWindowBase;
         };
         // 用一个函数设置某背景层的全部参数，并立即生效
         static void SetBackgroundParams(Backdrop which, const BackgroundParams& p) {
-            if (which == Backdrop::Mica) MicaParams = p; else AcrylicParams = p;
-            UIZSignals::ReloadAcrylic.Fire();
+            detail::PostToUIThread([which, p]() {   // 从非 UI 线程调用也安全（PostToUIThread 在 UI 线程上同步执行）
+                if (which == Backdrop::Mica) MicaParams = p; else AcrylicParams = p;
+                UIZSignals::ReloadAcrylic.Fire();
+            });
         }
         // 预设重载
         static void SetBackgroundParams(Backdrop which, AcrylicPreset preset) {
@@ -2646,8 +2663,10 @@ class MenuWindowBase;
                       D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.30f), 0.01f };
                 break;
             }
-            if (which == Backdrop::Mica) MicaParams = p; else AcrylicParams = p;
-            UIZSignals::ReloadAcrylic.Fire();
+            detail::PostToUIThread([which, p]() {
+                if (which == Backdrop::Mica) MicaParams = p; else AcrylicParams = p;
+                UIZSignals::ReloadAcrylic.Fire();
+            });
         }
         // 改完参数后调用：所有窗口重新加载背景
         inline static Color DefaultBackgroundColor = Color(0, 0, 0, 0);
@@ -2663,6 +2682,19 @@ class MenuWindowBase;
             layoutInvalidated_(false) {}
 
         virtual ~Window() {
+            // 析构必须在 UI 线程执行。
+            // 1) 置生存令牌死亡：render 线程此后不再 pin 本窗口（含队列里已存在的裸 Window* 项）；
+            // 2) 等所有已 pin 的 render 帧跑完（inFlight 归零）。这一步必须在拿 renderLock_ 之前，
+            //    否则 render 线程可能正阻塞在 renderLock_ 上，与"等 inFlight"互锁。
+            if (live_) {
+                live_->alive.store(false, std::memory_order_seq_cst);
+                std::unique_lock<std::mutex> lk(live_->m);
+                live_->cv.wait(lk, [this] {
+                    return live_->inFlight.load(std::memory_order_seq_cst) == 0;
+                });
+            }
+            dying_.store(true);   // 先置"将亡"：render 线程此后不再处理本窗口（避免用已释放的 this）
+            std::lock_guard<std::recursive_mutex> lk(renderLock_);   // 与"正在出的一帧"串行
             acrylicReloadConn_.disconnect();
             ClearFrameworkTimers();   // 通知框架定时器：窗口将亡（让 Timer 与窗口解绑）
             if (rootElement_) rootElement_->AttachWindowRecursive(nullptr);
@@ -2672,12 +2704,16 @@ class MenuWindowBase;
             // d2dFactory_ 由 AppCore 共享，不在此释放
         }
 
+        // 供容器把"数据变更"与 render 线程串行：架构 B 下 GetChildren()/Draw() 在 render 线程读元素树，
+        //   容器若在 UI 线程改自己的数据（如 vector push_back 重分配）会与 render 读并发 → 悬垂/堆损坏。
+        std::unique_lock<std::recursive_mutex> LockRender() { return std::unique_lock<std::recursive_mutex>(renderLock_); }
+
         // A3：帧率上限 —— 不限时跟随显示器 vblank；>0 限制动画平均出帧率（降 GPU/CPU）。
         //   每窗口覆盖进程默认；SetFrameRateLimit(0) 显式取消上限（不再走默认）。
-        void SetFrameRateLimit(int fps) { frameRateLimit_ = (fps < 0) ? 0 : fps; }
-        int  GetFrameRateLimit() const { return frameRateLimit_ >= 0 ? frameRateLimit_ : s_defaultFrameRateLimit; }
-        static void SetDefaultFrameRateLimit(int fps) { s_defaultFrameRateLimit = (fps < 0) ? 0 : fps; }
-        static int  GetDefaultFrameRateLimit() { return s_defaultFrameRateLimit; }
+        void SetFrameRateLimit(int fps) { frameRateLimit_.store((fps < 0) ? 0 : fps, std::memory_order_relaxed); }
+        int  GetFrameRateLimit() const { int v = frameRateLimit_.load(std::memory_order_relaxed); return v >= 0 ? v : s_defaultFrameRateLimit.load(std::memory_order_relaxed); }
+        static void SetDefaultFrameRateLimit(int fps) { s_defaultFrameRateLimit.store((fps < 0) ? 0 : fps, std::memory_order_relaxed); }
+        static int  GetDefaultFrameRateLimit() { return s_defaultFrameRateLimit.load(std::memory_order_relaxed); }
 
         void SetMouseCapture(UIElement* elem) { mouseCaptureElement_ = elem; }
         void ReleaseMouseCapture(UIElement* elem) {
@@ -3469,8 +3505,21 @@ class MenuWindowBase;
         }
 
         // 由 UIElement 直接路由，多窗口互不干扰
-        void MarkRepaint(UIElement* elem) { if (elem) pendingRepaint_.insert(elem); }
-        void MarkLayoutInvalidated() { layoutInvalidated_ = true; }
+        void MarkRepaint(UIElement* elem) {
+            if (!elem) return;
+            std::lock_guard<std::recursive_mutex> lk(renderLock_);   // 与 render 线程的 clear/erase 串行（跨线程竞态）
+            pendingRepaint_.insert(elem);
+        }
+        // UIElement 析构时反向注销：pendingRepaint_ 里的裸指针不得指向已销毁元素（防将来有人解引用）
+        void ForgetPendingRepaint(UIElement* elem) {
+            if (!elem) return;
+            std::lock_guard<std::recursive_mutex> lk(renderLock_);
+            pendingRepaint_.erase(elem);
+        }
+        void MarkLayoutInvalidated() {
+            std::lock_guard<std::recursive_mutex> lk(renderLock_);
+            layoutInvalidated_ = true;
+        }
 
         // 控件鼠标捕获（按窗口路由）
         void RequestElementCapture(UIElement* elem) { if (elem) mouseCaptureElement_ = elem; }
@@ -3772,7 +3821,8 @@ class MenuWindowBase;
 #if ZUFYUI_RENDER_THREAD
                     // 渲染线程化后**不能**在 UI 线程动 swapchain（会和 render 线程 Present/取后备缓冲竞争 → d2d 崩）。
                     // 只置 pending，由 render 线程在锁内做 ResizeBuffers。
-                    pendingResizeW_.store(nw); pendingResizeH_.store(nh); resizePending_.store(true);
+                    pendingResize_.store(((unsigned long long)nw << 32) | (unsigned long long)(unsigned)nh,
+                                         std::memory_order_release);
                     RequestRender();
 #else
                     if (swapChain_) ResizeSwapChain(nw, nh);
@@ -3803,14 +3853,15 @@ class MenuWindowBase;
                 break;
             case WM_DPICHANGED: {
                 UpdateTimerState();
+#if ZUFYUI_RENDER_THREAD
+                // dpi_ 与整条渲染状态同属一个临界区：赋值必须和设备重建一起放进锁内，
+                //   否则 render 线程会读到"新 dpi_ + 旧后备缓冲"出一帧（文字/吸附尺寸错一帧）。
+                std::lock_guard<std::recursive_mutex> _dpiLock(renderLock_);
+#endif
                 dpi_ = HIWORD(wParam); if (dpi_ == 0) dpi_ = 96;                // DPI 变了必须整条渲染链重建：D2D 上下文 + DComp 目标/visual 树 + 交换链。
                 // 只重建 renderTarget_ 的话，swapChain_/contentVisual_ 等仍是 nullptr，
                 // OnPaint 会在 EnsureSwapBackBuffer() 直接失败 → 一帧都不画，客户区变全透明
                 //（命中测试/DWM 边框与渲染链无关，所以看起来"窗口还活着"）。
-#if ZUFYUI_RENDER_THREAD
-                // 与 render 线程串行：否则 UI 线程重建 D2D 设备/交换链会和 render 帧跨线程竞争（同类隐患）
-                std::lock_guard<std::mutex> _dpiLock(renderLock_);
-#endif
                 DiscardDeviceResources();
 #if ZUFYUI_RENDER_THREAD
                 if (FAILED(CreateCompositionBackend())) {   // DC 交给 render 线程重建
@@ -3837,7 +3888,7 @@ class MenuWindowBase;
                 frameTickPending_.store(false);
                 if (IsIconic(hwnd_)) return 0;
                 if (uiAnimating_.load()) {
-                    { std::lock_guard<std::mutex> lk(renderLock_); AdvanceFrame(); }
+                    { std::lock_guard<std::recursive_mutex> lk(renderLock_); AdvanceFrame(); }
                     RequestRender();
                 }
                 return 0;
@@ -4063,6 +4114,7 @@ class MenuWindowBase;
         }
 
         void UpdateTooltip() {
+            std::lock_guard<std::recursive_mutex> lk(renderLock_);   // tooltip 状态跨线程（render 读）
             UIElement* owner = ResolveTooltipOwner();
             bool candidate = (owner != nullptr);
             if (!candidate) {
@@ -4088,6 +4140,7 @@ class MenuWindowBase;
             }
         }
         bool HasRenderWork() const {
+            std::lock_guard<std::recursive_mutex> lk(renderLock_);   // 与 UI 线程的 MarkRepaint 串行
             if (layoutInvalidated_ || focusDirty_ || !pendingRepaint_.empty()) return true;
             // 用上次合成收集到的活跃动画集合判断，避免每个 timer tick 都全树递归 HasActiveAnimation()
             if (!activeAnimScratch_.empty()) return true;
@@ -4459,12 +4512,14 @@ class MenuWindowBase;
         }
         bool NeedsRenderFrame() const { return HasRenderWork(); }
         // render 线程入口：**只**把 DC 操作段放进锁；节拍(DwmFlush)必须在锁外（否则 UI 会被卡一帧）
-        void RenderOnThread() {
-            renderRequested_.store(false);
-            if (IsIconic(hwnd_)) return;   // 最小化：不出帧（Present 会 DXGI_STATUS_OCCLUDED / 后备缓冲可能失效）
+        bool RenderOnThread() {
+            if (dying_.load()) return false;     // 窗口正在析构：绝不再用它出帧
+            if (!hwnd_) return false;
+            if (IsIconic(hwnd_)) return false;   // 最小化：不出帧（Present 会 DXGI_STATUS_OCCLUDED / 后备缓冲可能失效）
             // A3：帧率上限 —— 距上一帧不足 1/fps 就在锁外精确补齐间隔（限平均出帧率，降 GPU/CPU）。
-            if (frameRateLimit_ != 0) {
-                int lim = (frameRateLimit_ > 0) ? frameRateLimit_ : s_defaultFrameRateLimit;
+            int frl = frameRateLimit_.load(std::memory_order_relaxed);
+            if (frl != 0) {
+                int lim = (frl > 0) ? frl : s_defaultFrameRateLimit.load(std::memory_order_relaxed);
                 if (lim > 0) {
                     double now = detail::NowMs();
                     double interval = 1000.0 / lim;
@@ -4474,12 +4529,14 @@ class MenuWindowBase;
             }
             HRESULT hr = E_FAIL;
             {
-                std::lock_guard<std::mutex> lk(renderLock_);
-                if (!renderTarget_) { if (FAILED(CreateDeviceResources())) return; }   // render 线程自建自己的 DC
-                if (resizePending_.exchange(false)) {
-                    UINT nw = pendingResizeW_.load(), nh = pendingResizeH_.load();
+                std::lock_guard<std::recursive_mutex> lk(renderLock_);
+                if (!renderTarget_) { if (FAILED(CreateDeviceResources())) return false; }   // render 线程自建自己的 DC
+                unsigned long long packed = pendingResize_.exchange(0, std::memory_order_acquire);
+                if (packed) {
+                    UINT nw = (UINT)(packed >> 32), nh = (UINT)(packed & 0xFFFFFFFFull);
                     if (swapChain_ && nw && nh) ResizeSwapChain(nw, nh);
                 }
+                if (dying_.load()) return false;   // 锁内二次确认：析构可能在等锁期间已开始
                 hr = RenderFrame();
             }
 #if ZUFYUI_RENDER_THREAD
@@ -4490,11 +4547,18 @@ class MenuWindowBase;
                 if (core_) core_->SetRenderHostPaused(true);                    // 1) 暂停 render 线程
                 detail::PostToUIThread([this] { RebuildAfterDeviceLost(); });   // 2) 回 UI 线程重建
             }
+            return true;
+        }
+        // 一帧处理完（render 线程、仍在 live pin 内）后调用：清"已请求"位；若这期间 UI 又标了脏（被去抖挡掉、没入队），
+        //   且本帧确实出过画 → 补一次唤醒，消除"丢失唤醒 → 多等一帧到 WM_TIMER"的窗口。
+        void EndRenderRequest(bool rendered) {
+            renderRequested_.store(false, std::memory_order_release);
+            if (rendered && HasRenderWork() && core_) core_->RequestRender(this);
         }
 
         // device lost 恢复（UI 线程、持 renderLock_）：重建共享设备 + DComp 目标/交换链 + 清缓存；完成后恢复 render 线程。
         void RebuildAfterDeviceLost() {
-            std::lock_guard<std::mutex> lk(renderLock_);
+            std::lock_guard<std::recursive_mutex> lk(renderLock_);
             DiscardDeviceResources();
 #if ZUFYUI_RENDER_THREAD
             if (FAILED(CreateCompositionBackend())) {   // DC 交给 render 线程重建
@@ -4569,6 +4633,13 @@ class MenuWindowBase;
             return hr;
         }
 
+        // 递归让容器重建"可见子元素列表"（更新阶段、渲染之前；render 线程的 GetChildren 只读）
+        void RefreshChildrenRecursive(UIElement* e) {
+            if (!e) return;
+            e->RefreshChildren();
+            for (auto* c : e->GetChildren()) RefreshChildrenRecursive(c);
+        }
+
         // A1：推进一帧的"UI 侧"工作（布局 + 动画 + 收集活跃动画 + 发布 uiAnimating_）。
         // 调用者必须已持有 renderLock_（ZUFYUI_RENDER_THREAD=1 时）；WM_PAINT 与 WM_RENDER_TICK 共用。
         void AdvanceFrame() {
@@ -4634,6 +4705,10 @@ class MenuWindowBase;
                 customTitleBar_->UpdateAnimation(deltaTime);
             }
 
+            // 3.5 更新阶段重建容器"可见子元素列表"（把池化/rebind 从 render 的 Compose 热路径挪到这里）
+            RefreshChildrenRecursive(rootElement_.get());
+            if (customTitleBar_) RefreshChildrenRecursive(customTitleBar_.get());
+
             // 自动收集活跃动画元素（只用于"是否要继续跑帧"的判断）
             std::swap(activeAnimScratch_, lastActiveAnimElements_);   // 交换缓冲代替每帧 hashset 深拷贝；last 保留上一帧活跃集
             activeAnimScratch_.clear();
@@ -4663,7 +4738,7 @@ class MenuWindowBase;
 #if ZUFYUI_RENDER_THREAD
             // A1：UI 侧只做布局/动画（AdvanceFrame），再标脏唤醒 render 线程；不再自己出帧/自续。
             // 无条件请求：一次 WM_PAINT 就是一次真实出画请求（例如菜单窗刚显示）；空闲由"没有 WM_PAINT"来停。
-            { std::lock_guard<std::mutex> _frameLock(renderLock_); AdvanceFrame(); }
+            { std::lock_guard<std::recursive_mutex> _frameLock(renderLock_); AdvanceFrame(); }
             RequestRender();
 #else
             if (!renderTarget_) {
@@ -4732,6 +4807,7 @@ class MenuWindowBase;
 
         // 以下为原有事件处理函数，保留不变
         void OnMouseMove(float x, float y) {
+            std::lock_guard<std::recursive_mutex> lk(renderLock_);   // mouse/tooltip 状态跨线程（render 读）
             // 只有真实位移才重置悬停计时并关闭提示；重复的 WM_MOUSEMOVE（坐标未变）忽略
             bool realMove = fabs(x - mouseX_) > 0.5f || fabs(y - mouseY_) > 0.5f;
             mouseX_ = x; mouseY_ = y;
@@ -4792,6 +4868,9 @@ class MenuWindowBase;
         }
 
         void OnMouseUp(float x, float y) {
+            // 与 render 线程串行：下面 UpdateHover 会经 OnMouseEnter/OnMouseLeave 改控件的 hover 动画字段，
+            // 而 render 线程在 Draw 里读它们（与 OnMouseMove 同一把锁）。
+            std::lock_guard<std::recursive_mutex> lk(renderLock_);
             // 注意：Win32 捕获(SetCapture)只在“按住鼠标”期间需要；
             // 元素级捕获(mouseCaptureElement_，如 ComboBox 展开、拖拽)与它无关，松开鼠标必须释放 Win32 捕获，
             // 否则整个线程的鼠标都会被本窗口截走，其他窗口无法交互。
@@ -5511,15 +5590,25 @@ class MenuWindowBase;
         int compositionCursorPos_ = 0;
 
         // 新增成员
-        std::mutex renderLock_;                       // render 线程：保护 DC 操作段（不覆盖 DwmFlush）
+        mutable std::recursive_mutex renderLock_;     // render 线程：保护 DC 操作段（不覆盖 DwmFlush）；recursive；mutable 供 const 读取方加锁
         std::atomic<bool> renderRequested_{ false };  // UI→render 帧请求去抖
-        int frameRateLimit_ = -1;                     // A3：-1=未设(用进程默认) / 0=显式不限 / >0=fps 上限
+        std::atomic<bool> dying_{ false };            // 窗口析构中：render 线程跳过（防 UAF）
+        // 生存令牌：脱离 this 内存。render 线程批处理前先 pin（inFlight++），析构先置 alive=false
+        //   再等 inFlight 归零，之后才拆卸 → 根除 render 线程对已析构 this 的解引用（含队列里的裸 Window*）。
+        struct RenderLiveness {
+            std::atomic<bool> alive{ true };
+            std::atomic<int> inFlight{ 0 };
+            std::mutex m;                      // 保护 inFlight 归零等待（condition_variable）
+            std::condition_variable cv;        // inFlight==0 时通知析构线程（替代自旋烧 CPU）
+        };
+        std::shared_ptr<RenderLiveness> live_ = std::make_shared<RenderLiveness>();
+        std::atomic<int> frameRateLimit_{ -1 };        // A3：-1=未设(用进程默认) / 0=显式不限 / >0=fps 上限
         double lastPresentMs_ = 0.0;                  // A3：上次 Present 时刻（QPC ms）
-        static inline int s_defaultFrameRateLimit = 0; // A3：进程默认帧率上限（0=不限）
+        static inline std::atomic<int> s_defaultFrameRateLimit{ 0 }; // A3：进程默认帧率上限（0=不限）
         std::atomic<bool> uiAnimating_{ false };      // UI 线程发布：本帧是否有活跃动画（render 据此决定续帧）
         std::atomic<bool> frameTickPending_{ false }; // A1：render→UI 的动画推进 tick 去抖（防 PostMessage 积压）
-        std::atomic<bool> resizePending_{ false };    // UI→render：待处理 resize（render 线程锁内 ResizeBuffers）
-        std::atomic<UINT> pendingResizeW_{ 0 }, pendingResizeH_{ 0 };
+        // resize 打包成单个 64-bit 原子 (W<<32)|H：避免两次 WM_SIZE 交错被读到 {W_new,H_old} 半新值
+        std::atomic<unsigned long long> pendingResize_{ 0 };
         std::unordered_set<UIElement*> pendingRepaint_;
         bool layoutInvalidated_;
         // 用于记录上一帧活跃动画元素
@@ -5532,11 +5621,36 @@ class MenuWindowBase;
     // ---------- UIElement 路由实现（需 Window 完整类型） ----------
     inline int UIElement::WindowIdOf(Window* w) { return w ? w->GetId() : 0; }
     inline Window* UIElement::GetWindow() const {
-        return detail::AppCore::Instance().GetWindowById(windowId_);
+        return detail::AppCore::Instance().GetWindowById(windowId_.load());
     }
     inline void UIElement::RequestRepaint() {
         if (Window* w = GetWindow()) w->MarkRepaint(this);
         else UIZSignals::RepaintRequest(nullptr, this);
+    }
+    inline void UIElement::StoreFontOverride(const std::optional<FontSpec>& spec) {
+        // fontOverride_ 含 std::wstring：render 线程经 GetEffectiveFontSpec() 读它 → 写侧必须与渲染串行。
+        // 失效缓存必须与写 fontOverride_ 在**同一临界区**，否则 render 可能用旧 format 多画一帧。
+        if (Window* w = GetWindow()) {
+            auto lk = w->LockRender();
+            fontOverride_ = spec;
+            cachedFontValid_.store(false, std::memory_order_release);
+        }
+        else {
+            fontOverride_ = spec;
+            cachedFontValid_.store(false, std::memory_order_release);
+        }
+    }
+    inline void UIElement::InvalidateFontCache() {
+        if (Window* w = GetWindow()) { auto lk = w->LockRender(); cachedFontValid_.store(false, std::memory_order_release); }
+        else cachedFontValid_.store(false, std::memory_order_release);
+    }
+    inline IDWriteTextFormat* UIElement::GetFontFormatCached() const {
+        if (Window* w = GetWindow()) { auto lk = w->LockRender(); return EnsureFontCache(); }
+        return EnsureFontCache();
+    }
+    inline UIElement::~UIElement() {
+        // 从所属窗口的待重绘集合里移除自己（防悬垂裸指针）
+        if (Window* w = GetWindow()) w->ForgetPendingRepaint(this);
     }
     inline void UIElement::InvalidateLayout() {
         // measureDirty_ 冒泡到根（父需读子新 desiredSize，C1 正确）；
@@ -5574,8 +5688,8 @@ class MenuWindowBase;
                 if (wake_) { CloseHandle(wake_); wake_ = nullptr; }
             }
             void RequestFrame(Window* w) {
-                if (!w) return;
-                { std::lock_guard<std::mutex> lk(mutex_); dirty_.push_back(w); }
+                if (!w || !w->live_) return;
+                { std::lock_guard<std::mutex> lk(mutex_); dirty_.push_back({ w, w->live_ }); }
                 if (wake_) SetEvent(wake_);
             }
             DeviceState State() const { return state_.load(); }
@@ -5585,19 +5699,36 @@ class MenuWindowBase;
             void ThreadMain() {
                 while (!quit_.load()) {
                     WaitForSingleObject(wake_, INFINITE);   // 无帧请求就真睡（不空转、不轮询）
-                    std::vector<Window*> batch;
+                    std::vector<Job> batch;
                     { std::lock_guard<std::mutex> lk(mutex_); batch.swap(dirty_); }
                     if (quit_.load()) break;
                     if (state_.load() != DeviceState::Ok) continue;   // Lost/Rebuilding 期间不出帧
-                    for (Window* w : batch) if (w) { w->RenderOnThread(); w->ContinueFrame(); }
+                    for (auto& job : batch) {
+                        auto live = job.live;   // job.live 独立于 Window 内存：窗口销毁后这里仍可安全读
+                        if (!live || !live->alive.load(std::memory_order_seq_cst)) continue;
+                        live->inFlight.fetch_add(1, std::memory_order_seq_cst);   // pin 住：析构会等它归零
+                        // pin 后二次确认：若期间析构已置 alive=false，则跳过（析构正等这把 inFlight 归零）
+                        if (live->alive.load(std::memory_order_seq_cst)) {
+                            bool rendered = job.w->RenderOnThread();
+                            job.w->ContinueFrame();
+                            job.w->EndRenderRequest(rendered);
+                        }
+                        {
+                            std::lock_guard<std::mutex> lk(live->m);
+                            live->inFlight.fetch_sub(1, std::memory_order_seq_cst);
+                        }
+                        live->cv.notify_all();
+                    }
                 }
             }
+            // 批处理项：持裸 Window* + 独立的生存令牌 shared_ptr（不随窗口内存释放而失效）
+            struct Job { Window* w; std::shared_ptr<Window::RenderLiveness> live; };
             HANDLE wake_ = nullptr;
             std::thread thread_;
             std::atomic<bool> quit_{ false };
             std::atomic<DeviceState> state_{ DeviceState::Ok };
             std::mutex mutex_;
-            std::vector<Window*> dirty_;
+            std::vector<Job> dirty_;
         };
 
         // AppCore 的 render host 钩子（定义在 RenderHost 之后）
@@ -5625,6 +5756,9 @@ class MenuWindowBase;
     class MenuWindowBase : public Window {
     public:
         MenuWindowBase() = default;
+        ~MenuWindowBase() {
+            if (!parent_ && detail::g_activeMenu == this) detail::g_activeMenu = nullptr;   // 析构清全局登记，防悬垂
+        }
 
         // 以弹出层创建：width/height 为 DIP 的“内容尺寸”（窗口另加阴影边距）
         bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY) {
