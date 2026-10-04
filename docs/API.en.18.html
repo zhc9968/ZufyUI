@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>字体 · ZufyUI API 参考</title>
+    <title>Debug channel (external debug / automation) · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -188,146 +188,205 @@ pre { line-height: 125%; }
 </head>
 <body class="">
     <div class="ai-read-hint">
-面向 AI 智能体：本页的「阅读辅助」区块内含有与正文完全一致的原始 Markdown 源码，已去除 HTML 标签与动画特效。建议 AI 直接读取该区块，以更低的噪声快速理解内容。
+For AI agents: the "Reading aid" section on this page contains the raw Markdown source identical to the rendered content, with HTML markup and animations removed. AI is advised to read that section directly to understand the content quickly and with less noise.
     </div>
     <!-- AI-READ: the .reading-aid element contains this page's raw Markdown source, identical to the rendered content but without HTML/animations. -->
-    <button class="toc-toggle" id="tocToggle" title="显示目录">&#9776;</button>
-    <button class="theme-toggle" id="themeToggle" title="切换主题（浅色/深色）">&#9789;</button>
+    <button class="toc-toggle" id="tocToggle" title="Show contents">&#9776;</button>
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme (light / dark)">&#9789;</button>
 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
-            <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class="active"><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>系统对话框</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>附录</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍（UI Automation）</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>调试通道（外部调试 / 自动化）</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="fontspec"><div class="toc-row"><a href="#fontspec" data-target="fontspec">FontSpec</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="fontmanager单例"><div class="toc-row"><a href="#fontmanager单例" data-target="fontmanager单例">FontManager（单例）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="字体解析链很重要"><div class="toc-row"><a href="#字体解析链很重要" data-target="字体解析链很重要">字体解析链（很重要）</a><span class="toc-caret-space"></span></div></li></ul></div>
+            <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class="active"><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="enable"><div class="toc-row"><a href="#enable" data-target="enable">Enable</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="protocol"><div class="toc-row"><a href="#protocol" data-target="protocol">Protocol</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="commands"><div class="toc-row"><a href="#commands" data-target="commands">Commands</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## FontSpec
-
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Enable
 ```cpp
-struct FontSpec {
-    std::wstring familyName = L"Segoe UI";
-    float size = 14.0f;
-    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
-    DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL;
-    DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL;
-    std::wstring locale = L"en-us";
-    bool operator==(const FontSpec&amp; other) const;
-    bool operator!=(const FontSpec&amp; other) const;
-};
+ZufyUI::SetDebugEnabled(true);     // off by default
+bool on = ZufyUI::IsDebugEnabled();
 ```
 
-- 是“字体规格值对象”，可比较、可作哈希键（`FontSpecHash`），因此可放入 `unordered_map`。
-- `size` 单位是 DIP 下的点数。
-- `familyName` 用系统字体名（如 `Microsoft YaHei`、`Segoe UI`）。
+## Protocol
+- Send `WM_COPYDATA` to the **target window**: `dwData` = command id, `lpData` = UTF-16 argument (optional). The reply is sent back via `WM_COPYDATA` to the caller's `wParam`, with `dwData = 0x5A554631`.
+- The library does **no file I/O** — it only reports the *current frame* (element tree / frame stats / errors).
 
-## FontManager（单例）
+## Commands
+| # | Command | Arg | Notes |
+| --- | --- | --- | --- |
+| 1 | Ping | — | liveness |
+| 2 | ListWindows | — | list windows |
+| 3 | GetFrameStats | — | current frame stats (frame/dt/advance/render/elems/…) |
+| 4 | GetElementTree | — | element tree (tab-separated: type\tname\tAutomationId\trect) |
+| 5 | ForceRepaint | — | force repaint |
+| 6 | SetElementText | `id\ttext` | set text |
+| 7 | InvokeElement | `id` | invoke |
+| 8 | FocusElement | `id` | focus |
+| 9 | GetElementInfo | `id` | control details (layout/repaint/cache/timing…) |
+| 10 | GetElementAt | `x,y` (screen) | hit-test → AutomationId |
+| 11 | Highlight | `id` | in-target highlight box |
+| 12 | ClearHighlight | — | clear highlight |
+| 13 | GetErrors | — | recent errors (ring buffer, ≤200) |
+| 14 | ClearErrors | — | clear errors |
+| 15~18 | Top-N | — | repaint / layout / cache (KB) / draw hotspots |
+| 19 | ResetCounters | — | reset debug counters |
+| 20 | SetVisible | `id\t0/1` | visibility |
+| 21 | SetMargin | `id\tx\ty` | position (margin) |
+| 22 | SetHighlightColor | `RRGGBB` | highlight color (shared by pick &amp; highlight) |
 
-| 方法 | 实现要点与注意 |
-| --- | --- |
-| `static FontManager&amp; Instance()` | Meyers 单例，首次访问才构造。 |
-| `IDWriteFactory* GetFactory()` | 懒加载共享 `IDWriteFactory`；首次调用创建。 |
-| `IDWriteTextFormat* GetFormat(const FontSpec&amp; spec)` | 按 spec 缓存共享 `IDWriteTextFormat`。相同的 spec 只创建一次；返回的是**共享对象**，不要 `Release`、也不要修改其属性。 |
-| `void SetGlobalFont(const FontSpec&amp; spec)` | 设置全局字体并触发 `GlobalFontChanged`。 |
-| `const FontSpec&amp; GetGlobalFont() const` | 读取全局字体。 |
-| `ZSignal&lt;&gt; GlobalFontChanged` | 每个未做实例字体覆盖的元素都订阅了它；触发时它们会重建文本布局。 |
-
-## 字体解析链（很重要）
-
-元素的最终字体的解析顺序是：
-
-1. 实例级覆盖 `SetFont(...)` / `SetFontFamily(...)` / `SetFontSize(...)` / `SetFontWeight(...)`；
-2. 类型默认（控件重写 `GetTypeDefaultFont()`，例如 `Label` 默认 16 号、`TextBox` 默认 14 号）；
-3. 全局默认（`FontManager::GetGlobalFont()`）。
-
-`GetEffectiveFontSpec()` 返回上述解析结果；`GetFontFormat()` 再把它换成共享的 `IDWriteTextFormat`（带每个实例的快速缓存）。
-
-- 实例调用了 `SetFont*` 后 `HasFontOverride()` 为 true，此时**不再**响应全局字体变更（符合“我显式指定了”的直觉）。
-- `ClearFont()` 清除实例覆盖，回到解析链的后两级。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 5 章 · 字体</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 5 章</span><h1>字体</h1><p class="chapter-summary">FontSpec 与 FontManager</p></header><h2 id="fontspec">FontSpec</h2>
+&gt; Locate elements by `GetAutomationIdOrAuto()` (which is `e{n}` when no AutomationId is set).</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 18 · Debug channel (external debug / automation)</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 18</span><h1>Debug channel (external debug / automation)</h1><p class="chapter-summary">WM_COPYDATA, off by default, no file I/O</p></header><h2 id="enable">Enable</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3b4fdffb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-af3e2f43', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FontSpec</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">familyName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"Segoe UI"</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">14.0f</span><span class="p">;</span>
-<span class="w">    </span><span class="n">DWRITE_FONT_WEIGHT</span><span class="w"> </span><span class="n">weight</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DWRITE_FONT_WEIGHT_NORMAL</span><span class="p">;</span>
-<span class="w">    </span><span class="n">DWRITE_FONT_STYLE</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DWRITE_FONT_STYLE_NORMAL</span><span class="p">;</span>
-<span class="w">    </span><span class="n">DWRITE_FONT_STRETCH</span><span class="w"> </span><span class="n">stretch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DWRITE_FONT_STRETCH_NORMAL</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">locale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"en-us"</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="k">operator</span><span class="o">==</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="w"> </span><span class="n">other</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="k">operator</span><span class="o">!=</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="w"> </span><span class="n">other</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">SetDebugEnabled</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span><span class="w">     </span><span class="c1">// off by default</span>
+<span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">IsDebugEnabled</span><span class="p">();</span>
 </pre></div>
-<pre id="code-3b4fdffb" style="display: none;">struct FontSpec {
-    std::wstring familyName = L"Segoe UI";
-    float size = 14.0f;
-    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
-    DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL;
-    DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL;
-    std::wstring locale = L"en-us";
-    bool operator==(const FontSpec&amp; other) const;
-    bool operator!=(const FontSpec&amp; other) const;
-};</pre>
+<pre id="code-af3e2f43" style="display: none;">ZufyUI::SetDebugEnabled(true);     // off by default
+bool on = ZufyUI::IsDebugEnabled();</pre>
 </div>
+<h2 id="protocol">Protocol</h2>
 <ul>
-<li>是“字体规格值对象”，可比较、可作哈希键（<code>FontSpecHash</code>），因此可放入 <code>unordered_map</code>。</li>
-<li><code>size</code> 单位是 DIP 下的点数。</li>
-<li><code>familyName</code> 用系统字体名（如 <code>Microsoft YaHei</code>、<code>Segoe UI</code>）。</li>
+<li>Send <code>WM_COPYDATA</code> to the <strong>target window</strong>: <code>dwData</code> = command id, <code>lpData</code> = UTF-16 argument (optional). The reply is sent back via <code>WM_COPYDATA</code> to the caller's <code>wParam</code>, with <code>dwData = 0x5A554631</code>.</li>
+<li>The library does <strong>no file I/O</strong> — it only reports the <em>current frame</em> (element tree / frame stats / errors).</li>
 </ul>
-<h2 id="fontmanager单例">FontManager（单例）</h2>
+<h2 id="commands">Commands</h2>
 <table>
 <thead>
 <tr>
-<th>方法</th>
-<th>实现要点与注意</th>
+<th>#</th>
+<th>Command</th>
+<th>Arg</th>
+<th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>static FontManager&amp; Instance()</code></td>
-<td>Meyers 单例，首次访问才构造。</td>
+<td>1</td>
+<td>Ping</td>
+<td>—</td>
+<td>liveness</td>
 </tr>
 <tr>
-<td><code>IDWriteFactory* GetFactory()</code></td>
-<td>懒加载共享 <code>IDWriteFactory</code>；首次调用创建。</td>
+<td>2</td>
+<td>ListWindows</td>
+<td>—</td>
+<td>list windows</td>
 </tr>
 <tr>
-<td><code>IDWriteTextFormat* GetFormat(const FontSpec&amp; spec)</code></td>
-<td>按 spec 缓存共享 <code>IDWriteTextFormat</code>。相同的 spec 只创建一次；返回的是<strong>共享对象</strong>，不要 <code>Release</code>、也不要修改其属性。</td>
+<td>3</td>
+<td>GetFrameStats</td>
+<td>—</td>
+<td>current frame stats (frame/dt/advance/render/elems/…)</td>
 </tr>
 <tr>
-<td><code>void SetGlobalFont(const FontSpec&amp; spec)</code></td>
-<td>设置全局字体并触发 <code>GlobalFontChanged</code>。</td>
+<td>4</td>
+<td>GetElementTree</td>
+<td>—</td>
+<td>element tree (tab-separated: type\tname\tAutomationId\trect)</td>
 </tr>
 <tr>
-<td><code>const FontSpec&amp; GetGlobalFont() const</code></td>
-<td>读取全局字体。</td>
+<td>5</td>
+<td>ForceRepaint</td>
+<td>—</td>
+<td>force repaint</td>
 </tr>
 <tr>
-<td><code>ZSignal&lt;&gt; GlobalFontChanged</code></td>
-<td>每个未做实例字体覆盖的元素都订阅了它；触发时它们会重建文本布局。</td>
+<td>6</td>
+<td>SetElementText</td>
+<td><code>id\ttext</code></td>
+<td>set text</td>
+</tr>
+<tr>
+<td>7</td>
+<td>InvokeElement</td>
+<td><code>id</code></td>
+<td>invoke</td>
+</tr>
+<tr>
+<td>8</td>
+<td>FocusElement</td>
+<td><code>id</code></td>
+<td>focus</td>
+</tr>
+<tr>
+<td>9</td>
+<td>GetElementInfo</td>
+<td><code>id</code></td>
+<td>control details (layout/repaint/cache/timing…)</td>
+</tr>
+<tr>
+<td>10</td>
+<td>GetElementAt</td>
+<td><code>x,y</code> (screen)</td>
+<td>hit-test → AutomationId</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Highlight</td>
+<td><code>id</code></td>
+<td>in-target highlight box</td>
+</tr>
+<tr>
+<td>12</td>
+<td>ClearHighlight</td>
+<td>—</td>
+<td>clear highlight</td>
+</tr>
+<tr>
+<td>13</td>
+<td>GetErrors</td>
+<td>—</td>
+<td>recent errors (ring buffer, ≤200)</td>
+</tr>
+<tr>
+<td>14</td>
+<td>ClearErrors</td>
+<td>—</td>
+<td>clear errors</td>
+</tr>
+<tr>
+<td>15~18</td>
+<td>Top-N</td>
+<td>—</td>
+<td>repaint / layout / cache (KB) / draw hotspots</td>
+</tr>
+<tr>
+<td>19</td>
+<td>ResetCounters</td>
+<td>—</td>
+<td>reset debug counters</td>
+</tr>
+<tr>
+<td>20</td>
+<td>SetVisible</td>
+<td><code>id\t0/1</code></td>
+<td>visibility</td>
+</tr>
+<tr>
+<td>21</td>
+<td>SetMargin</td>
+<td><code>id\tx\ty</code></td>
+<td>position (margin)</td>
+</tr>
+<tr>
+<td>22</td>
+<td>SetHighlightColor</td>
+<td><code>RRGGBB</code></td>
+<td>highlight color (shared by pick &amp; highlight)</td>
 </tr>
 </tbody>
 </table>
-<h2 id="字体解析链很重要">字体解析链（很重要）</h2>
-<p>元素的最终字体的解析顺序是：</p>
-<ol>
-<li>实例级覆盖 <code>SetFont(...)</code> / <code>SetFontFamily(...)</code> / <code>SetFontSize(...)</code> / <code>SetFontWeight(...)</code>；</li>
-<li>类型默认（控件重写 <code>GetTypeDefaultFont()</code>，例如 <code>Label</code> 默认 16 号、<code>TextBox</code> 默认 14 号）；</li>
-<li>全局默认（<code>FontManager::GetGlobalFont()</code>）。</li>
-</ol>
-<p><code>GetEffectiveFontSpec()</code> 返回上述解析结果；<code>GetFontFormat()</code> 再把它换成共享的 <code>IDWriteTextFormat</code>（带每个实例的快速缓存）。</p>
-<ul>
-<li>实例调用了 <code>SetFont*</code> 后 <code>HasFontOverride()</code> 为 true，此时<strong>不再</strong>响应全局字体变更（符合“我显式指定了”的直觉）。</li>
-<li><code>ClearFont()</code> 清除实例覆盖，回到解析链的后两级。</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.4.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">信号与连接</span><span class="nav-desc">ZSignal、Connection、ConnectionGroup 与全局信号</span></a><a class="next" href="API.6.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">核心元素 UIElement</span><span class="nav-desc">尺寸、布局、绘制、事件与字体接口</span></a></nav>
+<blockquote>
+<p>Locate elements by <code>GetAutomationIdOrAuto()</code> (which is <code>e{n}</code> when no AutomationId is set).</p>
+</blockquote>
+<nav class="chapter-nav"><a class="prev" href="API.en.17.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Accessibility (UI Automation)</span><span class="nav-desc">On by default; roles / patterns / events / hit-test &amp; focus</span></a><a class="next" href="API.en.html"><span class="nav-label">Contents &#8594;</span><span class="nav-title">Back to the chapter list</span></a></nav>
         </main>
     </div>
 
-    <div class="back-to-top" id="backToTop" title="返回顶部">&#8593;</div>
+    <div class="back-to-top" id="backToTop" title="Back to top">&#8593;</div>
 
     <script>
 
@@ -453,10 +512,10 @@ function copyCode(id, btn) {
     try {
         if (document.execCommand('copy')) {
             btn.classList.add('copied');
-            btn.textContent = '已复制!';
+            btn.textContent = 'Copied!';
             setTimeout(function () {
                 btn.classList.remove('copied');
-                btn.textContent = '复制';
+                btn.textContent = 'Copy';
             }, 2000);
         }
     } catch (err) { console.error('复制失败:', err); }

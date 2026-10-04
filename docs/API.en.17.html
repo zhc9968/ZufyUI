@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>字体 · ZufyUI API 参考</title>
+    <title>Accessibility (UI Automation) · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -188,146 +188,153 @@ pre { line-height: 125%; }
 </head>
 <body class="">
     <div class="ai-read-hint">
-面向 AI 智能体：本页的「阅读辅助」区块内含有与正文完全一致的原始 Markdown 源码，已去除 HTML 标签与动画特效。建议 AI 直接读取该区块，以更低的噪声快速理解内容。
+For AI agents: the "Reading aid" section on this page contains the raw Markdown source identical to the rendered content, with HTML markup and animations removed. AI is advised to read that section directly to understand the content quickly and with less noise.
     </div>
     <!-- AI-READ: the .reading-aid element contains this page's raw Markdown source, identical to the rendered content but without HTML/animations. -->
-    <button class="toc-toggle" id="tocToggle" title="显示目录">&#9776;</button>
-    <button class="theme-toggle" id="themeToggle" title="切换主题（浅色/深色）">&#9789;</button>
+    <button class="toc-toggle" id="tocToggle" title="Show contents">&#9776;</button>
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme (light / dark)">&#9789;</button>
 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
-            <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class="active"><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>系统对话框</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>附录</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍（UI Automation）</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>调试通道（外部调试 / 自动化）</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="fontspec"><div class="toc-row"><a href="#fontspec" data-target="fontspec">FontSpec</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="fontmanager单例"><div class="toc-row"><a href="#fontmanager单例" data-target="fontmanager单例">FontManager（单例）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="字体解析链很重要"><div class="toc-row"><a href="#字体解析链很重要" data-target="字体解析链很重要">字体解析链（很重要）</a><span class="toc-caret-space"></span></div></li></ul></div>
+            <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class="active"><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="overview"><div class="toc-row"><a href="#overview" data-target="overview">Overview</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="element-api-uielement"><div class="toc-row"><a href="#element-api-uielement" data-target="element-api-uielement">Element API (UIElement)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="roles-accessiblerole"><div class="toc-row"><a href="#roles-accessiblerole" data-target="roles-accessiblerole">Roles (AccessibleRole)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="patterns-dispatched-by-role"><div class="toc-row"><a href="#patterns-dispatched-by-role" data-target="patterns-dispatched-by-role">Patterns (dispatched by role)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="events"><div class="toc-row"><a href="#events" data-target="events">Events</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="window-helpers"><div class="toc-row"><a href="#window-helpers" data-target="window-helpers">Window helpers</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## FontSpec
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Overview
+- **On by default**: `Window::SetAccessibilityEnabled(bool)`; query with `IsAccessibilityEnabled()`.
+- The provider lives in `ZufyUIWindowTool.h` (`IRawElementProviderSimple/Fragment/FragmentRoot`); `WM_GETOBJECT` is handled by `Window` and released automatically on destruction.
+- The library keeps **no history and does no file I/O**: the provider only reports the *current frame*.
 
+## Element API (`UIElement`)
 ```cpp
-struct FontSpec {
-    std::wstring familyName = L"Segoe UI";
-    float size = 14.0f;
-    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
-    DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL;
-    DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL;
-    std::wstring locale = L"en-us";
-    bool operator==(const FontSpec&amp; other) const;
-    bool operator!=(const FontSpec&amp; other) const;
-};
+void SetAccessibleName(const std::wstring&amp; name);
+void SetAccessibleDescription(const std::wstring&amp; desc);
+void SetAccessibleAutomationId(const std::wstring&amp; id);
+void SetAccessibleRole(AccessibleRole role);
+std::wstring  GetAccessibleName() const;
+AccessibleRole GetAccessibleRole() const;
+std::wstring  GetAutomationIdOrAuto() const;                 // auto e{n} when unset
+virtual std::vector&lt;UIElement*&gt; GetAccessibleChildren();     // default = visible children
+virtual bool IsAccessibilityIgnored() const;                 // true = hidden from UIA
 ```
 
-- 是“字体规格值对象”，可比较、可作哈希键（`FontSpecHash`），因此可放入 `unordered_map`。
-- `size` 单位是 DIP 下的点数。
-- `familyName` 用系统字体名（如 `Microsoft YaHei`、`Segoe UI`）。
+## Roles (`AccessibleRole`)
+`None / Button / Text / Edit / CheckBox / RadioButton / ComboBox / Slider / ProgressBar /
+List / ListItem / Tree / TreeItem / Tab / TabItem / Menu / MenuItem / ScrollBar / Window /
+Group / Document / DataGrid / ToolTip`
 
-## FontManager（单例）
+## Patterns (dispatched by role)
+- `Button / CheckBox / RadioButton` → Invoke / Toggle
+- `TextBox / ComboBox` → Value
+- `Slider / ProgressBar` → RangeValue
+- `ComboBox / TreeView` → ExpandCollapse
+- Controls may override the pattern virtuals (e.g. `AccessibilityInvoke()`, `GetAccessibleValue()`, ...).
 
-| 方法 | 实现要点与注意 |
-| --- | --- |
-| `static FontManager&amp; Instance()` | Meyers 单例，首次访问才构造。 |
-| `IDWriteFactory* GetFactory()` | 懒加载共享 `IDWriteFactory`；首次调用创建。 |
-| `IDWriteTextFormat* GetFormat(const FontSpec&amp; spec)` | 按 spec 缓存共享 `IDWriteTextFormat`。相同的 spec 只创建一次；返回的是**共享对象**，不要 `Release`、也不要修改其属性。 |
-| `void SetGlobalFont(const FontSpec&amp; spec)` | 设置全局字体并触发 `GlobalFontChanged`。 |
-| `const FontSpec&amp; GetGlobalFont() const` | 读取全局字体。 |
-| `ZSignal&lt;&gt; GlobalFontChanged` | 每个未做实例字体覆盖的元素都订阅了它；触发时它们会重建文本布局。 |
+## Events
+```cpp
+void AccessibilityNotifyValueChanged();
+void AccessibilityNotifyToggleChanged();
+void AccessibilityNotifyRangeValueChanged();
+void AccessibilityNotifyStructureChanged();
+```
+`SetText / SetChecked / SetOn` raise the corresponding property changes automatically.
 
-## 字体解析链（很重要）
-
-元素的最终字体的解析顺序是：
-
-1. 实例级覆盖 `SetFont(...)` / `SetFontFamily(...)` / `SetFontSize(...)` / `SetFontWeight(...)`；
-2. 类型默认（控件重写 `GetTypeDefaultFont()`，例如 `Label` 默认 16 号、`TextBox` 默认 14 号）；
-3. 全局默认（`FontManager::GetGlobalFont()`）。
-
-`GetEffectiveFontSpec()` 返回上述解析结果；`GetFontFormat()` 再把它换成共享的 `IDWriteTextFormat`（带每个实例的快速缓存）。
-
-- 实例调用了 `SetFont*` 后 `HasFontOverride()` 为 true，此时**不再**响应全局字体变更（符合“我显式指定了”的直觉）。
-- `ClearFont()` 清除实例覆盖，回到解析链的后两级。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 5 章 · 字体</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 5 章</span><h1>字体</h1><p class="chapter-summary">FontSpec 与 FontManager</p></header><h2 id="fontspec">FontSpec</h2>
+## Window helpers
+```cpp
+UIElement* GetFocusedElement() const;
+UIElement* GetHoveredElement() const;
+UIElement* GetPressedElement() const;
+void       FocusElement(UIElement* e);                       // UIA SetFocus
+UIElement* HitTestElementDIP(float x, float y);              // hit-test (DIP)
+void       ForgetAccessibleElement(UIElement* e);            // clear provider cache on destroy
+```</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 17 · Accessibility (UI Automation)</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 17</span><h1>Accessibility (UI Automation)</h1><p class="chapter-summary">On by default; roles / patterns / events / hit-test &amp; focus</p></header><h2 id="overview">Overview</h2>
+<ul>
+<li><strong>On by default</strong>: <code>Window::SetAccessibilityEnabled(bool)</code>; query with <code>IsAccessibilityEnabled()</code>.</li>
+<li>The provider lives in <code>ZufyUIWindowTool.h</code> (<code>IRawElementProviderSimple/Fragment/FragmentRoot</code>); <code>WM_GETOBJECT</code> is handled by <code>Window</code> and released automatically on destruction.</li>
+<li>The library keeps <strong>no history and does no file I/O</strong>: the provider only reports the <em>current frame</em>.</li>
+</ul>
+<h2 id="element-api-uielement">Element API (<code>UIElement</code>)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3b4fdffb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-dcee9eb0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FontSpec</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">familyName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"Segoe UI"</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">14.0f</span><span class="p">;</span>
-<span class="w">    </span><span class="n">DWRITE_FONT_WEIGHT</span><span class="w"> </span><span class="n">weight</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DWRITE_FONT_WEIGHT_NORMAL</span><span class="p">;</span>
-<span class="w">    </span><span class="n">DWRITE_FONT_STYLE</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DWRITE_FONT_STYLE_NORMAL</span><span class="p">;</span>
-<span class="w">    </span><span class="n">DWRITE_FONT_STRETCH</span><span class="w"> </span><span class="n">stretch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DWRITE_FONT_STRETCH_NORMAL</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">locale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"en-us"</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="k">operator</span><span class="o">==</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="w"> </span><span class="n">other</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="k">operator</span><span class="o">!=</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="w"> </span><span class="n">other</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleName</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleDescription</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">desc</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleAutomationId</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleRole</span><span class="p">(</span><span class="n">AccessibleRole</span><span class="w"> </span><span class="n">role</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w">  </span><span class="nf">GetAccessibleName</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="n">AccessibleRole</span><span class="w"> </span><span class="nf">GetAccessibleRole</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w">  </span><span class="nf">GetAutomationIdOrAuto</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                 </span><span class="c1">// auto e{n} when unset</span>
+<span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">GetAccessibleChildren</span><span class="p">();</span><span class="w">     </span><span class="c1">// default = visible children</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsAccessibilityIgnored</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                 </span><span class="c1">// true = hidden from UIA</span>
 </pre></div>
-<pre id="code-3b4fdffb" style="display: none;">struct FontSpec {
-    std::wstring familyName = L"Segoe UI";
-    float size = 14.0f;
-    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
-    DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL;
-    DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL;
-    std::wstring locale = L"en-us";
-    bool operator==(const FontSpec&amp; other) const;
-    bool operator!=(const FontSpec&amp; other) const;
-};</pre>
+<pre id="code-dcee9eb0" style="display: none;">void SetAccessibleName(const std::wstring&amp; name);
+void SetAccessibleDescription(const std::wstring&amp; desc);
+void SetAccessibleAutomationId(const std::wstring&amp; id);
+void SetAccessibleRole(AccessibleRole role);
+std::wstring  GetAccessibleName() const;
+AccessibleRole GetAccessibleRole() const;
+std::wstring  GetAutomationIdOrAuto() const;                 // auto e{n} when unset
+virtual std::vector&lt;UIElement*&gt; GetAccessibleChildren();     // default = visible children
+virtual bool IsAccessibilityIgnored() const;                 // true = hidden from UIA</pre>
 </div>
+<h2 id="roles-accessiblerole">Roles (<code>AccessibleRole</code>)</h2>
+<p><code>None / Button / Text / Edit / CheckBox / RadioButton / ComboBox / Slider / ProgressBar /
+List / ListItem / Tree / TreeItem / Tab / TabItem / Menu / MenuItem / ScrollBar / Window /
+Group / Document / DataGrid / ToolTip</code></p>
+<h2 id="patterns-dispatched-by-role">Patterns (dispatched by role)</h2>
 <ul>
-<li>是“字体规格值对象”，可比较、可作哈希键（<code>FontSpecHash</code>），因此可放入 <code>unordered_map</code>。</li>
-<li><code>size</code> 单位是 DIP 下的点数。</li>
-<li><code>familyName</code> 用系统字体名（如 <code>Microsoft YaHei</code>、<code>Segoe UI</code>）。</li>
+<li><code>Button / CheckBox / RadioButton</code> → Invoke / Toggle</li>
+<li><code>TextBox / ComboBox</code> → Value</li>
+<li><code>Slider / ProgressBar</code> → RangeValue</li>
+<li><code>ComboBox / TreeView</code> → ExpandCollapse</li>
+<li>Controls may override the pattern virtuals (e.g. <code>AccessibilityInvoke()</code>, <code>GetAccessibleValue()</code>, ...).</li>
 </ul>
-<h2 id="fontmanager单例">FontManager（单例）</h2>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>实现要点与注意</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>static FontManager&amp; Instance()</code></td>
-<td>Meyers 单例，首次访问才构造。</td>
-</tr>
-<tr>
-<td><code>IDWriteFactory* GetFactory()</code></td>
-<td>懒加载共享 <code>IDWriteFactory</code>；首次调用创建。</td>
-</tr>
-<tr>
-<td><code>IDWriteTextFormat* GetFormat(const FontSpec&amp; spec)</code></td>
-<td>按 spec 缓存共享 <code>IDWriteTextFormat</code>。相同的 spec 只创建一次；返回的是<strong>共享对象</strong>，不要 <code>Release</code>、也不要修改其属性。</td>
-</tr>
-<tr>
-<td><code>void SetGlobalFont(const FontSpec&amp; spec)</code></td>
-<td>设置全局字体并触发 <code>GlobalFontChanged</code>。</td>
-</tr>
-<tr>
-<td><code>const FontSpec&amp; GetGlobalFont() const</code></td>
-<td>读取全局字体。</td>
-</tr>
-<tr>
-<td><code>ZSignal&lt;&gt; GlobalFontChanged</code></td>
-<td>每个未做实例字体覆盖的元素都订阅了它；触发时它们会重建文本布局。</td>
-</tr>
-</tbody>
-</table>
-<h2 id="字体解析链很重要">字体解析链（很重要）</h2>
-<p>元素的最终字体的解析顺序是：</p>
-<ol>
-<li>实例级覆盖 <code>SetFont(...)</code> / <code>SetFontFamily(...)</code> / <code>SetFontSize(...)</code> / <code>SetFontWeight(...)</code>；</li>
-<li>类型默认（控件重写 <code>GetTypeDefaultFont()</code>，例如 <code>Label</code> 默认 16 号、<code>TextBox</code> 默认 14 号）；</li>
-<li>全局默认（<code>FontManager::GetGlobalFont()</code>）。</li>
-</ol>
-<p><code>GetEffectiveFontSpec()</code> 返回上述解析结果；<code>GetFontFormat()</code> 再把它换成共享的 <code>IDWriteTextFormat</code>（带每个实例的快速缓存）。</p>
-<ul>
-<li>实例调用了 <code>SetFont*</code> 后 <code>HasFontOverride()</code> 为 true，此时<strong>不再</strong>响应全局字体变更（符合“我显式指定了”的直觉）。</li>
-<li><code>ClearFont()</code> 清除实例覆盖，回到解析链的后两级。</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.4.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">信号与连接</span><span class="nav-desc">ZSignal、Connection、ConnectionGroup 与全局信号</span></a><a class="next" href="API.6.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">核心元素 UIElement</span><span class="nav-desc">尺寸、布局、绘制、事件与字体接口</span></a></nav>
+<h2 id="events">Events</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-e18e9b87', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">AccessibilityNotifyValueChanged</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AccessibilityNotifyToggleChanged</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AccessibilityNotifyRangeValueChanged</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AccessibilityNotifyStructureChanged</span><span class="p">();</span>
+</pre></div>
+<pre id="code-e18e9b87" style="display: none;">void AccessibilityNotifyValueChanged();
+void AccessibilityNotifyToggleChanged();
+void AccessibilityNotifyRangeValueChanged();
+void AccessibilityNotifyStructureChanged();</pre>
+</div>
+<p><code>SetText / SetChecked / SetOn</code> raise the corresponding property changes automatically.</p>
+<h2 id="window-helpers">Window helpers</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-69d5adb5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">GetFocusedElement</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">GetHoveredElement</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">GetPressedElement</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w">       </span><span class="nf">FocusElement</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">e</span><span class="p">);</span><span class="w">                       </span><span class="c1">// UIA SetFocus</span>
+<span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">HitTestElementDIP</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">);</span><span class="w">              </span><span class="c1">// hit-test (DIP)</span>
+<span class="kt">void</span><span class="w">       </span><span class="nf">ForgetAccessibleElement</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">e</span><span class="p">);</span><span class="w">            </span><span class="c1">// clear provider cache on destroy</span>
+</pre></div>
+<pre id="code-69d5adb5" style="display: none;">UIElement* GetFocusedElement() const;
+UIElement* GetHoveredElement() const;
+UIElement* GetPressedElement() const;
+void       FocusElement(UIElement* e);                       // UIA SetFocus
+UIElement* HitTestElementDIP(float x, float y);              // hit-test (DIP)
+void       ForgetAccessibleElement(UIElement* e);            // clear provider cache on destroy</pre>
+</div>
+<nav class="chapter-nav"><a class="prev" href="API.en.16.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Appendix</span><span class="nav-desc">Signal list, default values, and common pitfalls</span></a><a class="next" href="API.en.18.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Debug channel (external debug / automation)</span><span class="nav-desc">WM_COPYDATA, off by default, no file I/O</span></a></nav>
         </main>
     </div>
 
-    <div class="back-to-top" id="backToTop" title="返回顶部">&#8593;</div>
+    <div class="back-to-top" id="backToTop" title="Back to top">&#8593;</div>
 
     <script>
 
@@ -453,10 +460,10 @@ function copyCode(id, btn) {
     try {
         if (document.execCommand('copy')) {
             btn.classList.add('copied');
-            btn.textContent = '已复制!';
+            btn.textContent = 'Copied!';
             setTimeout(function () {
                 btn.classList.remove('copied');
-                btn.textContent = '复制';
+                btn.textContent = 'Copy';
             }, 2000);
         }
     } catch (err) { console.error('复制失败:', err); }

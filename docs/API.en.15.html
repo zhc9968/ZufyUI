@@ -197,7 +197,7 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class="active"><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="filedialog"><div class="toc-row"><a href="#filedialog" data-target="filedialog">FileDialog</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="colordialog"><div class="toc-row"><a href="#colordialog" data-target="colordialog">ColorDialog</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="theming-common-controls-v6-optional"><div class="toc-row"><a href="#theming-common-controls-v6-optional" data-target="theming-common-controls-v6-optional">Theming: Common Controls v6 (optional)</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class="active"><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="filedialog"><div class="toc-row"><a href="#filedialog" data-target="filedialog">FileDialog</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="colordialog"><div class="toc-row"><a href="#colordialog" data-target="colordialog">ColorDialog</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="theming-common-controls-v6-optional"><div class="toc-row"><a href="#theming-common-controls-v6-optional" data-target="theming-common-controls-v6-optional">Theming: Common Controls v6 (optional)</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>&gt; Defined in `ZufyUIWindowTool.h`. File/folder use the **modern COM interfaces** `IFileOpenDialog` / `IFileSaveDialog` (replacing the obsolete `GetOpenFileName` / `GetSaveFileName`), supporting type filters, multi-select, folder picking and save-as. Color uses the Windows common `ChooseColor`.
@@ -272,7 +272,7 @@ The look of system common controls (`ChooseColor`, `MessageBox`, ...) depends on
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9ad17ab5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-bab38933', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FileFilter</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">label</span><span class="p">;</span><span class="w">                  </span><span class="c1">// e.g. "Images"</span>
@@ -305,7 +305,7 @@ The look of system common controls (`ChooseColor`, `MessageBox`, ...) depends on
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FilterLabels</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FileFilter</span><span class="o">&gt;&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">addAllFiles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-9ad17ab5" style="display: none;">struct FileFilter {
+<pre id="code-bab38933" style="display: none;">struct FileFilter {
     std::wstring label;                  // e.g. "Images"
     std::vector&lt;std::wstring&gt; patterns;  // e.g. { "*.png", "*.jpg" }
 };
@@ -345,7 +345,7 @@ public:
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e1ad6202', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-3e5da61b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">FileDialogOptions</span><span class="w"> </span><span class="n">o</span><span class="p">;</span>
 <span class="n">o</span><span class="p">.</span><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"Pick images"</span><span class="p">;</span>
@@ -354,7 +354,7 @@ public:
 <span class="k">auto</span><span class="w"> </span><span class="n">files</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">FileDialog</span><span class="o">::</span><span class="n">OpenFiles</span><span class="p">(</span><span class="n">win</span><span class="p">.</span><span class="n">GetHwnd</span><span class="p">(),</span><span class="w"> </span><span class="n">o</span><span class="p">);</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">folder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FileDialog</span><span class="o">::</span><span class="n">PickFolder</span><span class="p">(</span><span class="n">win</span><span class="p">.</span><span class="n">GetHwnd</span><span class="p">());</span>
 </pre></div>
-<pre id="code-e1ad6202" style="display: none;">FileDialogOptions o;
+<pre id="code-3e5da61b" style="display: none;">FileDialogOptions o;
 o.title = L"Pick images";
 o.filters = { { L"Images", { L"*.png", L"*.jpg", L"*.bmp" } }, { L"Text", { L"*.txt" } } };
 o.multiSelect = true;
@@ -365,7 +365,7 @@ auto folder = FileDialog::PickFolder(win.GetHwnd());</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1a32f8b5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-70466c34', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ColorDialog</span><span class="w"> </span><span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
@@ -373,7 +373,7 @@ auto folder = FileDialog::PickFolder(win.GetHwnd());</pre>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Pick</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">initial</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Options</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-1a32f8b5" style="display: none;">class ColorDialog {
+<pre id="code-70466c34" style="display: none;">class ColorDialog {
 public:
     struct Options { bool fullOpen = true; bool allowCustom = true; std::vector&lt;Color&gt; custom; };
     static std::optional&lt;Color&gt; Pick(HWND owner, Color initial = Color(1,0,0,1), const Options&amp; = {});
