@@ -2404,3 +2404,91 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 0;
 }
 ```
+
+###chapter: Accessibility (UI Automation) | On by default; roles / patterns / events / hit-test & focus
+
+## Overview
+- **On by default**: `Window::SetAccessibilityEnabled(bool)`; query with `IsAccessibilityEnabled()`.
+- The provider lives in `ZufyUIWindowTool.h` (`IRawElementProviderSimple/Fragment/FragmentRoot`); `WM_GETOBJECT` is handled by `Window` and released automatically on destruction.
+- The library keeps **no history and does no file I/O**: the provider only reports the *current frame*.
+
+## Element API (`UIElement`)
+```cpp
+void SetAccessibleName(const std::wstring& name);
+void SetAccessibleDescription(const std::wstring& desc);
+void SetAccessibleAutomationId(const std::wstring& id);
+void SetAccessibleRole(AccessibleRole role);
+std::wstring  GetAccessibleName() const;
+AccessibleRole GetAccessibleRole() const;
+std::wstring  GetAutomationIdOrAuto() const;                 // auto e{n} when unset
+virtual std::vector<UIElement*> GetAccessibleChildren();     // default = visible children
+virtual bool IsAccessibilityIgnored() const;                 // true = hidden from UIA
+```
+
+## Roles (`AccessibleRole`)
+`None / Button / Text / Edit / CheckBox / RadioButton / ComboBox / Slider / ProgressBar /
+List / ListItem / Tree / TreeItem / Tab / TabItem / Menu / MenuItem / ScrollBar / Window /
+Group / Document / DataGrid / ToolTip`
+
+## Patterns (dispatched by role)
+- `Button / CheckBox / RadioButton` → Invoke / Toggle
+- `TextBox / ComboBox` → Value
+- `Slider / ProgressBar` → RangeValue
+- `ComboBox / TreeView` → ExpandCollapse
+- Controls may override the pattern virtuals (e.g. `AccessibilityInvoke()`, `GetAccessibleValue()`, ...).
+
+## Events
+```cpp
+void AccessibilityNotifyValueChanged();
+void AccessibilityNotifyToggleChanged();
+void AccessibilityNotifyRangeValueChanged();
+void AccessibilityNotifyStructureChanged();
+```
+`SetText / SetChecked / SetOn` raise the corresponding property changes automatically.
+
+## Window helpers
+```cpp
+UIElement* GetFocusedElement() const;
+UIElement* GetHoveredElement() const;
+UIElement* GetPressedElement() const;
+void       FocusElement(UIElement* e);                       // UIA SetFocus
+UIElement* HitTestElementDIP(float x, float y);              // hit-test (DIP)
+void       ForgetAccessibleElement(UIElement* e);            // clear provider cache on destroy
+```
+
+###chapter: Debug channel (external debug / automation) | WM_COPYDATA, off by default, no file I/O
+
+## Enable
+```cpp
+ZufyUI::SetDebugEnabled(true);     // off by default
+bool on = ZufyUI::IsDebugEnabled();
+```
+
+## Protocol
+- Send `WM_COPYDATA` to the **target window**: `dwData` = command id, `lpData` = UTF-16 argument (optional). The reply is sent back via `WM_COPYDATA` to the caller's `wParam`, with `dwData = 0x5A554631`.
+- The library does **no file I/O** — it only reports the *current frame* (element tree / frame stats / errors).
+
+## Commands
+| # | Command | Arg | Notes |
+| --- | --- | --- | --- |
+| 1 | Ping | — | liveness |
+| 2 | ListWindows | — | list windows |
+| 3 | GetFrameStats | — | current frame stats (frame/dt/advance/render/elems/…) |
+| 4 | GetElementTree | — | element tree (tab-separated: type\tname\tAutomationId\trect) |
+| 5 | ForceRepaint | — | force repaint |
+| 6 | SetElementText | `id\ttext` | set text |
+| 7 | InvokeElement | `id` | invoke |
+| 8 | FocusElement | `id` | focus |
+| 9 | GetElementInfo | `id` | control details (layout/repaint/cache/timing…) |
+| 10 | GetElementAt | `x,y` (screen) | hit-test → AutomationId |
+| 11 | Highlight | `id` | in-target highlight box |
+| 12 | ClearHighlight | — | clear highlight |
+| 13 | GetErrors | — | recent errors (ring buffer, ≤200) |
+| 14 | ClearErrors | — | clear errors |
+| 15~18 | Top-N | — | repaint / layout / cache (KB) / draw hotspots |
+| 19 | ResetCounters | — | reset debug counters |
+| 20 | SetVisible | `id\t0/1` | visibility |
+| 21 | SetMargin | `id\tx\ty` | position (margin) |
+| 22 | SetHighlightColor | `RRGGBB` | highlight color (shared by pick & highlight) |
+
+> Locate elements by `GetAutomationIdOrAuto()` (which is `e{n}` when no AutomationId is set).

@@ -144,6 +144,29 @@ A tour of the widgets (first page of the demo):
 
 ## Changelog
 
+### 2026-10-04 — UIA accessibility + external debug channel + layout stretch weights + fixes (v1.17.0)
+
+**Accessibility (UI Automation, `ZufyUIWindowTool.h`, on by default)**
+- `Window::SetAccessibilityEnabled` (default true): the window exposes a UIA provider (`IRawElementProviderSimple/Fragment/FragmentRoot`) via `WM_GETOBJECT`.
+- `UIElement` API: `SetAccessibleName/Description/AutomationId/Role`, `GetAccessibleName/Role`, `GetAccessibleChildren`, `IsAccessibilityIgnored`, `GetAutomationIdOrAuto()` (auto `e{n}` when unset).
+- Controls expose patterns by role (Invoke / Toggle / Value / RangeValue / ExpandCollapse); `AccessibilityNotify*` for manual updates; `SetText/SetChecked/SetOn` auto-raise property changes. `AccessibleRole` enum.
+- `Window::GetFocusedElement/GetHoveredElement/GetPressedElement/FocusElement/HitTestElementDIP/ForgetAccessibleElement`.
+
+**External debug/automation channel (`ZufyUIWindowTool.h`, off by default)**
+- `ZufyUI::SetDebugEnabled(bool)` / `IsDebugEnabled()`: the target window then answers `WM_COPYDATA` (`dwData = 0x5A554631`), replying to `wParam`. The library does **no file I/O** — current-frame info only.
+- Commands: `1 Ping / 2 ListWindows / 3 GetFrameStats / 4 GetElementTree / 5 ForceRepaint / 6 SetElementText / 7 InvokeElement / 8 FocusElement / 9 GetElementInfo / 10 GetElementAt / 11 Highlight / 12 ClearHighlight / 13 GetErrors / 14 ClearErrors / 15~18 Top-N (repaint/layout/cache/draw) / 19 ResetCounters / 20 SetVisible / 21 SetMargin / 22 SetHighlightColor`; highlight color customizable (green by default).
+
+**Layout stretch weights**
+- `ColumnBox` / `RowBox` now distribute leftover space by child **stretch weight** (`SetVerticalStretchWeight` / `SetHorizontalStretchWeight`, or `SetFillHeight` / `SetFillWidth`); no longer keyed on type defaults.
+
+**Misc**
+- Auto ToolTip for clipped text: `Label` (when Ellipsis-truncated) shows the full text on hover; `Button` delegates to its inner Label.
+- Custom title bar: `CaptionButton::Kind::Pin` (client toggle, always-on-top) + `TitleBar::AddCustomButton`.
+- `TreeView`: `TreeNode::bgColor` row background + `GetScrollOffsetY/SetScrollOffsetY`.
+- `Window::DefaultBackdropColor` defaults to pure white (`0xFFFFFFFF`).
+
+- Version **1.16.0 → 1.17.0**.
+
 ### 2026-10-03 — Render thread off by default + system dialogs (file/folder/color) + stability fixes (v1.16.0)
 
 **Independent render thread now off by default**

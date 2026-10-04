@@ -144,6 +144,29 @@ win.SetCustomTitleBar(bar);
 
 ## 更新日志
 
+### 2026-10-04 — UIA 无障碍 + 外部调试通道 + 布局拉伸权值 + 若干修复（v1.17.0）
+
+**无障碍（UI Automation，`ZufyUIWindowTool.h`，默认开启）**
+- `Window::SetAccessibilityEnabled`（默认 true）：窗口经 `WM_GETOBJECT` 暴露 UIA provider（`IRawElementProviderSimple/Fragment/FragmentRoot`）。
+- `UIElement` 无障碍 API：`SetAccessibleName/Description/AutomationId/Role`、`GetAccessibleName/Role`、`GetAccessibleChildren`、`IsAccessibilityIgnored`、`GetAutomationIdOrAuto()`（未设时自动 `e{n}`）。
+- 控件按角色暴露 Pattern（Invoke / Toggle / Value / RangeValue / ExpandCollapse）；`AccessibilityNotify*` 主动上报；`SetText/SetChecked/SetOn` 已自动上报属性变化。`AccessibleRole` 枚举。
+- `Window::GetFocusedElement/GetHoveredElement/GetPressedElement/FocusElement/HitTestElementDIP/ForgetAccessibleElement`。
+
+**外部调试 / 自动化通道（`ZufyUIWindowTool.h`，默认关闭）**
+- `ZufyUI::SetDebugEnabled(bool)` / `IsDebugEnabled()`：开启后目标窗口响应 `WM_COPYDATA`（`dwData = 0x5A554631`），回包发回 `wParam`。库**不做文件读写**，只返回当前帧信息。
+- 命令：`1 Ping / 2 ListWindows / 3 GetFrameStats / 4 GetElementTree / 5 ForceRepaint / 6 SetElementText / 7 InvokeElement / 8 FocusElement / 9 GetElementInfo / 10 GetElementAt / 11 Highlight / 12 ClearHighlight / 13 GetErrors / 14 ClearErrors / 15~18 Top-N（重绘/布局/缓存/绘制）/ 19 ResetCounters / 20 SetVisible / 21 SetMargin / 22 SetHighlightColor`；高亮框颜色可配（默认绿）。
+
+**布局拉伸权值**
+- `ColumnBox` / `RowBox` 按子元素**拉伸权值**分配剩余空间（`SetVerticalStretchWeight` / `SetHorizontalStretchWeight`，或 `SetFillHeight` / `SetFillWidth` 参与）；不再用类型默认权值判定。
+
+**其它**
+- 省略文本自动 ToolTip：`Label`（Ellipsis 截断时）悬停显示完整文本，`Button` 委托内部 Label。
+- 自定义标题栏：`CaptionButton::Kind::Pin`（客户端可切换按钮，置顶）+ `TitleBar::AddCustomButton`。
+- `TreeView`：`TreeNode::bgColor` 行背景色 + `GetScrollOffsetY/SetScrollOffsetY`。
+- `Window::DefaultBackdropColor` 默认纯白（`0xFFFFFFFF`）。
+
+- 版本 **1.16.0 → 1.17.0**。
+
 ### 2026-10-03 — 渲染线程默认关闭 + 系统对话框（文件/文件夹/颜色）+ 稳定性修复（v1.16.0）
 
 **独立渲染线程改为默认关闭**

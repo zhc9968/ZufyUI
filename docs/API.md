@@ -2496,3 +2496,91 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 0;
 }
 ```
+
+###chapter: 无障碍（UI Automation）| 默认开启；角色 / Pattern / 事件 / 命中与焦点
+
+## 概述
+- **默认开启**：`Window::SetAccessibilityEnabled(bool)`；`IsAccessibilityEnabled()` 查询。
+- 元数据由 `ZufyUIWindowTool.h` 里的 provider 实现（`IRawElementProviderSimple/Fragment/FragmentRoot`）；`WM_GETOBJECT` 由 `Window` 自动处理，窗口析构自动释放。
+- 库**无历史、无文件读写**：provider 只返回「当前这一帧」的属性/树。
+
+## 元素无障碍 API（`UIElement`）
+```cpp
+void SetAccessibleName(const std::wstring& name);
+void SetAccessibleDescription(const std::wstring& desc);
+void SetAccessibleAutomationId(const std::wstring& id);
+void SetAccessibleRole(AccessibleRole role);
+std::wstring  GetAccessibleName() const;
+AccessibleRole GetAccessibleRole() const;
+std::wstring  GetAutomationIdOrAuto() const;                 // 未设时返回自动生成的 e{n}
+virtual std::vector<UIElement*> GetAccessibleChildren();     // 默认=可见子元素
+virtual bool IsAccessibilityIgnored() const;                 // true=对 UIA 隐藏
+```
+
+## 角色（`AccessibleRole`）
+`None / Button / Text / Edit / CheckBox / RadioButton / ComboBox / Slider / ProgressBar /
+List / ListItem / Tree / TreeItem / Tab / TabItem / Menu / MenuItem / ScrollBar / Window /
+Group / Document / DataGrid / ToolTip`
+
+## Pattern（按角色分派）
+- `Button / CheckBox / RadioButton` → Invoke / Toggle
+- `TextBox / ComboBox` → Value
+- `Slider / ProgressBar` → RangeValue
+- `ComboBox / TreeView` → ExpandCollapse
+- 控件可覆写 Pattern 虚函数（如 `AccessibilityInvoke()` / `GetAccessibleValue()` 等）。
+
+## 事件
+```cpp
+void AccessibilityNotifyValueChanged();
+void AccessibilityNotifyToggleChanged();
+void AccessibilityNotifyRangeValueChanged();
+void AccessibilityNotifyStructureChanged();
+```
+`SetText / SetChecked / SetOn` 会自动上报对应属性变化。
+
+## Window 辅助
+```cpp
+UIElement* GetFocusedElement() const;
+UIElement* GetHoveredElement() const;
+UIElement* GetPressedElement() const;
+void       FocusElement(UIElement* e);                       // 等价无障碍 SetFocus
+UIElement* HitTestElementDIP(float x, float y);              // 命中测试（DIP）
+void       ForgetAccessibleElement(UIElement* e);            // 元素析构时清理 provider 缓存
+```
+
+###chapter: 调试通道（外部调试 / 自动化）| WM_COPYDATA，默认关闭，库不读写文件
+
+## 开启
+```cpp
+ZufyUI::SetDebugEnabled(true);     // 默认关闭
+bool on = ZufyUI::IsDebugEnabled();
+```
+
+## 协议
+- 向**目标窗口**发送 `WM_COPYDATA`：`dwData` = 命令号，`lpData` = UTF-16 参数（可空）；回复同样以 `WM_COPYDATA` 发回发送方的 `wParam`，回包 `dwData = 0x5A554631`。
+- 库**不做任何文件读写**，只返回「当前这一帧」的信息（元素树 / 帧统计 / 错误）。
+
+## 命令表
+| # | 命令 | 参数 | 说明 |
+| --- | --- | --- | --- |
+| 1 | Ping | — | 探活 |
+| 2 | ListWindows | — | 列出所有窗口 |
+| 3 | GetFrameStats | — | 当前帧统计（frame/dt/advance/render/elems/…） |
+| 4 | GetElementTree | — | 元素树（制表符分列：类型\t名称\tAutomationId\t矩形） |
+| 5 | ForceRepaint | — | 强制重绘 |
+| 6 | SetElementText | `id\ttext` | 设文本 |
+| 7 | InvokeElement | `id` | Invoke |
+| 8 | FocusElement | `id` | 聚焦 |
+| 9 | GetElementInfo | `id` | 控件详情（布局/重绘/缓存/耗时…） |
+| 10 | GetElementAt | `x,y`（屏幕坐标） | 命中元素 → AutomationId |
+| 11 | Highlight | `id` | 目标内高亮框 |
+| 12 | ClearHighlight | — | 清除高亮 |
+| 13 | GetErrors | — | 最近错误（环形缓冲，≤200 条） |
+| 14 | ClearErrors | — | 清空错误 |
+| 15~18 | Top-N | — | 重绘 / 布局 / 缓存(字节, KB) / 绘制 热点 |
+| 19 | ResetCounters | — | 重置调试计数 |
+| 20 | SetVisible | `id\t0/1` | 可见性 |
+| 21 | SetMargin | `id\tx\ty` | 位置（边距） |
+| 22 | SetHighlightColor | `RRGGBB` | 高亮框颜色（拾取/高亮共用） |
+
+> 定位元素用 `GetAutomationIdOrAuto()`（未设 AutomationId 时为 `e{n}`）。

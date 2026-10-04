@@ -84,9 +84,9 @@
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 16
+#define ZufyUI_VERSION_MINOR 17
 #define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.16.0"
+#define ZufyUI_VERSION_STRING L"1.17.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -282,6 +282,8 @@ class MenuWindowBase;
     class ComboBox;
     class Window;
     namespace detail { class RenderHost; }   // 独立渲染线程（架构 B）
+namespace detail { LRESULT HandleDebugCopyData(HWND, WPARAM, LPARAM); }   // 调试/自动化通道（定义在 ZufyUIWindowTool.h）
+namespace detail { inline bool DebugEnabled(); }                          // 前向声明（定义在本文件后部，供调度窗口使用）
     class Timer;   // 基于信号的框架定时器
 
     // ========== 信号槽机制 ==========
@@ -319,6 +321,7 @@ class MenuWindowBase;
                             }
                             return 0;
                         }
+                        if (msg == WM_COPYDATA && detail::DebugEnabled()) return detail::HandleDebugCopyData(hwnd, wParam, lParam);
                         return DefWindowProc(hwnd, msg, wParam, lParam);
                         };
                     wc.hInstance = GetModuleHandle(nullptr);
@@ -864,11 +867,66 @@ class MenuWindowBase;
 
     namespace detail {
         // 上报一个库内部错误：调试输出 + 触发 UIZSignals::Error。
+        // 最近错误缓冲（供调试通道 cmd 13 查询；最多 200 条）
+        inline std::vector<std::wstring>& ErrorLogStore() { static std::vector<std::wstring> v; return v; }
+        inline std::mutex& ErrorLogMutex() { static std::mutex m; return m; }
+        inline void RecordError(const wchar_t* tag, const std::wstring& msg) {
+            SYSTEMTIME st; GetLocalTime(&st);
+            wchar_t ts[40];
+            swprintf(ts, 40, L"%02d:%02d:%02d.%03d", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+            std::lock_guard<std::mutex> lk(ErrorLogMutex());
+            auto& v = ErrorLogStore();
+            v.push_back(std::wstring(ts) + L" [" + tag + L"] " + msg);
+            if (v.size() > 200) v.erase(v.begin());
+        }
+        inline std::wstring DumpErrors() {
+            std::lock_guard<std::mutex> lk(ErrorLogMutex());
+            auto& v = ErrorLogStore();
+            if (v.empty()) return L"(无错误记录)\n";
+            std::wstring s;
+            for (auto& e : v) { s += e; s += L'\n'; }
+            return s;
+        }
+        inline void ClearErrors() { std::lock_guard<std::mutex> lk(ErrorLogMutex()); ErrorLogStore().clear(); }
         inline void ReportError(const std::wstring& msg) {
             ZufyUI_DEBUG_LOG_W(msg.c_str());
+            RecordError(L"Error", msg);
             UIZSignals::Error.Fire(msg);
         }
+        // UIA：处理 WM_GETOBJECT（定义在 ZufyUIWindowTool.h，需完整 Window/UIElement 类型）
+        LRESULT HandleGetObject(Window* w, HWND hwnd, WPARAM wParam, LPARAM lParam);
+        // UIA：窗口销毁时释放根 provider / 缓存（定义在 ZufyUIWindowTool.h）
+        void ReleaseAccessibility(Window* w);
+
+        // ---------- 调试 / 自动化（默认关；只返回"当前这一帧"；库不做文件读写）----------
+        struct FrameStats {
+            unsigned long long frame = 0;
+            double deltaTimeMs = 0.0, advanceMs = 0.0, renderMs = 0.0, composeMs = 0.0, presentMs = 0.0;
+            int elementCount = 0, visibleCount = 0, pendingRepaint = 0, activeAnims = 0;
+        };
+        inline std::atomic<bool>& DebugEnabledFlag() { static std::atomic<bool> flag{ false }; return flag; }
+        inline bool DebugEnabled() { return DebugEnabledFlag().load(std::memory_order_relaxed); }
+        inline std::atomic<UIElement*> g_debugHighlight{ nullptr };   // 调试：目标内高亮的元素（render 帧画框）
+        inline std::atomic<unsigned int> g_highlightColorArgb{ 0xFF2ECC71u };   // 高亮框颜色（ARGB，默认绿）
+        // 以下定义在 ZufyUIWindowTool.h
+        LRESULT HandleDebugCopyData(HWND hwnd, WPARAM wParam, LPARAM lParam);
+        int  CountElements(UIElement* e, int* visibleOut);
+        std::wstring DumpWindowTree(Window* w);
+        std::wstring DumpFrameStats(Window* w);
+        bool DebugSetElementText(const std::wstring& automationId, const std::wstring& text);
+        bool DebugInvokeElement(const std::wstring& automationId);
+        bool DebugFocusElement(const std::wstring& automationId);
     }
+    // 进程级：开启"调试/自动化"通道（默认关；WM_COPYDATA 打到调度窗口）
+    inline void SetDebugEnabled(bool on) { detail::DebugEnabledFlag().store(on, std::memory_order_relaxed); }
+    inline bool IsDebugEnabled() { return detail::DebugEnabled(); }
+
+    // ---------- 无障碍角色（映射到 UIA ControlType；此处不依赖 uiautomation 头）----------
+    enum class AccessibleRole {
+        None = 0, Button, Text, Edit, CheckBox, RadioButton, ComboBox, Slider, ProgressBar,
+        List, ListItem, Tree, TreeItem, Tab, TabItem, Menu, MenuItem, ScrollBar, Window,
+        Group, Document, DataGrid, ToolTip
+    };
 
     // ---------- 基础元素 ----------
     class UIElement {
@@ -933,6 +991,10 @@ class MenuWindowBase;
         float GetVerticalStretchWeight() const {
             return verticalStretchWeight_.has_value() ? verticalStretchWeight_.value() : GetDefaultVerticalStretchWeight();
         }
+        bool HasHorizontalStretchWeight() const { return horizontalStretchWeight_.has_value(); }   // 是否显式设置（布局分配剩余用）
+        bool HasVerticalStretchWeight()   const { return verticalStretchWeight_.has_value(); }
+        float GetHorizontalStretchWeightRaw() const { return horizontalStretchWeight_.has_value() ? *horizontalStretchWeight_ : 0.0f; }
+        float GetVerticalStretchWeightRaw()   const { return verticalStretchWeight_.has_value()   ? *verticalStretchWeight_   : 0.0f; }
 
         virtual float GetDefaultHorizontalStretchWeight() const { return 0.0f; }
         virtual float GetDefaultVerticalStretchWeight() const { return 0.0f; }
@@ -941,7 +1003,9 @@ class MenuWindowBase;
         Size Measure(const Size& avail) {
             if (!measureDirty_ && avail.width == previousAvailableSize_.width
                 && avail.height == previousAvailableSize_.height) return desiredSize_;
+            const double _t0 = detail::DebugEnabled() ? detail::NowMs() : 0.0;
             Size newSize = MeasureOverride(avail);
+            if (_t0 > 0.0) { dbgMeasureMs_ = detail::NowMs() - _t0; dbgMeasureCount_.fetch_add(1, std::memory_order_relaxed); }
             // 自身自然尺寸真的变了才作废缓存（祖先虽因冒泡也重测，但尺寸没变→不动缓存，避免"子变脏拖累祖先"）
             if (newSize.width != desiredSize_.width || newSize.height != desiredSize_.height)
                 cacheValid_ = false;
@@ -965,7 +1029,9 @@ class MenuWindowBase;
             // 仅在"约束变了"时重测（C2）；命中缓存则 O(1)
             if (finalRect.width != previousAvailableSize_.width || finalRect.height != previousAvailableSize_.height)
                 Measure(Size(finalRect.width, finalRect.height));
+            const double _a0 = detail::DebugEnabled() ? detail::NowMs() : 0.0;
             ArrangeOverride(finalRect);   // arrangedRect_ 由 ArrangeOverride（或其基类默认实现）设置，包装器不再覆盖
+            if (_a0 > 0.0) { dbgArrangeMs_ = detail::NowMs() - _a0; dbgArrangeCount_.fetch_add(1, std::memory_order_relaxed); }
             selfArrangeDirty_ = false;
             subtreeDirty_ = false;
             if (sizeChanged) cacheValid_ = false;   // 只有尺寸变化才需要重建缓存（位置变化位图照 blit）
@@ -1200,6 +1266,82 @@ class MenuWindowBase;
         void SetCursor(HCURSOR c) { desiredCursor_ = c; ::SetCursor(c); }
         HCURSOR GetDesiredCursor() const { return desiredCursor_; }
 
+        // ---------- 无障碍（UIA，默认开启；映射见 ZufyUIWindowTool.h）----------
+        void SetAccessibleName(const std::wstring& n) { accessibleName_ = n; AccessibilityNotifyPropertyChanged(); }
+        std::wstring GetAccessibleName() const { return accessibleName_.empty() ? DefaultAccessibleName() : accessibleName_; }
+        void SetAccessibleDescription(const std::wstring& d) { accessibleDesc_ = d; }
+        const std::wstring& GetAccessibleDescription() const { return accessibleDesc_; }
+        void SetAutomationId(const std::wstring& id) { automationId_ = id; }
+        const std::wstring& GetAutomationId() const { return automationId_; }
+        // 每个元素都有可区分的 AutomationId：应用设置优先，否则自动分配（如 "e123"），便于自动化/调试定位
+        std::wstring GetAutomationIdOrAuto() const {
+            if (!automationId_.empty()) return automationId_;
+            if (!accessibleAutoId_) { static std::atomic<unsigned> c{ 0 }; accessibleAutoId_ = ++c; }
+            wchar_t b[32]; swprintf(b, 32, L"e%u", accessibleAutoId_);
+            return b;
+        }
+        void SetAccessibleRole(AccessibleRole r) { accessRole_ = r; }
+        virtual AccessibleRole GetAccessibleRole() const { return accessRole_ != AccessibleRole::None ? accessRole_ : DefaultAccessibleRole(); }
+        virtual std::wstring DefaultAccessibleName() const { return std::wstring(); }     // 子类覆写：默认名称
+        virtual AccessibleRole DefaultAccessibleRole() const { return AccessibleRole::None; }
+        virtual bool IsAccessibilityIgnored() const { return !visible_; }                 // 隐藏/纯装饰节点不进无障碍树
+        std::vector<UIElement*> GetAccessibleChildren() const {
+            std::vector<UIElement*> out;
+            for (UIElement* c : GetChildren()) if (c && !c->IsAccessibilityIgnored()) out.push_back(c);
+            return out;
+        }
+        // 无障碍 Pattern（子类按需覆写；返回 -1 / 空 表示不支持）
+        virtual void AccessibilityInvoke() {}                              // IInvokeProvider
+        virtual std::wstring GetAccessibleValue() const { return std::wstring(); }   // IValueProvider
+        virtual void SetAccessibleValue(const std::wstring&) {}
+        virtual bool IsAccessibleReadOnly() const { return true; }
+        virtual int  GetAccessibleToggleState() const { return -1; }       // IToggleProvider：0=off 1=on 2=indeterminate
+        virtual void AccessibilityToggle() {}
+        virtual int  GetAccessibleExpandState() const { return -1; }       // IExpandCollapseProvider：0=collapsed 1=expanded 2=leaf
+        virtual void AccessibilityExpand() {}
+        virtual void AccessibilityCollapse() {}
+        virtual double GetAccessibleRangeValue() const { return 0.0; }     // IRangeValueProvider
+        virtual void   SetAccessibleRangeValue(double) {}
+        virtual double GetAccessibleRangeMin() const { return 0.0; }
+        virtual double GetAccessibleRangeMax() const { return 0.0; }
+        virtual double GetAccessibleRangeStep() const { return 0.0; }
+
+        void AccessibilityNotifyFocus();             // 定义在 ZufyUIWindowTool.h（需 UIA）
+        void AccessibilityNotifyPropertyChanged();
+        void AccessibilityNotifyStructureChanged();
+
+        // ---------- 调试计数 / 缓存信息 ----------
+        unsigned long long DebugMeasureCount() const { return dbgMeasureCount_.load(std::memory_order_relaxed); }
+        unsigned long long DebugArrangeCount() const { return dbgArrangeCount_.load(std::memory_order_relaxed); }
+        unsigned long long DebugRepaintCount() const { return dbgRepaintCount_.load(std::memory_order_relaxed); }
+        bool DebugCacheValid() const { return cacheValid_; }
+        size_t DebugCacheBytes() const {
+            if (!cacheValid_ || !cacheBitmap_) return 0;
+            D2D1_SIZE_U s = cacheBitmap_->GetPixelSize();
+            return (size_t)s.width * (size_t)s.height * 4u;
+        }
+        // 脏标志
+        bool DebugMeasureDirty() const { return measureDirty_; }
+        bool DebugSelfArrangeDirty() const { return selfArrangeDirty_; }
+        bool DebugSubtreeDirty() const { return subtreeDirty_; }
+        bool DebugChildrenDirty() const { return childrenDirty_; }
+        // 上帧耗时（仅 DebugEnabled 时更新）
+        double DebugMeasureMs() const { return dbgMeasureMs_; }
+        double DebugArrangeMs() const { return dbgArrangeMs_; }
+        double DebugDrawMs() const { return dbgDrawMs_; }
+        unsigned long long DebugDrawCount() const { return dbgDrawCount_.load(std::memory_order_relaxed); }
+        void DebugResetCounters() {
+            dbgMeasureCount_.store(0, std::memory_order_relaxed);
+            dbgArrangeCount_.store(0, std::memory_order_relaxed);
+            dbgRepaintCount_.store(0, std::memory_order_relaxed);
+            dbgDrawCount_.store(0, std::memory_order_relaxed);
+        }
+        void DebugRecordDrawTime(double ms) { if (detail::DebugEnabled()) { dbgDrawMs_ = ms; dbgDrawCount_.fetch_add(1, std::memory_order_relaxed); } }
+        virtual float DebugAnimationProgress() const { return 0.0f; }   // 动画进度 [0,1]（控件覆写）
+        bool DebugFocused() const;
+        bool DebugHovered() const;
+        bool DebugPressed() const;
+
         // ---------- 阴影（默认关闭；元素设置，Window 合成进缓存）----------
         void SetShadow(bool enable) { shadowEnabled_ = enable; cacheValid_ = false; RequestRepaint(); }
         bool HasShadow() const { return shadowEnabled_; }
@@ -1218,6 +1360,12 @@ class MenuWindowBase;
         bool enabled_ = true;
         std::wstring tooltip_;
         HCURSOR desiredCursor_ = nullptr;   // 控件最近一次请求的光标（见 SetCursor / WM_SETCURSOR）
+        std::wstring accessibleName_, accessibleDesc_, automationId_;   // 无障碍属性
+        AccessibleRole accessRole_ = AccessibleRole::None;
+        mutable unsigned accessibleAutoId_ = 0;   // 自动区分的 AutomationId 编号
+        // ---------- 调试计数（仅 DebugEnabled 时累加；开销可忽略）----------
+        mutable std::atomic<unsigned long long> dbgMeasureCount_{ 0 }, dbgArrangeCount_{ 0 }, dbgRepaintCount_{ 0 }, dbgDrawCount_{ 0 };
+        mutable double dbgMeasureMs_ = 0.0, dbgArrangeMs_ = 0.0, dbgDrawMs_ = 0.0;
         bool shadowEnabled_ = false;
         D2D1_COLOR_F shadowColor_ = D2D1::ColorF(0.0f, 0.0f, 0.02f, 0.42f);
         float shadowBlur_ = 10.0f;
@@ -1397,21 +1545,34 @@ class MenuWindowBase;
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
-            float y = finalRect.y;
+            // 先量 base 高度；剩余空间按「拉伸权值」分配给参与拉伸的孩子（FillHeight 或显式权值>0）。
+            struct It { UIElement* c; float base, weight, mt, mb, ml, w; };
+            std::vector<It> its; its.reserve(children_.size());
+            float totalBase = 0.0f;
             for (auto& child : children_) {
                 if (!child->IsVisible() || !child->ParticipatesInLayout()) continue;
-                Thickness margin = child->GetMargin();
-                y += margin.top;
-                float availW = finalRect.width - margin.left - margin.right;
+                Thickness m = child->GetMargin();
+                float availW = finalRect.width - m.left - m.right;
                 float childW = child->GetWidth() > 0 ? child->GetWidth() : availW;
                 if (child->GetFillWidth()) childW = availW;
                 childW = clamp(childW, child->GetMinWidth(), child->GetMaxWidth());
-                Size childSize = child->GetDesiredSize();   // 用测量缓存，避免 Arrange 内重复 Measure
-                float childH = child->GetHeight() > 0 ? child->GetHeight() : childSize.height;
-                if (child->GetFillHeight()) childH = finalRect.height - y;
-                childH = clamp(childH, child->GetMinHeight(), child->GetMaxHeight());
-                child->Arrange(Rect(finalRect.x + margin.left, y, childW, childH));
-                y += childH + margin.bottom + spacing_;
+                float base = child->GetHeight() > 0 ? child->GetHeight() : child->GetDesiredSize().height;
+                float raw = child->GetVerticalStretchWeightRaw();
+                float weight = (child->GetFillHeight() || raw > 0.0f) ? (raw > 0.0f ? raw : 1.0f) : 0.0f;
+                its.push_back({ child.get(), base, weight, m.top, m.bottom, m.left, childW });
+                totalBase += m.top + base + m.bottom;
+            }
+            if (!its.empty()) totalBase += spacing_ * ((float)its.size() - 1.0f);
+            float leftover = finalRect.height - totalBase;
+            float totalWeight = 0.0f;
+            for (auto& it : its) totalWeight += it.weight;
+            float y = finalRect.y;
+            for (auto& it : its) {
+                float h = it.base;
+                if (leftover > 0.0f && totalWeight > 0.0f) h += leftover * (it.weight / totalWeight);
+                h = clamp(h, it.c->GetMinHeight(), it.c->GetMaxHeight());
+                it.c->Arrange(Rect(finalRect.x + it.ml, y + it.mt, it.w, h));
+                y += it.mt + h + it.mb + spacing_;
             }
         }
 
@@ -1501,21 +1662,34 @@ class MenuWindowBase;
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
-            float x = finalRect.x;
+            // 先量 base 宽度；剩余空间按「拉伸权值」分配（FillWidth 或显式权值>0）。
+            struct It { UIElement* c; float base, weight, ml, mr, mt, h; };
+            std::vector<It> its; its.reserve(children_.size());
+            float totalBase = 0.0f;
             for (auto& child : children_) {
                 if (!child->IsVisible() || !child->ParticipatesInLayout()) continue;
-                Thickness margin = child->GetMargin();
-                x += margin.left;
-                float availH = finalRect.height - margin.top - margin.bottom;
+                Thickness m = child->GetMargin();
+                float availH = finalRect.height - m.top - m.bottom;
                 float childH = child->GetHeight() > 0 ? child->GetHeight() : availH;
                 if (child->GetFillHeight()) childH = availH;
                 childH = clamp(childH, child->GetMinHeight(), child->GetMaxHeight());
-                Size childSize = child->GetDesiredSize();   // 用测量缓存，避免 Arrange 内重复 Measure
-                float childW = child->GetWidth() > 0 ? child->GetWidth() : childSize.width;
-                if (child->GetFillWidth()) childW = finalRect.width - x;
-                childW = clamp(childW, child->GetMinWidth(), child->GetMaxWidth());
-                child->Arrange(Rect(x, finalRect.y + margin.top, childW, childH));
-                x += childW + margin.right + spacing_;
+                float base = child->GetWidth() > 0 ? child->GetWidth() : child->GetDesiredSize().width;
+                float raw = child->GetHorizontalStretchWeightRaw();
+                float weight = (child->GetFillWidth() || raw > 0.0f) ? (raw > 0.0f ? raw : 1.0f) : 0.0f;
+                its.push_back({ child.get(), base, weight, m.left, m.right, m.top, childH });
+                totalBase += m.left + base + m.right;
+            }
+            if (!its.empty()) totalBase += spacing_ * ((float)its.size() - 1.0f);
+            float leftover = finalRect.width - totalBase;
+            float totalWeight = 0.0f;
+            for (auto& it : its) totalWeight += it.weight;
+            float x = finalRect.x;
+            for (auto& it : its) {
+                float w = it.base;
+                if (leftover > 0.0f && totalWeight > 0.0f) w += leftover * (it.weight / totalWeight);
+                w = clamp(w, it.c->GetMinWidth(), it.c->GetMaxWidth());
+                it.c->Arrange(Rect(x + it.ml, finalRect.y + it.mt, w, it.h));
+                x += it.ml + w + it.mr + spacing_;
             }
         }
 
@@ -2650,7 +2824,7 @@ class MenuWindowBase;
     class Window {
     public:
         inline static Backdrop DefaultBackdrop = Backdrop::None;
-        inline static DWORD DefaultBackdropColor = 0x00000000;
+        inline static DWORD DefaultBackdropColor = 0xFFFFFFFF;   // 默认纯白背景（Backdrop::None + 不透明白）
         // ---------- 手动背景 4 层参数（全部可通过 API 调整）----------
         //   Blur 层       : blurAmount（高斯模糊 σ）
         //   Luminosity 层 : brightness / contrast / saturation（亮度 / 对比度 / 饱和度）
@@ -2734,6 +2908,7 @@ class MenuWindowBase;
                 });
             }
             dying_.store(true);   // 先置"将亡"：render 线程此后不再处理本窗口（避免用已释放的 this）
+            detail::ReleaseAccessibility(this);   // 释放 UIA 根 provider / 元素缓存（定义在 ZufyUIWindowTool.h）
             std::lock_guard<std::recursive_mutex> lk(renderLock_);   // 与"正在出的一帧"串行
             acrylicReloadConn_.disconnect();
             ClearFrameworkTimers();   // 通知框架定时器：窗口将亡（让 Timer 与窗口解绑）
@@ -2837,6 +3012,15 @@ class MenuWindowBase;
 
         // 屏蔽本窗口输入（模态弹窗作为本窗口子窗口时用；不 disable HWND，避免连带影响子弹窗）
         void SetInputBlocked(bool on) { inputBlocked_ = on; }
+        void SetAccessibilityEnabled(bool on) { accessibilityEnabled_ = on; }   // 无障碍（UIA）默认开启
+        bool IsAccessibilityEnabled() const { return accessibilityEnabled_; }
+        UIElement* GetFocusedElement() const { return focusedElement_; }
+        UIElement* GetHoveredElement() const { return currentHovered_; }
+        UIElement* GetPressedElement() const { return pressedElement_; }
+        void FocusElement(UIElement* e) { SetFocusElement(e, false); }   // 供无障碍 SetFocus
+        const detail::FrameStats& DebugStats() const { return debugStats_; }   // 调试：当前帧统计
+        UIElement* HitTestElementDIP(float x, float y) { return HitTestElement(x, y); }   // 供无障碍按点命中（DIP）
+        void ForgetAccessibleElement(UIElement* e);   // 定义在 ZufyUIWindowTool.h：元素析构时清 provider 缓存
         bool IsInputBlocked() const { return inputBlocked_; }
 
         // 背景效果：Backdrop=要什么（亚克力/云母/普通/毛玻璃…），tint=ARGB 着色（不需要可省略）
@@ -3919,6 +4103,7 @@ class MenuWindowBase;
                 if (FAILED(CreateDeviceResources()) || FAILED(CreateCompositionBackend())) {
 #endif
                     RenderingError.Fire(E_FAIL);
+                    detail::RecordError(L"RenderingError", L"CreateDeviceResources/CompositionBackend failed");
                     return 0;
                 }
                 DestroyWallpaperLayer();   // 手动背景图层也挂在被继承重建的资源上
@@ -3953,17 +4138,18 @@ class MenuWindowBase;
                     bool hasLayout = layoutInvalidated_;
                     size_t pendingCount = pendingRepaint_.size();
                     bool hasAnim = rootElement_ ? rootElement_->HasActiveAnimation() : false;
+                    if (!(hasLayout == 0 && pendingCount == 0 && hasAnim == 0)) {
+                        wchar_t buf[256];
+                        swprintf(buf, 256, L"[Timer] layout=%d, pending=%zu, anim=%d\n",
+                            hasLayout, pendingCount, hasAnim ? 1 : 0);
+                        ZufyUI_DEBUG_LOG_W(buf);
 
-                    wchar_t buf[256];
-                    swprintf(buf, 256, L"[Timer] layout=%d, pending=%zu, anim=%d\n",
-                        hasLayout, pendingCount, hasAnim ? 1 : 0);
-                    ZufyUI_DEBUG_LOG_W(buf);
-
-                    // 如果动画存在，打印详细元素树
-                    if (hasAnim && rootElement_) {
-                        ZufyUI_DEBUG_LOG_W(L"--- Active Animation Elements ---\n");
-                        PrintActiveAnimations(rootElement_.get(), 0);
-                        ZufyUI_DEBUG_LOG_W(L"--- End ---\n");
+                        // 如果动画存在，打印详细元素树
+                        if (hasAnim && rootElement_) {
+                            ZufyUI_DEBUG_LOG_W(L"--- Active Animation Elements ---\n");
+                            PrintActiveAnimations(rootElement_.get(), 0);
+                            ZufyUI_DEBUG_LOG_W(L"--- End ---\n");
+                        }
                     }
                     // ---- 调试输出结束 ----
 #endif
@@ -4089,6 +4275,16 @@ class MenuWindowBase;
                     }
                 }
                 return 0;
+            }
+            case WM_COPYDATA:
+                if (detail::DebugEnabled()) return detail::HandleDebugCopyData(hwnd_, wParam, lParam);
+                break;
+            case WM_GETOBJECT: {
+                if (accessibilityEnabled_) {
+                    LRESULT lr = detail::HandleGetObject(this, hwnd_, wParam, lParam);
+                    if (lr) return lr;
+                }
+                break;
             }
             case WM_SETCURSOR:
                 if (currentHovered_ && currentHovered_->IsTextInput()) {
@@ -4283,7 +4479,7 @@ class MenuWindowBase;
             }
             else {
                 // 无缓存元素，直接绘制
-                elem->Draw(rt);
+                { const double _d0 = detail::DebugEnabled() ? detail::NowMs() : 0.0; elem->Draw(rt); if (_d0 > 0.0) elem->DebugRecordDrawTime(detail::NowMs() - _d0); }
                 // 从待重绘集合中移除
                 pendingRepaint_.erase(elem);
             }
@@ -4444,7 +4640,7 @@ class MenuWindowBase;
             if (focusedElement_ == e) { focusDirty_ = true; return; }
             if (focusedElement_) focusedElement_->OnBlur();
             focusedElement_ = e;
-            if (focusedElement_) focusedElement_->OnFocus();
+            if (focusedElement_) { focusedElement_->OnFocus(); focusedElement_->AccessibilityNotifyFocus(); }
             UpdateIMEAssociation();
             focusDirty_ = true;
         }
@@ -4476,7 +4672,7 @@ class MenuWindowBase;
                         Snap(elem->cacheOriginX_ - elem->GetArrangedRect().x),
                         Snap(elem->cacheOriginY_ - elem->GetArrangedRect().y)));
                     if (elem->HasShadow()) DrawShadow(cacheContext_, elem);
-                    elem->Draw(cacheContext_);
+                    { const double _d1 = detail::DebugEnabled() ? detail::NowMs() : 0.0; elem->Draw(cacheContext_); if (_d1 > 0.0) elem->DebugRecordDrawTime(detail::NowMs() - _d1); }
                     cacheContext_->SetTransform(D2D1::Matrix3x2F::Identity());
                     cacheContext_->EndDraw();
                     cacheContext_->SetTarget(nullptr);
@@ -4600,6 +4796,7 @@ class MenuWindowBase;
 #endif
             if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
                 DeviceLost.Fire();
+                detail::RecordError(L"DeviceLost", L"device removed/reset");
                 if (core_) core_->SetRenderHostPaused(true);                    // 1) 暂停 render 线程
                 detail::PostToUIThread([this] { RebuildAfterDeviceLost(); });   // 2) 回 UI 线程重建
             }
@@ -4622,6 +4819,7 @@ class MenuWindowBase;
             if (FAILED(CreateDeviceResources()) || FAILED(CreateCompositionBackend())) {
 #endif
                 RenderingError.Fire(E_FAIL);
+                detail::RecordError(L"RenderingError", L"重建后 CreateDeviceResources/CompositionBackend 失败");
                 if (core_) core_->SetRenderHostPaused(false);
                 return;
             }
@@ -4653,6 +4851,7 @@ class MenuWindowBase;
         // 单帧渲染：合成 → 交换链后备缓冲 → Present；返回 EndDraw/Present 的 HRESULT。
         // 由 render 线程调用（见 RenderOnThread）或单线程路径（OnPaint）调用。
         HRESULT RenderFrame(bool present = true) {
+            const bool _dbg = detail::DebugEnabled(); const double _t0 = _dbg ? detail::NowMs() : 0.0;
             SetGlobalDpiScale(dpi_ / 96.0f);
             // 预通道：先把脏的元素缓存画好（独立 DC，独立 BeginDraw/EndDraw）——必须在主帧 BeginDraw 之前
             DrawDirtyCaches(rootElement_.get());
@@ -4677,6 +4876,21 @@ class MenuWindowBase;
                 UIZSignals::DrawOverlay(this, renderTarget_);
                 DrawFocusAndTooltip(renderTarget_);
                 focusDirty_ = false;
+                {   // 调试：给"被高亮"的元素画框（颜色可配，跨进程拾取定位用）
+                    UIElement* hl = detail::g_debugHighlight.load(std::memory_order_relaxed);
+                    if (hl && hl->GetWindow() == this) {
+                        unsigned int argb = detail::g_highlightColorArgb.load(std::memory_order_relaxed);
+                        D2D1_COLOR_F col = D2D1::ColorF(
+                            ((argb >> 16) & 0xFFu) / 255.0f, ((argb >> 8) & 0xFFu) / 255.0f,
+                            (argb & 0xFFu) / 255.0f, ((argb >> 24) & 0xFFu) / 255.0f);
+                        if (!debugHighlightBrush_) renderTarget_->CreateSolidColorBrush(col, debugHighlightBrush_.GetAddressOf());
+                        else debugHighlightBrush_->SetColor(col);
+                        if (debugHighlightBrush_) {
+                            Rect hr = hl->GetArrangedRect();
+                            renderTarget_->DrawRectangle(hr.ToD2D(), debugHighlightBrush_.Get(), 2.0f);
+                        }
+                    }
+                }
                 hr = renderTarget_->EndDraw();
                 renderTarget_->SetTarget(nullptr);
                 // 说明：Present 默认在这里发生（单线程路径 / RenderNowSync 的同步出帧）。
@@ -4685,6 +4899,7 @@ class MenuWindowBase;
                 if (SUCCEEDED(hr) && present) hr = PresentFrame();
             }
             pendingRepaint_.clear();
+            if (_dbg) debugStats_.renderMs = detail::NowMs() - _t0;
             return hr;
         }
         // 只做 Present（持 gpuLock_，与建/弃设备串行）。可被 render 线程（锁外）或 UI 线程（RenderNowSync）调用。
@@ -4707,6 +4922,7 @@ class MenuWindowBase;
         // A1：推进一帧的"UI 侧"工作（布局 + 动画 + 收集活跃动画 + 发布 uiAnimating_）。
         // 调用者必须已持有 renderLock_（ZUFYUI_RENDER_THREAD=1 时）；WM_PAINT 与 WM_RENDER_TICK 共用。
         void AdvanceFrame() {
+            const bool _dbg = detail::DebugEnabled(); const double _t0 = _dbg ? detail::NowMs() : 0.0;
             RECT rc; GetClientRect(hwnd_, &rc);
             float clientWidthDip = (rc.right - rc.left) * 96.0f / dpi_;
             float clientHeightDip = (rc.bottom - rc.top) * 96.0f / dpi_;
@@ -4747,6 +4963,11 @@ class MenuWindowBase;
                 }
                 layoutNeeded_ = false;
                 layoutInvalidated_ = false;
+                // 先重建 childrenView_：GetChildren() 已纯读化（返回 childrenView_），
+                //   若数据视图刚 Clear/改树，childrenView_ 可能仍指向已释放元素 —— 必须在下面的
+                //   CollectDragRegions/CollectNonParticipating 全树遍历之前刷新，否则会遍历悬垂指针（崩溃）。
+                RefreshChildrenRecursive(rootElement_.get());
+                if (customTitleBar_) RefreshChildrenRecursive(customTitleBar_.get());
                 // 第 2 期：不再 ClearAllCaches()——Arrange 包装器已把真正重排元素的 cacheValid_ 置 false，
                 // 未变化的子树缓存保持有效（这正是省内存的关键）。
                 CollectDragRegions();   // 拖动区依赖布局：只在重排后重建（原来每帧全树收集）
@@ -4791,6 +5012,15 @@ class MenuWindowBase;
 #if ZUFYUI_RENDER_THREAD
             uiAnimating_.store(!activeAnimScratch_.empty());   // 发布"是否还有动画"，供 render 线程决定是否续帧
 #endif
+            if (_dbg) {
+                auto& s = debugStats_;
+                s.advanceMs = detail::NowMs() - _t0;
+                s.deltaTimeMs = deltaTime * 1000.0;
+                s.pendingRepaint = (int)pendingRepaint_.size();
+                s.activeAnims = (int)activeAnimScratch_.size();
+                s.elementCount = detail::CountElements(rootElement_.get(), &s.visibleCount);
+                s.frame++;
+            }
         }
 
         void OnPaint() {
@@ -4844,13 +5074,15 @@ class MenuWindowBase;
                 }
             }
 
-            if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
-                DiscardDeviceResources();
-                DeviceLost.Fire();
+                if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
+                    DiscardDeviceResources();
+                    DeviceLost.Fire();
+                    detail::RecordError(L"DeviceLost", L"device removed/reset");
                 if (FAILED(CreateDeviceResources()) || FAILED(CreateCompositionBackend())) {
                     // 库不替应用决定如何善后：只发信号，由应用决定提示/关闭/重建
-                    RenderingError.Fire(hr);
-                    EndPaint(hwnd_, &ps);
+                RenderingError.Fire(hr);
+                detail::RecordError(L"RenderingError", L"EndDraw hr=0x" + std::to_wstring((unsigned)hr));
+                EndPaint(hwnd_, &ps);
                     return;
                 }
                 // 设备重建后，清空缓存，但布局不需要重做
@@ -5603,6 +5835,7 @@ class MenuWindowBase;
         // 亚克力噪点：动态生成的小位图，用 wrap 平铺铺满（受 AcrylicNoiseOpacity 控制）
         ComPtr<ID2D1Bitmap> noiseBitmap_;
         ComPtr<ID2D1BitmapBrush> noiseBrush_;
+        ComPtr<ID2D1SolidColorBrush> debugHighlightBrush_;   // 调试高亮框刷
         Connection acrylicReloadConn_;   // ReloadAcrylic 信号的连接
         bool animationTimerActive_;   // 常驻定时器，始终 true
         std::shared_ptr<Menu> windowContextMenu_;
@@ -5653,6 +5886,8 @@ class MenuWindowBase;
         std::vector<UIElement*> npBefore_, npAfter_;   // 不参与布局的元素（仅重排后重建，避免每帧全树收集）
         OwnedMinimizePolicy ownedMinimizePolicy_ = OwnedMinimizePolicy::Hide;   // 见 OwnedMinimizePolicy
         bool inputBlocked_ = false;   // 模态弹窗（子窗口形态）时屏蔽本窗口输入
+        bool accessibilityEnabled_ = true;   // 无障碍（UIA）：默认开启
+        detail::FrameStats debugStats_;      // 调试：当前帧统计（仅调试开启时更新）
         bool wasMinimized_ = false;         // 上一状态是否最小化（只有“最小化→还原”才恢复 owned 子窗口）
         bool inSizeMove_ = false;           // 正在拖动/缩放循环：WM_NCHITTEST 直接返回 HTCAPTION，避免每次全树命中检测
         bool imePosUpdating_ = false;
@@ -5698,9 +5933,13 @@ class MenuWindowBase;
         return detail::AppCore::Instance().GetWindowById(windowId_.load());
     }
     inline void UIElement::RequestRepaint() {
+        if (detail::DebugEnabled()) dbgRepaintCount_.fetch_add(1, std::memory_order_relaxed);
         if (Window* w = GetWindow()) w->MarkRepaint(this);
         else UIZSignals::RepaintRequest(nullptr, this);
     }
+    inline bool UIElement::DebugFocused() const { Window* w = GetWindow(); return w && w->GetFocusedElement() == this; }
+    inline bool UIElement::DebugHovered() const { Window* w = GetWindow(); return w && w->GetHoveredElement() == this; }
+    inline bool UIElement::DebugPressed() const { Window* w = GetWindow(); return w && w->GetPressedElement() == this; }
     inline void UIElement::StoreFontOverride(const std::optional<FontSpec>& spec) {
         // fontOverride_ 含 std::wstring：render 线程经 GetEffectiveFontSpec() 读它 → 写侧必须与渲染串行。
         // 失效缓存必须与写 fontOverride_ 在**同一临界区**，否则 render 可能用旧 format 多画一帧。
@@ -5724,7 +5963,8 @@ class MenuWindowBase;
     }
     inline UIElement::~UIElement() {
         // 从所属窗口的待重绘集合里移除自己（防悬垂裸指针）
-        if (Window* w = GetWindow()) w->ForgetPendingRepaint(this);
+        if (detail::g_debugHighlight.load() == this) detail::g_debugHighlight.store(nullptr);
+        if (Window* w = GetWindow()) { w->ForgetPendingRepaint(this); w->ForgetAccessibleElement(this); }
     }
     inline std::unique_lock<std::recursive_mutex> UIElement::GuardRender() const {
         if (Window* w = GetWindow()) return w->LockRender();

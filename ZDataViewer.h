@@ -6,6 +6,8 @@ namespace ZufyUI {
     // ==================== 列表视图 ListView ====================
     class ListView : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::List; }
+    public:
         // 默认样式
         inline static float DefaultItemHeight = 28.0f;
         inline static D2D1_COLOR_F DefaultBackgroundColor = D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f);
@@ -168,6 +170,7 @@ namespace ZufyUI {
         }
         void Clear() {
             auto _rg = RenderGuard();
+            childrenView_.clear(); childrenDirty_ = true;   // 立即清空（GetChildren 纯读化后防悬垂）
             viewDirty_ = true;
             virtual_ = false;
             items_.clear();
@@ -1365,6 +1368,8 @@ namespace ZufyUI {
 
     // ==================== 表格视图 TableView ====================
     class TableView : public UIElement {
+    public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::DataGrid; }
     public:
         enum class SelectionMode { Cell, Row, Column, None };
 
@@ -3064,6 +3069,7 @@ namespace ZufyUI {
         bool selected = false;                              // 多选模式下的选中标记
         bool enabled = true;                                // 是否可用（置灰显示）
         std::wstring tooltip;                               // 悬停提示（可选，供上层使用）
+        Color bgColor = Color(0, 0, 0, 0);                  // 行背景色（a=0 表示不填充；调试器用于新增/删除高亮）
 
         static std::vector<std::shared_ptr<Label>> MakeColumns(const std::vector<std::wstring>& cols) {
             std::vector<std::shared_ptr<Label>> v;
@@ -3076,6 +3082,8 @@ namespace ZufyUI {
     };
 
     class TreeView : public UIElement {
+    public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Tree; }
     public:
         // 默认样式
         inline static float DefaultRowHeight = 24.0f;
@@ -3286,6 +3294,7 @@ namespace ZufyUI {
         }
 
         void Clear() {
+            childrenView_.clear(); childrenDirty_ = true;   // 立即清空（GetChildren 纯读化后防悬垂）
             roots_.clear();
             visibleNodes_.clear();
             visibleIndex_.clear();
@@ -3701,6 +3710,10 @@ namespace ZufyUI {
             RequestRepaint();
         }
 
+        // ---------- 滚动位置（刷新时保留滚动用）----------
+        float GetScrollOffsetY() const { return Snap(scrollOffsetY_); }
+        void SetScrollOffsetY(float v) { scrollOffsetY_ = targetScrollOffsetY_ = clamp(v, 0.0f, maxScrollY_); RequestRepaint(); }
+
         // ---------- 表头设置 ----------
         void SetHeaderVisible(bool visible) { headerVisible_ = visible; InvalidateLayout(); RequestRepaint(); }
 
@@ -3880,6 +3893,12 @@ namespace ZufyUI {
 
                 bool isSel = node->selected || node == selectedNode_;
 
+                bool hasCustomBg = (node->bgColor.a > 0.0f);
+                if (hasCustomBg) {
+                    if (!nodeBgBrush_) rt->CreateSolidColorBrush(node->bgColor.ToD2D(), nodeBgBrush_.GetAddressOf());
+                    else nodeBgBrush_->SetColor(node->bgColor.ToD2D());
+                    if (nodeBgBrush_) rt->FillRectangle(rowRect, nodeBgBrush_.Get());
+                }
                 if (isSel) {
                     if (!selectedBrush_) rt->CreateSolidColorBrush(selectedColor_, selectedBrush_.GetAddressOf());
                     rt->FillRectangle(rowRect, selectedBrush_.Get());
@@ -3888,7 +3907,7 @@ namespace ZufyUI {
                     if (!hoverBrush_) rt->CreateSolidColorBrush(hoverColor_, hoverBrush_.GetAddressOf());
                     rt->FillRectangle(rowRect, hoverBrush_.Get());
                 }
-                else if (alternatingRowColors_ && (i & 1)) {
+                else if (!hasCustomBg && alternatingRowColors_ && (i & 1)) {
                     if (!alternateBrush_) rt->CreateSolidColorBrush(alternateRowColor_, alternateBrush_.GetAddressOf());
                     rt->FillRectangle(rowRect, alternateBrush_.Get());
                 }
@@ -4951,6 +4970,7 @@ namespace ZufyUI {
         ComPtr<ID2D1SolidColorBrush> bgBrush_, headerBgBrush_;
         ComPtr<ID2D1SolidColorBrush> textBrush_, headerTextBrush_;
         ComPtr<ID2D1SolidColorBrush> selectedBrush_, hoverBrush_, indicatorBrush_, gridLineBrush_, borderBrush_;
+        ComPtr<ID2D1SolidColorBrush> nodeBgBrush_;
         ComPtr<ID2D1SolidColorBrush> scrollTrackBrush_, scrollThumbBrush_;
         ComPtr<ID2D1SolidColorBrush> alternateBrush_, checkboxBrush_, iconBrush_;
     };

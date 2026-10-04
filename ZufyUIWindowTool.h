@@ -16,6 +16,10 @@
 #include <shlobj.h>
 #include <shobjidl.h>   // IFileOpenDialog / IFileSaveDialog（新版文件对话框）
 #include <commdlg.h>    // ChooseColor（颜色对话框）
+#include <typeinfo>         // RTTI 类型名（调试详情）
+#include <uiautomation.h>   // UI Automation（无障碍）
+#include <oleauto.h>        // SysAllocString / SafeArray*
+#pragma comment(lib, "UIAutomationCore.lib")
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "ole32.lib")
@@ -59,7 +63,7 @@ namespace ZufyUI {
     // ------------------------------------------------------------------
     class CaptionButton : public UIElement {
     public:
-        enum class Kind { Minimize, MaximizeRestore, Close };
+        enum class Kind { Minimize, MaximizeRestore, Close, Pin };   // Pin = 客户端可切换按钮（不映射系统码）
 
         inline static Color DefaultHoverColor = Color::FromArgb(255, 229, 229, 229);
         inline static Color DefaultPressedColor = Color::FromArgb(255, 214, 214, 214);
@@ -80,6 +84,9 @@ namespace ZufyUI {
         void SetCloseHoverColor(Color c) { closeHoverColor_ = c; RequestRepaint(); }
         void SetClosePressedColor(Color c) { closePressedColor_ = c; RequestRepaint(); }
         void SetGlyphColor(Color c) { glyphColor_ = c; RequestRepaint(); }
+        void SetGlyph(wchar_t code) { glyphCode_ = code; RequestRepaint(); }        // 自定义字形（Pin 等）
+        void SetActiveState(bool on) { active_ = on; RequestRepaint(); }            // 切换态（如 Pin 已置顶高亮）
+        void SetActiveGlyphColor(Color c) { pinActiveColor_ = c; RequestRepaint(); }
         void SetButtonWidth(float w) { width_ = max(0.0f, w); InvalidateLayout(); RequestRepaint(); }
         float GetButtonWidth() const { return width_ > 0.0f ? width_ : DefaultWidth; }
         bool HasCustomWidth() const { return width_ > 0.0f; }
@@ -133,6 +140,7 @@ namespace ZufyUI {
             // 字形颜色：关闭键在悬停/按下时变白；禁用时置灰
             Color glyphColor = glyphColor_;
             if (isClose && (hp > 0.01f || pp > 0.01f)) glyphColor = Color::FromArgb(255, 255, 255, 255);
+            if (kind_ == Kind::Pin && active_ && enabled) glyphColor = pinActiveColor_;
             if (!enabled) glyphColor = Color::FromArgb(255, 150, 150, 150);
             if (!glyphBrush_) rt->CreateSolidColorBrush(glyphColor.ToD2D(), glyphBrush_.GetAddressOf());
             else glyphBrush_->SetColor(glyphColor.ToD2D());
@@ -141,9 +149,11 @@ namespace ZufyUI {
             Window* w = GetWindow();
             bool maxed = w && w->IsMaximizedWindow();
             D2D1_RECT_F r = arrangedRect_.ToD2D();
+            wchar_t gbuf[2] = { 0, 0 };
             const wchar_t* glyph = L"\uE921";               // 最小化
             if (kind_ == Kind::MaximizeRestore) glyph = maxed ? L"\uE923" : L"\uE922";  // 还原 / 最大化
             else if (kind_ == Kind::Close) glyph = L"\uE8BB";                            // 关闭
+            else if (kind_ == Kind::Pin) { gbuf[0] = glyphCode_ ? glyphCode_ : L'\uE718'; glyph = gbuf; }  // 图钉
 
             IDWriteTextFormat* fmt = detail_wintool::IconFormat(10.0f);
             if (fmt) rt->DrawText(glyph, 1, fmt, r, glyphBrush_.Get());
@@ -198,6 +208,9 @@ namespace ZufyUI {
         Color closeHoverColor_ = DefaultCloseHoverColor;
         Color closePressedColor_ = DefaultClosePressedColor;
         Color glyphColor_ = DefaultGlyphColor;
+        wchar_t glyphCode_ = 0;                                     // 自定义字形（0=按 Kind 默认）
+        bool active_ = false;                                       // 切换态（Pin 置顶高亮）
+        Color pinActiveColor_ = Color::FromArgb(255, 0, 120, 212);
         ComPtr<ID2D1SolidColorBrush> bgBrush_;
         ComPtr<ID2D1SolidColorBrush> glyphBrush_;
     };
@@ -336,6 +349,15 @@ namespace ZufyUI {
         bool IsButtonVisible(CaptionButton::Kind k) const {
             auto b = GetButton(k);
             return b && b->IsVisible();
+        }
+
+        // 追加自定义按钮（如 Pin 置顶切换）：插到最前 → 布局时排在最左（最小化按钮的左边）
+        void AddCustomButton(std::shared_ptr<CaptionButton> b) {
+            if (!b) return;
+            b->SetButtonWidth(buttonWidth_);
+            b->SetParent(this);
+            buttons_.insert(buttons_.begin(), std::move(b));
+            InvalidateLayout(); RequestRepaint();
         }
 
         bool HasActiveAnimation() const override {
@@ -1485,5 +1507,684 @@ namespace ZufyUI {
             return std::nullopt;
         }
     };
+
+    // ============================================================================
+    // 无障碍（UI Automation）—— 默认开启（见 Window::SetAccessibilityEnabled）
+    // ----------------------------------------------------------------------------
+    // 本库**不保存历史、不做文件读写**：provider 只按需返回「当前这一帧」的属性/树。
+    //   每个 Window 一个根 provider（IRawElementProviderFragmentRoot）；
+    //   每个 UIElement 一个 fragment provider（IRawElementProviderSimple + Fragment）。
+    //   屏幕阅读器经 WM_GETOBJECT → UiaReturnRawElementProvider 取根。
+    // 里程碑 1：树 + 基础属性 + 命中/焦点；pattern（Invoke/Value/Toggle…）与事件后续补。
+    // ============================================================================
+    namespace detail {
+
+        inline long UiaControlTypeOf(AccessibleRole r) {
+            using R = AccessibleRole;
+            switch (r) {
+            case R::Button: return UIA_ButtonControlTypeId;
+            case R::Text: return UIA_TextControlTypeId;
+            case R::Edit: return UIA_EditControlTypeId;
+            case R::CheckBox: return UIA_CheckBoxControlTypeId;
+            case R::RadioButton: return UIA_RadioButtonControlTypeId;
+            case R::ComboBox: return UIA_ComboBoxControlTypeId;
+            case R::Slider: return UIA_SliderControlTypeId;
+            case R::ProgressBar: return UIA_ProgressBarControlTypeId;
+            case R::List: return UIA_ListControlTypeId;
+            case R::ListItem: return UIA_ListItemControlTypeId;
+            case R::Tree: return UIA_TreeControlTypeId;
+            case R::TreeItem: return UIA_TreeItemControlTypeId;
+            case R::Tab: return UIA_TabControlTypeId;
+            case R::TabItem: return UIA_TabItemControlTypeId;
+            case R::Menu: return UIA_MenuControlTypeId;
+            case R::MenuItem: return UIA_MenuItemControlTypeId;
+            case R::ScrollBar: return UIA_ScrollBarControlTypeId;
+            case R::Window: return UIA_WindowControlTypeId;
+            case R::Document: return UIA_DocumentControlTypeId;
+            case R::DataGrid: return UIA_DataGridControlTypeId;
+            case R::ToolTip: return UIA_ToolTipControlTypeId;
+            case R::Group: default: return UIA_GroupControlTypeId;
+            }
+        }
+
+        class ZufyUIElementProvider;
+
+        struct UiaWindowContext {
+            Window* window = nullptr;
+            ComPtr<IRawElementProviderSimple> root;                            // 根 provider
+            std::unordered_map<UIElement*, ZufyUIElementProvider*> elements;   // 弱缓存（元素析构时移除）
+        };
+        inline std::unordered_map<Window*, UiaWindowContext>& UiaContexts() {
+            static std::unordered_map<Window*, UiaWindowContext> m; return m;
+        }
+
+        class ZufyUIElementProvider : public IRawElementProviderSimple,
+                                      public IRawElementProviderFragment,
+                                      public IRawElementProviderFragmentRoot,
+                                      public IInvokeProvider,
+                                      public IToggleProvider,
+                                      public IValueProvider,
+                                      public IRangeValueProvider,
+                                      public IExpandCollapseProvider {
+        public:
+            ZufyUIElementProvider(UiaWindowContext* ctx, UIElement* e, bool isRoot)
+                : ctx_(ctx), elem_(e), isRoot_(isRoot) {}
+
+            static ZufyUIElementProvider* EnsureElementProvider(UiaWindowContext* ctx, UIElement* e) {
+                if (!ctx || !e) return nullptr;
+                auto it = ctx->elements.find(e);
+                if (it != ctx->elements.end() && it->second) return it->second;
+                auto* prov = new ZufyUIElementProvider(ctx, e, false);   // ref=1（由 ctx 持有）
+                ctx->elements[e] = prov;
+                return prov;
+            }
+            UIElement* Element() const { return elem_; }
+            void DetachElement() { elem_ = nullptr; }
+
+            // ---- IUnknown ----
+            ULONG STDMETHODCALLTYPE AddRef() override { return (ULONG)InterlockedIncrement(&ref_); }
+            ULONG STDMETHODCALLTYPE Release() override {
+                ULONG r = (ULONG)InterlockedDecrement(&ref_);
+                if (r == 0) { if (isRoot_ && ctx_) ctx_->root.Detach(); delete this; }
+                return r;
+            }
+            HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppv) override {
+                if (!ppv) return E_INVALIDARG; *ppv = nullptr;
+                if (riid == __uuidof(IUnknown) || riid == __uuidof(IRawElementProviderSimple))
+                    *ppv = static_cast<IRawElementProviderSimple*>(this);
+                else if (riid == __uuidof(IRawElementProviderFragment))
+                    *ppv = static_cast<IRawElementProviderFragment*>(this);
+                else if (riid == __uuidof(IRawElementProviderFragmentRoot))
+                    *ppv = static_cast<IRawElementProviderFragmentRoot*>(this);
+                else if (riid == __uuidof(IInvokeProvider)) *ppv = static_cast<IInvokeProvider*>(this);
+                else if (riid == __uuidof(IToggleProvider)) *ppv = static_cast<IToggleProvider*>(this);
+                else if (riid == __uuidof(IValueProvider)) *ppv = static_cast<IValueProvider*>(this);
+                else if (riid == __uuidof(IRangeValueProvider)) *ppv = static_cast<IRangeValueProvider*>(this);
+                else if (riid == __uuidof(IExpandCollapseProvider)) *ppv = static_cast<IExpandCollapseProvider*>(this);
+                else return E_NOINTERFACE;
+                AddRef(); return S_OK;
+            }
+
+            // ---- IRawElementProviderSimple ----
+            HRESULT STDMETHODCALLTYPE get_ProviderOptions(ProviderOptions* p) override {
+                if (!p) return E_INVALIDARG;
+                *p = ProviderOptions_ServerSideProvider | ProviderOptions_UseComThreading;
+                return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE GetPatternProvider(PATTERNID id, IUnknown** p) override {
+                if (!p) return E_INVALIDARG; *p = nullptr;
+                if (!elem_) return S_OK;
+                AccessibleRole r = elem_->GetAccessibleRole();
+                switch (id) {
+                case UIA_InvokePatternId:
+                    if (r == AccessibleRole::Button || r == AccessibleRole::MenuItem)
+                        return QueryInterface(__uuidof(IInvokeProvider), (void**)p);
+                    break;
+                case UIA_TogglePatternId:
+                    if (elem_->GetAccessibleToggleState() >= 0)
+                        return QueryInterface(__uuidof(IToggleProvider), (void**)p);
+                    break;
+                case UIA_ValuePatternId:
+                    if (r == AccessibleRole::Edit || r == AccessibleRole::Document)
+                        return QueryInterface(__uuidof(IValueProvider), (void**)p);
+                    break;
+                case UIA_RangeValuePatternId:
+                    if (r == AccessibleRole::Slider || r == AccessibleRole::ProgressBar)
+                        return QueryInterface(__uuidof(IRangeValueProvider), (void**)p);
+                    break;
+                case UIA_ExpandCollapsePatternId:
+                    if (elem_->GetAccessibleExpandState() >= 0)
+                        return QueryInterface(__uuidof(IExpandCollapseProvider), (void**)p);
+                    break;
+                default: break;
+                }
+                return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE GetPropertyValue(PROPERTYID id, VARIANT* p) override {
+                if (!p) return E_INVALIDARG; VariantInit(p);
+                if (!elem_) return S_OK;
+                switch (id) {
+                case UIA_ControlTypePropertyId: p->vt = VT_I4; p->lVal = UiaControlTypeOf(elem_->GetAccessibleRole()); break;
+                case UIA_NamePropertyId: { std::wstring n = elem_->GetAccessibleName(); if (!n.empty()) { p->vt = VT_BSTR; p->bstrVal = SysAllocString(n.c_str()); } break; }
+                case UIA_AutomationIdPropertyId: { std::wstring a = elem_->GetAutomationIdOrAuto(); p->vt = VT_BSTR; p->bstrVal = SysAllocString(a.c_str()); break; }
+                case UIA_FrameworkIdPropertyId: p->vt = VT_BSTR; p->bstrVal = SysAllocString(L"ZufyUI"); break;
+                case UIA_IsEnabledPropertyId: p->vt = VT_BOOL; p->boolVal = elem_->IsEffectivelyEnabled() ? VARIANT_TRUE : VARIANT_FALSE; break;
+                case UIA_IsOffscreenPropertyId: p->vt = VT_BOOL; p->boolVal = elem_->IsVisible() ? VARIANT_FALSE : VARIANT_TRUE; break;
+                case UIA_IsKeyboardFocusablePropertyId: p->vt = VT_BOOL; p->boolVal = elem_->IsFocusable() ? VARIANT_TRUE : VARIANT_FALSE; break;
+                case UIA_HasKeyboardFocusPropertyId: p->vt = VT_BOOL; p->boolVal = (ctx_ && ctx_->window && ctx_->window->GetFocusedElement() == elem_) ? VARIANT_TRUE : VARIANT_FALSE; break;
+                case UIA_IsControlElementPropertyId: p->vt = VT_BOOL; p->boolVal = VARIANT_TRUE; break;
+                case UIA_IsContentElementPropertyId: p->vt = VT_BOOL; p->boolVal = VARIANT_TRUE; break;
+                case UIA_ProcessIdPropertyId: p->vt = VT_I4; p->lVal = (LONG)GetCurrentProcessId(); break;
+                case UIA_NativeWindowHandlePropertyId:
+                    if (isRoot_ && ctx_ && ctx_->window) { p->vt = VT_I4; p->lVal = (LONG)(INT_PTR)ctx_->window->GetHwnd(); }
+                    break;
+                case UIA_BoundingRectanglePropertyId: {
+                    double b[4];
+                    if (GetScreenRect(b)) {
+                        SAFEARRAY* sa = SafeArrayCreateVector(VT_R8, 0, 4);
+                        if (sa) { for (LONG i = 0; i < 4; ++i) SafeArrayPutElement(sa, &i, &b[i]); p->vt = VT_R8 | VT_ARRAY; p->parray = sa; }
+                    }
+                    break;
+                }
+                default: break;
+                }
+                return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE get_HostRawElementProvider(IRawElementProviderSimple** p) override {
+                if (p) *p = nullptr;
+                if (isRoot_ && ctx_ && ctx_->window && ctx_->window->GetHwnd())
+                    return UiaHostProviderFromHwnd(ctx_->window->GetHwnd(), p);
+                return S_OK;
+            }
+
+            // ---- IRawElementProviderFragment ----
+            HRESULT STDMETHODCALLTYPE Navigate(NavigateDirection dir, IRawElementProviderFragment** p) override {
+                if (p) *p = nullptr; if (!elem_ || !ctx_) return S_OK;
+                UIElement* t = nullptr;
+                if (dir == NavigateDirection_Parent) {
+                    t = elem_->GetParent();
+                }
+                else {
+                    std::vector<UIElement*> kids = elem_->GetAccessibleChildren();
+                    if (dir == NavigateDirection_FirstChild) { if (!kids.empty()) t = kids.front(); }
+                    else if (dir == NavigateDirection_LastChild) { if (!kids.empty()) t = kids.back(); }
+                    else if (dir == NavigateDirection_NextSibling || dir == NavigateDirection_PreviousSibling) {
+                        UIElement* par = elem_->GetParent();
+                        if (par) {
+                            std::vector<UIElement*> sib = par->GetAccessibleChildren();
+                            for (size_t i = 0; i < sib.size(); ++i) if (sib[i] == elem_) {
+                                int j = (dir == NavigateDirection_NextSibling) ? (int)i + 1 : (int)i - 1;
+                                if (j >= 0 && j < (int)sib.size()) t = sib[j];
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (t) {
+                    ZufyUIElementProvider* prov = EnsureElementProvider(ctx_, t);
+                    if (prov) prov->QueryInterface(__uuidof(IRawElementProviderFragment), (void**)p);
+                }
+                return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE GetRuntimeId(SAFEARRAY** p) override {
+                if (!p) return E_INVALIDARG; *p = nullptr;
+                int rid[2] = { UiaAppendRuntimeId, (int)(INT_PTR)elem_ };
+                SAFEARRAY* sa = SafeArrayCreateVector(VT_I4, 0, 2);
+                if (!sa) return E_OUTOFMEMORY;
+                for (LONG i = 0; i < 2; ++i) SafeArrayPutElement(sa, &i, &rid[i]);
+                *p = sa; return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE get_BoundingRectangle(UiaRect* r) override {
+                if (!r) return E_INVALIDARG;
+                double b[4] = { 0, 0, 0, 0 }; GetScreenRect(b);
+                r->left = b[0]; r->top = b[1]; r->width = b[2]; r->height = b[3];
+                return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE GetEmbeddedFragmentRoots(SAFEARRAY** p) override { if (p) *p = nullptr; return S_OK; }
+            HRESULT STDMETHODCALLTYPE SetFocus() override {
+                if (elem_ && elem_->IsFocusable()) if (Window* w = elem_->GetWindow()) w->FocusElement(elem_);
+                return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE get_FragmentRoot(IRawElementProviderFragmentRoot** p) override {
+                if (!p) return E_INVALIDARG; *p = nullptr;
+                if (ctx_ && ctx_->root) ctx_->root->QueryInterface(__uuidof(IRawElementProviderFragmentRoot), (void**)p);
+                return S_OK;
+            }
+
+            // ---- IRawElementProviderFragmentRoot（仅根有效）----
+            HRESULT STDMETHODCALLTYPE ElementProviderFromPoint(double x, double y, IRawElementProviderFragment** p) override {
+                if (p) *p = nullptr; if (!ctx_ || !ctx_->window) return S_OK;
+                HWND h = ctx_->window->GetHwnd(); if (!h) return S_OK;
+                UINT dpi = GetDpiForWindow(h); if (!dpi) dpi = 96;
+                POINT pt = { (LONG)x, (LONG)y };
+                ScreenToClient(h, &pt);
+                float dx = pt.x * 96.0f / dpi, dy = pt.y * 96.0f / dpi;
+                UIElement* target = ctx_->window->HitTestElementDIP(dx, dy);
+                while (target && target->IsAccessibilityIgnored()) target = target->GetParent();
+                if (!target) return S_OK;
+                ZufyUIElementProvider* prov = EnsureElementProvider(ctx_, target);
+                if (prov) prov->QueryInterface(__uuidof(IRawElementProviderFragment), (void**)p);
+                return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE GetFocus(IRawElementProviderFragment** p) override {
+                if (p) *p = nullptr; if (!ctx_ || !ctx_->window) return S_OK;
+                UIElement* f = ctx_->window->GetFocusedElement();
+                if (!f) return S_OK;
+                ZufyUIElementProvider* prov = EnsureElementProvider(ctx_, f);
+                if (prov) prov->QueryInterface(__uuidof(IRawElementProviderFragment), (void**)p);
+                return S_OK;
+            }
+
+            // ---- Pattern 实现 ----
+            HRESULT STDMETHODCALLTYPE Invoke() override { if (elem_) elem_->AccessibilityInvoke(); return S_OK; }
+            HRESULT STDMETHODCALLTYPE Toggle() override { if (elem_) elem_->AccessibilityToggle(); return S_OK; }
+            HRESULT STDMETHODCALLTYPE get_ToggleState(ToggleState* p) override {
+                if (!p) return E_INVALIDARG; if (!elem_) return E_FAIL;
+                int s = elem_->GetAccessibleToggleState();
+                *p = (s == 1) ? ToggleState_On : (s == 2) ? ToggleState_Indeterminate : ToggleState_Off;
+                return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE SetValue(LPCWSTR v) override { if (elem_) elem_->SetAccessibleValue(v ? v : L""); return S_OK; }
+            HRESULT STDMETHODCALLTYPE get_Value(BSTR* p) override {
+                if (!p) return E_INVALIDARG; if (!elem_) return E_FAIL;
+                *p = SysAllocString(elem_->GetAccessibleValue().c_str()); return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE get_Value(double* p) override {
+                if (!p) return E_INVALIDARG; if (!elem_) return E_FAIL;
+                *p = elem_->GetAccessibleRangeValue(); return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE get_IsReadOnly(BOOL* p) override {
+                if (!p) return E_INVALIDARG; if (!elem_) return E_FAIL;
+                *p = elem_->IsAccessibleReadOnly() ? TRUE : FALSE; return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE SetValue(double v) override { if (elem_) elem_->SetAccessibleRangeValue(v); return S_OK; }
+            HRESULT STDMETHODCALLTYPE get_Minimum(double* p) override { if (!p) return E_INVALIDARG; *p = elem_ ? elem_->GetAccessibleRangeMin() : 0.0; return S_OK; }
+            HRESULT STDMETHODCALLTYPE get_Maximum(double* p) override { if (!p) return E_INVALIDARG; *p = elem_ ? elem_->GetAccessibleRangeMax() : 0.0; return S_OK; }
+            HRESULT STDMETHODCALLTYPE get_LargeChange(double* p) override { if (!p) return E_INVALIDARG; *p = elem_ ? elem_->GetAccessibleRangeStep() : 0.0; return S_OK; }
+            HRESULT STDMETHODCALLTYPE get_SmallChange(double* p) override { if (!p) return E_INVALIDARG; *p = elem_ ? elem_->GetAccessibleRangeStep() : 0.0; return S_OK; }
+            HRESULT STDMETHODCALLTYPE Expand() override { if (elem_) elem_->AccessibilityExpand(); return S_OK; }
+            HRESULT STDMETHODCALLTYPE Collapse() override { if (elem_) elem_->AccessibilityCollapse(); return S_OK; }
+            HRESULT STDMETHODCALLTYPE get_ExpandCollapseState(ExpandCollapseState* p) override {
+                if (!p) return E_INVALIDARG; if (!elem_) return E_FAIL;
+                int s = elem_->GetAccessibleExpandState();
+                *p = (s == 1) ? ExpandCollapseState_Expanded : (s == 2) ? ExpandCollapseState_LeafNode : ExpandCollapseState_Collapsed;
+                return S_OK;
+            }
+
+        private:
+            bool GetScreenRect(double out[4]) const {
+                out[0] = out[1] = out[2] = out[3] = 0;
+                if (!elem_ || !ctx_ || !ctx_->window) return false;
+                HWND h = ctx_->window->GetHwnd(); if (!h) return false;
+                UINT dpi = GetDpiForWindow(h); if (!dpi) dpi = 96;
+                double s = dpi / 96.0;
+                Rect r = elem_->GetArrangedRect();
+                POINT tl = { (LONG)(r.x * s), (LONG)(r.y * s) };
+                POINT br = { (LONG)((r.x + r.width) * s), (LONG)((r.y + r.height) * s) };
+                ClientToScreen(h, &tl); ClientToScreen(h, &br);
+                out[0] = (double)tl.x; out[1] = (double)tl.y; out[2] = (double)(br.x - tl.x); out[3] = (double)(br.y - tl.y);
+                return true;
+            }
+            LONG ref_ = 1;
+            UiaWindowContext* ctx_ = nullptr;
+            UIElement* elem_ = nullptr;
+            bool isRoot_ = false;
+        };
+
+        inline IRawElementProviderSimple* EnsureRootProvider(Window* w) {
+            if (!w) return nullptr;
+            auto& ctx = UiaContexts()[w];
+            ctx.window = w;
+            if (ctx.root) return ctx.root.Get();
+            auto* root = new ZufyUIElementProvider(&ctx, w->GetRootLayout().get(), true);
+            ctx.root.Attach(root);   // ref=1
+            return root;
+        }
+
+        inline void ReleaseAccessibility(Window* w) {
+            auto it = UiaContexts().find(w);
+            if (it == UiaContexts().end()) return;
+            for (auto& kv : it->second.elements) { if (kv.second) { kv.second->DetachElement(); kv.second->Release(); } }
+            it->second.elements.clear();
+            if (it->second.root) { it->second.root->Release(); it->second.root = nullptr; }
+            UiaContexts().erase(it);
+        }
+
+        inline LRESULT HandleGetObject(Window* w, HWND hwnd, WPARAM wParam, LPARAM lParam) {
+            if (!w) return 0;
+            if ((LONG_PTR)lParam == (LONG_PTR)UiaRootObjectId) {
+                IRawElementProviderSimple* root = EnsureRootProvider(w);
+                if (root) return UiaReturnRawElementProvider(hwnd, wParam, lParam, root);
+                return 0;
+            }
+            if ((LONG_PTR)lParam == (LONG_PTR)OBJID_CLIENT) {
+                IRawElementProviderSimple* host = nullptr;
+                if (SUCCEEDED(UiaHostProviderFromHwnd(hwnd, &host)) && host)
+                    return UiaReturnRawElementProvider(hwnd, wParam, lParam, host);
+            }
+            return 0;
+        }
+
+    } // namespace detail
+
+    namespace detail {
+        inline IRawElementProviderSimple* ProviderForElement(UIElement* e) {
+            if (!e) return nullptr;
+            Window* w = e->GetWindow(); if (!w) return nullptr;
+            auto it = UiaContexts().find(w); if (it == UiaContexts().end()) return nullptr;
+            return ZufyUIElementProvider::EnsureElementProvider(&it->second, e);
+        }
+    }
+    inline void UIElement::AccessibilityNotifyPropertyChanged() {
+        if (!UiaClientsAreListening()) return;
+        IRawElementProviderSimple* p = detail::ProviderForElement(this);
+        if (!p) return;
+        VARIANT oldV; VariantInit(&oldV);
+        AccessibleRole r = GetAccessibleRole();
+        if (r == AccessibleRole::Edit || r == AccessibleRole::Document) {
+            VARIANT nv; VariantInit(&nv); nv.vt = VT_BSTR; nv.bstrVal = SysAllocString(GetAccessibleValue().c_str());
+            UiaRaiseAutomationPropertyChangedEvent(p, UIA_ValueValuePropertyId, oldV, nv);
+            VariantClear(&nv);
+        }
+        int ts = GetAccessibleToggleState();
+        if (ts >= 0) {
+            VARIANT nv; VariantInit(&nv); nv.vt = VT_I4;
+            nv.lVal = (ts == 1) ? ToggleState_On : (ts == 2) ? ToggleState_Indeterminate : ToggleState_Off;
+            UiaRaiseAutomationPropertyChangedEvent(p, UIA_ToggleToggleStatePropertyId, oldV, nv);
+        }
+        if (r == AccessibleRole::Slider || r == AccessibleRole::ProgressBar) {
+            VARIANT nv; VariantInit(&nv); nv.vt = VT_R8; nv.dblVal = GetAccessibleRangeValue();
+            UiaRaiseAutomationPropertyChangedEvent(p, UIA_RangeValueValuePropertyId, oldV, nv);
+        }
+    }
+    inline void UIElement::AccessibilityNotifyStructureChanged() {
+        if (!UiaClientsAreListening()) return;
+        IRawElementProviderSimple* p = detail::ProviderForElement(this);
+        if (p) UiaRaiseStructureChangedEvent(p, StructureChangeType_ChildrenInvalidated, nullptr, 0);
+    }
+    inline void UIElement::AccessibilityNotifyFocus() {
+        if (!UiaClientsAreListening()) return;
+        Window* w = GetWindow(); if (!w || !w->IsAccessibilityEnabled()) return;
+        if (auto* root = detail::EnsureRootProvider(w)) UiaRaiseAutomationEvent(root, UIA_AutomationFocusChangedEventId);
+    }
+    inline void Window::ForgetAccessibleElement(UIElement* e) {
+        auto it = detail::UiaContexts().find(this);
+        if (it == detail::UiaContexts().end()) return;
+        auto jt = it->second.elements.find(e);
+        if (jt != it->second.elements.end()) { if (jt->second) { jt->second->DetachElement(); jt->second->Release(); } it->second.elements.erase(jt); }
+    }
+
+    // ============================================================================
+    // 调试 / 自动化通道（默认关；只返回"当前这一帧"；库不做文件读写）
+    //   ZufyUI::SetDebugEnabled(true) 后，外部工具向后台调度窗口
+    //   （类名 "ZufyUI_DispatcherWindow"）发 WM_COPYDATA：
+    //     wParam = 回复窗口 HWND；dwData = 命令号；lpData/cbData = 可选 UTF-16 参数
+    //   命令：1 Ping / 2 ListWindows / 3 GetFrameStats / 4 GetElementTree /
+    //         5 ForceRepaint / 6 SetElementText("automationId\ttext") /
+    //         7 InvokeElement(id) / 8 FocusElement(id)
+    //   回复：向 wParam 发 WM_COPYDATA，dwData=0x5A554631('ZUF1')，lpData=UTF-16 文本。
+    // ============================================================================
+    namespace detail {
+        inline const wchar_t* AriaRoleName(AccessibleRole r) {
+            switch (r) {
+            case AccessibleRole::Button: return L"Button";
+            case AccessibleRole::Text: return L"Text";
+            case AccessibleRole::Edit: return L"Edit";
+            case AccessibleRole::CheckBox: return L"CheckBox";
+            case AccessibleRole::RadioButton: return L"RadioButton";
+            case AccessibleRole::ComboBox: return L"ComboBox";
+            case AccessibleRole::Slider: return L"Slider";
+            case AccessibleRole::ProgressBar: return L"ProgressBar";
+            case AccessibleRole::List: return L"List";
+            case AccessibleRole::ListItem: return L"ListItem";
+            case AccessibleRole::Tree: return L"Tree";
+            case AccessibleRole::TreeItem: return L"TreeItem";
+            case AccessibleRole::Tab: return L"Tab";
+            case AccessibleRole::TabItem: return L"TabItem";
+            case AccessibleRole::Menu: return L"Menu";
+            case AccessibleRole::MenuItem: return L"MenuItem";
+            case AccessibleRole::ScrollBar: return L"ScrollBar";
+            case AccessibleRole::Window: return L"Window";
+            case AccessibleRole::Document: return L"Document";
+            case AccessibleRole::DataGrid: return L"DataGrid";
+            case AccessibleRole::ToolTip: return L"ToolTip";
+            case AccessibleRole::Group: return L"Group";
+            default: return L"None";
+            }
+        }
+        // RTTI 类型名（MSVC: ".?AVButton@ZufyUI@@" → "Button"）
+        inline std::wstring TypeNameOf(UIElement* e) {
+            if (!e) return L"";
+            std::string n = typeid(*e).name();
+            size_t p = n.find("AV");
+            if (p != std::string::npos) n = n.substr(p + 2);
+            size_t at = n.find('@');
+            if (at != std::string::npos) n = n.substr(0, at);
+            return std::wstring(n.begin(), n.end());
+        }
+        inline int CountElements(UIElement* e, int* visibleOut) {
+            if (!e) return 0;
+            int total = 1;
+            if (visibleOut && e->IsVisible()) (*visibleOut)++;
+            for (UIElement* c : e->GetChildren()) total += CountElements(c, visibleOut);
+            return total;
+        }
+        inline void CollectAll(UIElement* e, std::vector<UIElement*>& out) {
+            if (!e) return;
+            out.push_back(e);
+            for (UIElement* c : e->GetChildren()) CollectAll(c, out);
+        }
+        // Top-N 热点（kind: 1=重绘 2=布局 3=缓存 4=绘制）
+        inline std::wstring DumpTopN(int kind, int n) {
+            std::vector<UIElement*> all;
+            for (Window* w : AppCore::Instance().Windows()) if (w) CollectAll(w->GetRootLayout().get(), all);
+            auto key = [kind](UIElement* e) -> double {
+                switch (kind) {
+                case 1: return (double)e->DebugRepaintCount();
+                case 2: return (double)(e->DebugMeasureCount() + e->DebugArrangeCount());
+                case 3: return (double)e->DebugCacheBytes();
+                case 4: return (double)e->DebugDrawCount();
+                default: return (double)(e->DebugRepaintCount() + e->DebugMeasureCount() + e->DebugArrangeCount());
+                }
+            };
+            std::sort(all.begin(), all.end(), [&](UIElement* a, UIElement* b) { return key(a) > key(b); });
+            if (n <= 0 || n > (int)all.size()) n = (int)all.size();
+            const wchar_t* title = kind == 1 ? L"重绘" : kind == 2 ? L"布局" : kind == 3 ? L"缓存" : kind == 4 ? L"绘制" : L"综合";
+            std::wstring out; wchar_t hb[128];
+            swprintf(hb, 128, L"Top %d %s（共 %d 个元素）\n", n, title, (int)all.size()); out = hb;
+            for (int i = 0; i < n; ++i) {
+                UIElement* e = all[i]; wchar_t b[256];
+                if (kind == 3) swprintf(b, 256, L"%.1f KB\t%s\t%s\t%s\n", key(e) / 1024.0,   // 缓存一律用 KB
+                    TypeNameOf(e).c_str(), e->GetAccessibleName().c_str(), e->GetAutomationIdOrAuto().c_str());
+                else swprintf(b, 256, L"%.0f\t%s\t%s\t%s\n", key(e),
+                    TypeNameOf(e).c_str(), e->GetAccessibleName().c_str(), e->GetAutomationIdOrAuto().c_str());
+                out += b;
+            }
+            return out;
+        }
+        inline void ResetDebugCounters() {
+            std::vector<UIElement*> all;
+            for (Window* w : AppCore::Instance().Windows()) if (w) CollectAll(w->GetRootLayout().get(), all);
+            for (UIElement* e : all) e->DebugResetCounters();
+        }
+        inline void DumpElement(UIElement* e, int depth, std::wstring& out) {
+            if (!e || !e->IsVisible()) return;
+            out.append((size_t)depth * 2, L' ');                       // 缩进：2 空格/层（列 0 前缀）
+            out += TypeNameOf(e); out += L'\t';  // 列0：类型（RTTI）
+            out += e->GetAccessibleName(); out += L'\t';                // 列1：名称
+            out += e->GetAutomationIdOrAuto(); out += L'\t';            // 列2：AutomationId
+            Rect rc = e->GetArrangedRect();                             // 列3：矩形
+            wchar_t b[96];
+            swprintf(b, 96, L"%.0f,%.0f %.0fx%.0f\n", rc.x, rc.y, rc.width, rc.height);
+            out += b;
+            for (UIElement* c : e->GetAccessibleChildren()) DumpElement(c, depth + 1, out);
+        }
+        inline std::wstring DumpWindowTree(Window* w) {
+            std::wstring out;
+            if (!w) return out;
+            wchar_t hb[48];
+            swprintf(hb, 48, L"Window hwnd=0x%llX\n", (unsigned long long)(uintptr_t)w->GetHwnd());
+            out = hb;
+            DumpElement(w->GetRootLayout().get(), 1, out);
+            return out;
+        }
+        inline std::wstring DumpFrameStats(Window* w) {
+            if (!w) return std::wstring();
+            const FrameStats& s = w->DebugStats();
+            wchar_t b[512];
+            swprintf(b, 512, L"hwnd=0x%llX frame=%llu dt=%.2fms advance=%.2fms render=%.2fms elems=%d vis=%d pending=%d anims=%d\n",
+                (unsigned long long)(uintptr_t)w->GetHwnd(), s.frame, s.deltaTimeMs, s.advanceMs, s.renderMs,
+                s.elementCount, s.visibleCount, s.pendingRepaint, s.activeAnims);
+            return b;
+        }
+        // 单个控件的实时详细信息（类型/状态/动画/脏标志/计数/耗时/缓存/父链…）
+        inline std::wstring DumpElementInfo(UIElement* e) {
+            if (!e) return L"(未找到)";
+            Rect rc = e->GetArrangedRect(); Size ds = e->GetDesiredSize();
+            std::wstring s; wchar_t b[768];
+            swprintf(b, 768, L"类型: %s\r\n角色: %s\r\n名称: %s\r\nAutomationId: %s\r\n\r\n",
+                TypeNameOf(e).c_str(), AriaRoleName(e->GetAccessibleRole()), e->GetAccessibleName().c_str(), e->GetAutomationIdOrAuto().c_str());
+            s += b;
+            swprintf(b, 768, L"矩形: %.1f, %.1f  %.1f x %.1f\r\n期望尺寸: %.1f x %.1f\r\n\r\n",
+                rc.x, rc.y, rc.width, rc.height, ds.width, ds.height);
+            s += b;
+            swprintf(b, 768, L"状态: 可见=%d 启用=%d 可聚焦=%d 焦点=%d 悬停=%d 按下=%d\r\n\r\n",
+                e->IsVisible() ? 1 : 0, e->IsEffectivelyEnabled() ? 1 : 0, e->IsFocusable() ? 1 : 0,
+                e->DebugFocused() ? 1 : 0, e->DebugHovered() ? 1 : 0, e->DebugPressed() ? 1 : 0);
+            s += b;
+            swprintf(b, 768, L"动画: 活跃=%d   进度=%.2f\r\n\r\n", e->HasActiveAnimation() ? 1 : 0, e->DebugAnimationProgress());
+            s += b;
+            swprintf(b, 768, L"脏标志: measure=%d selfArrange=%d subtree=%d children=%d cacheValid=%d\r\n\r\n",
+                e->DebugMeasureDirty() ? 1 : 0, e->DebugSelfArrangeDirty() ? 1 : 0, e->DebugSubtreeDirty() ? 1 : 0,
+                e->DebugChildrenDirty() ? 1 : 0, e->DebugCacheValid() ? 1 : 0);
+            s += b;
+            swprintf(b, 768, L"计数: measure=%llu arrange=%llu draw=%llu repaint=%llu\r\n",
+                e->DebugMeasureCount(), e->DebugArrangeCount(), e->DebugDrawCount(), e->DebugRepaintCount());
+            s += b;
+            swprintf(b, 768, L"上帧耗时: measure=%.3fms arrange=%.3fms draw=%.3fms\r\n\r\n",
+                e->DebugMeasureMs(), e->DebugArrangeMs(), e->DebugDrawMs());
+            s += b;
+        swprintf(b, 768, L"缓存: %s   %.1f KB\r\n可见子元素: %d\r\n\r\n",
+            e->DebugCacheValid() ? L"有效" : L"无", e->DebugCacheBytes() / 1024.0, (int)e->GetChildren().size());
+            s += b;
+            std::vector<std::wstring> parts; int depth = 0;
+            for (UIElement* p = e->GetParent(); p; p = p->GetParent()) {
+                std::wstring tn = TypeNameOf(p); std::wstring nm = p->GetAccessibleName();
+                parts.push_back(nm.empty() ? tn : (tn + L"\"" + nm + L"\""));
+                if (++depth > 32) break;
+            }
+            std::wstring chain;
+            for (auto it = parts.rbegin(); it != parts.rend(); ++it) { if (!chain.empty()) chain += L" > "; chain += *it; }
+            swprintf(b, 768, L"深度: %d\r\n父链: %s\r\n", depth, chain.empty() ? L"(根)" : chain.c_str());
+            s += b;
+            swprintf(b, 768, L"\r\n地址: 0x%llX\r\n", (unsigned long long)(uintptr_t)e);
+            s += b;
+            return s;
+        }
+        inline UIElement* FindByAutomationId(UIElement* e, const std::wstring& id) {
+            if (!e || id.empty()) return nullptr;
+            if (e->GetAutomationIdOrAuto() == id) return e;   // 含自动编号 e123
+            for (UIElement* c : e->GetChildren()) if (UIElement* f = FindByAutomationId(c, id)) return f;
+            return nullptr;
+        }
+        inline UIElement* FindAcrossWindows(const std::wstring& id) {
+            for (Window* w : AppCore::Instance().Windows()) if (w) if (UIElement* f = FindByAutomationId(w->GetRootLayout().get(), id)) return f;
+            return nullptr;
+        }
+        inline bool DebugSetElementText(const std::wstring& id, const std::wstring& text) {
+            UIElement* e = FindAcrossWindows(id); if (!e) return false; e->SetAccessibleValue(text); return true;
+        }
+        inline bool DebugInvokeElement(const std::wstring& id) {
+            UIElement* e = FindAcrossWindows(id); if (!e) return false; e->AccessibilityInvoke(); return true;
+        }
+        inline bool DebugFocusElement(const std::wstring& id) {
+            UIElement* e = FindAcrossWindows(id); if (!e) return false;
+            if (Window* w = e->GetWindow()) w->FocusElement(e);
+            return true;
+        }
+        inline bool DebugSetElementVisible(const std::wstring& id, bool vis) {
+            UIElement* e = FindAcrossWindows(id); if (!e) return false; e->SetVisible(vis); return true;
+        }
+        inline bool DebugSetElementMargin(const std::wstring& id, float x, float y) {
+            UIElement* e = FindAcrossWindows(id); if (!e) return false;
+            e->SetMargin(Thickness(x, y, 0, 0)); return true;
+        }
+        inline bool DebugSetHighlight(const std::wstring& id) {
+            UIElement* e = FindAcrossWindows(id); if (!e) return false;
+            g_debugHighlight.store(e, std::memory_order_relaxed);
+            e->RequestRepaint();   // 触发一帧把高亮框画出来
+            return true;
+        }
+        inline void DebugClearHighlight() {
+            g_debugHighlight.store(nullptr, std::memory_order_relaxed);
+            for (Window* w : AppCore::Instance().Windows()) if (w && w->GetHwnd()) InvalidateRect(w->GetHwnd(), nullptr, FALSE);
+        }
+        inline LRESULT HandleDebugCopyData(HWND hwnd, WPARAM wParam, LPARAM lParam) {
+            if (!DebugEnabled()) return 0;
+            auto* cds = reinterpret_cast<COPYDATASTRUCT*>(lParam);
+            if (!cds) return 0;
+            HWND replyTo = (HWND)wParam;
+            UINT cmd = (UINT)cds->dwData;
+            std::wstring arg;
+            if (cds->lpData && cds->cbData >= sizeof(wchar_t))
+                arg.assign((const wchar_t*)cds->lpData, cds->cbData / sizeof(wchar_t));
+            while (!arg.empty() && arg.back() == L'\0') arg.pop_back();
+
+            std::wstring reply;
+            switch (cmd) {
+            case 1: reply = L"ZufyUI " ZufyUI_VERSION_STRING L"\n"; break;
+            case 2:
+                for (Window* w : AppCore::Instance().Windows()) if (w) {
+                    wchar_t b[128];
+                    swprintf(b, 128, L"hwnd=0x%llX dpi=%u\n", (unsigned long long)(uintptr_t)w->GetHwnd(), (unsigned)GetDpiForWindow(w->GetHwnd()));
+                    reply += b;
+                }
+                break;
+            case 3: for (Window* w : AppCore::Instance().Windows()) if (w) reply += DumpFrameStats(w); break;
+            case 4: for (Window* w : AppCore::Instance().Windows()) if (w) reply += DumpWindowTree(w); break;
+            case 5: for (Window* w : AppCore::Instance().Windows()) if (w) InvalidateRect(w->GetHwnd(), nullptr, FALSE); reply = L"repaint requested\n"; break;
+            case 6: {
+                size_t tab = arg.find(L'\t');
+                if (tab == std::wstring::npos) { reply = L"ERR arg\n"; break; }
+                reply = DebugSetElementText(arg.substr(0, tab), arg.substr(tab + 1)) ? L"OK\n" : L"ERR not found\n";
+                break;
+            }
+            case 7: reply = DebugInvokeElement(arg) ? L"OK\n" : L"ERR not found\n"; break;
+            case 8: reply = DebugFocusElement(arg) ? L"OK\n" : L"ERR not found\n"; break;
+            case 9: reply = DumpElementInfo(FindAcrossWindows(arg)); break;   // 控件详情（arg = AutomationId）
+            case 10: {   // GetElementAt("x,y") 屏幕坐标 → AutomationId（拾取用）
+                int px = 0, py = 0; swscanf_s(arg.c_str(), L"%d,%d", &px, &py);
+                POINT pt = { px, py }; ScreenToClient(hwnd, &pt);
+                UINT dpi = GetDpiForWindow(hwnd); if (!dpi) dpi = 96;
+                float dx = pt.x * 96.0f / dpi, dy = pt.y * 96.0f / dpi;
+                UIElement* hit = nullptr;
+                for (Window* w : AppCore::Instance().Windows()) if (w && w->GetHwnd() == hwnd) { hit = w->HitTestElementDIP(dx, dy); break; }
+                reply = hit ? hit->GetAutomationIdOrAuto() : L"";
+                break;
+            }
+            case 11: reply = DebugSetHighlight(arg) ? L"OK\n" : L"ERR not found\n"; break;
+            case 12: DebugClearHighlight(); reply = L"OK\n"; break;
+            case 13: reply = DumpErrors(); break;                              // 最近错误
+            case 14: ClearErrors(); reply = L"OK\n"; break;                   // 清空错误
+            case 15: reply = DumpTopN(1, 20); break;                          // 重绘热点 Top-N
+            case 16: reply = DumpTopN(2, 20); break;                          // 布局风暴 Top-N
+            case 17: reply = DumpTopN(3, 20); break;                          // 缓存 Top-N
+            case 18: reply = DumpTopN(4, 20); break;                          // 绘制 Top-N
+            case 19: ResetDebugCounters(); reply = L"OK\n"; break;            // 重置调试计数
+            case 22: {   // SetHighlightColor("RRGGBB") —— 高亮框颜色（拾取/高亮共用）
+                unsigned int c = (unsigned int)wcstoul(arg.c_str(), nullptr, 16);
+                g_highlightColorArgb.store(0xFF000000u | (c & 0xFFFFFFu), std::memory_order_relaxed);
+                if (UIElement* hl = g_debugHighlight.load()) hl->RequestRepaint();
+                reply = L"OK\n";
+                break;
+            }
+            case 20: {   // SetVisible("id\t0/1")
+                size_t p = arg.find(L'\t');
+                if (p == std::wstring::npos) { reply = L"ERR\n"; break; }
+                reply = DebugSetElementVisible(arg.substr(0, p), arg.substr(p + 1) == L"1") ? L"OK\n" : L"ERR not found\n";
+                break;
+            }
+            case 21: {   // SetMargin("id\tx\ty") —— 位置（边距）
+                size_t p = arg.find(L'\t'); if (p == std::wstring::npos) { reply = L"ERR\n"; break; }
+                std::wstring id = arg.substr(0, p), rest = arg.substr(p + 1);
+                size_t q = rest.find(L'\t'); if (q == std::wstring::npos) { reply = L"ERR\n"; break; }
+                double x = wcstod(rest.c_str(), nullptr), y = wcstod(rest.c_str() + q + 1, nullptr);
+                reply = DebugSetElementMargin(id, (float)x, (float)y) ? L"OK\n" : L"ERR not found\n";
+                break;
+            }
+            default: reply = L"ERR unknown cmd\n"; break;
+            }
+
+            if (replyTo) {
+                COPYDATASTRUCT out = {};
+                out.dwData = 0x5A554631;   // 'ZUF1'
+                out.cbData = (DWORD)((reply.size() + 1) * sizeof(wchar_t));
+                out.lpData = (PVOID)reply.c_str();
+                SendMessageW(replyTo, WM_COPYDATA, (WPARAM)hwnd, (LPARAM)&out);
+            }
+            (void)hwnd;
+            return 0;
+        }
+    } // namespace detail
 
 } // namespace ZufyUI

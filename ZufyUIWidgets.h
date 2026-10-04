@@ -189,6 +189,8 @@ namespace ZufyUI {
     // ---------- 标签（支持对齐、换行/省略号，最终修正版） ----------
     class Label : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Text; }
+        std::wstring DefaultAccessibleName() const override { return text_; }
         enum class TextOverflow {
             Wrap,      // 自动换行
             Ellipsis   // 单行，超出显示省略号
@@ -229,6 +231,12 @@ namespace ZufyUI {
         Color GetTextColor() const { return textColor_; }
         void SetTextOverflow(TextOverflow mode) { overflow_ = mode; InvalidateLayout(); RequestRepaint(); }
         TextOverflow GetTextOverflow() const { return overflow_; }
+        // 悬停时：若文本被省略（Ellipsis 且放不下），自动用完整文本当 tooltip；用户设过的 tooltip 优先
+        std::wstring GetToolTip() const override {
+            std::wstring custom = UIElement::GetToolTip();
+            if (!custom.empty()) return custom;
+            return truncated_ ? text_ : std::wstring();
+        }
         void SetAlignment(HAlign hAlign, VAlign vAlign) {
             if (hAlign_ == hAlign && vAlign_ == vAlign) return;   // 未变短路（表格/树每帧调用不再触发布局）
             hAlign_ = hAlign;
@@ -417,6 +425,7 @@ namespace ZufyUI {
                 textW = min(measuredTextW_, textAvail);
                 textBoxW = (overflow_ == TextOverflow::Wrap) ? textAvail : textW;
             }
+            truncated_ = (overflow_ == TextOverflow::Ellipsis) && (measuredTextW_ > textAvail + 0.5f);
 
             // 把「图标 + 文本 + 子控件」当作一个整体做水平对齐（这样按钮里图标会和居中文字贴在一起）
             const float contentW = otherW + textW;
@@ -603,12 +612,17 @@ namespace ZufyUI {
         float measuredTextW_ = 0, measuredTextH_ = 0;
         float textLeft_ = 0;
         float textBoxW_ = 0;
+        bool truncated_ = false;                        // Arrange 时记录：Ellipsis 且放不下 → 供 tooltip
         D2D1_RECT_F iconRect_ = D2D1::RectF(0, 0, 0, 0);
     };
 
     // ---------- 按钮（内部使用 Label 渲染文本） ----------
     class Button : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Button; }
+        std::wstring DefaultAccessibleName() const override { return text_; }
+        void AccessibilityInvoke() override { Clicked.Fire(); }   // UIA Invoke
+        float DebugAnimationProgress() const override { return hoverProgress_; }
         inline static float DefaultHoverAnimationSpeed = 10.0f;
         inline static Color DefaultNormalColor = Color::FromArgb(255, 0, 120, 212);
         inline static Color DefaultHoverColor = Color::FromArgb(255, 0, 105, 190);
@@ -658,18 +672,11 @@ namespace ZufyUI {
         void SetIcon(Icon icon, float size = 0.0f) { if (label_) label_->SetIcon(icon, size); }
         Icon GetIcon() const { return label_ ? label_->GetIcon() : Icon::None; }
         void SetIconColor(Color c) { if (label_) label_->SetIconColor(c); }
-        // 悬停时：若文本被截断，自动用完整文本当 tooltip；用户设置过的 tooltip 优先
+        // 悬停时：若内部 Label 的文本被省略，自动带上完整文本当 tooltip；用户设过的优先
         std::wstring GetToolTip() const override {
             std::wstring custom = UIElement::GetToolTip();
             if (!custom.empty()) return custom;
-            if (text_.empty()) return L"";
-            float availW = GetArrangedRect().width - padding_ * 2.0f;
-            if (availW <= 0.0f) return L"";
-            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(GetEffectiveFontSpec());
-            if (!fmt) return L"";
-            // GetDisplayLayout 非空 = 需要截断显示（即文本放不下）
-            ComPtr<IDWriteTextLayout> layout = FontManager::Instance().GetDisplayLayout(text_, fmt, availW, 1.0e6f, true);
-            return layout ? text_ : L"";
+            return label_ ? label_->GetToolTip() : std::wstring();
         }
         void SetColors(Color normal, Color hover, Color pressed) {
             normalColor_ = normal; hoverColor_ = hover; pressedColor_ = pressed; bgBrush_.Reset(); RequestRepaint();
@@ -822,6 +829,11 @@ namespace ZufyUI {
     // ---------- 文本框（支持自动滚动、边框正常、文本裁剪） ----------
     class TextBox : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Edit; }
+        std::wstring DefaultAccessibleName() const override { return text_.empty() ? placeholder_ : text_; }
+        std::wstring GetAccessibleValue() const override { return text_; }                 // UIA Value
+        void SetAccessibleValue(const std::wstring& s) override { if (!readOnly_) SetText(s); }
+        bool IsAccessibleReadOnly() const override { return readOnly_; }
         inline static float DefaultWidth = 160.0f;
         inline static float DefaultHeight = 30.0f;
         inline static D2D1_COLOR_F DefaultBgColor = D2D1::ColorF(0.98f, 0.98f, 0.98f, 1.0f);
@@ -877,6 +889,7 @@ namespace ZufyUI {
             EnsureCursorVisible();
             InvalidateLayout();
             RequestRepaint();
+            AccessibilityNotifyPropertyChanged();   // UIA Value 变化
         }
         void SetPlaceholder(const std::wstring& placeholder) { placeholder_ = placeholder; RequestRepaint(); }
         void SetTextColor(Color color) { textColor_ = color.ToD2D(); textBrush_.Reset(); RequestRepaint(); }
@@ -1562,6 +1575,9 @@ namespace ZufyUI {
     // ---------- 下拉框（最终增强版） ----------
     class ComboBox : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::ComboBox; }
+        std::wstring DefaultAccessibleName() const override { return editable_ ? editText_ : GetSelectedText(); }
+        float DebugAnimationProgress() const override { return expandProgress_; }
         inline static float DefaultExpandAnimationSpeed = 7.0f;
         inline static float DefaultHoverAnimationSpeed = 10.0f;
         inline static float DefaultIndicatorAnimationSpeed = 12.0f;
@@ -2523,6 +2539,10 @@ namespace ZufyUI {
     // ---------- 开关 ----------
     class ToggleSwitch : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::CheckBox; }
+        int  GetAccessibleToggleState() const override { return IsOn() ? 1 : 0; }   // UIA Toggle
+        void AccessibilityToggle() override { SetOn(!IsOn()); }
+        float DebugAnimationProgress() const override { return toggleProgress_; }
         inline static float DefaultAnimationSpeed = 9.6f;
         inline static Color DefaultOnColor = Color::FromArgb(255, 0, 120, 212);
         inline static Color DefaultOffColor = Color::FromArgb(255, 200, 200, 200);
@@ -2546,6 +2566,7 @@ namespace ZufyUI {
                 isOn_ = on;
                 Toggled(isOn_);
                 RequestRepaint();
+                AccessibilityNotifyPropertyChanged();   // UIA Toggle 变化
             }
         }
         bool IsOn() const { return isOn_; }
@@ -2880,6 +2901,7 @@ namespace ZufyUI {
     // ==================== 滚动容器（ScrollViewer） ====================
     class ScrollViewer : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Group; }
         // 默认样式（与稳定版一致）
         inline static float DefaultScrollBarWidth = 8.0f;
         inline static float DefaultScrollBarMinLength = 20.0f;
@@ -3376,6 +3398,11 @@ namespace ZufyUI {
     // ---------- 进度条 ----------
     class ProgressBar : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::ProgressBar; }
+        double GetAccessibleRangeValue() const override { return GetRangeValue(); }     // UIA RangeValue
+        void   SetAccessibleRangeValue(double v) override { SetRangeValue((float)v); }
+        double GetAccessibleRangeMin() const override { return min_; }
+        double GetAccessibleRangeMax() const override { return max_; }
         inline static float DefaultWidth = 200.0f;
         inline static float DefaultHeight = 20.0f;
         inline static D2D1_COLOR_F DefaultTrackColor = D2D1::ColorF(0.85f, 0.85f, 0.85f, 1.0f);
@@ -3549,6 +3576,12 @@ namespace ZufyUI {
     // ---------- 滑块 ----------
     class Slider : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Slider; }
+        double GetAccessibleRangeValue() const override { return value_; }              // UIA RangeValue
+        void   SetAccessibleRangeValue(double v) override { SetValue((float)v); }
+        double GetAccessibleRangeMin() const override { return min_; }
+        double GetAccessibleRangeMax() const override { return max_; }
+        double GetAccessibleRangeStep() const override { return step_; }
         inline static float DefaultWidth = 160.0f;
         inline static float DefaultHeight = 24.0f;
         inline static float DefaultTrackHeight = 4.0f;
@@ -3751,6 +3784,9 @@ namespace ZufyUI {
     // 同时提供静态 DrawBox()，供列表/表格/树等控件复用同一套视觉与动画。
     class CheckBox : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::CheckBox; }
+        int  GetAccessibleToggleState() const override { return IsChecked() ? 1 : 0; }   // UIA Toggle
+        void AccessibilityToggle() override { SetChecked(!IsChecked()); }
         enum class State { Unchecked, PartiallyChecked, Checked };
 
         inline static float DefaultSize = 16.0f;
@@ -3774,7 +3810,7 @@ namespace ZufyUI {
             bleed_ = 4.0f;
         }
 
-        void SetChecked(bool checked) { SetState(checked ? State::Checked : State::Unchecked); }
+        void SetChecked(bool checked) { SetState(checked ? State::Checked : State::Unchecked); AccessibilityNotifyPropertyChanged(); }
         bool IsChecked() const { return state_ == State::Checked; }
         State GetState() const { return state_; }
         void SetState(State s) {
@@ -3988,6 +4024,7 @@ namespace ZufyUI {
     // ============================================================================
     class RadioButton : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::RadioButton; }
         inline static float DefaultSize = 16.0f;
         inline static float DefaultAnimationSpeed = 9.0f;
         inline static float DefaultHoverSpeed = 10.0f;
@@ -4312,6 +4349,7 @@ namespace ZufyUI {
     // ============================================================================
     class TabView : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Tab; }
         struct Tab {
             std::shared_ptr<Label> label; // 页签标题就是一个 Label（自带图标、整体对齐等）
             std::shared_ptr<Page> page;   // 内容用 Page 承载（复用 PageHost 的过渡动画）
@@ -5127,6 +5165,7 @@ namespace ZufyUI {
     // ============================================================================
     class NumberBox : public UIElement {
     public:
+        AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Edit; }
         inline static float DefaultSpinWidth = 22.0f;
         inline static float DefaultHeight = 32.0f;
         inline static Color DefaultSpinBgColor = Color(0, 0, 0, 0.04f);

@@ -348,6 +348,50 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             grid2->AddChild(dlgRow, 7, 0, 1, 2);
         }
 
+        // 调试 / 无障碍 测试（调试默认关；只返回当前帧；库不写文件）
+        {
+            filterBox->SetAutomationId(L"filterBox");   // 供外部工具/自动化定位
+            auto dbgTitle = std::make_shared<Label>(L"调试/无障碍测试（调试默认关；外部工具向 ZufyUI_DispatcherWindow 发 WM_COPYDATA）");
+            dbgTitle->SetTextColor(Color::FromArgb(255, 40, 40, 40));
+            grid2->AddChild(dbgTitle, 9, 0, 1, 2);
+            auto dbgResult = std::make_shared<Label>(L"（调试关闭）");
+            dbgResult->SetTextColor(Color::FromArgb(255, 0, 100, 180));
+            grid2->AddChild(dbgResult, 11, 0, 1, 2);
+            auto dbgRow = std::make_shared<RowBox>();
+            dbgRow->SetSpacing(8.0f);
+            auto bDbg = std::make_shared<Button>(L"开/关调试通道");
+            bDbg->SetIcon(Icon::Settings);
+            bDbg->Connect(bDbg->Clicked, [dbgResult]() {
+                bool on = !ZufyUI::IsDebugEnabled();
+                ZufyUI::SetDebugEnabled(on);
+                dbgResult->SetText(on ? L"调试通道：已开启" : L"调试通道：已关闭");
+                });
+            auto bTree = std::make_shared<Button>(L"导出元素树");
+            bTree->SetIcon(Icon::AllApps);
+            bTree->Connect(bTree->Clicked, [w = &win, dbgResult]() {
+                std::wstring t = detail::DumpWindowTree(w);
+                dbgResult->SetText(L"元素树：" + std::to_wstring(t.size()) + L" 字符（已 OutputDebugString）");
+                ZufyUI_DEBUG_LOG_W(t.c_str());
+                });
+            auto bStats = std::make_shared<Button>(L"导出帧统计");
+            bStats->SetIcon(Icon::View);
+            bStats->Connect(bStats->Clicked, [w = &win, dbgResult]() {
+                ZufyUI::SetDebugEnabled(true);   // 采样需要开
+                dbgResult->SetText(detail::DumpFrameStats(w));
+                });
+            auto bFocus = std::make_shared<Button>(L"自动化:聚焦 filterBox");
+            bFocus->SetIcon(Icon::Edit);
+            bFocus->Connect(bFocus->Clicked, [dbgResult]() {
+                bool ok = detail::DebugFocusElement(L"filterBox");
+                dbgResult->SetText(ok ? L"已聚焦 filterBox" : L"未找到 filterBox");
+                });
+            dbgRow->AddChild(bDbg);
+            dbgRow->AddChild(bTree);
+            dbgRow->AddChild(bStats);
+            dbgRow->AddChild(bFocus);
+            grid2->AddChild(dbgRow, 10, 0, 1, 2);
+        }
+
         // 新特性：滚动条可见性 / 内边距 / 实例颜色 / 滚动事件
         scrollView->SetVerticalScrollBarVisibility(ScrollViewer::ScrollBarVisibility::Always);
         scrollView->SetContentMargin(Thickness(8, 8, 8, 8));
