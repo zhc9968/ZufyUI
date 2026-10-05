@@ -574,7 +574,7 @@ namespace ZufyUI {
             int need = last - first + 1; if (need < 0) need = 0;
             if ((int)pool_.size() < need) {
                 int old = (int)pool_.size();
-                pool_.resize(need); poolSrc_.resize(need, -1);
+                pool_.resize(need); poolSrc_.resize(need, -1); poolW_.resize(need, -1e30f);
                 for (int k = old; k < need; ++k) { pool_[k] = std::make_shared<Label>(); PreparePoolLabel(pool_[k]); pool_[k]->SetParent(const_cast<ListView*>(this)); }
             }
             for (int vi = first; vi <= last; ++vi) {
@@ -591,11 +591,9 @@ namespace ZufyUI {
                 int k = vi - first;
                 auto& lb = pool_[k];
                 if (!lb) continue;
-                if (poolSrc_[k] != src) {
-                    poolSrc_[k] = src;
-                    lb->SetTextFast(SourceText(src));   // 自身脏、不冒泡、不重绘
-                    lb->Measure(Size(w, itemHeight_));  // 必须重测（否则盒宽陈旧 → 省略号）
-                }
+                bool srcChanged = (poolSrc_[k] != src);
+                if (srcChanged) { poolSrc_[k] = src; lb->SetTextFast(SourceText(src)); }   // 自身脏、不冒泡、不重绘
+                if (srcChanged || poolW_[k] != w) { poolW_[k] = w; lb->Measure(Size(w, itemHeight_)); }   // 宽度变也要重测（否则盒宽陈旧 → 省略号错位）
                 {   // 颜色每帧设（Label::SetTextColor 颜色没变会短路）——修"颜色改了看不到"
                     auto cIt = rowTextColors_.find(src);
                     D2D1_COLOR_F tc = (cIt != rowTextColors_.end()) ? cIt->second : textColor_;
@@ -1292,6 +1290,7 @@ namespace ZufyUI {
         bool viewSortActive_ = false, viewSortAsc_ = true;
         mutable std::vector<std::shared_ptr<Label>> pool_;
         mutable std::vector<int> poolSrc_;            // 池槽 → 源行号
+        mutable std::vector<float> poolW_;            // 池槽 → 上次测量宽度（宽度变化时需重测）
         int selectedIndex_;
         int hoveredIndex_;
         float scrollOffsetY_;

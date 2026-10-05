@@ -2146,10 +2146,10 @@ namespace ZufyUI {
             case 12: DebugClearHighlight(); reply = L"OK\n"; break;
             case 13: reply = DumpErrors(); break;                              // 最近错误
             case 14: ClearErrors(); reply = L"OK\n"; break;                   // 清空错误
-            case 15: reply = DumpTopN(1, 20); break;                          // 重绘热点 Top-N
-            case 16: reply = DumpTopN(2, 20); break;                          // 布局风暴 Top-N
-            case 17: reply = DumpTopN(3, 20); break;                          // 缓存 Top-N
-            case 18: reply = DumpTopN(4, 20); break;                          // 绘制 Top-N
+            case 15: reply = DumpTopN(1, arg == L"all" ? 0 : 20); break;      // 重绘（all=全部）
+            case 16: reply = DumpTopN(2, arg == L"all" ? 0 : 20); break;      // 布局
+            case 17: reply = DumpTopN(3, arg == L"all" ? 0 : 20); break;      // 缓存
+            case 18: reply = DumpTopN(4, arg == L"all" ? 0 : 20); break;      // 绘制
             case 19: ResetDebugCounters(); reply = L"OK\n"; break;            // 重置调试计数
             case 22: {   // SetHighlightColor("RRGGBB") —— 高亮框颜色（拾取/高亮共用）
                 unsigned int c = (unsigned int)wcstoul(arg.c_str(), nullptr, 16);

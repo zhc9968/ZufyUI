@@ -58,8 +58,10 @@
 #include "ZufyUIAcrylic.h"   // 手写 DComp 效果类 + 官方亚克力/云母配方（需放在 namespace ZufyUI 之前）
 
 // 调试输出宏：默认关闭，定义 ZufyUI_DEBUG 后启用（不删除调试代码）
+//   启用后除 OutputDebugStringW 外，还会把调试日志并入「库日志缓冲」，可从调试通道（cmd 13）取回。
+namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   // 定义见下方 detail
 #ifdef ZufyUI_DEBUG
-#define ZufyUI_DEBUG_LOG_W(msg) OutputDebugStringW(msg)
+#define ZufyUI_DEBUG_LOG_W(msg) do { OutputDebugStringW(msg); ZufyUI::detail::DebugLog(msg); } while (0)
 #define ZufyUI_DEBUG_LOG_A(msg) OutputDebugStringA(msg)
 #else
 #define ZufyUI_DEBUG_LOG_W(msg) ((void)0)
@@ -525,6 +527,15 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 }
                 tlDepth++;
             }
+            // RAII：slot 抛异常时也必须把 tlDepth 还原（否则本线程后续 Fire 永久走重入分支、tlSnapshot 残留旧连接）
+            struct DepthGuard {
+                std::mutex* mtx; int* depth; std::vector<std::shared_ptr<ConnectionData>>* snap;
+                ~DepthGuard() {
+                    std::lock_guard<std::mutex> lock(*mtx);
+                    (*depth)--;
+                    if (*depth == 0) snap->clear();   // 释放最后一次快照持有的 shared_ptr
+                }
+            } depthGuard{ &mutex_, &tlDepth, &tlSnapshot };
 
             for (auto& data : *snapshot) {
                 if (!data || !data->state || !*(data->state->alive)) continue;
@@ -547,12 +558,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     break;
                 }
                 }
-            }
-
-            {
-                std::lock_guard<std::mutex> lock(mutex_);
-                tlDepth--;
-                if (tlDepth == 0) tlSnapshot.clear();   // 释放最后一次快照持有的 shared_ptr
             }
         }
 
@@ -866,23 +871,27 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     }
 
     namespace detail {
-        // 上报一个库内部错误：调试输出 + 触发 UIZSignals::Error。
-        // 最近错误缓冲（供调试通道 cmd 13 查询；最多 200 条）
+        // 统一库日志缓冲（供调试通道 cmd 13 查询；≤500 条）：
+        //   级别 E=错误 / W=警告 / I=重要信息 / D=调试（仅 ZufyUI_DEBUG 下由调试宏写入）
         inline std::vector<std::wstring>& ErrorLogStore() { static std::vector<std::wstring> v; return v; }
         inline std::mutex& ErrorLogMutex() { static std::mutex m; return m; }
-        inline void RecordError(const wchar_t* tag, const std::wstring& msg) {
+        inline void Log(char level, const wchar_t* tag, const std::wstring& msg) {
             SYSTEMTIME st; GetLocalTime(&st);
-            wchar_t ts[40];
-            swprintf(ts, 40, L"%02d:%02d:%02d.%03d", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+            wchar_t ts[64];
+            swprintf(ts, 64, L"%02d:%02d:%02d.%03d [%c] %s: ", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, level, tag);
             std::lock_guard<std::mutex> lk(ErrorLogMutex());
             auto& v = ErrorLogStore();
-            v.push_back(std::wstring(ts) + L" [" + tag + L"] " + msg);
-            if (v.size() > 200) v.erase(v.begin());
+            v.push_back(std::wstring(ts) + msg);
+            if (v.size() > 500) v.erase(v.begin());
         }
+        inline void RecordError(const wchar_t* tag, const std::wstring& msg) { Log('E', tag, msg); }
+        inline void LogWarning(const wchar_t* tag, const std::wstring& msg) { Log('W', tag, msg); }
+        inline void LogInfo(const wchar_t* tag, const std::wstring& msg) { Log('I', tag, msg); }
+        inline void DebugLog(const wchar_t* msg) { if (msg && *msg) Log('D', L"Debug", msg); }
         inline std::wstring DumpErrors() {
             std::lock_guard<std::mutex> lk(ErrorLogMutex());
             auto& v = ErrorLogStore();
-            if (v.empty()) return L"(无错误记录)\n";
+            if (v.empty()) return L"(无日志)\n";
             std::wstring s;
             for (auto& e : v) { s += e; s += L'\n'; }
             return s;
@@ -890,7 +899,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         inline void ClearErrors() { std::lock_guard<std::mutex> lk(ErrorLogMutex()); ErrorLogStore().clear(); }
         inline void ReportError(const std::wstring& msg) {
             ZufyUI_DEBUG_LOG_W(msg.c_str());
-            RecordError(L"Error", msg);
+            Log('E', L"Error", msg);
             UIZSignals::Error.Fire(msg);
         }
         // UIA：处理 WM_GETOBJECT（定义在 ZufyUIWindowTool.h，需完整 Window/UIElement 类型）
@@ -1056,7 +1065,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // ---------- 缓存相关（新增） ----------
         // 控件可重写此方法声明不使用离屏缓存（如动画频繁的控件）
         virtual bool UseCache() const { return useCache_; }
-        void SetUseCache(bool use) { useCache_ = use; }
+        void SetUseCache(bool use) { if (useCache_ && !use) { cacheBitmap_.Reset(); cacheValid_ = false; } useCache_ = use; }
 
         // 获取元素需要应用于其子元素的裁剪矩形，返回 std::nullopt 表示不裁剪
         virtual std::optional<D2D1_RECT_F> GetClipRect() const {
@@ -1103,9 +1112,16 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             cacheBitmap_.Reset();
             cacheValid_ = false;
         }
+        // 递归释放自身及整棵子树的设备资源（隐藏页/设备丢失时用；基类 ReleaseDeviceResources 只释放自身）
+        void ReleaseDeviceResourcesRecursive() {
+            ReleaseDeviceResources();
+            for (UIElement* c : GetChildren()) if (c) c->ReleaseDeviceResourcesRecursive();
+        }
 
         // 类型判断辅助
         virtual bool IsTextInput() const { return false; }
+        // 是否要自己消费 Tab 键（多行编辑器：Tab 缩进而非切换焦点）
+        virtual bool AcceptsTab() const { return false; }
 
         virtual D2D1::Matrix3x2F GetChildRenderTransform(UIElement* child) const {
             return D2D1::Matrix3x2F::Identity();
@@ -2275,6 +2291,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             auto _rg = GuardRender();
             if (!page) return;
             pages_.push_back(page);
+            hiddenAt_.push_back(0.0);
             page->SetParent(this);
             if (currentIndex_ == -1) currentIndex_ = 0;
             InvalidateLayout();
@@ -2283,6 +2300,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             auto _rg = GuardRender();
             if (index < 0 || index >= (int)pages_.size()) return;
             pages_.erase(pages_.begin() + index);
+            if (index < (int)hiddenAt_.size()) hiddenAt_.erase(hiddenAt_.begin() + index);
             if (pages_.empty()) currentIndex_ = -1;
             else if (currentIndex_ > index) currentIndex_--;
             else if (currentIndex_ == index) currentIndex_ = min(index, (int)pages_.size() - 1);
@@ -2292,7 +2310,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
         void ClearPages() {
             auto _rg = GuardRender();
-            pages_.clear(); currentIndex_ = -1;
+            pages_.clear(); hiddenAt_.clear(); currentIndex_ = -1;
             animating_ = false; fromIndex_ = -1; toIndex_ = -1;
             MarkChildrenDirty();
             InvalidateLayout();
@@ -2471,12 +2489,20 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 if (!pages_[i]) continue;
                 bool shouldBeVisible = ((int)i == currentIndex_) ||
                     (animating_ && ((int)i == fromIndex_ || (int)i == toIndex_));
-                bool wasVisible = pages_[i]->IsVisible();
                 pages_[i]->SetVisibleNoInvalidate(shouldBeVisible);   // page 填满 host，可见性不影响布局
-                // 关键：释放时机从"过渡完成那一帧"(高频切换时 animProgress_ 被反复重置、justFinished 永不触发 → 从不释放)
-                // 改为"任何页由可见变不可见的那一帧"，避免隐藏页的离屏缓存无限累积。
-                if (wasVisible && !shouldBeVisible) pages_[i]->ReleaseDeviceResources();
-                // 注：释放只在"可见→不可见那一帧"做一次（原 justFinished 分支重复释放已移除）。
+                // 隐藏页的离屏缓存**延迟释放**：短时间内又被切回来则直接复用，避免高频切换不停
+                // "建位图→删位图"造成的内存增长（D2D/DXGI 释放本身有延迟）。隐藏超过 grace 后一次性释放。
+                if (hiddenAt_.size() != pages_.size()) hiddenAt_.resize(pages_.size(), 0.0);
+                if (shouldBeVisible) {
+                    hiddenAt_[i] = 0.0;
+                }
+                else if (hiddenAt_[i] == 0.0) {
+                    hiddenAt_[i] = (double)GetTickCount64();
+                }
+                else if (hiddenAt_[i] > 0.0 && (double)GetTickCount64() - hiddenAt_[i] > 1200.0) {
+                    pages_[i]->ReleaseDeviceResourcesRecursive();
+                    hiddenAt_[i] = -1.0;   // 标记已释放；下次可见时重置为 0 重建
+                }
             }
         }
 
@@ -2493,7 +2519,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         void ReleaseDeviceResources() override {
             UIElement::ReleaseDeviceResources();
-            for (auto& page : pages_) page->ReleaseDeviceResources();
+            for (auto& page : pages_) page->ReleaseDeviceResourcesRecursive();
         }
 
         D2D1::Matrix3x2F GetChildRenderTransform(UIElement* child) const override {
@@ -2540,6 +2566,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
         }
         std::vector<std::shared_ptr<Page>> pages_;
+        std::vector<double> hiddenAt_;   // 每页隐藏时刻(ms)：0=可见，>0=隐藏计时中，-1=已释放
         int currentIndex_;
         bool animating_;
         float animProgress_;
@@ -3089,6 +3116,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
             dpi_ = GetDpiForWindow(hwnd_);
             if (dpi_ == 0) dpi_ = 96;
+            SetGlobalDpiScale(dpi_ / 96.0f);   // UI 线程也用同一 DPI 上下文：否则 UI 侧 Snap 命中测试与渲染吸附不一致
             { RECT rc0; GetClientRect(hwnd_, &rc0);   // WM_SIZE 守卫的初始尺寸（必须在窗口创建后取）
               lastClientW_ = (UINT)(rc0.right - rc0.left); lastClientH_ = (UINT)(rc0.bottom - rc0.top); }
 
@@ -3104,6 +3132,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 #endif
 
             id_ = core_->RegisterWindow(this);
+            detail::LogInfo(L"Window", L"created hwnd=0x" + std::to_wstring((unsigned long long)(uintptr_t)hwnd_) + L"  \"" + title + L"\"");
+#if ZUFYUI_RENDER_THREAD
+            detail::LogWarning(L"Window", L"render-thread mode enabled (experimental / unstable)");
+#endif
 
             if (WantDwmChrome()) {
                 ApplyBackdrop();
@@ -3932,7 +3964,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
                     IMECHARPOSITION* pCharPos = reinterpret_cast<IMECHARPOSITION*>(lParam);
                     pCharPos->pt = pt;
-                    pCharPos->cLineHeight = static_cast<DWORD>(focusedElement_->GetArrangedRect().height * scale);
+                    pCharPos->cLineHeight = static_cast<DWORD>(caretRect.height * scale);   // 光标所在「行高」（TextBox=整框高；多行控件=该行高），别用整块控件高度
                     pCharPos->rcDocument = { 0, 0, 0, 0 };
                     return 1;
                 }
@@ -4093,6 +4125,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 std::lock_guard<std::recursive_mutex> _dpiLock(renderLock_);
 #endif
                 dpi_ = HIWORD(wParam); if (dpi_ == 0) dpi_ = 96;                // DPI 变了必须整条渲染链重建：D2D 上下文 + DComp 目标/visual 树 + 交换链。
+                SetGlobalDpiScale(dpi_ / 96.0f);
                 // 只重建 renderTarget_ 的话，swapChain_/contentVisual_ 等仍是 nullptr，
                 // OnPaint 会在 EnsureSwapBackBuffer() 直接失败 → 一帧都不画，客户区变全透明
                 //（命中测试/DWM 边框与渲染链无关，所以看起来"窗口还活着"）。
@@ -4223,7 +4256,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                         return 0;
                     }
                 }
-                if (wParam == VK_TAB) { detail::CloseAllOpenMenus(); MoveFocusByTab((GetKeyState(VK_SHIFT) & 0x8000) != 0); return 0; }
+                    if (wParam == VK_TAB) {
+                        // 多行编辑器等：Tab 交给控件自己（缩进），不切换焦点
+                        if (focusedElement_ && focusedElement_->AcceptsTab() && focusedElement_->IsEffectivelyEnabled()) { focusedElement_->OnKeyDown(wParam, lParam); return 0; }
+                        detail::CloseAllOpenMenus(); MoveFocusByTab((GetKeyState(VK_SHIFT) & 0x8000) != 0); return 0;
+                    }
                 if (focusedElement_ && focusedElement_->IsEffectivelyEnabled()) focusedElement_->OnKeyDown(wParam, lParam);
                 return 0;
             case WM_KEYUP: if (focusedElement_) focusedElement_->OnKeyUp(wParam, lParam); return 0;
@@ -5730,6 +5767,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 float clientHeightDip = (rc.bottom - rc.top) * 96.0f / dpi_;
                 Thickness rootMargin = rootElement_->GetMargin();
                 float left = rootMargin.left, top = rootMargin.top;
+                if (customTitleBar_ && titleBarVisible_) top += customTitleBarHeight_;   // 与 AdvanceFrame 一致，别让 IME 触发的重排漏掉标题栏高度
                 float availWidth = clientWidthDip - left - rootMargin.right;
                 float availHeight = clientHeightDip - top - rootMargin.bottom;
                 rootElement_->Measure(Size(availWidth, availHeight));

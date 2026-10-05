@@ -1113,7 +1113,7 @@ namespace ZufyUI {
             int pos = GetCharIndexFromX(x - arrangedRect_.x - 5 + scrollX_);
             bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
             cursorPos_ = pos;
-            if (shift && selectionStart_ != selectionEnd_) {
+            if (shift) {   // shift 点击一律从锚点扩展到新位置（即使当前无选区，也扩展自上一次光标/锚点），与 Windows 一致
                 selectionStart_ = min(selectionAnchor_, pos);
                 selectionEnd_ = max(selectionAnchor_, pos);
             }
@@ -2762,8 +2762,8 @@ namespace ZufyUI {
             Rect hot(r.x - hitExtra_, r.y - hitExtra_, r.width + hitExtra_ * 2, r.height + hitExtra_ * 2);
             return hot.Contains(x, y) ? this : nullptr;
         }
-        void OnMouseEnter() override { hovering_ = true; MarkActive(); RequestRepaint(); }
-        void OnMouseLeave() override { hovering_ = false; MarkActive(); if (!dragging_) RequestRepaint(); }
+        void OnMouseEnter() override { hovering_ = true; MarkActive(); RequestRepaint(); RepaintHost(); }
+        void OnMouseLeave() override { hovering_ = false; MarkActive(); if (!dragging_) { RequestRepaint(); RepaintHost(); } }
         void OnMouseDown(float x, float y) override {
             MarkActive();
             Rect r = GetArrangedRect();
@@ -2799,22 +2799,20 @@ namespace ZufyUI {
             if (fabs(ht - hoverProgress_) > 0.001f) {
                 hoverProgress_ += (ht - hoverProgress_) * min(1.0f, animSpeed_ * dt);
                 if (fabs(ht - hoverProgress_) < 0.001f) hoverProgress_ = ht;
-                RequestRepaint();
+                RequestRepaint(); RepaintHost();
             }
             float st = ShrinkTarget();
             if (fabs(st - shrinkProgress_) > 0.001f) {
                 shrinkProgress_ += (st - shrinkProgress_) * min(1.0f, animSpeed_ * dt);
                 if (fabs(st - shrinkProgress_) < 0.001f) shrinkProgress_ = st;
-                RequestRepaint();
+                RequestRepaint(); RepaintHost();
             }
         }
         bool HasActiveAnimation() const override {
             if (hovering_ ? hoverProgress_ < 0.999f : hoverProgress_ > 0.001f) return true;
             if (fabs(ShrinkTarget() - shrinkProgress_) > 0.001f) return true;
-            if (autoShrink_ && !hovering_ && shrinkProgress_ < 0.999f) {
-                double now = (double)GetTickCount64();
-                if (now - lastActive_ < (double)idleDelay_ * 1000.0) return true;   // 空闲倒计时期间保持活跃
-            }
+            // 注意：**不要**把"空闲等待缩小"的倒计时也算作活跃动画。否则整个窗口会被顶进"动画模式"
+            // 长达 idleDelay 秒，期间数据重绘不落屏（折线图等会卡住）。空闲缩小改为惰性：到点后由下一帧触发。
             return false;
         }
         void Draw(ID2D1RenderTarget* rt) override {
@@ -2869,6 +2867,7 @@ namespace ZufyUI {
 
     private:
         void Fire(float v, bool animate) { value_ = v; if (ValueChanged) ValueChanged(v, animate); RequestRepaint(); }
+        void RepaintHost() { if (UIElement* p = GetParent()) p->RequestRepaint(); }   // 让宿主重画被滚动条扩张/收缩覆盖的区域
         float ThumbLength(float total) const {
             if (maxValue_ <= 0.0f) return total;
             return max(minLength_, total * (total / (maxValue_ + total)));
@@ -2902,6 +2901,7 @@ namespace ZufyUI {
     class ScrollViewer : public UIElement {
     public:
         AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Group; }
+        bool UseCache() const override { return false; }   // 内容常变/可滚动：不做离屏缓存，避免大位图常驻与失效重画
         // 默认样式（与稳定版一致）
         inline static float DefaultScrollBarWidth = 8.0f;
         inline static float DefaultScrollBarMinLength = 20.0f;
@@ -3749,6 +3749,7 @@ namespace ZufyUI {
 
     private:
         void UpdateValueFromMouse(float mouseX) {
+            if (arrangedRect_.width <= 0.0f) return;   // 防 0/0 → NaN → 静默把值设成 min/max
             float ratio = clamp((mouseX - arrangedRect_.x) / arrangedRect_.width, 0.0f, 1.0f);
             float newValue = SnapValue(min_ + (max_ - min_) * ratio);
             if (newValue != value_) {
@@ -5691,6 +5692,862 @@ namespace ZufyUI {
         Rect splitterRect_{};
         Color splitterColor_, hoverColor_;
         ComPtr<ID2D1SolidColorBrush> splitterBrush_, gripBrush_;
+    };
+
+    // ============================================================================
+    // TextEdit —— 多行文本编辑器 / 查看器（对标 Qt 的 QPlainTextEdit / QTextEdit）
+    //   * 多行、可选行号、可选换行、Tab 缩进（空格数）、只读模式
+    //   * 跨行选择、光标（按 行/列 或 字符索引）、剪贴板、撤销/重做、查找
+    //   * 字体 / 颜色（正文 / 背景 / 选择 / 行号 / 当前行 / 光标）
+    //   * 只读富文本：SetRichText（每行若干 Run，可各自字体/颜色/下划线）
+    // ============================================================================
+    struct TextRun {
+        std::wstring text;
+        FontSpec font;                                     // 空 familyName 用基字体
+        Color color = Color::FromArgb(255, 30, 30, 30);
+        bool underline = false;
+    };
+
+    class TextEdit : public UIElement {
+    public:
+        AccessibleRole DefaultAccessibleRole() const override { return readOnly_ ? AccessibleRole::Document : AccessibleRole::Edit; }
+        std::wstring DefaultAccessibleName() const override { return placeholder_.empty() ? L"TextEdit" : placeholder_; }
+        std::wstring GetAccessibleValue() const override { return ToPlainText(); }
+        void SetAccessibleValue(const std::wstring& s) override { if (!readOnly_) SetPlainText(s); }
+        bool IsAccessibleReadOnly() const override { return readOnly_; }
+
+        enum class WrapMode { NoWrap, WidgetWidth };
+
+        inline static FontSpec DefaultFont = [] { FontSpec s; s.familyName = L"Consolas"; s.size = 14.0f; return s; }();
+        inline static float DefaultWidth = 320.0f;
+        inline static float DefaultHeight = 160.0f;
+        inline static Color DefaultTextColor = Color::FromArgb(255, 30, 30, 30);
+        inline static Color DefaultBgColor = Color::FromArgb(255, 255, 255, 255);
+        inline static Color DefaultSelectionColor = Color::FromArgb(120, 0, 120, 215);
+        inline static Color DefaultGutterTextColor = Color::FromArgb(255, 130, 130, 130);
+        inline static Color DefaultGutterBgColor = Color::FromArgb(255, 245, 245, 245);
+        inline static Color DefaultCurrentLineColor = Color::FromArgb(30, 0, 120, 215);
+        inline static Color DefaultCursorColor = Color::FromArgb(255, 20, 20, 20);
+        inline static Color DefaultBorderColor = Color::FromArgb(255, 210, 210, 210);
+        inline static float DefaultTabSize = 4.0f;
+
+        ZSignal<const std::wstring&> TextChanged;
+        ZSignal<int, int> CursorPositionChanged;   // (line, column)
+        ZSignal<> SelectionChanged;
+
+        TextEdit() {
+            width_ = DefaultWidth; height_ = DefaultHeight;
+            baseFont_ = DefaultFont;
+            RebuildLines();
+            // 复用库里的 ScrollBar（不自己造滚动条）
+            vBar_ = std::make_shared<ScrollBar>(true);
+            vBar_->SetParent(this); vBar_->SetBarWidth(barW_); vBar_->SetMinLength(20.0f); vBar_->SetHitExtra(4.0f);
+            vBar_->SetColors(D2D1::ColorF(0.55f, 0.55f, 0.55f, 0.9f), D2D1::ColorF(0.35f, 0.35f, 0.35f, 1.0f), D2D1::ColorF(0, 0, 0, 0));
+            vBar_->ValueChanged = [this](float v, bool animate) { if (animate) targetScrollY_ = v; else { scrollY_ = targetScrollY_ = v; } RequestRepaint(); };
+            hBar_ = std::make_shared<ScrollBar>(false);
+            hBar_->SetParent(this); hBar_->SetBarWidth(barW_); hBar_->SetMinLength(20.0f); hBar_->SetHitExtra(4.0f);
+            hBar_->SetColors(D2D1::ColorF(0.55f, 0.55f, 0.55f, 0.9f), D2D1::ColorF(0.35f, 0.35f, 0.35f, 1.0f), D2D1::ColorF(0, 0, 0, 0));
+            hBar_->ValueChanged = [this](float v, bool animate) { if (animate) targetScrollX_ = v; else { scrollX_ = targetScrollX_ = v; } RequestRepaint(); };
+        }
+
+        // ---------- 文本 ----------
+        std::wstring ToPlainText() const { return text_; }
+        std::wstring GetText() const { return text_; }
+        void SetPlainText(const std::wstring& t) {
+            text_ = Normalize(t);
+            ClampCursor();
+            RebuildLines(); InvalidateMetrics(); InvalidateLayout();
+            ClearUndoHistory();
+            TextChanged(text_); SelectionChanged(); NotifyCursor();
+            RequestRepaint();
+        }
+        void SetText(const std::wstring& t) { SetPlainText(t); }
+        void Clear() { SetPlainText(L""); }
+        void AppendPlainText(const std::wstring& t) {
+            if (t.empty()) return;
+            int n = (int)text_.size();
+            std::wstring add = Normalize(t);
+            bool needNl = !text_.empty() && text_.back() != L'\n';
+            InsertAt(n, (needNl ? L"\n" : L"") + add);
+        }
+        void InsertPlainText(const std::wstring& t) { if (!readOnly_) InsertAt(cursorPos_, Normalize(t)); }
+        void SetPlaceholder(const std::wstring& p) { placeholder_ = p; RequestRepaint(); }
+
+        // ---------- 只读富文本 ----------
+        void SetRichText(const std::vector<std::vector<TextRun>>& lines) {
+            rich_ = lines;
+            std::wstring t;
+            for (size_t i = 0; i < rich_.size(); ++i) { for (auto& r : rich_[i]) t += r.text; if (i + 1 < rich_.size()) t += L'\n'; }
+            text_ = t;
+            readOnly_ = true;                          // 富文本按只读处理
+            cursorPos_ = selStart_ = selEnd_ = selAnchor_ = 0;
+            RebuildLines(); InvalidateMetrics(); InvalidateLayout();
+            ClearUndoHistory(); NotifyCursor(); RequestRepaint();
+        }
+        void ClearRichText() { if (!rich_.empty()) { rich_.clear(); RebuildLines(); InvalidateMetrics(); RequestRepaint(); } }
+        bool IsRich() const { return !rich_.empty(); }
+
+        // ---------- 光标 / 选择（字符索引）----------
+        int GetCursorPosition() const { return cursorPos_; }
+        void SetCursorPosition(int pos) { SetCursorImpl(Clamp(pos, 0, (int)text_.size()), false); }
+        int GetSelectionStart() const { return selStart_; }
+        int GetSelectionEnd() const { return selEnd_; }
+        bool HasSelection() const { return selStart_ != selEnd_; }
+        void SetSelection(int a, int b) {
+            int n = (int)text_.size(); a = Clamp(a, 0, n); b = Clamp(b, 0, n);
+            selStart_ = min(a, b); selEnd_ = max(a, b); cursorPos_ = b; selAnchor_ = a;
+            SelectionChanged(); NotifyCursor(); EnsureCursorVisible(); RequestRepaint();
+        }
+        std::wstring GetSelectedText() const { if (selStart_ == selEnd_) return L""; return text_.substr(selStart_, selEnd_ - selStart_); }
+        // 行/列 API
+        int LineCount() const { return (int)lineOffsets_.size(); }
+        int GetCursorLine() const { return LineOfPos(cursorPos_); }
+        int GetCursorColumn() const { return cursorPos_ - LineStart(LineOfPos(cursorPos_)); }
+        void SetCursorLineColumn(int line, int col) { line = Clamp(line, 0, LineCount() - 1); SetCursorPosition(PosFromLineCol(line, col)); }
+        void SelectAll() { if (text_.empty()) return; selAnchor_ = 0; selStart_ = 0; selEnd_ = (int)text_.size(); cursorPos_ = selEnd_; SelectionChanged(); NotifyCursor(); EnsureCursorVisible(); RequestRepaint(); }
+        void SelectLine(int line) { if (line < 0 || line >= LineCount()) return; SetSelection(LineStart(line), PosFromLineCol(line, LineLen(line))); }
+        void SelectWordAt(int pos) { int a, b; WordBounds(pos, a, b); SetSelection(a, b); }
+        void Deselect() { selStart_ = selEnd_ = cursorPos_; selAnchor_ = cursorPos_; SelectionChanged(); RequestRepaint(); }
+
+        // ---------- 配置 ----------
+        void SetReadOnly(bool ro) { if (readOnly_ != ro) { readOnly_ = ro; RequestRepaint(); } }
+        bool IsReadOnly() const { return readOnly_; }
+        void SetShowLineNumbers(bool on) { showLineNumbers_ = on; InvalidateLayout(); RequestRepaint(); }
+        bool IsShowLineNumbers() const { return showLineNumbers_; }
+        void SetShowNewlines(bool on) { showNewlines_ = on; RequestRepaint(); }   // 显示行尾换行符（¶/↵）
+        bool IsShowNewlines() const { return showNewlines_; }
+        void SetWrapMode(WrapMode m) { if (wrapMode_ != m) { wrapMode_ = m; ClearLineLayouts(); InvalidateMetrics(); InvalidateLayout(); RequestRepaint(); } }
+        WrapMode GetWrapMode() const { return wrapMode_; }
+        void SetTabSize(int spaces) { tabSize_ = (spaces < 1 ? 1 : (spaces > 16 ? 16 : spaces)); RequestRepaint(); }
+        int GetTabSize() const { return tabSize_; }
+        void SetInsertSpaces(bool on) { insertSpaces_ = on; }
+        void SetBaseFont(const FontSpec& f) { baseFont_ = f; spaceW_ = 0; lineSpacingH_ = 0; InvalidateMetrics(); InvalidateLayout(); RequestRepaint(); }
+        FontSpec GetBaseFont() const { return baseFont_; }
+        void SetTextColor(Color c) { textColor_ = c; InvalidateMetrics(); RequestRepaint(); }
+        void SetBackgroundColor(Color c) { bgColor_ = c; RequestRepaint(); }
+        void SetSelectionColor(Color c) { selectionColor_ = c; RequestRepaint(); }
+        void SetGutterTextColor(Color c) { gutterTextColor_ = c; RequestRepaint(); }
+        void SetGutterBackgroundColor(Color c) { gutterBgColor_ = c; RequestRepaint(); }
+        void SetCurrentLineColor(Color c) { currentLineColor_ = c; RequestRepaint(); }
+        void SetShowCurrentLine(bool on) { showCurrentLine_ = on; RequestRepaint(); }
+        void SetCursorColor(Color c) { cursorColor_ = c; RequestRepaint(); }
+        void SetBorderColor(Color c) { borderColor_ = c; RequestRepaint(); }
+        void SetCornerRadius(float r) { cornerRadius_ = max(0.0f, r); RequestRepaint(); }
+        void SetCursorBlinkInterval(float s) { blinkInterval_ = s; }
+
+        // ---------- 操作 ----------
+        void Undo() {
+            if (undoIndex_ <= 0) return;
+            --undoIndex_;
+            ApplySnapshot(undoStack_[undoIndex_]);
+        }
+        void Redo() {
+            if (undoIndex_ + 1 >= (int)undoStack_.size()) return;
+            ++undoIndex_;
+            ApplySnapshot(undoStack_[undoIndex_]);
+        }
+        void ClearUndoHistory() { undoStack_.clear(); undoStack_.push_back(Snapshot()); undoIndex_ = 0; }
+        void Copy() { std::wstring s = GetSelectedText(); if (s.empty()) return; SetClipboard(s); }
+        void Cut() { if (readOnly_) return; std::wstring s = GetSelectedText(); if (s.empty()) return; SetClipboard(s); DeleteSelection(); }
+        void Paste() {
+            if (readOnly_) return;
+            std::wstring s = GetClipboard();
+            if (s.empty()) return;
+            if (HasSelection()) DeleteSelection();
+            InsertAt(cursorPos_, Normalize(s));
+        }
+        bool Find(const std::wstring& what, bool forward = true, bool matchCase = false) {
+            if (what.empty()) return false;
+            std::wstring hay = text_, needle = what;
+            if (!matchCase) { for (auto& c : hay) c = LowerW(c); for (auto& c : needle) c = LowerW(c); }
+            int from = forward ? (HasSelection() ? selEnd_ : cursorPos_) : (HasSelection() ? selStart_ - 1 : cursorPos_ - 1);
+            size_t pos;
+            if (forward) pos = hay.find(needle, (size_t)clamp(from, 0, (int)hay.size()));
+            else { pos = hay.rfind(needle, from < 0 ? std::wstring::npos : (size_t)from); }
+            if (pos == std::wstring::npos) return false;
+            SetSelection((int)pos, (int)pos + (int)what.size());
+            return true;
+        }
+        void EnsureCursorVisible() { EnsureVisible_ = true; }
+        float GetScrollOffsetY() const { return scrollY_; }
+        void SetScrollOffsetY(float v) { scrollY_ = v; ClampScroll(); RequestRepaint(); }
+
+        // ---------- UIElement ----------
+        float GetDefaultHorizontalStretchWeight() const override { return 1.0f; }
+        float GetDefaultVerticalStretchWeight() const override { return 1.0f; }
+        std::optional<FontSpec> GetTypeDefaultFont() const override { return baseFont_; }
+        bool IsFocusable() const override { return true; }
+        bool IsTextInput() const override { return !readOnly_; }
+        bool AcceptsTab() const override { return !readOnly_; }   // Tab 用来缩进，不切换焦点
+        bool UseCache() const override { return false; }   // 内容随时变 + 要读 DWrite layout：不走元素缓存（同 Label/ScrollViewer）
+        float CompositionPrefixW() {
+            if (compositionText_.empty()) return 0.0f;
+            IDWriteFactory* f = FontManager::Instance().GetFactory();
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(baseFont_);
+            if (!f || !fmt) return 0.0f;
+            ComPtr<IDWriteTextLayout> cl;
+            if (FAILED(f->CreateTextLayout(compositionText_.c_str(), (UINT32)compositionText_.size(), fmt, 1.0e6f, 1.0e4f, &cl)) || !cl) return 0.0f;
+            float cx = 0, cy = 0; DWRITE_HIT_TEST_METRICS hm{};
+            cl->HitTestTextPosition((UINT32)Clamp(compositionCursorPos_, 0, (int)compositionText_.size()), false, &cx, &cy, &hm);
+            return cx;
+        }
+        Rect GetImeCandidateRect() const override {   // 口径与 TextBox 一致（DIP、元素坐标原点）
+            TextEdit* self = const_cast<TextEdit*>(this);
+            self->EnsureMetrics();
+            int l = LineOfPos(cursorPos_), col = cursorPos_ - LineStart(l);
+            float x = arrangedRect_.x + GutterWidth() + 4.0f - scrollX_;
+            float y = arrangedRect_.y + 2.0f - scrollY_ + (l < (int)self->lineY_.size() ? self->lineY_[l] : 0.0f);
+            float h = (l < (int)self->lineH_.size() ? self->lineH_[l] : baseFont_.size * 1.4f);
+            if (IDWriteTextLayout* lay = self->BuildLine(l)) {
+                float px = 0, py = 0; DWRITE_HIT_TEST_METRICS hm{};
+                if (SUCCEEDED(lay->HitTestTextPosition((UINT32)col, false, &px, &py, &hm))) { x += px; y += py; }
+            }
+            x += self->CompositionPrefixW();
+            return Rect(x, y, 1.0f, h);
+        }
+        Size MeasureOverride(const Size& availableSize) override { return Size(width_, height_); }
+
+        float ViewW() const { return max(0.0f, arrangedRect_.width - (vBarVisible_ ? barW_ : 0.0f)); }
+        float ViewH() const { return max(0.0f, arrangedRect_.height - (hBarVisible_ ? barW_ : 0.0f)); }
+        float ContentViewW() const { return max(0.0f, ViewW() - GutterWidth() - 8.0f); }
+
+        UIElement* HitTest(float x, float y) override {
+            if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
+            if (vBar_ && vBar_->IsVisible() && vBar_->HitTest(x, y)) return vBar_.get();
+            if (hBar_ && hBar_->IsVisible() && hBar_->HitTest(x, y)) return hBar_.get();
+            return this;
+        }
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
+            childrenDirty_ = false;
+            childrenView_.clear();
+            if (vBar_) childrenView_.push_back(vBar_.get());
+            if (hBar_) childrenView_.push_back(hBar_.get());
+        }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
+        void AttachWindowRecursive(Window* w) override {
+            windowId_ = WindowIdOf(w);
+            if (vBar_) vBar_->AttachWindowRecursive(w);
+            if (hBar_) hBar_->AttachWindowRecursive(w);
+        }
+
+        void ArrangeOverride(const Rect& finalRect) override {
+            UIElement::ArrangeOverride(finalRect);
+            // 估计滚动条可见性 → 据此算换行宽度并重建度量（吃满布局对 wrap 有影响）
+            vBarVisible_ = (contentH_ > finalRect.height - 4.0f);
+            hBarVisible_ = (wrapMode_ == WrapMode::NoWrap) && (contentW_ > finalRect.width - (vBarVisible_ ? barW_ : 0.0f) - GutterWidth() - 8.0f);
+            float newWrapW = max(8.0f, finalRect.width - (vBarVisible_ ? barW_ : 0.0f) - GutterWidth() - 8.0f);
+            if (fabs(newWrapW - wrapWidth_) > 0.01f) {   // 尺寸变化 → 换行宽度变了 → 每行布局必须重建，否则换行不更新
+                wrapWidth_ = newWrapW;
+                for (auto& e : lineCache_) { e.layout.Reset(); e.height = 0; e.width = 0; }
+            }
+            InvalidateMetrics();
+            EnsureMetrics();
+            SyncBars(finalRect);
+        }
+
+        void Draw(ID2D1RenderTarget* rt) override {
+            if (!visible_) return;
+            EnsureMetrics();
+            SyncBars(arrangedRect_);   // 内容变了（不改尺寸）时也更新滚动条
+            D2D1_RECT_F box = arrangedRect_.ToD2D();
+            float gutter = GutterWidth();
+            D2D1_ROUNDED_RECT rbox = D2D1::RoundedRect(box, cornerRadius_, cornerRadius_);
+
+            // 圆角裁剪层：把背景 / 行号栏 / 正文统一裁成圆角
+            ComPtr<ID2D1Factory> factory; rt->GetFactory(&factory);
+            ComPtr<ID2D1RoundedRectangleGeometry> geo;
+            if (factory) factory->CreateRoundedRectangleGeometry(rbox, geo.GetAddressOf());
+            bool layered = false;
+            if (geo) {
+                D2D1_LAYER_PARAMETERS lp = D2D1::LayerParameters(D2D1::InfiniteRect(), geo.Get(), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+                rt->PushLayer(&lp, nullptr); layered = true;
+            }
+
+            // 背景 + 行号栏
+            Fill(rt, box, bgColor_, bgBrush_);
+            if (showLineNumbers_ && gutter > 0) Fill(rt, D2D1::RectF(box.left, box.top, box.left + gutter, box.bottom), gutterBgColor_, gutterBrush_);
+
+            D2D1_RECT_F clip = D2D1::RectF(box.left + gutter, box.top, box.left + ViewW(), box.top + ViewH());
+            rt->PushAxisAlignedClip(clip, D2D1_ANTIALIAS_MODE_ALIASED);
+            float originX = box.left + gutter + 4.0f - scrollX_;
+            float originY = box.top + 2.0f - scrollY_;
+
+            // 当前行高亮（默认关；按需 SetShowCurrentLine(true)）
+            if (showCurrentLine_ && focused_) {
+                int cl = LineOfPos(cursorPos_);
+                float y = originY + lineY_[cl];
+                Fill(rt, D2D1::RectF(box.left + gutter, y, box.right, y + lineH_[cl]), currentLineColor_, curLineBrush_);
+            }
+            // 选择
+            if (selStart_ != selEnd_) {
+                Fill(rt, D2D1::RectF(0, 0, 0, 0), selectionColor_, selectionBrush_);
+                int l0 = LineOfPos(selStart_), l1 = LineOfPos(selEnd_);
+                std::vector<DWRITE_HIT_TEST_METRICS> hm(256);
+                for (int l = l0; l <= l1; ++l) {
+                    IDWriteTextLayout* lay = BuildLine(l); if (!lay) continue;
+                    int ls = LineStart(l), le = LineEnd(l);
+                    float ly = originY + lineY_[l];
+                    if (l + 1 < LineCount() && selStart_ <= le && selEnd_ > le) {   // 行尾换行符被选中 → 画换行单元（可选中）
+                        float ex = 0, ey = 0; DWRITE_HIT_TEST_METRICS ehm{};
+                        if (SUCCEEDED(lay->HitTestTextPosition((UINT32)(le - ls), false, &ex, &ey, &ehm))) {
+                            float eh = (ehm.height > 0 ? ehm.height : LineH());   // 落在换行后的那一视觉行（用 +ey）
+                            if (selectionBrush_) rt->FillRectangle(D2D1::RectF(originX + ex, ly + ey, originX + ex + SpaceW(), ly + ey + eh), selectionBrush_.Get());
+                        }
+                    }
+                    int a = max(selStart_, ls), b = min(selEnd_, le);
+                    if (b <= a) continue;
+                    UINT32 cnt = 0;
+                    if (SUCCEEDED(lay->HitTestTextRange((UINT32)(a - ls), (UINT32)(b - a), originX, ly, hm.data(), (UINT32)hm.size(), &cnt))) {
+                        for (UINT32 i = 0; i < cnt && i < hm.size(); ++i)
+                            if (selectionBrush_) rt->FillRectangle(D2D1::RectF(hm[i].left, hm[i].top, hm[i].left + hm[i].width, hm[i].top + hm[i].height), selectionBrush_.Get());
+                    }
+                }
+            }
+
+            // 正文
+            if (!textBrush_) rt->CreateSolidColorBrush(textColor_.ToD2D(), textBrush_.GetAddressOf());
+            else textBrush_->SetColor(textColor_.ToD2D());
+            int first = 0; while (first < LineCount() && lineY_[first + 1] < scrollY_) ++first;
+            for (int l = first; l < LineCount(); ++l) {
+                float ly = originY + lineY_[l];
+                if (ly > box.top + ViewH() + 2) break;
+                IDWriteTextLayout* lay = BuildLine(l); if (!lay) continue;
+                LineEntry& e = lineCache_[l];
+                if (rich_.empty() || e.runColors.size() <= 1) {
+                    // 单色：整行一次画
+                    if (textBrush_) rt->DrawTextLayout(D2D1::Point2F(originX, ly), lay, textBrush_.Get());
+                } else {
+                    // 富文本多 Run：逐个 Run 用其颜色/字体画（避开 drawing effect）
+                    const auto& runs = rich_[l];
+                    int off = 0;
+                    for (size_t k = 0; k < runs.size(); ++k) {
+                        const std::wstring& rt_text = runs[k].text;
+                        if (rt_text.empty()) continue;
+                        float rx = 0, ry = 0; DWRITE_HIT_TEST_METRICS hm{}; lay->HitTestTextPosition((UINT32)off, false, &rx, &ry, &hm);
+                        FontSpec fs = runs[k].font; if (fs.familyName.empty()) fs = baseFont_;
+                        IDWriteTextFormat* rf = FontManager::Instance().GetFormat(fs);
+                        ID2D1SolidColorBrush* br = BrushFor(rt, Argba(runs[k].color));
+                        if (rf && br) {
+                            float rh = (hm.height > 0 ? hm.height : lineH_[l]);
+                            rt->DrawText(rt_text.c_str(), (UINT32)rt_text.size(), rf,
+                                D2D1::RectF(originX + rx, ly + ry, box.right, ly + ry + rh), br);
+                        }
+                        off += (int)rt_text.size();
+                    }
+                }
+                if (showNewlines_ && l + 1 < LineCount()) {   // 行尾换行符可视化（与正文同字号，用同一 layout 路径）
+                    float ex = 0, ey = 0; DWRITE_HIT_TEST_METRICS ehm{};
+                    if (SUCCEEDED(lay->HitTestTextPosition((UINT32)LineLen(l), false, &ex, &ey, &ehm))) {
+                        IDWriteFactory* dw = FontManager::Instance().GetFactory();
+                        IDWriteTextFormat* nf = FontManager::Instance().GetFormat(baseFont_);
+                        if (!newlineBrush_) rt->CreateSolidColorBrush(Color::FromArgb(150, 120, 120, 120).ToD2D(), newlineBrush_.GetAddressOf());
+                        ComPtr<IDWriteTextLayout> nl;
+                        if (dw && nf && SUCCEEDED(dw->CreateTextLayout(L"\u21B5", 1, nf, SpaceW() * 4.0f, lineH_[l], &nl)) && nl && newlineBrush_) {
+                            nl->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+                            nl->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, lineH_[l], lineH_[l] * 0.8f);
+                            rt->DrawTextLayout(D2D1::Point2F(originX + ex, ly + ey), nl.Get(), newlineBrush_.Get());   // 换行后落在最后视觉行
+                        }
+                    }
+                }
+            }
+
+            // 光标
+            if (focused_ && showCursor_ && !readOnly_ && selStart_ == selEnd_) {   // 一律用主光标；组合中也一样
+                Rect c = CaretRect();
+                int l = LineOfPos(cursorPos_);
+                float lh = (l < (int)lineCache_.size() && lineCache_[l].rowH > 0 ? lineCache_[l].rowH : LineH());   // 单视觉行高，别用整段高
+                float cx = floorf(c.x + (hasComposition_ ? CompositionPrefixW() : 0.0f)) + 0.5f;   // 组合时光标落在组合串内
+                float cy = floorf(c.y);
+                cursorBrush_.Reset();
+                rt->CreateSolidColorBrush(cursorColor_.ToD2D(), cursorBrush_.GetAddressOf());
+                if (cursorBrush_) rt->DrawLine(D2D1::Point2F(cx, cy), D2D1::Point2F(cx, cy + lh), cursorBrush_.Get(), 1.0f);
+            }
+            // 组合文本（IME）：下划线 + 组合内光标（可在组合串中间移动）
+            if (hasComposition_ && !compositionText_.empty()) {
+                IDWriteFactory* dw = FontManager::Instance().GetFactory();
+                IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(baseFont_);
+                if (dw && fmt && textBrush_) {
+                    ComPtr<IDWriteTextLayout> cl;
+                    if (SUCCEEDED(dw->CreateTextLayout(compositionText_.c_str(), (UINT32)compositionText_.size(), fmt, 1.0e5f, 1.0e4f, &cl)) && cl) {
+                        cl->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+                        cl->SetUnderline(TRUE, DWRITE_TEXT_RANGE{ 0, (UINT32)compositionText_.size() });
+                        Rect c = CaretRect();
+                        rt->DrawTextLayout(D2D1::Point2F(c.x, c.y), cl.Get(), textBrush_.Get());
+                    }
+                }
+            }
+            rt->PopAxisAlignedClip();
+
+            // 行号（水平居中）
+            if (showLineNumbers_ && gutter > 0) {
+                IDWriteFactory* dw = FontManager::Instance().GetFactory();
+                IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(baseFont_);
+                if (!gutterTextBrush_) rt->CreateSolidColorBrush(gutterTextColor_.ToD2D(), gutterTextBrush_.GetAddressOf());
+                else gutterTextBrush_->SetColor(gutterTextColor_.ToD2D());
+                if (dw && fmt && gutterTextBrush_) {
+                    for (int l = first; l < LineCount(); ++l) {
+                        float ly = originY + lineY_[l];
+                        if (ly > box.top + ViewH() + 2) break;
+                        wchar_t buf[16]; swprintf(buf, 16, L"%d", l + 1);
+                        ComPtr<IDWriteTextLayout> nl;
+                        if (SUCCEEDED(dw->CreateTextLayout(buf, (UINT32)wcslen(buf), fmt, gutter - 2.0f, LineH(), &nl)) && nl) {   // 行号高度=单视觉行 → 落在换行第一行，不居中于整段
+                            nl->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+                            nl->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                            rt->DrawTextLayout(D2D1::Point2F(box.left + 1.0f, ly), nl.Get(), gutterTextBrush_.Get());
+                        }
+                    }
+                }
+            }
+
+            if (layered) rt->PopLayer();
+            // 边框（圆角）
+            if (!borderBrush_) rt->CreateSolidColorBrush(borderColor_.ToD2D(), borderBrush_.GetAddressOf());
+            else borderBrush_->SetColor(borderColor_.ToD2D());
+            if (borderBrush_) rt->DrawRoundedRectangle(rbox, borderBrush_.Get(), 1.0f);
+        }
+
+        void OnMouseDown(float x, float y) override {
+            if (GetWindow()) GetWindow()->FocusElement(this);
+            int pos = PosFromPoint(x, y);
+            bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+            if (shift) { selStart_ = min(selAnchor_, pos); selEnd_ = max(selAnchor_, pos); cursorPos_ = pos; }
+            else { selAnchor_ = pos; selStart_ = selEnd_ = pos; cursorPos_ = pos; }
+            dragging_ = true; dragX_ = x; dragY_ = y;
+            ResetBlink(); SelectionChanged(); NotifyCursor(); RequestRepaint();
+        }
+        void OnMouseMove(float x, float y) override {
+            if (GetWindow()) SetCursor(LoadCursor(nullptr, IDC_IBEAM));   // 只读也显示文本光标
+            if (!dragging_) return;
+            dragX_ = x; dragY_ = y;
+            float top = arrangedRect_.y, bot = arrangedRect_.y + ViewH();
+            float left = arrangedRect_.x, right = arrangedRect_.x + ViewW();
+            int pos = PosFromPoint(clamp(x, left, right), clamp(y, top, bot));
+            selStart_ = min(selAnchor_, pos); selEnd_ = max(selAnchor_, pos); cursorPos_ = pos;
+            ResetBlink(); NotifyCursor(); RequestRepaint();
+        }
+        // 拖动超界：即使鼠标不动，也在每帧持续滚动 + 扩展选区
+        void ScrollForDrag() {
+            float top = arrangedRect_.y, bot = arrangedRect_.y + ViewH();
+            float left = arrangedRect_.x, right = arrangedRect_.x + ViewW();
+            bool moved = false;
+            if (dragY_ < top) { targetScrollY_ = max(0.0f, targetScrollY_ - (top - dragY_) * 0.6f); moved = true; }
+            else if (dragY_ > bot) { targetScrollY_ = min(maxScrollY_, targetScrollY_ + (dragY_ - bot) * 0.6f); moved = true; }
+            if (dragX_ < left) { targetScrollX_ = max(0.0f, targetScrollX_ - (left - dragX_) * 0.6f); moved = true; }
+            else             if (dragX_ > right) { targetScrollX_ = min(maxScrollX_, targetScrollX_ + (dragX_ - right) * 0.6f); moved = true; }
+            if (!moved) return;
+            ClampScroll();   // 同步滚动条（之前漏了 → 拖动自动滚时滑块不动）
+            int pos = PosFromPoint(clamp(dragX_, left, right), clamp(dragY_, top, bot));
+            selStart_ = min(selAnchor_, pos); selEnd_ = max(selAnchor_, pos); cursorPos_ = pos;
+            NotifyCursor(); RequestRepaint();
+        }
+        void OnMouseUp(float, float) override { dragging_ = false; }
+        void OnMouseEnter() override { hovered_ = true; if (GetWindow()) SetCursor(LoadCursor(nullptr, IDC_IBEAM)); }
+        void OnMouseLeave() override { hovered_ = false; }
+        bool OnMouseWheel(float deltaX, float deltaY) override {
+            if (LineCount() == 0) return true;
+            float step = baseFont_.size * 3.0f;
+            if ((maxScrollX_ > 0) && (GetKeyState(VK_SHIFT) & 0x8000)) targetScrollX_ -= deltaY * step;
+            else targetScrollY_ -= deltaY * step;
+            ClampScroll(); RequestRepaint();
+            return true;
+        }
+        void OnFocus() override { focused_ = true; showCursor_ = true; blinkTime_ = 0; EnsureVisible_ = true; RequestRepaint(); }
+        void OnBlur() override { focused_ = false; showCursor_ = false; RequestRepaint(); }
+        void UpdateAnimation(float dt) override {
+            if (focused_ && blinkInterval_ > 0) {
+                blinkTime_ += dt;
+                if (blinkTime_ >= blinkInterval_) { blinkTime_ = 0; showCursor_ = !showCursor_; RequestRepaint(); }   // 切换后必须重绘
+            }
+            else { if (showCursor_) RequestRepaint(); showCursor_ = false; blinkTime_ = 0; }
+            if (EnsureVisible_) { EnsureVisible_ = false; DoEnsureVisible(); }
+            if (dragging_) ScrollForDrag();
+            if (vBar_) vBar_->UpdateAnimation(dt);
+            if (hBar_) hBar_->UpdateAnimation(dt);
+            if (fabs(scrollY_ - targetScrollY_) > 0.3f) { scrollY_ += (targetScrollY_ - scrollY_) * min(1.0f, dt * 14.0f); RequestRepaint(); } else scrollY_ = targetScrollY_;
+            if (fabs(scrollX_ - targetScrollX_) > 0.3f) { scrollX_ += (targetScrollX_ - scrollX_) * min(1.0f, dt * 14.0f); RequestRepaint(); } else scrollX_ = targetScrollX_;
+        }
+        bool HasActiveAnimation() const override {
+            return (focused_ && blinkInterval_ > 0)
+                || fabs(scrollY_ - targetScrollY_) > 0.3f || fabs(scrollX_ - targetScrollX_) > 0.3f
+                || (vBar_ && vBar_->HasActiveAnimation()) || (hBar_ && hBar_->HasActiveAnimation());
+        }
+        void ReleaseDeviceResources() override {
+            bgBrush_.Reset(); gutterBrush_.Reset(); selectionBrush_.Reset(); curLineBrush_.Reset();
+            textBrush_.Reset(); gutterTextBrush_.Reset(); cursorBrush_.Reset(); borderBrush_.Reset(); newlineBrush_.Reset();
+            brushCache_.clear();
+            lineCache_.clear();
+            metricsDirty_ = true;   // 布局已清 → 下次必须重建，否则 lineCache_[l] 越界/行高 0
+            if (vBar_) vBar_->ReleaseDeviceResources();
+            if (hBar_) hBar_->ReleaseDeviceResources();
+            UIElement::ReleaseDeviceResources();
+        }
+        void OnFontChanged() override { spaceW_ = 0; lineSpacingH_ = 0; InvalidateMetrics(); InvalidateLayout(); }
+
+        void OnKeyDown(WPARAM key, LPARAM) override {
+            bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+            bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+            if (key == VK_ESCAPE) { if (Window* w = GetWindow()) w->FocusElement(nullptr); return; }   // Esc 退出焦点
+            if (ctrl) {
+                switch (key) {
+                case 'A': SelectAll(); return;
+                case 'C': Copy(); return;
+                case 'X': Cut(); return;
+                case 'V': Paste(); return;
+                case 'Z': Undo(); return;
+                case 'Y': Redo(); return;
+                case VK_HOME: SetCursorPosition(0); Deselect(); return;
+                case VK_END: SetCursorPosition((int)text_.size()); Deselect(); return;
+                }
+                return;
+            }
+            switch (key) {
+            case VK_LEFT: MoveCursor(-1, shift, ctrl); return;
+            case VK_RIGHT: MoveCursor(1, shift, ctrl); return;
+            case VK_UP: MoveCursorV(-1, shift); return;
+            case VK_DOWN: MoveCursorV(1, shift); return;
+            case VK_HOME: { int l = LineOfPos(cursorPos_); SetSel(ctrl ? 0 : LineStart(l), shift); return; }
+            case VK_END: { int l = LineOfPos(cursorPos_); SetSel(ctrl ? (int)text_.size() : PosFromLineCol(l, LineLen(l)), shift); return; }
+            case VK_PRIOR: MoveCursorV(-VisibleLines(), shift); return;
+            case VK_NEXT: MoveCursorV(VisibleLines(), shift); return;
+            case VK_BACK: if (!readOnly_) { if (HasSelection()) DeleteSelection(); else if (cursorPos_ > 0) { text_.erase(cursorPos_ - 1, 1); cursorPos_--; AfterEdit(); } } return;
+            case VK_DELETE: if (!readOnly_) { if (HasSelection()) DeleteSelection(); else if (cursorPos_ < (int)text_.size()) { text_.erase(cursorPos_, 1); AfterEdit(); } } return;
+            case VK_RETURN: if (!readOnly_) { if (HasSelection()) DeleteSelection(); InsertAt(cursorPos_, L"\n"); } return;
+            case VK_TAB: if (!readOnly_) { if (HasSelection()) DeleteSelection(); InsertAt(cursorPos_, TabString()); } return;
+            }
+        }
+        void OnChar(wchar_t ch) override {
+            if (readOnly_) return;
+            if (ch < 32 || ch == 127) return;   // 控制字符（Enter/Tab/Backspace）统一走 OnKeyDown，避免被插入两次
+            if (HasSelection()) DeleteSelection();
+            InsertAt(cursorPos_, std::wstring(1, ch));
+        }
+        void SetCompositionText(const std::wstring& text, bool has, int cursorPos = -1) override {
+            compositionText_ = text; hasComposition_ = has; if (cursorPos >= 0) compositionCursorPos_ = cursorPos;
+            ResetBlink();   // IME 内左右移动也要强制显示并重置闪烁
+            RequestRepaint();
+        }
+
+    private:
+        // ---- 行索引 ----
+        void RebuildLines() {
+            lineOffsets_.clear(); lineOffsets_.push_back(0);
+            for (size_t i = 0; i < text_.size(); ++i) if (text_[i] == L'\n') lineOffsets_.push_back((int)i + 1);
+            lineCache_.clear(); lineCache_.resize(lineOffsets_.size());
+        }
+        int LineStart(int l) const { return lineOffsets_[l]; }
+        int LineEnd(int l) const { return (l + 1 < (int)lineOffsets_.size()) ? lineOffsets_[l + 1] - 1 : (int)text_.size(); }
+        int LineLen(int l) const { return LineEnd(l) - LineStart(l); }
+        std::wstring LineText(int l) const { return text_.substr(LineStart(l), LineLen(l)); }
+        int LineOfPos(int pos) const {
+            int lo = 0, hi = (int)lineOffsets_.size() - 1;
+            while (lo < hi) { int mid = (lo + hi + 1) / 2; if (LineStart(mid) <= pos) lo = mid; else hi = mid - 1; }
+            return lo;
+        }
+        int PosFromLineCol(int l, int col) const { return LineStart(l) + Clamp(col, 0, LineLen(l)); }
+        static std::wstring Normalize(const std::wstring& s) { std::wstring r; r.reserve(s.size()); for (wchar_t c : s) { if (c == L'\r') continue; r.push_back(c); } return r; }
+        static int Clamp(int v, int a, int b) { return v < a ? a : (v > b ? b : v); }
+        static bool IsWordChar(wchar_t c) { return (c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'z') || (c >= L'A' && c <= L'Z') || c == L'_' || c >= 128; }
+        static wchar_t LowerW(wchar_t c) { return (c >= L'A' && c <= L'Z') ? (wchar_t)(c - L'A' + L'a') : c; }
+        void ClampCursor() {
+            int n = (int)text_.size();
+            cursorPos_ = Clamp(cursorPos_, 0, n); selStart_ = Clamp(selStart_, 0, n);
+            selEnd_ = Clamp(selEnd_, 0, n); selAnchor_ = Clamp(selAnchor_, 0, n);
+        }
+        void ResetBlink() { showCursor_ = true; blinkTime_ = 0.0f; }
+        std::wstring TabString() const { return insertSpaces_ ? std::wstring(tabSize_, L' ') : std::wstring(1, L'\t'); }
+
+        // ---- 度量 / 布局 ----
+        struct LineEntry { ComPtr<IDWriteTextLayout> layout; float height = 0, width = 0, rowH = 0; std::vector<int> runOff; std::vector<uint32_t> runColors; };
+        float EmptyH() {
+            if (emptyH_ > 0) return emptyH_;
+            IDWriteFactory* f = FontManager::Instance().GetFactory();
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(baseFont_);
+            if (f && fmt) { ComPtr<IDWriteTextLayout> lay; if (SUCCEEDED(f->CreateTextLayout(L"Ag", 2, fmt, 1e5f, 1e5f, &lay)) && lay) { DWRITE_TEXT_METRICS m{}; lay->GetMetrics(&m); emptyH_ = m.height; } }
+            if (emptyH_ <= 0) emptyH_ = baseFont_.size * 1.35f;
+            return emptyH_;
+        }
+        void InvalidateMetrics() { metricsDirty_ = true; }
+        void ClearLineLayouts() { for (auto& e : lineCache_) { e.layout.Reset(); e.height = 0; e.width = 0; e.rowH = 0; } }
+        // 依据当前内容尺寸更新滚动条（可见性 + 范围）。Arrange 与 Draw 都要调，否则内容变了但不改尺寸时滚动条不更新。
+        void SyncBars(const Rect& r) {
+            vBarVisible_ = (contentH_ > max(0.0f, r.height - (hBarVisible_ ? barW_ : 0.0f) - 4.0f));
+            // 横向条：只要内容实际宽度超视口就显示 —— 换行模式下超长不可断的单词也会溢出
+            hBarVisible_ = (contentW_ > max(0.0f, r.width - (vBarVisible_ ? barW_ : 0.0f) - GutterWidth() - 8.0f));
+            ClampScroll();
+            float vh = ViewH(), vw = ViewW();
+            if (vBar_) { vBar_->Arrange(Rect(r.x + r.width - barW_, r.y, barW_, vh)); vBar_->SetVisibleNoInvalidate(vBarVisible_); vBar_->SetRange(scrollY_, maxScrollY_, max(0.0f, vh - 4.0f)); }
+            if (hBar_) { hBar_->Arrange(Rect(r.x, r.y + r.height - barW_, vw, barW_)); hBar_->SetVisibleNoInvalidate(hBarVisible_); hBar_->SetRange(scrollX_, maxScrollX_, ContentViewW()); }
+        }
+        float LineH() {
+            if (lineSpacingH_ > 0) return lineSpacingH_;
+            // 统一行高只用拉丁度量：之前拿"中文国"取 max 会把行高撑到约 2 倍（CJK 回退字体行高大），
+            // 导致 lineY_ 每行多累一倍 → 第 l 行 IME 候选 y ≈ 2 倍、换行符格子也被撑大。DPI 无关的 ×2 就是它。
+            lineSpacingH_ = EmptyH();
+            return lineSpacingH_;
+        }
+        float FontLineH(const FontSpec& spec) {
+            IDWriteFactory* f = FontManager::Instance().GetFactory();
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(spec);
+            if (!f || !fmt) return spec.size * 1.3f;
+            ComPtr<IDWriteTextLayout> l;
+            if (FAILED(f->CreateTextLayout(L"Ag", 2, fmt, 1e5f, 1e5f, &l)) || !l) return spec.size * 1.3f;
+            DWRITE_TEXT_METRICS m{}; l->GetMetrics(&m);
+            return m.height > 0 ? m.height : spec.size * 1.3f;
+        }
+        float SpaceW() {
+            if (spaceW_ > 0) return spaceW_;
+            IDWriteFactory* f = FontManager::Instance().GetFactory();
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(baseFont_);
+            if (f && fmt) { ComPtr<IDWriteTextLayout> l; if (SUCCEEDED(f->CreateTextLayout(L" ", 1, fmt, 1e5f, 1e5f, &l)) && l) { DWRITE_TEXT_METRICS m{}; l->GetMetrics(&m); spaceW_ = m.width; } }
+            if (spaceW_ <= 0) spaceW_ = baseFont_.size * 0.5f;
+            return spaceW_;
+        }
+        IDWriteTextLayout* BuildLine(int l) {
+            LineEntry& e = lineCache_[l];
+            if (e.layout) return e.layout.Get();
+            IDWriteFactory* f = FontManager::Instance().GetFactory();
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(baseFont_);
+            if (!f || !fmt) return nullptr;
+            std::wstring t = LineText(l);
+            float maxW = (wrapMode_ == WrapMode::WidgetWidth) ? max(8.0f, wrapWidth_) : 1.0e6f;
+            ComPtr<IDWriteTextLayout> lay;
+            if (FAILED(f->CreateTextLayout(t.c_str(), (UINT32)t.size(), fmt, maxW, 1.0e6f, &lay)) || !lay) return nullptr;
+            // 关键：FontManager 的 format 是 PARAGRAPH_ALIGNMENT_CENTER（为单行控件垂直居中而设）。
+            // 多行布局必须改回 NEAR，否则整行被垂直居中到 1e6 高盒子的正中 → 画到视野外（文本/光标全不见）。
+            lay->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+            lay->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+            lay->SetIncrementalTabStop(max(4.0f, tabSize_ * SpaceW()));   // 制表位 = tabSize 个空格宽（默认 DWrite 制表位偏宽）
+            lay->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, LineH(), LineH() * 0.8f);   // 统一行高（否则含中日韩的那行会更高）
+            lay->SetWordWrapping((wrapMode_ == WrapMode::WidgetWidth) ? DWRITE_WORD_WRAPPING_WRAP : DWRITE_WORD_WRAPPING_NO_WRAP);
+            DWRITE_TRIMMING tr = { DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
+            lay->SetTrimming(&tr, nullptr);
+            std::vector<TextRun> runs;
+            if ((int)rich_.size() > l && !rich_[l].empty()) runs = rich_[l];
+            else { TextRun r; r.text = t; r.font = baseFont_; r.color = textColor_; runs.push_back(r); }
+            float lh = LineH();
+            int off = 0; e.runOff.clear(); e.runColors.clear(); e.runOff.push_back(0);
+            for (auto& r : runs) {
+                DWRITE_TEXT_RANGE range{ (UINT32)off, (UINT32)r.text.size() };
+                FontSpec fs = r.font; if (fs.familyName.empty()) fs = baseFont_;
+                lay->SetFontSize(fs.size, range);
+                lay->SetFontWeight(fs.weight, range);
+                lay->SetFontStyle(fs.style, range);
+                lay->SetUnderline(r.underline, range);
+                if (!fs.familyName.empty() && fs.familyName != baseFont_.familyName) lay->SetFontFamilyName(fs.familyName.c_str(), range);
+                e.runColors.push_back(Argba(r.color));
+                lh = max(lh, FontLineH(fs));   // 行高按该行最大字号取
+                off += (int)r.text.size(); e.runOff.push_back(off);
+            }
+            lay->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, lh, lh * 0.8f);   // 行高按该行最大 Run 字号（大字号不再画到行外）
+            DWRITE_TEXT_METRICS m{}; lay->GetMetrics(&m);
+            // 行高 = 视觉行数 × lh：不能用 m.height（某些 DWrite 构建下 UNIFORM 会返回 ≈2×），
+            // 也不能只记 1×lh（换行后一行有多视觉行 → 下一行会叠上来）。
+            e.height = (m.lineCount > 0 ? (float)m.lineCount : 1.0f) * lh;
+            e.rowH = lh;   // 单视觉行高（光标/行号用）
+            e.width = m.width;
+            e.layout = lay;
+            return e.layout.Get();
+        }
+        void EnsureMetrics() {
+            if (lineCache_.size() != lineOffsets_.size()) metricsDirty_ = true;   // 尺寸不同步 → 强制重建
+            if (!metricsDirty_) return;
+            metricsDirty_ = false;
+            if (lineCache_.size() != lineOffsets_.size()) lineCache_.resize(lineOffsets_.size());
+            int n = LineCount();
+            lineY_.assign(n + 1, 0.0f); lineH_.assign(n, 0.0f);
+            float y = 0, maxW = 0;
+            for (int l = 0; l < n; ++l) { lineY_[l] = y; BuildLine(l); float h = lineCache_[l].height; lineH_[l] = h; y += h; if (lineCache_[l].width > maxW) maxW = lineCache_[l].width; }
+            lineY_[n] = y; contentH_ = y; contentW_ = maxW;
+            ClampScroll();
+        }
+        float GutterWidth() const {
+            if (!showLineNumbers_) return 0.0f;
+            int digits = 1, n = LineCount(); while (n >= 10) { n /= 10; ++digits; }
+            return 8.0f + digits * (baseFont_.size * 0.62f);
+        }
+        void ClampScroll() {
+            float vh = max(0.0f, ViewH() - 4.0f);
+            maxScrollY_ = max(0.0f, contentH_ - vh);
+            maxScrollX_ = max(0.0f, contentW_ - ContentViewW());   // 换行模式下长单词溢出也允许横向滚动
+            scrollY_ = clamp(scrollY_, 0.0f, maxScrollY_);
+            scrollX_ = clamp(scrollX_, 0.0f, maxScrollX_);
+            targetScrollY_ = clamp(targetScrollY_, 0.0f, maxScrollY_);
+            targetScrollX_ = clamp(targetScrollX_, 0.0f, maxScrollX_);
+            if (vBar_) vBar_->SetValue(targetScrollY_);
+            if (hBar_) hBar_->SetValue(targetScrollX_);
+        }
+        // ---- 坐标 ----
+        float ContentLeft() const { return arrangedRect_.x + GutterWidth() + 4.0f; }
+        float LineTop(int l) const { return arrangedRect_.y + 2.0f - scrollY_ + lineY_[l]; }
+        int PosFromPoint(float x, float y) {
+            EnsureMetrics();
+            int n = LineCount(); if (n == 0) return 0;
+            float ly = y - arrangedRect_.y - 2.0f + scrollY_;
+            int l = 0; while (l < n - 1 && lineY_[l + 1] <= ly) ++l;
+            IDWriteTextLayout* lay = BuildLine(l); if (!lay) return LineStart(l);
+            float lx = x - ContentLeft() + scrollX_;
+            BOOL trail = FALSE, inside = FALSE; DWRITE_HIT_TEST_METRICS hm{};
+            lay->HitTestPoint(lx, ly - lineY_[l], &trail, &inside, &hm);
+            int inLine = hm.textPosition + (trail ? hm.length : 0);
+            return PosFromLineCol(l, inLine);
+        }
+        Rect CaretRect() {
+            EnsureMetrics();
+            int l = LineOfPos(cursorPos_), col = cursorPos_ - LineStart(l);
+            IDWriteTextLayout* lay = BuildLine(l);
+            float x = ContentLeft() - scrollX_, y = LineTop(l), h = (l < (int)lineCache_.size() && lineCache_[l].rowH > 0 ? lineCache_[l].rowH : LineH());
+            if (lay) { float px = 0, py = 0; DWRITE_HIT_TEST_METRICS hm{}; if (SUCCEEDED(lay->HitTestTextPosition((UINT32)col, false, &px, &py, &hm))) { x += px; y += py; } }
+            return Rect(x, y, 1.0f, h);   // 纯 cursorPos_ 处（组合文字也画在这里；组合光标在绘制时单独加前缀）
+        }
+        // ---- 编辑 ----
+        void InsertAt(int pos, const std::wstring& s) {
+            PushUndo();
+            text_.insert(pos, s);
+            cursorPos_ = pos + (int)s.size();
+            selStart_ = selEnd_ = cursorPos_; selAnchor_ = cursorPos_;
+            RebuildLines(); InvalidateMetrics(); InvalidateLayout();
+            TextChanged(text_); SelectionChanged(); NotifyCursor(); EnsureVisible_ = true; RequestRepaint();
+        }
+        void DeleteSelection() {
+            if (selStart_ == selEnd_) return;
+            PushUndo();
+            text_.erase(selStart_, selEnd_ - selStart_);
+            cursorPos_ = selStart_;
+            selStart_ = selEnd_ = cursorPos_; selAnchor_ = cursorPos_;
+            RebuildLines(); InvalidateMetrics(); InvalidateLayout();
+            TextChanged(text_); SelectionChanged(); NotifyCursor(); EnsureVisible_ = true; RequestRepaint();
+        }
+        void AfterEdit() {
+            cursorPos_ = Clamp(cursorPos_, 0, (int)text_.size());
+            selStart_ = selEnd_ = cursorPos_; selAnchor_ = cursorPos_;
+            RebuildLines(); InvalidateMetrics(); InvalidateLayout();
+            TextChanged(text_); SelectionChanged(); NotifyCursor(); EnsureVisible_ = true; RequestRepaint();
+        }
+        void MoveCursor(int d, bool shift, bool word) {
+            int pos = cursorPos_;
+            if (word) { if (d > 0) { int n = (int)text_.size(); while (pos < n && IsWordChar(text_[pos])) pos++; while (pos < n && !IsWordChar(text_[pos])) pos++; } else { while (pos > 0 && !IsWordChar(text_[pos - 1])) pos--; while (pos > 0 && IsWordChar(text_[pos - 1])) pos--; } }
+            else pos = Clamp(pos + d, 0, (int)text_.size());
+            SetSel(pos, shift);
+        }
+        void MoveCursorV(int dlines, bool shift) {
+            int l = LineOfPos(cursorPos_), col = cursorPos_ - LineStart(l);
+            int nl = Clamp(l + dlines, 0, LineCount() - 1);
+            SetSel(PosFromLineCol(nl, col), shift);
+        }
+        void SetSel(int pos, bool shift) {
+            pos = Clamp(pos, 0, (int)text_.size());
+            if (shift) { selStart_ = min(selAnchor_, pos); selEnd_ = max(selAnchor_, pos); }
+            else { selAnchor_ = pos; selStart_ = selEnd_ = pos; }
+            cursorPos_ = pos;
+            ResetBlink(); SelectionChanged(); NotifyCursor(); EnsureVisible_ = true; RequestRepaint();
+        }
+        void SetCursorImpl(int pos, bool keepSel) { if (!keepSel) { selAnchor_ = pos; selStart_ = selEnd_ = pos; } cursorPos_ = pos; ResetBlink(); NotifyCursor(); EnsureVisible_ = true; RequestRepaint();   // 移动即强制显示并重置闪烁
+        }
+        int VisibleLines() { float lh = EmptyH(); return lh > 0 ? max(1, (int)((arrangedRect_.height - 4.0f) / lh)) : 1; }
+        void WordBounds(int pos, int& a, int& b) const {
+            int n = (int)text_.size(); a = b = Clamp(pos, 0, n);
+            if (a < n && !IsWordChar(text_[a])) { while (a > 0 && !IsWordChar(text_[a - 1])) a--; while (b < n && !IsWordChar(text_[b])) b++; return; }
+            while (a > 0 && IsWordChar(text_[a - 1])) a--; while (b < n && IsWordChar(text_[b])) b++;
+        }
+        void DoEnsureVisible() {
+            EnsureMetrics();
+            int l = LineOfPos(cursorPos_);
+            float top = lineY_[l], bot = lineY_[l] + (l < (int)lineH_.size() ? lineH_[l] : EmptyH());
+            float vh = max(0.0f, ViewH() - 4.0f);
+            if (top < scrollY_) scrollY_ = top;
+            else if (bot > scrollY_ + vh) scrollY_ = bot - vh;
+            // 水平：光标在视口外才滚
+            Rect c = CaretRect();
+            float vw = ContentViewW();
+            float lx = c.x - (arrangedRect_.x + GutterWidth() + 4.0f) + scrollX_;   // 光标的内容坐标 x
+            if (lx < scrollX_) scrollX_ = lx;
+            else if (lx > scrollX_ + vw) scrollX_ = lx - vw;
+            targetScrollX_ = scrollX_; targetScrollY_ = scrollY_;   // 直接吸附，避免与缓动互拉 → 连续键入时抖动
+            ClampScroll(); RequestRepaint();
+        }
+        // ---- undo ----
+        struct Snap { std::wstring text; int cursor, a, b, anchor; };
+        Snap Snapshot() const { return { text_, cursorPos_, selStart_, selEnd_, selAnchor_ }; }
+        void PushUndo() {
+            if (undoIndex_ + 1 < (int)undoStack_.size()) undoStack_.resize(undoIndex_ + 1);
+            undoStack_.push_back(Snapshot());
+            if (undoStack_.size() > 200) { undoStack_.erase(undoStack_.begin()); }
+            undoIndex_ = (int)undoStack_.size() - 1;
+        }
+        void ApplySnapshot(const Snap& s) {
+            text_ = s.text; cursorPos_ = s.cursor; selStart_ = s.a; selEnd_ = s.b; selAnchor_ = s.anchor;
+            RebuildLines(); InvalidateMetrics(); InvalidateLayout();
+            TextChanged(text_); SelectionChanged(); NotifyCursor(); EnsureVisible_ = true; RequestRepaint();
+        }
+        // ---- 剪贴板 ----
+        static void SetClipboard(const std::wstring& s) {
+            if (!OpenClipboard(nullptr)) return;
+            EmptyClipboard();
+            size_t bytes = (s.size() + 1) * sizeof(wchar_t);
+            HGLOBAL h = GlobalAlloc(GMEM_MOVEABLE, bytes);
+            if (h) { void* p = GlobalLock(h); if (p) { memcpy(p, s.c_str(), bytes); GlobalUnlock(h); SetClipboardData(CF_UNICODETEXT, h); } }
+            CloseClipboard();
+        }
+        static std::wstring GetClipboard() {
+            std::wstring r;
+            if (!OpenClipboard(nullptr)) return r;
+            if (HANDLE h = GetClipboardData(CF_UNICODETEXT)) { if (const wchar_t* p = (const wchar_t*)GlobalLock(h)) { r = p; GlobalUnlock(h); } }
+            CloseClipboard();
+            return r;
+        }
+        // ---- 杂项 ----
+        static uint32_t Argba(Color c) {
+            int a = (int)(c.a * 255 + 0.5f), rr = (int)(c.r * 255 + 0.5f), g = (int)(c.g * 255 + 0.5f), b = (int)(c.b * 255 + 0.5f);
+            return ((uint32_t)a << 24) | ((uint32_t)rr << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+        }
+        ID2D1SolidColorBrush* BrushFor(ID2D1RenderTarget* rt, uint32_t argb) {
+            auto it = brushCache_.find(argb); if (it != brushCache_.end()) return it->second.Get();
+            if (!rt) return nullptr;
+            ComPtr<ID2D1SolidColorBrush> b;
+            D2D1_COLOR_F c = D2D1::ColorF(((argb >> 16) & 0xFF) / 255.0f, ((argb >> 8) & 0xFF) / 255.0f, (argb & 0xFF) / 255.0f, ((argb >> 24) & 0xFF) / 255.0f);
+            if (SUCCEEDED(rt->CreateSolidColorBrush(c, b.GetAddressOf())) && b) { brushCache_[argb] = b; return b.Get(); }
+            return nullptr;
+        }
+        void Fill(ID2D1RenderTarget* rt, const D2D1_RECT_F& r, Color c, ComPtr<ID2D1SolidColorBrush>& brush) {
+            if (c.a <= 0.0f) return;
+            if (!brush) { brush.Reset(); rt->CreateSolidColorBrush(c.ToD2D(), brush.GetAddressOf()); }
+            else brush->SetColor(c.ToD2D());
+            if (brush && r.right > r.left && r.bottom > r.top) rt->FillRectangle(r, brush.Get());
+        }
+        void NotifyCursor() { int l = LineOfPos(cursorPos_); CursorPositionChanged(l, cursorPos_ - LineStart(l)); }
+
+        // ---- 成员 ----
+        std::wstring text_, placeholder_;
+        std::vector<int> lineOffsets_;
+        std::vector<std::vector<TextRun>> rich_;
+        std::vector<LineEntry> lineCache_;
+        std::vector<float> lineY_, lineH_;
+        float contentH_ = 0, contentW_ = 0, wrapWidth_ = 0, emptyH_ = 0, spaceW_ = 0;
+        bool metricsDirty_ = true, linesDirty_ = false;
+        int cursorPos_ = 0, selStart_ = 0, selEnd_ = 0, selAnchor_ = 0;
+        bool readOnly_ = false, focused_ = false, showCursor_ = false, hovered_ = false, dragging_ = false;
+        bool showNewlines_ = false;
+        float dragX_ = 0, dragY_ = 0;
+        float blinkTime_ = 0, blinkInterval_ = 0.5f;
+        bool showLineNumbers_ = false, showCurrentLine_ = false, insertSpaces_ = true;
+        int tabSize_ = 4;
+        float cornerRadius_ = 6.0f;
+        WrapMode wrapMode_ = WrapMode::NoWrap;
+        FontSpec baseFont_;
+        Color textColor_ = DefaultTextColor, bgColor_ = DefaultBgColor, selectionColor_ = DefaultSelectionColor;
+        Color gutterTextColor_ = DefaultGutterTextColor, gutterBgColor_ = DefaultGutterBgColor;
+        Color currentLineColor_ = DefaultCurrentLineColor, cursorColor_ = DefaultCursorColor, borderColor_ = DefaultBorderColor;
+        float scrollX_ = 0, scrollY_ = 0, targetScrollX_ = 0, targetScrollY_ = 0, maxScrollX_ = 0, maxScrollY_ = 0;
+        float lineSpacingH_ = 0;
+        float barW_ = 10.0f;
+        bool vBarVisible_ = false, hBarVisible_ = false;
+        std::shared_ptr<ScrollBar> vBar_, hBar_;
+        bool EnsureVisible_ = false;
+        std::wstring compositionText_; bool hasComposition_ = false; int compositionCursorPos_ = 0;
+        std::vector<Snap> undoStack_; int undoIndex_ = -1;
+        std::unordered_map<uint32_t, ComPtr<ID2D1SolidColorBrush>> brushCache_;
+        ComPtr<ID2D1SolidColorBrush> bgBrush_, gutterBrush_, selectionBrush_, curLineBrush_, textBrush_, gutterTextBrush_, cursorBrush_, borderBrush_, newlineBrush_;
     };
 
 } // namespace ZufyUI

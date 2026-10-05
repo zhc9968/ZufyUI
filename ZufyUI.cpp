@@ -3,6 +3,7 @@
 #include "resource.h"
 #include "ZDataViewer.h"
 #include "ZufyUIWindowTool.h"
+#include "ZufyUICharts.h"
 
 using namespace ZufyUI;
 
@@ -79,6 +80,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     navList->AddItem(L"窗口属性");
     navList->AddItem(L"新控件A");   // TabView + RadioGroup
     navList->AddItem(L"新控件B");   // ProgressRing + SplitView
+    navList->AddItem(L"多行文本");
+    navList->AddItem(L"条形图");
+    navList->AddItem(L"折线图");
+    navList->AddItem(L"饼图");
     navList->SetSelectedIndex(0);
     mainRow->AddChild(navList);
 
@@ -1736,6 +1741,71 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         }
     }
 
+    // ---------- 多行文本 TextEdit 演示 ----------
+    auto pageText = std::make_shared<Page>();
+    {
+        auto col = std::make_shared<ColumnBox>(); col->SetSpacing(10);
+        col->SetMargin(Thickness(16, 16, 16, 16));
+        col->AddChild(std::make_shared<Label>(L"多行文本 TextEdit（行号 / 换行 / Tab / 跨行选择 / 只读富文本）"));
+
+        auto code = std::make_shared<TextEdit>();
+        code->SetShowLineNumbers(false);   // 默认禁用行号（可按需开）
+        code->SetWrapMode(TextEdit::WrapMode::NoWrap);
+        code->SetTabSize(4);
+        code->SetBaseFont([] { FontSpec f; f.familyName = L"Consolas"; f.size = 14.0f; return f; }());
+        code->SetHeight(240); code->SetFillWidth(true);
+        code->SetPlainText(
+            L"// ZufyUI TextEdit 演示（点这里编辑）\n"
+            L"#include <vector>\n"
+            L"int main() {\n"
+            L"\tstd::vector<int> v{1, 2, 3};\n"
+            L"\tfor (auto x : v) {\n"
+            L"\t\tprintf(\"%d\\n\", x);\n"
+            L"\t}\n"
+            L"\treturn 0;\n"
+            L"}\n");
+        col->AddChild(code);
+
+        auto row = std::make_shared<RowBox>(); row->SetSpacing(8); row->SetHeight(32);
+        auto bRo = std::make_shared<Button>(L"切换只读");
+        auto bWrap = std::make_shared<Button>(L"自动换行 开/关");
+        auto bAppend = std::make_shared<Button>(L"追加一行");
+        auto bFind = std::make_shared<Button>(L"查找 int");
+        auto bGoto = std::make_shared<Button>(L"跳到 5 行 3 列");
+        auto bNum = std::make_shared<Button>(L"行号开关");
+        row->AddChild(bRo); row->AddChild(bWrap); row->AddChild(bAppend); row->AddChild(bFind); row->AddChild(bGoto); row->AddChild(bNum);
+        col->AddChild(row);
+        bNum->Connect(bNum->Clicked, [code]() { code->SetShowLineNumbers(!code->IsShowLineNumbers()); });
+        bRo->Connect(bRo->Clicked, [code]() { code->SetReadOnly(!code->IsReadOnly()); });
+        bWrap->Connect(bWrap->Clicked, [code]() {
+            code->SetWrapMode(code->GetWrapMode() == TextEdit::WrapMode::NoWrap ? TextEdit::WrapMode::WidgetWidth : TextEdit::WrapMode::NoWrap);
+            });
+        bAppend->Connect(bAppend->Clicked, [code]() { code->AppendPlainText(L"// 追加行"); });
+        bFind->Connect(bFind->Clicked, [code]() { code->Find(L"int"); });
+        bGoto->Connect(bGoto->Clicked, [code]() { code->SetCursorLineColumn(4, 2); });
+
+        // 只读富文本
+        auto rich = std::make_shared<TextEdit>();
+        rich->SetHeight(120); rich->SetFillWidth(true);
+        {
+            std::vector<std::vector<TextRun>> lines;
+            TextRun h; h.text = L"富文本标题"; h.font = [] { FontSpec f; f.familyName = L"Segoe UI"; f.size = 20.0f; f.weight = DWRITE_FONT_WEIGHT_BOLD; return f; }(); h.color = Color::FromArgb(255, 0, 102, 204);
+            lines.push_back({ h });
+            TextRun a; a.text = L"普通  "; a.font = [] { FontSpec f; f.size = 14.0f; return f; }(); a.color = Color::FromArgb(255, 40, 40, 40);
+            TextRun b; b.text = L"红色"; b.font = [] { FontSpec f; f.size = 14.0f; return f; }(); b.color = Color::FromArgb(255, 200, 40, 40);
+            TextRun c; c.text = L"  下划线"; c.font = [] { FontSpec f; f.size = 14.0f; return f; }(); c.color = Color::FromArgb(255, 40, 40, 40); c.underline = true;
+            lines.push_back({ a, b, c });
+            rich->SetRichText(lines);
+        }
+        col->AddChild(rich);
+
+        auto sv = std::make_shared<ScrollViewer>();
+        sv->SetFillWidth(true); sv->SetFillHeight(true);
+        sv->SetContentMargin(Thickness(4, 4, 4, 4));
+        sv->SetContent(col);
+        pageText->SetLayout(sv);
+    }
+
     mainHost->AddPage(page1);
     mainHost->AddPage(page2);
     mainHost->AddPage(page3);
@@ -1746,8 +1816,114 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     mainHost->AddPage(page8);
     mainHost->AddPage(page9);
     mainHost->AddPage(page10);
+    // ---------- 条形图 BarChart 演示 ----------
+    auto pageChart = std::make_shared<Page>();
+    {
+        auto col = std::make_shared<ColumnBox>(); col->SetSpacing(10); col->SetMargin(Thickness(16, 16, 16, 16));
+        col->AddChild(std::make_shared<Label>(L"条形图 BarChart（分组 / 堆叠 / 百分比堆叠；悬停看 tooltip）"));
+        auto chart = std::make_shared<BarChart>();
+        chart->SetFillWidth(true); chart->SetVerticalStretchWeight(1.0f);   // 填满=视口；内容超出由图表内部滚动条滚动
+        const wchar_t* months[] = { L"一月", L"二月", L"三月", L"四月", L"五月", L"六月", L"七月", L"八月", L"九月", L"十月", L"十一月", L"十二月" };
+        for (auto m : months) chart->AddCategory(m);   // 12 个月 → 测横向滚动
+        chart->AddSeries(L"收入", { 120, 200, 150, 40, 170, 90, 210, 130, 60, 180, 140, 100 });
+        chart->AddSeries(L"支出", { 60, 90, 120, 70, 110, 50, 160, 80, 40, 120, 90, 60 });
+        chart->AddSeries(L"利润", { 60, 110, 30, -30, 60, 40, 50, 50, 20, 60, 50, 40 });
+        col->AddChild(chart);
+        auto row = std::make_shared<RowBox>(); row->SetSpacing(8); row->SetHeight(32);
+        auto bG = std::make_shared<Button>(L"分组"); auto bS = std::make_shared<Button>(L"堆叠"); auto bP = std::make_shared<Button>(L"百分比堆叠");
+        auto bV = std::make_shared<Button>(L"数值开关"); auto bGrid = std::make_shared<Button>(L"网格开关");
+        auto bO = std::make_shared<Button>(L"重叠"); auto bOut = std::make_shared<Button>(L"描边"); auto bRef = std::make_shared<Button>(L"参考线"); auto bVRef = std::make_shared<Button>(L"竖参考线");
+        row->AddChild(bG); row->AddChild(bS); row->AddChild(bP); row->AddChild(bO); row->AddChild(bV); row->AddChild(bGrid); row->AddChild(bOut); row->AddChild(bRef); row->AddChild(bVRef);
+        auto rowScroll = std::make_shared<ScrollViewer>();   // 按钮多 → 横向滚动，别被裁
+        rowScroll->SetHeight(46); rowScroll->SetFillWidth(true);
+        rowScroll->SetHorizontalScrollEnabled(true); rowScroll->SetVerticalScrollEnabled(false);
+        rowScroll->SetHorizontalScrollBarVisibility(ScrollViewer::ScrollBarVisibility::Always);
+        rowScroll->SetContent(row);
+        col->AddChild(rowScroll);
+        auto showVal = std::make_shared<bool>(false), showGrid = std::make_shared<bool>(true);
+        bG->Connect(bG->Clicked, [chart]() { chart->SetStackMode(BarChart::StackMode::Grouped); });
+        bS->Connect(bS->Clicked, [chart]() { chart->SetStackMode(BarChart::StackMode::Stacked); });
+        bP->Connect(bP->Clicked, [chart]() { chart->SetStackMode(BarChart::StackMode::PercentStacked); });
+        bV->Connect(bV->Clicked, [chart, showVal]() { *showVal = !*showVal; chart->SetShowValues(*showVal); });
+        bGrid->Connect(bGrid->Clicked, [chart, showGrid]() { *showGrid = !*showGrid; chart->SetShowGrid(*showGrid); });
+        bO->Connect(bO->Clicked, [chart]() { chart->SetStackMode(BarChart::StackMode::Overlapped); });
+        bOut->Connect(bOut->Clicked, [chart]() { chart->SetBarOutline(1.5f); });
+        bRef->Connect(bRef->Clicked, [chart]() { chart->SetReferenceLine(100.0, L"目标 100"); });
+        bVRef->Connect(bVRef->Clicked, [chart]() { chart->SetVReferenceLine(2, L"三月"); });
+        auto sv = std::make_shared<ScrollViewer>(); sv->SetFillWidth(true); sv->SetFillHeight(true);
+        sv->SetContentMargin(Thickness(4, 4, 4, 4)); sv->SetContent(col);
+        pageChart->SetLayout(sv);
+    }
+
+    // ---------- 折线图 LineChart 演示 ----------
+    auto pageLine = std::make_shared<Page>();
+    {
+        auto col = std::make_shared<ColumnBox>(); col->SetSpacing(10); col->SetMargin(Thickness(16, 16, 16, 16));
+        col->AddChild(std::make_shared<Label>(L"折线图 LineChart（多系列 / 平滑 / 标记；悬停看 tooltip）"));
+        auto line = std::make_shared<LineChart>();
+        line->SetFillWidth(true); line->SetVerticalStretchWeight(1.0f); line->SetShowVGrid(true);
+        const wchar_t* lms[] = { L"一月", L"二月", L"三月", L"四月", L"五月", L"六月", L"七月", L"八月", L"九月", L"十月", L"十一月", L"十二月" };
+        for (auto m : lms) line->AddCategory(m);
+        line->AddSeries(L"访问", { 120, 160, 150, 190, 230, 210, 260, 240, 280, 300, 270, 320 });
+        line->AddSeries(L"下载", { 60, 80, 70, 100, 130, 110, 150, 140, 170, 180, 160, 200 });
+        line->AddSeries(L"注册", { 20, 30, 25, 40, 55, 45, 60, 58, 70, 80, 72, 95 });
+        col->AddChild(line);
+        auto row = std::make_shared<RowBox>(); row->SetSpacing(8); row->SetHeight(32);
+        auto bSm = std::make_shared<Button>(L"平滑开关"); auto bDash = std::make_shared<Button>(L"虚线开关");
+        auto bMk = std::make_shared<Button>(L"标记开关"); auto bVal = std::make_shared<Button>(L"数值开关"); auto bArea = std::make_shared<Button>(L"面积开关");
+        row->AddChild(bSm); row->AddChild(bDash); row->AddChild(bMk); row->AddChild(bVal); row->AddChild(bArea);
+        auto rowScroll = std::make_shared<ScrollViewer>(); rowScroll->SetHeight(46); rowScroll->SetFillWidth(true);
+        rowScroll->SetHorizontalScrollEnabled(true); rowScroll->SetVerticalScrollEnabled(false);
+        rowScroll->SetHorizontalScrollBarVisibility(ScrollViewer::ScrollBarVisibility::Always);
+        rowScroll->SetContent(row); col->AddChild(rowScroll);
+        auto s1 = std::make_shared<bool>(false), s2 = std::make_shared<bool>(false), s3 = std::make_shared<bool>(true), s4 = std::make_shared<bool>(false), s5 = std::make_shared<bool>(false);
+        bSm->Connect(bSm->Clicked, [line, s1]() { *s1 = !*s1; line->SetSmooth(*s1); });
+        bDash->Connect(bDash->Clicked, [line, s2]() { *s2 = !*s2; line->SetDashed(*s2); });
+        bMk->Connect(bMk->Clicked, [line, s3]() { *s3 = !*s3; line->SetShowMarkers(*s3); });
+        bVal->Connect(bVal->Clicked, [line, s4]() { *s4 = !*s4; line->SetShowValues(*s4); });
+        bArea->Connect(bArea->Clicked, [line, s5]() { *s5 = !*s5; line->SetAreaFill(*s5); });
+        auto sv = std::make_shared<ScrollViewer>(); sv->SetFillWidth(true); sv->SetFillHeight(true);
+        sv->SetContentMargin(Thickness(4, 4, 4, 4)); sv->SetContent(col);
+        pageLine->SetLayout(sv);
+    }
+
     mainHost->AddPage(pageNewA);
     mainHost->AddPage(pageNewB);
+    mainHost->AddPage(pageText);
+    // ---------- 饼图 PieChart 演示 ----------
+    auto pagePie = std::make_shared<Page>();
+    {
+        auto col = std::make_shared<ColumnBox>(); col->SetSpacing(10); col->SetMargin(Thickness(16, 16, 16, 16));
+        col->AddChild(std::make_shared<Label>(L"饼图 PieChart（环形 / 标签模式；悬停看 tooltip）"));
+        auto pie = std::make_shared<PieChart>();
+        pie->SetFillWidth(true); pie->SetVerticalStretchWeight(1.0f);
+        pie->AddSlice(L"桌面", 45); pie->AddSlice(L"移动", 35); pie->AddSlice(L"平板", 12); pie->AddSlice(L"其他", 8);
+        col->AddChild(pie);
+        auto row = std::make_shared<RowBox>(); row->SetSpacing(8); row->SetHeight(32);
+        auto bDonut = std::make_shared<Button>(L"环形开关"); auto bLbl = std::make_shared<Button>(L"标签模式");
+        auto bCw = std::make_shared<Button>(L"方向"); auto bGap = std::make_shared<Button>(L"扇隙");
+        row->AddChild(bDonut); row->AddChild(bLbl); row->AddChild(bCw); row->AddChild(bGap);
+        auto rowScroll = std::make_shared<ScrollViewer>(); rowScroll->SetHeight(46); rowScroll->SetFillWidth(true);
+        rowScroll->SetHorizontalScrollEnabled(true); rowScroll->SetVerticalScrollEnabled(false);
+        rowScroll->SetHorizontalScrollBarVisibility(ScrollViewer::ScrollBarVisibility::Always);
+        rowScroll->SetContent(row); col->AddChild(rowScroll);
+        auto d = std::make_shared<bool>(false), cw = std::make_shared<bool>(true), gp = std::make_shared<bool>(false);
+        auto lm = std::make_shared<int>(0);
+        bDonut->Connect(bDonut->Clicked, [pie, d]() { *d = !*d; pie->SetDonut(*d ? 0.55f : 0.0f); });
+        bCw->Connect(bCw->Clicked, [pie, cw]() { *cw = !*cw; pie->SetClockwise(*cw); });
+        bGap->Connect(bGap->Clicked, [pie, gp]() { *gp = !*gp; pie->SetSliceGap(*gp ? 2.0f : 0.0f); });
+        bLbl->Connect(bLbl->Clicked, [pie, lm]() {
+            *lm = (*lm + 1) % 4;
+            pie->SetLabelMode((PieChart::LabelMode)(*lm == 0 ? PieChart::LabelMode::LabelAndPercent : *lm == 1 ? PieChart::LabelMode::Percent : *lm == 2 ? PieChart::LabelMode::Value : PieChart::LabelMode::None));
+            });
+        auto sv = std::make_shared<ScrollViewer>(); sv->SetFillWidth(true); sv->SetFillHeight(true);
+        sv->SetContentMargin(Thickness(4, 4, 4, 4)); sv->SetContent(col);
+        pagePie->SetLayout(sv);
+    }
+
+    mainHost->AddPage(pageChart);
+    mainHost->AddPage(pageLine);
+    mainHost->AddPage(pagePie);
 
     // 主页面导航：记录当前索引，根据相对位置设置上下方向
     auto currentMainIndex = std::make_shared<int>(0);

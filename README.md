@@ -1,4 +1,4 @@
-﻿# ZufyUI
+# ZufyUI
 
 > **项目已更名：原名 `ZUI` → 现名 `ZufyUI`**（避免与其它同名项目冲突）。旧的仓库地址会由平台自动跳转到新地址（见下方链接）。
 
@@ -70,6 +70,16 @@ ZufyUI/
 
 ## 快速开始
 
+> 目标：**10 分钟内跑出第一个窗口**，并清楚接下来该看哪一章。按下面的步骤走即可。
+
+**第 0 步：准备（纯头文件，零构建配置）**
+- 把 `ZufyUI.h`、`ZufyUIWidgets.h`、`ZDataViewer.h`、`ZufyUICharts.h`、`ZufyUIWindowTool.h` 所在目录加入**包含路径**即可；**不需要编译任何 .cpp**，也不依赖第三方库。
+- 依赖的系统库由库内 `#pragma comment(lib, ...)` 自动链接：`d2d1 / dwrite / dwmapi / imm32 / winmm`。
+- GUI 程序入口用 **`wWinMain` + `/SUBSYSTEM:WINDOWS`**。
+- **⚠ 入口易错**：若坚持写 `int main()`，必须把子系统设成 `/SUBSYSTEM:CONSOLE`，或加 `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")`，否则链接器找不到入口。
+
+**第 1 步：最小窗口 + 一个按钮 + 一个开关**
+
 ```cpp
 #include "ZufyUIWidgets.h"
 using namespace ZufyUI;
@@ -106,18 +116,19 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 }
 ```
 
-要点：
+要点（每一步都在做什么）：
 
-- `Window::Create` 会创建窗口、初始化 Direct2D、应用亚克力背景并生成一个默认的根 `ColumnBox`；
-- 用 `std::make_shared<T>()` 创建控件，`AddChild` 挂到布局上；
+- `Window::Create` 会创建窗口、初始化 Direct2D、应用背景并生成一个默认的根 `ColumnBox`（margin 20、spacing 10）；
+- 控件用 `std::make_shared<T>()` 创建，`AddChild` 挂到布局上；**父容器用 `shared_ptr` 拥有子元素**；
 - 用 `Connect(信号, 槽)` 绑定事件，连接会随控件析构自动断开；
-- 最后调用 `win.Run()` 进入消息循环。
+- 最后 `win.Run()` 进入消息循环；所有窗口/控件都在**同一 UI 线程**创建与操作。
+- **⚠ 单位**：坐标与尺寸都是 **DIP**（不是物理像素），框架自动做 DPI 吸附，你不必自己换算。
 
 运行效果（就是上面这段代码）：
 
 ![快速开始：一个窗口 + 按钮 + 开关](docs/images/quickstart.png)
 
-### 再走两步
+**第 2 / 3 步：换个背景、换个标题栏**
 
 **第 2 步：换个背景。** 只有三个背景层可选——`无 / 亚克力 / 云母`，背景层之上再叠一个带 Alpha 的颜色：
 
@@ -142,7 +153,45 @@ win.SetCustomTitleBar(bar);
 
 ![ZufyUI 示例程序](docs/images/demo-main.png)
 
+**第 4 步：接下来看什么**
+- 布局与控件总览：[API 参考 · 布局系统 / 基础控件](docs/API.md)
+- 数据界面（列表 / 表格 / 树）：API 参考「数据视图」章
+- 画图表：API 参考「图表」章（`BarChart` / `LineChart` / `PieChart`）
+- 窗口周边（标题栏 / 托盘 / 系统对话框）：API 参考「窗口周边」章
+- 无障碍与调试/自动化：API 参考「无障碍与调试通道」章
+
+**务必记住的三件事**
+1. **DIP**：所有尺寸/坐标都是 DIP，不用管 DPI。
+2. **`shared_ptr` 即所有权**：控件用 `make_shared` 拥有、`AddChild` 挂父；丢掉唯一的 `shared_ptr` 就等于销毁。
+3. **入口/子系统**：`wWinMain` + `/SUBSYSTEM:WINDOWS`（或按上面的“入口易错”处理）。
+
 ## 更新日志
+
+### 2026-10-05 — 图表控件（BarChart/LineChart/PieChart）+ 多行编辑器 TextEdit + 修复与文档重整（v1.18.0）
+
+**新增：图表（新头文件 `ZufyUICharts.h`）**
+- `ChartBase`：数据/多系列、Nice 刻度、类别轴、网格、图例、调色板、内部滚动条、吸附轴、Ctrl 缩放、拖动平移、进场动画、水平/竖直参考线；`UpdateSeriesValues` 实时更新**不重播**进场动画。
+- `BarChart`：分组 / 堆叠 / 百分比堆叠 / 重叠、**横向方向**、每柱配色、选中高亮、描边、圆角；`SetFitPlotSize` 让值轴铺满控件。
+- `LineChart`：直线 / 平滑 / 虚线、标记点、面积填充（基线夹在可见范围内）、悬停/点击。
+- `PieChart`：饼图/环形、标签+引导线、图例、悬停弹出、整圆扫入动画、**滚轮缩放**（`SetZoom`）。
+- 详见 API「图表」章。
+
+**新增：多行编辑器 `TextEdit`（`ZufyUIWidgets.h`）**
+- `QPlainTextEdit` 风格：行号、换行（`WrapMode`）、Tab 缩进、跨行选择、剪贴板、撤销/重做、查找、只读富文本（`TextRun`）；自动伸缩内部滚动条；IME 候选框定位；`UseCache()=false`。
+- 基类新增 `UIElement::AcceptsTab()`（多行编辑器吞 Tab 做缩进，而非切换焦点）。
+
+**修复**
+- **高频切页内存抖动增长**：`PageHost` 隐藏页缓存改**延迟释放**（隐藏约 1.2s 后才释放、整棵子树递归；期间切回复用），不再“建位图→删位图”抖动式增长。新增 `UIElement::ReleaseDeviceResourcesRecursive()`。
+- **滚动条扩张/收缩时视图不刷新**：`ScrollBar` 动画进度变化时同时重画宿主。
+- **空闲 2 秒等待缩小期间折线图不刷新**：不再把“空闲缩小倒计时”当作活跃动画（否则整窗被顶进动画模式、数据重绘不落屏）；空闲缩小改为惰性（到点后由下一帧触发）。
+- **`ScrollViewer` 离屏缓存**：改为 `UseCache()=false`（内容常变/可滚动，缓存无益且占大位图）；`SetUseCache(false)` 现在会立即释放已有位图。
+- `Snap` 的 DPI 上下文在 UI 线程也设置（`Window::Create` / `WM_DPICHANGED`），修非 100% DPI 下命中测试与渲染吸附不一致。
+- `ZSignal::Fire` 异常安全（RAII 守卫）；`TextBox` shift+点击自锚点扩展；`TextEdit::SetCursorImpl` 去重复语句；`Slider` 0 宽 NaN 守卫；`ListView` 池标签宽度变化重测（修省略号错位）。
+
+**文档**
+- **API 文档按“使用分类”重整**（中英）：新增「图表」「无障碍与调试通道」「版本变化摘录」「易错点总表」「附录」等；全文加入 **`易错`** 与 **`版本`** 标注。
+
+- 版本 **1.17.0 → 1.18.0**。
 
 ### 2026-10-04 — UIA 无障碍 + 外部调试通道 + 布局拉伸权值 + 若干修复（v1.17.0）
 

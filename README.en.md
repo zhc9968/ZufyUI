@@ -1,4 +1,4 @@
-﻿# ZufyUI
+# ZufyUI
 
 > **Renamed: `ZUI` → `ZufyUI`** (to avoid clashes with other projects of the same name). Old repository URLs are redirected by the platform to the new address (see links below).
 
@@ -70,6 +70,16 @@ ZufyUI/
 
 ## Quick start
 
+> Goal: **get your first window on screen within 10 minutes** and know which chapter to read next. Follow the steps below.
+
+**Step 0: setup (header-only, zero build config)**
+- Add the directory containing `ZufyUI.h`, `ZufyUIWidgets.h`, `ZDataViewer.h`, `ZufyUICharts.h`, `ZufyUIWindowTool.h` to your **include path**; **nothing to compile**, no third-party deps.
+- Required system libs are auto-linked via `#pragma comment(lib, ...)`: `d2d1 / dwrite / dwmapi / imm32 / winmm`.
+- GUI entry point: **`wWinMain` + `/SUBSYSTEM:WINDOWS`**.
+- **⚠ Entry point pitfall**: if you insist on `int main()`, set `/SUBSYSTEM:CONSOLE`, or add `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")`, otherwise the linker won't find an entry point.
+
+**Step 1: minimal window + a button + a toggle**
+
 ```cpp
 #include "ZufyUIWidgets.h"
 using namespace ZufyUI;
@@ -106,18 +116,19 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 }
 ```
 
-Key points:
+Key points (what each step does):
 
-- `Window::Create` creates the window, initializes Direct2D, applies the Acrylic background, and generates a default root `ColumnBox`;
-- Create controls with `std::make_shared<T>()` and attach them to the layout with `AddChild`;
-- Bind events with `Connect(signal, slot)`; connections are automatically disconnected when the control is destroyed;
-- Finally, call `win.Run()` to enter the message loop.
+- `Window::Create` creates the window, initializes Direct2D, applies the background, and generates a default root `ColumnBox` (margin 20, spacing 10);
+- Create controls with `std::make_shared<T>()` and attach them with `AddChild`; **a parent owns its children via `shared_ptr`**;
+- Bind events with `Connect(signal, slot)`; connections auto-disconnect when the control is destroyed;
+- `win.Run()` enters the message loop; all windows/controls live on the **same UI thread**.
+- **⚠ Units**: coordinates/sizes are **DIP** (not physical pixels); the framework handles DPI snapping, so you don't.
 
 Result (that exact code above):
 
 ![Quick start: a window + a button + a toggle](docs/images/quickstart.png)
 
-### Two more steps
+**Steps 2 / 3: change the background, change the title bar**
 
 **Step 2: change the background.** Only three backdrop layers exist — `None / Acrylic / Mica` — with an ARGB tint composited on top:
 
@@ -142,7 +153,45 @@ A tour of the widgets (first page of the demo):
 
 ![ZufyUI demo](docs/images/demo-main.png)
 
+**Step 4: what to read next**
+- Layout & controls overview: [API Reference · Layout / Basic controls](docs/API.en.md)
+- Data UI (list / table / tree): the "Data views" chapter
+- Charts: the "Charts" chapter (`BarChart` / `LineChart` / `PieChart`)
+- Window extras (title bar / tray / system dialogs): the "Window extras" chapter
+- Accessibility & debug/automation: the "Accessibility & Debug Channel" chapter
+
+**Three things to always remember**
+1. **DIP**: all sizes/coordinates are DIP — no manual DPI math.
+2. **`shared_ptr` = ownership**: own controls with `make_shared`, attach with `AddChild`; dropping the only `shared_ptr` destroys it.
+3. **Entry point / subsystem**: `wWinMain` + `/SUBSYSTEM:WINDOWS` (or the "Entry point pitfall" above).
+
 ## Changelog
+
+### 2026-10-05 — Charts (BarChart/LineChart/PieChart) + multi-line editor TextEdit + fixes & docs rework (v1.18.0)
+
+**New: Charts (new header `ZufyUICharts.h`)**
+- `ChartBase`: data/multi-series, "nice" ticks, category axis, grid, legend, palette, internal scrollbars, sticky axes, Ctrl-zoom, drag-pan, entrance animation, horizontal/vertical reference lines; `UpdateSeriesValues` refreshes live without replaying the entrance animation.
+- `BarChart`: Grouped / Stacked / PercentStacked / Overlapped, **horizontal orientation**, per-bar colors, selection highlight, outline, corner radius; `SetFitPlotSize` makes the value axis fill the control.
+- `LineChart`: straight / smooth / dashed lines, markers, area fill (baseline clamped into the visible range), hover/click.
+- `PieChart`: pie/donut, labels + leader lines, legend, hover pop-out, full-circle sweep-in, **wheel zoom** (`SetZoom`).
+- See the "Charts" chapter of the API doc.
+
+**New: multi-line editor `TextEdit` (`ZufyUIWidgets.h`)**
+- `QPlainTextEdit`-style: line numbers, wrap (`WrapMode`), Tab indent, cross-line selection, clipboard, undo/redo, find, read-only rich text (`TextRun`); auto-hiding internal scrollbars; IME candidate rect; `UseCache()=false`.
+- New base virtual `UIElement::AcceptsTab()` (multi-line editors consume Tab for indent instead of changing focus).
+
+**Fixes**
+- **Memory churn on rapid page switching**: `PageHost` now releases a hidden page's cache **after a grace period** (~1.2 s, recursively over the whole subtree; reuses it if switched back in time) instead of allocating/deleting bitmaps every switch. New `UIElement::ReleaseDeviceResourcesRecursive()`.
+- **View not repainting while the scrollbar expands/shrinks**: `ScrollBar` now also repaints its host when its animation progresses.
+- **Line chart freezing during the 2 s idle-shrink wait**: the idle-shrink countdown is no longer reported as an active animation (which had put the whole window into animation mode and stopped data repaints from landing); idle shrink is now lazy (triggered by the next frame).
+- **`ScrollViewer` offscreen cache**: switched to `UseCache()=false` (content changes/scrolls; the cache costs a large bitmap for no benefit); `SetUseCache(false)` now immediately frees an existing bitmap.
+- `Snap`'s DPI scale is now also set on the UI thread (`Window::Create` / `WM_DPICHANGED`), fixing hit-test vs. render snap mismatch at non-100% DPI.
+- `ZSignal::Fire` exception safety (RAII guard); `TextBox` shift+click extends from the anchor; `TextEdit::SetCursorImpl` duplicate statement removed; `Slider` zero-width NaN guard; `ListView` pooled-label re-measure on width change (fixes stale ellipsis).
+
+**Docs**
+- **API docs reorganized by usage category** (zh + en): new chapters "Charts", "Accessibility & Debug Channel", "Version Digest", "Pitfall Index", "Appendix"; every API now carries **`易错`** (pitfall) and **`版本`** (version) notes.
+
+- Version **1.17.0 → 1.18.0**.
 
 ### 2026-10-04 — UIA accessibility + external debug channel + layout stretch weights + fixes (v1.17.0)
 
