@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>无障碍与调试通道 · ZufyUI API 参考</title>
+    <title>拖放与卡片组件 · ZufyUI API 参考</title>
     <style>
 
 :root {
@@ -197,143 +197,181 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class="active"><a href="API.17.html"><span class="chapter-index">17</span>无障碍与调试通道</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>版本变化摘录</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>易错点总表</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="无障碍uia"><div class="toc-row"><a href="#无障碍uia" data-target="无障碍uia">无障碍（UIA）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="调试-自动化通道"><div class="toc-row"><a href="#调试-自动化通道" data-target="调试-自动化通道">调试 / 自动化通道</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class="active"><a href="API.17.html"><span class="chapter-index">17</span>拖放与卡片组件</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>无障碍与调试通道</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>版本变化摘录</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>易错点总表</a></li><li class=""><a href="API.21.html"><span class="chapter-index">21</span>附录</a></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## 无障碍（UIA）
-
-- 由 `ZufyUIWindowTool.h` 提供 UI Automation 提供程序；元素侧 API 见「元素基类」。
-- 窗口侧：`SetAccessibilityEnabled(bool)`（默认开）、`FocusElement`、`GetFocused/Hovered/PressedElement`。
-- **`易错`**：库**不存历史、不读写文件**，提供程序只反映当前帧。`WM_GETOBJECT` 仅在开启时处理。
-
-## 调试 / 自动化通道
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>&gt; 拖放由 `ZufyUIDragDrop.h` 提供（`ZufyUI.h` 末尾已包含）。应用内默认 MOVE，跨应用 COPY。
 
 ```cpp
-inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
+// ---- 拖放：载荷 / 事件 ----
+class DragData {                                   // 拖入方只读访问
+    bool HasText() const;   std::wstring GetText() const;
+    bool HasFiles() const;  std::vector&lt;std::wstring&gt; GetFiles() const;
+    bool HasFormat(const std::wstring&amp; fmt) const;
+    bool GetFormatData(const std::wstring&amp; fmt, std::vector&lt;BYTE&gt;&amp; out) const;
+};
+struct DragEventArgs { const DragData&amp; data; float x, y; DWORD allowed, effect, keyState; };   // x/y 为元素相对 DIP
+
+// ---- 拖放：源端发起 ----
+class DragDataBuilder {
+    DragDataBuilder&amp; AddText(const std::wstring&amp;);
+    DragDataBuilder&amp; AddFile(const std::wstring&amp; path);
+    DragDataBuilder&amp; AddFiles(const std::vector&lt;std::wstring&gt;&amp; paths);
+    DragDataBuilder&amp; AddCustom(const std::wstring&amp; fmt, const void* bytes, size_t n);
+    DragDataBuilder&amp; SetPreferredEffect(DWORD);
+};
+DWORD Window::BeginDrag(DragDataBuilder&amp;, DWORD allowed = COPY|MOVE|LINK, UIElement* source = nullptr);
+
+// ---- 拖放：目标端（元素）----
+void UIElement::SetDropTargetEnabled(bool);   bool IsDropTargetEnabled() const;
+DWORD UIElement::GetAllowedDropEffects() const;                   // 默认 COPY|MOVE|LINK
+DWORD UIElement::OnDragEnter/OnDragOver(DragEventArgs&amp;);         // 返回 effect
+void  UIElement::OnDragLeave(DragEventArgs&amp;);   DWORD UIElement::OnDrop(DragEventArgs&amp;);
+void UIElement::SetDragSource(std::function&lt;void(DragDataBuilder&amp;)&gt;, DWORD allowed = COPY|MOVE|LINK);
+ZSignal&lt;DragEventArgs&amp;&gt; DragEnter, DragOver, DragLeave, Drop;
+
+// ---- Expander：可折叠卡片 ----
+class Expander : public UIElement {
+    Expander(const std::wstring&amp; title = L"", const std::wstring&amp; subtitle = L"");
+    void SetTitle/SetSubtitle(const std::wstring&amp;);   void SetContent(std::shared_ptr&lt;UIElement&gt;);
+    std::shared_ptr&lt;UIElement&gt; GetContent() const;
+    void SetExpanded(bool);   bool IsExpanded() const;   void Toggle();
+    ZSignal&lt;bool&gt; ExpandedChanged;
+};
+
+// ---- SettingsList：设置行列表 ----
+class SettingsList : public UIElement {
+    void AddRow(Icon, const std::wstring&amp; text, const std::wstring&amp; subtitle, std::function&lt;void()&gt; onClick, const std::wstring&amp; id = {});
+    ZSignal&lt;int&gt; RowClicked;
+};
+
+// ---- ImageView：图片显示（拉伸铺满、不缓存、可拖出）----
+class ImageView : public UIElement {
+    void SetImage(std::shared_ptr&lt;Image&gt;);   std::shared_ptr&lt;Image&gt; GetImage() const;
+    void SetDragSource(std::function&lt;void(DragDataBuilder&amp;)&gt;, DWORD allowed = COPY|MOVE|LINK);
+    bool UseCache() const override { return false; }
+};
 ```
-- 默认**关闭**；开启后目标窗口处理 `WM_COPYDATA`（`dwData` = 命令号，回包 `0x5A554631`）。
-- 命令集（1..22）：
-
-| 命令 | 作用 | 命令 | 作用 |
-|---|---|---|---|
-| 1 | Ping | 12 | ClearHighlight |
-| 2 | ListWindows | 13 | GetErrors（统一日志 E/W/I/D，≤500） |
-| 3 | GetFrameStats | 14 | ClearErrors |
-| 4 | GetElementTree | 15/16/17 | TopN 重绘/布局/缓存（`all`=全部） |
-| 5 | ForceRepaint | 18 | TopN 绘制 |
-| 6 | SetElementText("id\ttext") | 19 | ResetCounters |
-| 7 | InvokeElement | 20 | SetVisible("id\t0/1") |
-| 8 | FocusElement | 21 | SetMargin("id\tx\ty") |
-| 9 | GetElementInfo | 22 | SetHighlightColor("RRGGBB") |
-| 10 | GetElementAt("x,y" 屏幕→AutomationId) | — | — |
-| 11 | Highlight(id) | — | — |
-
-- 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
-- **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 17 章 · 无障碍与调试通道</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 17 章</span><h1>无障碍与调试通道</h1><p class="chapter-summary">UIA + SetDebugEnabled（v1.17.0）</p></header><h2 id="无障碍uia">无障碍（UIA）</h2>
-<ul>
-<li>由 <code>ZufyUIWindowTool.h</code> 提供 UI Automation 提供程序；元素侧 API 见「元素基类」。</li>
-<li>窗口侧：<code>SetAccessibilityEnabled(bool)</code>（默认开）、<code>FocusElement</code>、<code>GetFocused/Hovered/PressedElement</code>。</li>
-<li><strong><code>易错</code></strong>：库<strong>不存历史、不读写文件</strong>，提供程序只反映当前帧。<code>WM_GETOBJECT</code> 仅在开启时处理。</li>
-</ul>
-<h2 id="调试-自动化通道">调试 / 自动化通道</h2>
+- **`易错`**：`DragEventArgs.x/y` 是**元素相对 DIP**（不是屏幕像素）。
+- 同控件内文本拖动：源端先删原选区、再按落点插入并左移修正；目标端检测私有格式 `ZufyUI.TextSource` 跳过重复插入。
+- **`版本`**：折叠/展开用与页面切换相同的 **smoothstep 缓动**；箭头随同一缓动**旋转**（收起向下 → 展开向上）。
+- **`版本`**：标题条悬停**高亮**（圆角）；`ComboBox` 下拉箭头同样改为随展开**旋转**的 chevron。
+- **`易错`**：`Expander` 折叠时用显式 `SetHeight` 收拢，父布局才会跟随收缩。</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 17 章 · 拖放与卡片组件</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 17 章</span><h1>拖放与卡片组件</h1><p class="chapter-summary">Drag &amp; Drop、Expander、SettingsList、ImageView（v1.19.0）</p></header><blockquote>
+<p>拖放由 <code>ZufyUIDragDrop.h</code> 提供（<code>ZufyUI.h</code> 末尾已包含）。应用内默认 MOVE，跨应用 COPY。</p>
+</blockquote>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f0256f86', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-64d79c24', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDebugEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kr">inline</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDebugEnabled</span><span class="p">();</span>
+<div class="highlight"><pre><span></span><span class="c1">// ---- 拖放：载荷 / 事件 ----</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DragData</span><span class="w"> </span><span class="p">{</span><span class="w">                                   </span><span class="c1">// 拖入方只读访问</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">HasText</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetText</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">HasFiles</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetFiles</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">HasFormat</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">fmt</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">GetFormatData</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">fmt</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">DragEventArgs</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DragData</span><span class="o">&amp;</span><span class="w"> </span><span class="n">data</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">;</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">allowed</span><span class="p">,</span><span class="w"> </span><span class="n">effect</span><span class="p">,</span><span class="w"> </span><span class="n">keyState</span><span class="p">;</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// x/y 为元素相对 DIP</span>
+
+<span class="c1">// ---- 拖放：源端发起 ----</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DragDataBuilder</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">DragDataBuilder</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">AddText</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">DragDataBuilder</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">AddFile</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">path</span><span class="p">);</span>
+<span class="w">    </span><span class="n">DragDataBuilder</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">AddFiles</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">paths</span><span class="p">);</span>
+<span class="w">    </span><span class="n">DragDataBuilder</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">AddCustom</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">fmt</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">void</span><span class="o">*</span><span class="w"> </span><span class="n">bytes</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+<span class="w">    </span><span class="n">DragDataBuilder</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">SetPreferredEffect</span><span class="p">(</span><span class="n">DWORD</span><span class="p">);</span>
+<span class="p">};</span>
+<span class="n">DWORD</span><span class="w"> </span><span class="nf">Window::BeginDrag</span><span class="p">(</span><span class="n">DragDataBuilder</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">allowed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">COPY</span><span class="o">|</span><span class="n">MOVE</span><span class="o">|</span><span class="n">LINK</span><span class="p">,</span><span class="w"> </span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span>
+
+<span class="c1">// ---- 拖放：目标端（元素）----</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">UIElement::SetDropTargetEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDropTargetEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="n">DWORD</span><span class="w"> </span><span class="nf">UIElement::GetAllowedDropEffects</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                   </span><span class="c1">// 默认 COPY|MOVE|LINK</span>
+<span class="n">DWORD</span><span class="w"> </span><span class="n">UIElement</span><span class="o">::</span><span class="n">OnDragEnter</span><span class="o">/</span><span class="n">OnDragOver</span><span class="p">(</span><span class="n">DragEventArgs</span><span class="o">&amp;</span><span class="p">);</span><span class="w">         </span><span class="c1">// 返回 effect</span>
+<span class="kt">void</span><span class="w">  </span><span class="nf">UIElement::OnDragLeave</span><span class="p">(</span><span class="n">DragEventArgs</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="n">DWORD</span><span class="w"> </span><span class="nf">UIElement::OnDrop</span><span class="p">(</span><span class="n">DragEventArgs</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">UIElement::SetDragSource</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">DragDataBuilder</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">allowed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">COPY</span><span class="o">|</span><span class="n">MOVE</span><span class="o">|</span><span class="n">LINK</span><span class="p">);</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">DragEventArgs</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">DragEnter</span><span class="p">,</span><span class="w"> </span><span class="n">DragOver</span><span class="p">,</span><span class="w"> </span><span class="n">DragLeave</span><span class="p">,</span><span class="w"> </span><span class="n">Drop</span><span class="p">;</span>
+
+<span class="c1">// ---- Expander：可折叠卡片 ----</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Expander</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Expander</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">subtitle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">SetTitle</span><span class="o">/</span><span class="n">SetSubtitle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetContent</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetContent</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetExpanded</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsExpanded</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">Toggle</span><span class="p">();</span>
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ExpandedChanged</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">// ---- SettingsList：设置行列表 ----</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SettingsList</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddRow</span><span class="p">(</span><span class="n">Icon</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">subtitle</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onClick</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
+<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">RowClicked</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">// ---- ImageView：图片显示（拉伸铺满、不缓存、可拖出）----</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ImageView</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetImage</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">);</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetImage</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDragSource</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">DragDataBuilder</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">allowed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">COPY</span><span class="o">|</span><span class="n">MOVE</span><span class="o">|</span><span class="n">LINK</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
 </pre></div>
-<pre id="code-f0256f86" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
+<pre id="code-64d79c24" style="display: none;">// ---- 拖放：载荷 / 事件 ----
+class DragData {                                   // 拖入方只读访问
+    bool HasText() const;   std::wstring GetText() const;
+    bool HasFiles() const;  std::vector&lt;std::wstring&gt; GetFiles() const;
+    bool HasFormat(const std::wstring&amp; fmt) const;
+    bool GetFormatData(const std::wstring&amp; fmt, std::vector&lt;BYTE&gt;&amp; out) const;
+};
+struct DragEventArgs { const DragData&amp; data; float x, y; DWORD allowed, effect, keyState; };   // x/y 为元素相对 DIP
+
+// ---- 拖放：源端发起 ----
+class DragDataBuilder {
+    DragDataBuilder&amp; AddText(const std::wstring&amp;);
+    DragDataBuilder&amp; AddFile(const std::wstring&amp; path);
+    DragDataBuilder&amp; AddFiles(const std::vector&lt;std::wstring&gt;&amp; paths);
+    DragDataBuilder&amp; AddCustom(const std::wstring&amp; fmt, const void* bytes, size_t n);
+    DragDataBuilder&amp; SetPreferredEffect(DWORD);
+};
+DWORD Window::BeginDrag(DragDataBuilder&amp;, DWORD allowed = COPY|MOVE|LINK, UIElement* source = nullptr);
+
+// ---- 拖放：目标端（元素）----
+void UIElement::SetDropTargetEnabled(bool);   bool IsDropTargetEnabled() const;
+DWORD UIElement::GetAllowedDropEffects() const;                   // 默认 COPY|MOVE|LINK
+DWORD UIElement::OnDragEnter/OnDragOver(DragEventArgs&amp;);         // 返回 effect
+void  UIElement::OnDragLeave(DragEventArgs&amp;);   DWORD UIElement::OnDrop(DragEventArgs&amp;);
+void UIElement::SetDragSource(std::function&lt;void(DragDataBuilder&amp;)&gt;, DWORD allowed = COPY|MOVE|LINK);
+ZSignal&lt;DragEventArgs&amp;&gt; DragEnter, DragOver, DragLeave, Drop;
+
+// ---- Expander：可折叠卡片 ----
+class Expander : public UIElement {
+    Expander(const std::wstring&amp; title = L"", const std::wstring&amp; subtitle = L"");
+    void SetTitle/SetSubtitle(const std::wstring&amp;);   void SetContent(std::shared_ptr&lt;UIElement&gt;);
+    std::shared_ptr&lt;UIElement&gt; GetContent() const;
+    void SetExpanded(bool);   bool IsExpanded() const;   void Toggle();
+    ZSignal&lt;bool&gt; ExpandedChanged;
+};
+
+// ---- SettingsList：设置行列表 ----
+class SettingsList : public UIElement {
+    void AddRow(Icon, const std::wstring&amp; text, const std::wstring&amp; subtitle, std::function&lt;void()&gt; onClick, const std::wstring&amp; id = {});
+    ZSignal&lt;int&gt; RowClicked;
+};
+
+// ---- ImageView：图片显示（拉伸铺满、不缓存、可拖出）----
+class ImageView : public UIElement {
+    void SetImage(std::shared_ptr&lt;Image&gt;);   std::shared_ptr&lt;Image&gt; GetImage() const;
+    void SetDragSource(std::function&lt;void(DragDataBuilder&amp;)&gt;, DWORD allowed = COPY|MOVE|LINK);
+    bool UseCache() const override { return false; }
+};</pre>
 </div>
 <ul>
-<li>默认<strong>关闭</strong>；开启后目标窗口处理 <code>WM_COPYDATA</code>（<code>dwData</code> = 命令号，回包 <code>0x5A554631</code>）。</li>
-<li>命令集（1..22）：</li>
+<li><strong><code>易错</code></strong>：<code>DragEventArgs.x/y</code> 是<strong>元素相对 DIP</strong>（不是屏幕像素）。</li>
+<li>同控件内文本拖动：源端先删原选区、再按落点插入并左移修正；目标端检测私有格式 <code>ZufyUI.TextSource</code> 跳过重复插入。</li>
+<li><strong><code>版本</code></strong>：折叠/展开用与页面切换相同的 <strong>smoothstep 缓动</strong>；箭头随同一缓动<strong>旋转</strong>（收起向下 → 展开向上）。</li>
+<li><strong><code>版本</code></strong>：标题条悬停<strong>高亮</strong>（圆角）；<code>ComboBox</code> 下拉箭头同样改为随展开<strong>旋转</strong>的 chevron。</li>
+<li><strong><code>易错</code></strong>：<code>Expander</code> 折叠时用显式 <code>SetHeight</code> 收拢，父布局才会跟随收缩。</li>
 </ul>
-<table>
-<thead>
-<tr>
-<th>命令</th>
-<th>作用</th>
-<th>命令</th>
-<th>作用</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Ping</td>
-<td>12</td>
-<td>ClearHighlight</td>
-</tr>
-<tr>
-<td>2</td>
-<td>ListWindows</td>
-<td>13</td>
-<td>GetErrors（统一日志 E/W/I/D，≤500）</td>
-</tr>
-<tr>
-<td>3</td>
-<td>GetFrameStats</td>
-<td>14</td>
-<td>ClearErrors</td>
-</tr>
-<tr>
-<td>4</td>
-<td>GetElementTree</td>
-<td>15/16/17</td>
-<td>TopN 重绘/布局/缓存（<code>all</code>=全部）</td>
-</tr>
-<tr>
-<td>5</td>
-<td>ForceRepaint</td>
-<td>18</td>
-<td>TopN 绘制</td>
-</tr>
-<tr>
-<td>6</td>
-<td>SetElementText("id\ttext")</td>
-<td>19</td>
-<td>ResetCounters</td>
-</tr>
-<tr>
-<td>7</td>
-<td>InvokeElement</td>
-<td>20</td>
-<td>SetVisible("id\t0/1")</td>
-</tr>
-<tr>
-<td>8</td>
-<td>FocusElement</td>
-<td>21</td>
-<td>SetMargin("id\tx\ty")</td>
-</tr>
-<tr>
-<td>9</td>
-<td>GetElementInfo</td>
-<td>22</td>
-<td>SetHighlightColor("RRGGBB")</td>
-</tr>
-<tr>
-<td>10</td>
-<td>GetElementAt("x,y" 屏幕→AutomationId)</td>
-<td>—</td>
-<td>—</td>
-</tr>
-<tr>
-<td>11</td>
-<td>Highlight(id)</td>
-<td>—</td>
-<td>—</td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li>统一日志：<code>detail::Log(level, tag, msg)</code>、<code>LogWarning/LogInfo/DebugLog</code>、<code>RecordError</code>（→ E 级并触发 <code>UIZSignals::Error</code>）。</li>
-<li><strong><code>易错</code></strong>：调试器侧发命令要带超时（<code>SendMessageTimeout</code>，不加 <code>SMTO_BLOCK</code>），否则目标忙时会卡死调试器。<code>ZUFYUI_DEBUG</code> 是<strong>编译期</strong>开关（日志），<code>SetDebugEnabled</code> 是<strong>运行期</strong>开关（通道/统计）——两套语义别混。</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.16.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">窗口周边</span><span class="nav-desc">图像、托盘、系统对话框、应用注册</span></a><a class="next" href="API.18.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.18.0</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.16.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">窗口周边</span><span class="nav-desc">图像、托盘、系统对话框、应用注册</span></a><a class="next" href="API.18.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a></nav>
         </main>
     </div>
 

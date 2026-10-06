@@ -692,7 +692,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 ```
 - **`易错`**：下拉画在全局 `DrawOverlay`，可超出控件边界。
 - **`易错`**：`GetSelectedIndex()` 是**过滤后可见序**；`SetItemDisabled` 按**源索引**持久（v1.15.0 修）。
-- **`版本`**：下拉几何/状态 `v1.12.0`；源索引 API `v1.15.0`。
+- **`版本`**：下拉几何/状态 `v1.12.0`；源索引 API `v1.15.0`；下拉箭头随展开进度旋转（smoothstep，`v1.19.0`）。
 
 ###chapter: 选择与输入 | CheckBox、RadioButton、RadioGroup、ToggleSwitch、Slider、NumberBox
 
@@ -1121,6 +1121,66 @@ bool RegisterApp(const AppInfo&);     // 或 Application::Instance().RegisterApp
 ```
 - 默认只设 AUMID（零文件/注册表副作用）；定义 `ZUFYUI_ALLOW_APP_REGISTRATION` 才会写 `%LOCALAPPDATA%\ZufyUI\AppReg\...` 与 `HKCU\...\AppUserModelId`（让 Win10/11 toast 显示应用名/图标），退出自动清理。
 
+###chapter: 拖放与卡片组件 | Drag & Drop、Expander、SettingsList、ImageView（v1.19.0）
+
+> 拖放由 `ZufyUIDragDrop.h` 提供（`ZufyUI.h` 末尾已包含）。应用内默认 MOVE，跨应用 COPY。
+
+```cpp
+// ---- 拖放：载荷 / 事件 ----
+class DragData {                                   // 拖入方只读访问
+    bool HasText() const;   std::wstring GetText() const;
+    bool HasFiles() const;  std::vector<std::wstring> GetFiles() const;
+    bool HasFormat(const std::wstring& fmt) const;
+    bool GetFormatData(const std::wstring& fmt, std::vector<BYTE>& out) const;
+};
+struct DragEventArgs { const DragData& data; float x, y; DWORD allowed, effect, keyState; };   // x/y 为元素相对 DIP
+
+// ---- 拖放：源端发起 ----
+class DragDataBuilder {
+    DragDataBuilder& AddText(const std::wstring&);
+    DragDataBuilder& AddFile(const std::wstring& path);
+    DragDataBuilder& AddFiles(const std::vector<std::wstring>& paths);
+    DragDataBuilder& AddCustom(const std::wstring& fmt, const void* bytes, size_t n);
+    DragDataBuilder& SetPreferredEffect(DWORD);
+};
+DWORD Window::BeginDrag(DragDataBuilder&, DWORD allowed = COPY|MOVE|LINK, UIElement* source = nullptr);
+
+// ---- 拖放：目标端（元素）----
+void UIElement::SetDropTargetEnabled(bool);   bool IsDropTargetEnabled() const;
+DWORD UIElement::GetAllowedDropEffects() const;                   // 默认 COPY|MOVE|LINK
+DWORD UIElement::OnDragEnter/OnDragOver(DragEventArgs&);         // 返回 effect
+void  UIElement::OnDragLeave(DragEventArgs&);   DWORD UIElement::OnDrop(DragEventArgs&);
+void UIElement::SetDragSource(std::function<void(DragDataBuilder&)>, DWORD allowed = COPY|MOVE|LINK);
+ZSignal<DragEventArgs&> DragEnter, DragOver, DragLeave, Drop;
+
+// ---- Expander：可折叠卡片 ----
+class Expander : public UIElement {
+    Expander(const std::wstring& title = L"", const std::wstring& subtitle = L"");
+    void SetTitle/SetSubtitle(const std::wstring&);   void SetContent(std::shared_ptr<UIElement>);
+    std::shared_ptr<UIElement> GetContent() const;
+    void SetExpanded(bool);   bool IsExpanded() const;   void Toggle();
+    ZSignal<bool> ExpandedChanged;
+};
+
+// ---- SettingsList：设置行列表 ----
+class SettingsList : public UIElement {
+    void AddRow(Icon, const std::wstring& text, const std::wstring& subtitle, std::function<void()> onClick, const std::wstring& id = {});
+    ZSignal<int> RowClicked;
+};
+
+// ---- ImageView：图片显示（拉伸铺满、不缓存、可拖出）----
+class ImageView : public UIElement {
+    void SetImage(std::shared_ptr<Image>);   std::shared_ptr<Image> GetImage() const;
+    void SetDragSource(std::function<void(DragDataBuilder&)>, DWORD allowed = COPY|MOVE|LINK);
+    bool UseCache() const override { return false; }
+};
+```
+- **`易错`**：`DragEventArgs.x/y` 是**元素相对 DIP**（不是屏幕像素）。
+- 同控件内文本拖动：源端先删原选区、再按落点插入并左移修正；目标端检测私有格式 `ZufyUI.TextSource` 跳过重复插入。
+- **`版本`**：折叠/展开用与页面切换相同的 **smoothstep 缓动**；箭头随同一缓动**旋转**（收起向下 → 展开向上）。
+- **`版本`**：标题条悬停**高亮**（圆角）；`ComboBox` 下拉箭头同样改为随展开**旋转**的 chevron。
+- **`易错`**：`Expander` 折叠时用显式 `SetHeight` 收拢，父布局才会跟随收缩。
+
 ###chapter: 无障碍与调试通道 | UIA + SetDebugEnabled（v1.17.0）
 
 ## 无障碍（UIA）
@@ -1154,7 +1214,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.18.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.19.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1166,6 +1226,11 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - 新增 `TextEdit` 多行编辑器 / 只读查看器；`TextRun`；基类新增 `AcceptsTab()`。
   - `UIElement::ReleaseDeviceResourcesRecursive()`；`PageHost` 隐藏页缓存**延迟释放**（约 1.2s）；`ScrollViewer::UseCache()=false`；`SetUseCache(false)` 立即释放位图。
   - 库层修复：`Snap` 的 DPI 上下文在 UI 线程也设置；`ZSignal::Fire` RAII 异常安全；`TextBox` shift+点击语义；`Slider` 0 宽 NaN 守卫；`ListView` 池宽度变化重测（`poolW_`）。
+- **v1.19.0**：
+  - 新增**拖放**（`ZufyUIDragDrop.h`）：`Window::BeginDrag` + `DragDataBuilder`；元素 `SetDropTargetEnabled`/`OnDragEnter/Over/Leave/Drop` + 信号；`Label`/`Button`/`ImageView`/`TextBox`/`TextEdit`/`ComboBox` 支持拖入/拖出；跨应用文件拖出。
+  - 新增 `Expander`（可折叠卡片：smoothstep 缓动 + 箭头旋转 + 标题悬停高亮）、`SettingsList`（设置行列表）、`ImageView`（拉伸铺满、不缓存、可拖出）。
+  - `ComboBox` 下拉箭头改为随展开旋转的 chevron。
+  - 文本拖动为**移动**语义：源端先删原选区再按落点插入（同控件用私有格式去重）。
 
 ###chapter: 易错点总表 | 按主题速查
 
@@ -1198,6 +1263,8 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 | `ChartBase` 默认尺寸 / 调色板 | 420×260 / 8 色 |
 | `PieChart` 默认尺寸 | 320×260 |
 | `TextEdit` 默认字体 / 尺寸 / tab | Consolas 14 / 320×160 / 4 |
+| `Expander` 标题高 / 圆角 | 66 / 8 |
+| `ImageView` 默认尺寸 | 200×150 |
 | `Window::DefaultBackdropColor` | `0xFFFFFFFF`（纯白） |
 
 ## 内置信号索引
@@ -1210,5 +1277,6 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - ScrollViewer：`ScrollChanged`；SplitView：`SplitChanged`；TabView：`SelectionChanged/TabCloseRequested`
 - ListView/TableView/TreeView：`SelectionChanged/ItemClicked(CellClicked)/ItemDoubleClicked/ItemRightClicked/…CheckStateChanged`
 - Chart：`PointClicked/CategoryClicked`；PieChart：`SliceClicked`
+- 拖放：元素 `DragEnter/DragOver/DragLeave/Drop`；Expander：`ExpandedChanged`；SettingsList：`RowClicked`
 - Window：`Activated/Deactivated/Closing/Closed/DeviceLost/RenderingError`
 - 全局：`UIZSignals::DrawOverlay/GlobalMouseDown/WindowActivated/WindowDeactivated/DeviceReset/ReloadAcrylic/Error`

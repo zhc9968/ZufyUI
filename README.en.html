@@ -223,6 +223,9 @@ ZufyUI is a **header-only** Windows desktop UI framework built directly on Direc
 - **Complete layout system**: `ColumnBox` / `RowBox` / `GridLayout`, supporting spacing, stretch weight, fill, alignment, and row/column spanning.
 - **Signals and slots**: built-in `ZSignal` / `Connection`, supporting `Connect` with automatic lifetime management, plus three dispatch strategies: current thread / new thread / UI thread.
 - **Rich controls**: labels, buttons, text boxes, combo boxes, toggle switches, scroll containers, progress bars, sliders, and three data views: list / table / tree.
+- **Charts**: `BarChart` / `LineChart` / `PieChart` (horizontal orientation, area fill, wheel zoom, live refresh) from `ZufyUICharts.h`.
+- **Drag &amp; drop**: built-in OLE drag &amp; drop (`ZufyUIDragDrop.h`) — drop text / files / custom formats in, and drag text / images / files out to Explorer; text boxes, combo boxes, images, buttons, and labels are all wired up.
+- **Card components**: collapsible card `Expander` (easing + rotating arrow), settings row list `SettingsList`, image display `ImageView`.
 - **Complete animation and transitions**: hover, expand, indicator bar, and page switching (`PageHost`) all have built-in animations, and scrolling supports smooth scrolling.
 - **High-DPI adaptation**: automatically aware of DPI; `Snap()` snaps drawing to physical pixels to avoid blurriness.
 - **IME compatibility**: text boxes support Chinese IME composition input and candidate window positioning.
@@ -262,6 +265,9 @@ ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # Data views: ListView / TableView / TreeView
+├── ZufyUICharts.h        # Charts: ChartBase / BarChart / LineChart / PieChart
+├── ZufyUIWindowTool.h    # Tray / custom title bar / accessibility (UIA) / debug channel
+├── ZufyUIDragDrop.h      # Drag &amp; drop: DragData / DragDataBuilder / Window::BeginDrag / element hooks
 ├── ZufyUI.cpp            # Demo program entry point (WinMain)
 ├── ZufyUI.slnx           # Solution
 ├── ZufyUI.vcxproj        # Project file
@@ -275,7 +281,7 @@ ZufyUI/
 &gt; Goal: **get your first window on screen within 10 minutes** and know which chapter to read next. Follow the steps below.
 
 **Step 0: setup (header-only, zero build config)**
-- Add the directory containing `ZufyUI.h`, `ZufyUIWidgets.h`, `ZDataViewer.h`, `ZufyUICharts.h`, `ZufyUIWindowTool.h` to your **include path**; **nothing to compile**, no third-party deps.
+- Add the directory containing `ZufyUI.h`, `ZufyUIWidgets.h`, `ZDataViewer.h`, `ZufyUICharts.h`, `ZufyUIWindowTool.h`, `ZufyUIDragDrop.h` to your **include path**; **nothing to compile**, no third-party deps.
 - Required system libs are auto-linked via `#pragma comment(lib, ...)`: `d2d1 / dwrite / dwmapi / imm32 / winmm`.
 - GUI entry point: **`wWinMain` + `/SUBSYSTEM:WINDOWS`**.
 - **⚠ Entry point pitfall**: if you insist on `int main()`, set `/SUBSYSTEM:CONSOLE`, or add `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")`, otherwise the linker won't find an entry point.
@@ -841,6 +847,9 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <li><strong>Complete layout system</strong>: <code>ColumnBox</code> / <code>RowBox</code> / <code>GridLayout</code>, supporting spacing, stretch weight, fill, alignment, and row/column spanning.</li>
 <li><strong>Signals and slots</strong>: built-in <code>ZSignal</code> / <code>Connection</code>, supporting <code>Connect</code> with automatic lifetime management, plus three dispatch strategies: current thread / new thread / UI thread.</li>
 <li><strong>Rich controls</strong>: labels, buttons, text boxes, combo boxes, toggle switches, scroll containers, progress bars, sliders, and three data views: list / table / tree.</li>
+<li><strong>Charts</strong>: <code>BarChart</code> / <code>LineChart</code> / <code>PieChart</code> (horizontal orientation, area fill, wheel zoom, live refresh) from <code>ZufyUICharts.h</code>.</li>
+<li><strong>Drag &amp; drop</strong>: built-in OLE drag &amp; drop (<code>ZufyUIDragDrop.h</code>) — drop text / files / custom formats in, and drag text / images / files out to Explorer; text boxes, combo boxes, images, buttons, and labels are all wired up.</li>
+<li><strong>Card components</strong>: collapsible card <code>Expander</code> (easing + rotating arrow), settings row list <code>SettingsList</code>, image display <code>ImageView</code>.</li>
 <li><strong>Complete animation and transitions</strong>: hover, expand, indicator bar, and page switching (<code>PageHost</code>) all have built-in animations, and scrolling supports smooth scrolling.</li>
 <li><strong>High-DPI adaptation</strong>: automatically aware of DPI; <code>Snap()</code> snaps drawing to physical pixels to avoid blurriness.</li>
 <li><strong>IME compatibility</strong>: text boxes support Chinese IME composition input and candidate window positioning.</li>
@@ -893,11 +902,11 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-bcfc3cb3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-c9208cf4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-bcfc3cb3" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-c9208cf4" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own <code>WinMain</code>.</p>
@@ -906,12 +915,15 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-ce621564', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-97a9d236', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # Data views: ListView / TableView / TreeView
+├── ZufyUICharts.h        # Charts: ChartBase / BarChart / LineChart / PieChart
+├── ZufyUIWindowTool.h    # Tray / custom title bar / accessibility (UIA) / debug channel
+├── ZufyUIDragDrop.h      # Drag &amp; drop: DragData / DragDataBuilder / Window::BeginDrag / element hooks
 ├── ZufyUI.cpp            # Demo program entry point (WinMain)
 ├── ZufyUI.slnx           # Solution
 ├── ZufyUI.vcxproj        # Project file
@@ -919,10 +931,13 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 └── docs/
     └── API.en.md      # Full API documentation
 </pre></div>
-<pre id="code-ce621564" style="display: none;">ZufyUI/
+<pre id="code-97a9d236" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # Data views: ListView / TableView / TreeView
+├── ZufyUICharts.h        # Charts: ChartBase / BarChart / LineChart / PieChart
+├── ZufyUIWindowTool.h    # Tray / custom title bar / accessibility (UIA) / debug channel
+├── ZufyUIDragDrop.h      # Drag &amp; drop: DragData / DragDataBuilder / Window::BeginDrag / element hooks
 ├── ZufyUI.cpp            # Demo program entry point (WinMain)
 ├── ZufyUI.slnx           # Solution
 ├── ZufyUI.vcxproj        # Project file
@@ -935,7 +950,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <p>Goal: <strong>get your first window on screen within 10 minutes</strong> and know which chapter to read next. Follow the steps below.</p>
 </blockquote>
 <p><strong>Step 0: setup (header-only, zero build config)</strong>
-- Add the directory containing <code>ZufyUI.h</code>, <code>ZufyUIWidgets.h</code>, <code>ZDataViewer.h</code>, <code>ZufyUICharts.h</code>, <code>ZufyUIWindowTool.h</code> to your <strong>include path</strong>; <strong>nothing to compile</strong>, no third-party deps.
+- Add the directory containing <code>ZufyUI.h</code>, <code>ZufyUIWidgets.h</code>, <code>ZDataViewer.h</code>, <code>ZufyUICharts.h</code>, <code>ZufyUIWindowTool.h</code>, <code>ZufyUIDragDrop.h</code> to your <strong>include path</strong>; <strong>nothing to compile</strong>, no third-party deps.
 - Required system libs are auto-linked via <code>#pragma comment(lib, ...)</code>: <code>d2d1 / dwrite / dwmapi / imm32 / winmm</code>.
 - GUI entry point: <strong><code>wWinMain</code> + <code>/SUBSYSTEM:WINDOWS</code></strong>.
 - <strong>⚠ Entry point pitfall</strong>: if you insist on <code>int main()</code>, set <code>/SUBSYSTEM:CONSOLE</code>, or add <code>#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")</code>, otherwise the linker won't find an entry point.</p>
@@ -943,7 +958,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1a8d5fec', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-cc8513ae', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -979,7 +994,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-1a8d5fec" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-cc8513ae" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -1028,18 +1043,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-bc5073db', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-80c9d173', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// Mica + fully transparent tint</span>
 </pre></div>
-<pre id="code-bc5073db" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
+<pre id="code-80c9d173" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
 </div>
 <p><img alt="Backdrop: manual Mica" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>Step 3: a custom title bar.</strong> Swap the title bar (plus switch to Mica so it stands out):</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-8f97b8b8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-53557c36', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar lives here</span>
 
@@ -1047,7 +1062,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// also switch to Mica</span>
 </pre></div>
-<pre id="code-8f97b8b8" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
+<pre id="code-53557c36" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);
