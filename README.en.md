@@ -138,13 +138,14 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint
 
 ![Backdrop: manual Mica](docs/images/backdrop-mica.png)
 
-**Step 3: a custom title bar.**
+**Step 3: a custom title bar.** Swap the title bar (plus switch to Mica so it stands out):
 
 ```cpp
 #include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
 
 auto bar = std::make_shared<DefaultTitleBar>();
 win.SetCustomTitleBar(bar);
+win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 ```
 
 ![Custom title bar](docs/images/custom-titlebar.png)
@@ -166,6 +167,15 @@ A tour of the widgets (first page of the demo):
 3. **Entry point / subsystem**: `wWinMain` + `/SUBSYSTEM:WINDOWS` (or the "Entry point pitfall" above).
 
 ## Changelog
+
+### 2026-10-06 — Docs & images update (v1.18.1)
+
+- Re-shot and updated the README "Quick start" images (quickstart / backdrop / custom title bar / overview).
+- README step 3 example now also sets the Mica backdrop (`SetBackdrop(Backdrop::Mica, ...)`), so the custom title bar stands out.
+- Added `docs/diagrams/`: screenshot program `screenshots.cpp` + image manifest (with text-form diagrams — keep images to a minimum).
+- Library version macro bumped to `1.18.1`.
+
+- Version **1.18.0 → 1.18.1**.
 
 ### 2026-10-05 — Charts (BarChart/LineChart/PieChart) + multi-line editor TextEdit + fixes & docs rework (v1.18.0)
 

@@ -138,13 +138,14 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 云母 + 全透明叠加色
 
 ![背景层：手动云母](docs/images/backdrop-mica.png)
 
-**第 3 步：自定义标题栏。** 换个标题栏，窗口立刻不一样：
+**第 3 步：自定义标题栏。** 换个标题栏（顺带换成云母背景，标题栏更明显）：
 
 ```cpp
 #include "ZufyUIWindowTool.h"   // DefaultTitleBar 在这里
 
 auto bar = std::make_shared<DefaultTitleBar>();
 win.SetCustomTitleBar(bar);
+win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 ```
 
 ![自定义标题栏](docs/images/custom-titlebar.png)
@@ -166,6 +167,15 @@ win.SetCustomTitleBar(bar);
 3. **入口/子系统**：`wWinMain` + `/SUBSYSTEM:WINDOWS`（或按上面的“入口易错”处理）。
 
 ## 更新日志
+
+### 2026-10-06 — 文档与配图更新（v1.18.1）
+
+- 重截并更新 README「快速开始」配图（`quickstart` / 背景 / 自定义标题栏 / 总览）。
+- README 第 3 步示例补上云母背景（`SetBackdrop(Backdrop::Mica, ...)`），让自定义标题栏更明显。
+- 新增 `docs/diagrams/`：截图程序 `screenshots.cpp` + 配图清单（含文字版“示意图”，尽量不画图）。
+- 库版本宏更新为 `1.18.1`。
+
+- 版本 **1.18.0 → 1.18.1**。
 
 ### 2026-10-05 — 图表控件（BarChart/LineChart/PieChart）+ 多行编辑器 TextEdit + 修复与文档重整（v1.18.0）
 
