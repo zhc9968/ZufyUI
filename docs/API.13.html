@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图像 · ZufyUI API 参考</title>
+    <title>菜单与弹窗 · ZufyUI API 参考</title>
     <style>
 
 :root {
@@ -197,221 +197,173 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class="active"><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>系统对话框</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>附录</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍（UI Automation）</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>调试通道（外部调试 / 自动化）</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="imagemanager-imagedevicecache"><div class="toc-row"><a href="#imagemanager-imagedevicecache" data-target="imagemanager-imagedevicecache">ImageManager / ImageDeviceCache</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="image"><div class="toc-row"><a href="#image" data-target="image">Image</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class="active"><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍与调试通道</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>版本变化摘录</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>易错点总表</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="menuitem"><div class="toc-row"><a href="#menuitem" data-target="menuitem">MenuItem</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menu"><div class="toc-row"><a href="#menu" data-target="menu">Menu</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menuwindowbase-menuwindow"><div class="toc-row"><a href="#menuwindowbase-menuwindow" data-target="menuwindowbase-menuwindow">MenuWindowBase / MenuWindow</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="messagebox-fastbutton"><div class="toc-row"><a href="#messagebox-fastbutton" data-target="messagebox-fastbutton">MessageBox / FastButton</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>图像系统在 `ZufyUIImages.h`，用 WIC 解码、Direct2D（GPU）绘制与变换。
-
-## ImageManager / ImageDeviceCache
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## MenuItem
 
 ```cpp
-class ImageManager {
-    static ImageManager&amp; Instance();
-    IWICImagingFactory* Factory();                        // 共享的 WIC 工厂
-    void RegisterCache(const std::shared_ptr&lt;ImageDeviceCache&gt;&amp;);
-    void ClearAllDeviceCaches();                          // 设备丢失/重建时清理所有图像的 D2D 位图缓存
-};
-
-class ImageDeviceCache {                                  // 某个 Image 在“每个渲染目标”上的 ID2D1Bitmap 缓存
-    ID2D1Bitmap* Get(ID2D1RenderTarget*, IWICBitmapSource*);
-    void Clear();
-    void Clear(ID2D1RenderTarget*);
-};
+enum class Type { Normal, Separator, Submenu };
+std::wstring text;   ZSignal&lt;&gt; Clicked;   std::shared_ptr&lt;Menu&gt; submenu;
+Type type = Normal;   bool enabled = true;   int id = 0;
+bool checkable = false, checked = false, radio = false, isDefault = false, danger = false;
+std::wstring shortcut;   std::optional&lt;Color&gt; bgColor, textColor;   std::optional&lt;FontSpec&gt; font;
+std::shared_ptr&lt;Label&gt; icon;
 ```
 
-- 解码结果（`IWICBitmapSource`，32bppPBGRA）是**设备无关**的，每个 `Image` 一份；`ImageDeviceCache` 按渲染目标缓存一张 `ID2D1Bitmap`（D2D 位图属于创建它的渲染目标）。
-- 设备丢失时由框架调用 `ClearAllDeviceCaches()` 统一重建。
-
-## Image
+## Menu
 
 ```cpp
-class Image {
-    enum class Format { Png, Jpeg, Bmp, Gif, Tiff };
-    enum class Interpolation { Nearest, Linear };
-    struct DrawOptions { float opacity = 1.0f; Interpolation interpolation = Interpolation::Linear; };
+void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; cb = nullptr, int id = 0);
+void AddCheckItem(const std::wstring&amp; text, bool checked, std::function&lt;void(bool)&gt; onToggle = nullptr, int id=0, bool radio=false);
+void AddSeparator();   void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu, int id=0);
+std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; items;
+std::function&lt;void(Menu&amp;)&gt; onOpening;   ZSignal&lt;int&gt; ItemSelected;
+void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // 独立弹出（托盘/右键）
+```
+- **`易错`**：菜单项回调会 `PostToUIThread` **推迟到当前消息之后**执行（因为回调常开模态框，若在当前 WndProc 栈上关菜单会触发 UAF）。
 
-    bool IsNull() const;
-    int Width() const; int Height() const;
-    Rect Bounds() const;
-    bool HasAlpha() const;
+## MenuWindowBase / MenuWindow
 
-    // 加载
-    static std::shared_ptr&lt;Image&gt; FromFile(const std::wstring&amp; path);
-    static std::shared_ptr&lt;Image&gt; FromMemory(const void* data, size_t size);
-    static std::shared_ptr&lt;Image&gt; FromBase64(const std::string&amp; base64);            // 支持 data: URI 前缀与 URL-safe
-    static std::shared_ptr&lt;Image&gt; FromResource(HMODULE mod, const wchar_t* name, const wchar_t* type);
-    static std::shared_ptr&lt;Image&gt; FromResource(int id, const wchar_t* type);        // 当前模块
-    static std::shared_ptr&lt;Image&gt; FromHBITMAP(HBITMAP);
-    static std::shared_ptr&lt;Image&gt; FromHICON(HICON);
-    HICON ToHICON() const;                              // 转回系统 HICON（新建对象，用完 DestroyIcon）
-    bool CopyPixelsBgra(std::vector&lt;uint8_t&gt;&amp; out, int&amp; w, int&amp; h) const;  // 导出 32bpp BGRA（直通 alpha）
-
-    // 变换（轻量描述符，绘制时 GPU 施加，共享同一份解码数据）
-    std::shared_ptr&lt;Image&gt; Scaled(float w, float h) const;
-    std::shared_ptr&lt;Image&gt; ScaledToWidth(float w) const;
-    std::shared_ptr&lt;Image&gt; ScaledToHeight(float h) const;
-    std::shared_ptr&lt;Image&gt; Rotated(float degrees) const;
-    std::shared_ptr&lt;Image&gt; Mirrored(bool horizontal = true, bool vertical = false) const;
-    std::shared_ptr&lt;Image&gt; Cropped(const Rect&amp; srcRect) const;
-
-    // 绘制（GPU）
-    void Draw(ID2D1RenderTarget* rt, const Rect&amp; dst, const DrawOptions&amp; = {}) const;
-    void Draw(ID2D1RenderTarget* rt, const D2D1_RECT_F&amp; dst, const DrawOptions&amp; = {}) const;
-    void Draw(ID2D1RenderTarget* rt, float x, float y, const DrawOptions&amp; = {}) const;
-    ComPtr&lt;ID2D1Bitmap&gt; Bake(ID2D1RenderTarget* rt) const;
-
-    // 编码 / 保存
-    bool Save(const std::wstring&amp; path, Format = Format::Png, float quality = 0.9f) const;
-    std::vector&lt;uint8_t&gt; Encode(Format = Format::Png, float quality = 0.9f) const;
+```cpp
+class MenuWindowBase : public Window {
+    bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY);
+    void ShowAtPoint(int x, int y);  void Hide();  void CloseAll();
+    void SetStandalone(bool);  bool IsPointInPopupTree(POINT ptScreen);
+    virtual bool OnMenuKeyDown(int vk);
+};
+class MenuWindow : public MenuWindowBase {
+    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND ownerHwnd, int x, int y);
 };
 ```
+- 弹出窗口用 `WS_EX_NOACTIVATE|TOOLWINDOW|TOPMOST`、无 DWM 边框，`WM_MOUSEACTIVATE` 返回 `MA_NOACTIVATE` 不抢焦点。
+- **`易错`**：`CloseAll()` 只销毁 HWND；对象的 `shared_ptr`/`unique_ptr` 在消息处理器**之外**析构。
 
-**要点与易混点**：
+## MessageBox / FastButton
 
-- **解码一次、共享**：`Scaled/Rotated/Mirrored/Cropped` 返回的是共享同一份解码数据的新 `Image`（轻量描述符），变换在 `Draw` 时由 GPU 施加，不重复解码，也不做 CPU 逐像素处理。
-- **设备位图缓存**：同一 `Image` 在同一窗口反复绘制只上传一次 GPU 位图；多窗口各自一张。
-- **元数据缓存（根源）**：内存型输入（`FromMemory/FromBase64/FromResource(RT_BITMAP)`）用的 `IWICStream::InitializeFromMemory` **不复制**缓冲区，而帧解码 / 格式转换是**惰性**的；若不在解码时立即取像素，绘制阶段会读到已释放内存（表现为图像完全不显示）。实现里用 `WICBitmapCacheOnLoad` 在 `detail_img_MakeFromSource` 内**立即把像素拷进独立 WIC 位图**，与来源内存彻底解耦。
-- **资源**：`FromResource` 的 `type` 可传 `L"PNG"`/`L"IMAGE"`/`RT_RCDATA`/`RT_BITMAP` 等；`RT_BITMAP`（DIB）会自动补 BMP 文件头再解码；`HMODULE` 版本可用于**从 DLL 资源**加载。
-- **编码**：`Encode` 用 `CreateStreamOnHGlobal` 得到可增长内存流（**无临时文件**），返回编码字节；`Save` 直接写文件。
-- **配合 `Label`**：`Label::SetImage` + `SetIconSize` 即可显示图标（见“基础控件 → Label”）。
-- **与系统图标互转**：`ToHICON()` 得到系统 `HICON`（用于 `SetAppIcon` / `TrayIcon` 等）；`CopyPixelsBgra()` 导出 32bpp BGRA 直通像素（用于写 `.ico` 等）。
-- **变换矩阵（根源）**：`Rotated/Mirrored` 以目标矩形中心为轴。D2D 矩阵乘法是“左侧先应用”，必须用带 `center` 的 `Rotation/Scale` 重载，否则会把图像推出目标矩形（表现为旋转/镜像后什么都看不到）。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 13 章 · 图像</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 13 章</span><h1>图像</h1><p class="chapter-summary">Image、ImageManager、ImageDeviceCache</p></header><p>图像系统在 <code>ZufyUIImages.h</code>，用 WIC 解码、Direct2D（GPU）绘制与变换。</p>
-<h2 id="imagemanager-imagedevicecache">ImageManager / ImageDeviceCache</h2>
+```cpp
+enum class FastButton : unsigned { None=0, OK=1&lt;&lt;0, Cancel=1&lt;&lt;1, Apply=1&lt;&lt;2, Close=1&lt;&lt;3, Yes=1&lt;&lt;4, No=1&lt;&lt;5, Help=1&lt;&lt;6 };
+bool HasFlag(FastButton set, FastButton flag);
+class MessageBox : public Window {
+    enum class Icon { None, Info, Warning, Error, Question };
+    enum class Lang { English, Chinese };
+    MessageBox(Window* parent, const std::wstring&amp; title, const std::wstring&amp; content,
+               Icon icon = Icon::None, FastButton buttons = FastButton::OK, bool blocking = true);
+    FastButton GetResult() const;   ZSignal&lt;FastButton&gt; ButtonClicked;   void EndDialog(FastButton);
+    void SetUserContent(std::shared_ptr&lt;UIElement&gt;);
+};
+```
+- 按钮顺序 Yes/No/OK/Apply/Cancel/Close/Help；**Enter = 最左按钮**，**ESC = Cancel/Close**（否则最左）。
+- **`易错`**：`ZufyUIWindowTool.h` 里 `#undef` 了 Win32 `MessageBox` 宏——调用 Win32 请用 `MessageBoxW/A`。
+- **`易错`**：`blocking=true` 会在**构造函数内部**跑模态循环；`SetUserContent` 后没有预设按钮，必须自己 `EndDialog`。</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 13 章 · 菜单与弹窗</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 13 章</span><h1>菜单与弹窗</h1><p class="chapter-summary">Menu、MenuItem、MenuWindow、MessageBox</p></header><h2 id="menuitem">MenuItem</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2e159075', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-82a6dc1f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ImageManager</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">ImageManager</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
-<span class="w">    </span><span class="n">IWICImagingFactory</span><span class="o">*</span><span class="w"> </span><span class="nf">Factory</span><span class="p">();</span><span class="w">                        </span><span class="c1">// 共享的 WIC 工厂</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">RegisterCache</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ImageDeviceCache</span><span class="o">&gt;&amp;</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearAllDeviceCaches</span><span class="p">();</span><span class="w">                          </span><span class="c1">// 设备丢失/重建时清理所有图像的 D2D 位图缓存</span>
-<span class="p">};</span>
-
-<span class="k">class</span><span class="w"> </span><span class="nc">ImageDeviceCache</span><span class="w"> </span><span class="p">{</span><span class="w">                                  </span><span class="c1">// 某个 Image 在“每个渲染目标”上的 ID2D1Bitmap 缓存</span>
-<span class="w">    </span><span class="n">ID2D1Bitmap</span><span class="o">*</span><span class="w"> </span><span class="nf">Get</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="n">IWICBitmapSource</span><span class="o">*</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Clear</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Clear</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="p">);</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">text</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">submenu</span><span class="p">;</span>
+<span class="n">Type</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Normal</span><span class="p">;</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="kt">bool</span><span class="w"> </span><span class="n">checkable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">checked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">radio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">isDefault</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">danger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">shortcut</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bgColor</span><span class="p">,</span><span class="w"> </span><span class="n">textColor</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span>
 </pre></div>
-<pre id="code-2e159075" style="display: none;">class ImageManager {
-    static ImageManager&amp; Instance();
-    IWICImagingFactory* Factory();                        // 共享的 WIC 工厂
-    void RegisterCache(const std::shared_ptr&lt;ImageDeviceCache&gt;&amp;);
-    void ClearAllDeviceCaches();                          // 设备丢失/重建时清理所有图像的 D2D 位图缓存
-};
-
-class ImageDeviceCache {                                  // 某个 Image 在“每个渲染目标”上的 ID2D1Bitmap 缓存
-    ID2D1Bitmap* Get(ID2D1RenderTarget*, IWICBitmapSource*);
-    void Clear();
-    void Clear(ID2D1RenderTarget*);
-};</pre>
+<pre id="code-82a6dc1f" style="display: none;">enum class Type { Normal, Separator, Submenu };
+std::wstring text;   ZSignal&lt;&gt; Clicked;   std::shared_ptr&lt;Menu&gt; submenu;
+Type type = Normal;   bool enabled = true;   int id = 0;
+bool checkable = false, checked = false, radio = false, isDefault = false, danger = false;
+std::wstring shortcut;   std::optional&lt;Color&gt; bgColor, textColor;   std::optional&lt;FontSpec&gt; font;
+std::shared_ptr&lt;Label&gt; icon;</pre>
 </div>
-<ul>
-<li>解码结果（<code>IWICBitmapSource</code>，32bppPBGRA）是<strong>设备无关</strong>的，每个 <code>Image</code> 一份；<code>ImageDeviceCache</code> 按渲染目标缓存一张 <code>ID2D1Bitmap</code>（D2D 位图属于创建它的渲染目标）。</li>
-<li>设备丢失时由框架调用 <code>ClearAllDeviceCaches()</code> 统一重建。</li>
-</ul>
-<h2 id="image">Image</h2>
+<h2 id="menu">Menu</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-8f27260a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-c8a4d523', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Image</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Format</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Png</span><span class="p">,</span><span class="w"> </span><span class="n">Jpeg</span><span class="p">,</span><span class="w"> </span><span class="n">Bmp</span><span class="p">,</span><span class="w"> </span><span class="n">Gif</span><span class="p">,</span><span class="w"> </span><span class="n">Tiff</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Interpolation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Nearest</span><span class="p">,</span><span class="w"> </span><span class="n">Linear</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">DrawOptions</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">opacity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">;</span><span class="w"> </span><span class="n">Interpolation</span><span class="w"> </span><span class="n">interpolation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Interpolation</span><span class="o">::</span><span class="n">Linear</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
-
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsNull</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">Width</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">Height</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">Rect</span><span class="w"> </span><span class="nf">Bounds</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">HasAlpha</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="c1">// 加载</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromFile</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">path</span><span class="p">);</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromMemory</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">void</span><span class="o">*</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">size</span><span class="p">);</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromBase64</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span><span class="w"> </span><span class="n">base64</span><span class="p">);</span><span class="w">            </span><span class="c1">// 支持 data: URI 前缀与 URL-safe</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromResource</span><span class="p">(</span><span class="n">HMODULE</span><span class="w"> </span><span class="n">mod</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">wchar_t</span><span class="o">*</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">wchar_t</span><span class="o">*</span><span class="w"> </span><span class="n">type</span><span class="p">);</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromResource</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">wchar_t</span><span class="o">*</span><span class="w"> </span><span class="n">type</span><span class="p">);</span><span class="w">        </span><span class="c1">// 当前模块</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromHBITMAP</span><span class="p">(</span><span class="n">HBITMAP</span><span class="p">);</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FromHICON</span><span class="p">(</span><span class="n">HICON</span><span class="p">);</span>
-<span class="w">    </span><span class="n">HICON</span><span class="w"> </span><span class="nf">ToHICON</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                              </span><span class="c1">// 转回系统 HICON（新建对象，用完 DestroyIcon）</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">CopyPixelsBgra</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">h</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="c1">// 导出 32bpp BGRA（直通 alpha）</span>
-
-<span class="w">    </span><span class="c1">// 变换（轻量描述符，绘制时 GPU 施加，共享同一份解码数据）</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Scaled</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ScaledToWidth</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ScaledToHeight</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Rotated</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">degrees</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Mirrored</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">horizontal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">vertical</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Cropped</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Rect</span><span class="o">&amp;</span><span class="w"> </span><span class="n">srcRect</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="c1">// 绘制（GPU）</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Draw</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Rect</span><span class="o">&amp;</span><span class="w"> </span><span class="n">dst</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DrawOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{})</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Draw</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">D2D1_RECT_F</span><span class="o">&amp;</span><span class="w"> </span><span class="n">dst</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DrawOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{})</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Draw</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DrawOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{})</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">ComPtr</span><span class="o">&lt;</span><span class="n">ID2D1Bitmap</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Bake</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="c1">// 编码 / 保存</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Save</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">path</span><span class="p">,</span><span class="w"> </span><span class="n">Format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Format</span><span class="o">::</span><span class="n">Png</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">quality</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.9f</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Encode</span><span class="p">(</span><span class="n">Format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Format</span><span class="o">::</span><span class="n">Png</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">quality</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.9f</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddCheckItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">checked</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onToggle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">radio</span><span class="o">=</span><span class="nb">false</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddSeparator</span><span class="p">();</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddSubmenu</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">submenu</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuItem</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">items</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">Menu</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onOpening</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemSelected</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ShowAt</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">   </span><span class="c1">// 独立弹出（托盘/右键）</span>
+</pre></div>
+<pre id="code-c8a4d523" style="display: none;">void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; cb = nullptr, int id = 0);
+void AddCheckItem(const std::wstring&amp; text, bool checked, std::function&lt;void(bool)&gt; onToggle = nullptr, int id=0, bool radio=false);
+void AddSeparator();   void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu, int id=0);
+std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; items;
+std::function&lt;void(Menu&amp;)&gt; onOpening;   ZSignal&lt;int&gt; ItemSelected;
+void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // 独立弹出（托盘/右键）</pre>
+</div>
+<ul>
+<li><strong><code>易错</code></strong>：菜单项回调会 <code>PostToUIThread</code> <strong>推迟到当前消息之后</strong>执行（因为回调常开模态框，若在当前 WndProc 栈上关菜单会触发 UAF）。</li>
+</ul>
+<h2 id="menuwindowbase-menuwindow">MenuWindowBase / MenuWindow</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-58970327', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuWindowBase</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">CreatePopup</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">widthDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">heightDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtPoint</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">Hide</span><span class="p">();</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAll</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStandalone</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsPointInPopupTree</span><span class="p">(</span><span class="n">POINT</span><span class="w"> </span><span class="n">ptScreen</span><span class="p">);</span>
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnMenuKeyDown</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vk</span><span class="p">);</span>
+<span class="p">};</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MenuWindow</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">MenuWindowBase</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">MenuWindow</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="p">,</span><span class="w"> </span><span class="n">HWND</span><span class="w"> </span><span class="n">ownerHwnd</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-8f27260a" style="display: none;">class Image {
-    enum class Format { Png, Jpeg, Bmp, Gif, Tiff };
-    enum class Interpolation { Nearest, Linear };
-    struct DrawOptions { float opacity = 1.0f; Interpolation interpolation = Interpolation::Linear; };
-
-    bool IsNull() const;
-    int Width() const; int Height() const;
-    Rect Bounds() const;
-    bool HasAlpha() const;
-
-    // 加载
-    static std::shared_ptr&lt;Image&gt; FromFile(const std::wstring&amp; path);
-    static std::shared_ptr&lt;Image&gt; FromMemory(const void* data, size_t size);
-    static std::shared_ptr&lt;Image&gt; FromBase64(const std::string&amp; base64);            // 支持 data: URI 前缀与 URL-safe
-    static std::shared_ptr&lt;Image&gt; FromResource(HMODULE mod, const wchar_t* name, const wchar_t* type);
-    static std::shared_ptr&lt;Image&gt; FromResource(int id, const wchar_t* type);        // 当前模块
-    static std::shared_ptr&lt;Image&gt; FromHBITMAP(HBITMAP);
-    static std::shared_ptr&lt;Image&gt; FromHICON(HICON);
-    HICON ToHICON() const;                              // 转回系统 HICON（新建对象，用完 DestroyIcon）
-    bool CopyPixelsBgra(std::vector&lt;uint8_t&gt;&amp; out, int&amp; w, int&amp; h) const;  // 导出 32bpp BGRA（直通 alpha）
-
-    // 变换（轻量描述符，绘制时 GPU 施加，共享同一份解码数据）
-    std::shared_ptr&lt;Image&gt; Scaled(float w, float h) const;
-    std::shared_ptr&lt;Image&gt; ScaledToWidth(float w) const;
-    std::shared_ptr&lt;Image&gt; ScaledToHeight(float h) const;
-    std::shared_ptr&lt;Image&gt; Rotated(float degrees) const;
-    std::shared_ptr&lt;Image&gt; Mirrored(bool horizontal = true, bool vertical = false) const;
-    std::shared_ptr&lt;Image&gt; Cropped(const Rect&amp; srcRect) const;
-
-    // 绘制（GPU）
-    void Draw(ID2D1RenderTarget* rt, const Rect&amp; dst, const DrawOptions&amp; = {}) const;
-    void Draw(ID2D1RenderTarget* rt, const D2D1_RECT_F&amp; dst, const DrawOptions&amp; = {}) const;
-    void Draw(ID2D1RenderTarget* rt, float x, float y, const DrawOptions&amp; = {}) const;
-    ComPtr&lt;ID2D1Bitmap&gt; Bake(ID2D1RenderTarget* rt) const;
-
-    // 编码 / 保存
-    bool Save(const std::wstring&amp; path, Format = Format::Png, float quality = 0.9f) const;
-    std::vector&lt;uint8_t&gt; Encode(Format = Format::Png, float quality = 0.9f) const;
+<pre id="code-58970327" style="display: none;">class MenuWindowBase : public Window {
+    bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY);
+    void ShowAtPoint(int x, int y);  void Hide();  void CloseAll();
+    void SetStandalone(bool);  bool IsPointInPopupTree(POINT ptScreen);
+    virtual bool OnMenuKeyDown(int vk);
+};
+class MenuWindow : public MenuWindowBase {
+    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND ownerHwnd, int x, int y);
 };</pre>
 </div>
-<p><strong>要点与易混点</strong>：</p>
 <ul>
-<li><strong>解码一次、共享</strong>：<code>Scaled/Rotated/Mirrored/Cropped</code> 返回的是共享同一份解码数据的新 <code>Image</code>（轻量描述符），变换在 <code>Draw</code> 时由 GPU 施加，不重复解码，也不做 CPU 逐像素处理。</li>
-<li><strong>设备位图缓存</strong>：同一 <code>Image</code> 在同一窗口反复绘制只上传一次 GPU 位图；多窗口各自一张。</li>
-<li><strong>元数据缓存（根源）</strong>：内存型输入（<code>FromMemory/FromBase64/FromResource(RT_BITMAP)</code>）用的 <code>IWICStream::InitializeFromMemory</code> <strong>不复制</strong>缓冲区，而帧解码 / 格式转换是<strong>惰性</strong>的；若不在解码时立即取像素，绘制阶段会读到已释放内存（表现为图像完全不显示）。实现里用 <code>WICBitmapCacheOnLoad</code> 在 <code>detail_img_MakeFromSource</code> 内<strong>立即把像素拷进独立 WIC 位图</strong>，与来源内存彻底解耦。</li>
-<li><strong>资源</strong>：<code>FromResource</code> 的 <code>type</code> 可传 <code>L"PNG"</code>/<code>L"IMAGE"</code>/<code>RT_RCDATA</code>/<code>RT_BITMAP</code> 等；<code>RT_BITMAP</code>（DIB）会自动补 BMP 文件头再解码；<code>HMODULE</code> 版本可用于<strong>从 DLL 资源</strong>加载。</li>
-<li><strong>编码</strong>：<code>Encode</code> 用 <code>CreateStreamOnHGlobal</code> 得到可增长内存流（<strong>无临时文件</strong>），返回编码字节；<code>Save</code> 直接写文件。</li>
-<li><strong>配合 <code>Label</code></strong>：<code>Label::SetImage</code> + <code>SetIconSize</code> 即可显示图标（见“基础控件 → Label”）。</li>
-<li><strong>与系统图标互转</strong>：<code>ToHICON()</code> 得到系统 <code>HICON</code>（用于 <code>SetAppIcon</code> / <code>TrayIcon</code> 等）；<code>CopyPixelsBgra()</code> 导出 32bpp BGRA 直通像素（用于写 <code>.ico</code> 等）。</li>
-<li><strong>变换矩阵（根源）</strong>：<code>Rotated/Mirrored</code> 以目标矩形中心为轴。D2D 矩阵乘法是“左侧先应用”，必须用带 <code>center</code> 的 <code>Rotation/Scale</code> 重载，否则会把图像推出目标矩形（表现为旋转/镜像后什么都看不到）。</li>
+<li>弹出窗口用 <code>WS_EX_NOACTIVATE|TOOLWINDOW|TOPMOST</code>、无 DWM 边框，<code>WM_MOUSEACTIVATE</code> 返回 <code>MA_NOACTIVATE</code> 不抢焦点。</li>
+<li><strong><code>易错</code></strong>：<code>CloseAll()</code> 只销毁 HWND；对象的 <code>shared_ptr</code>/<code>unique_ptr</code> 在消息处理器<strong>之外</strong>析构。</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.12.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">数据视图</span><span class="nav-desc">ListView、TableView、TreeNode、TreeView</span></a><a class="next" href="API.14.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">窗口工具</span><span class="nav-desc">TitleBar / MessageBox / 托盘 / 任务栏 / 图标与激活</span></a></nav>
+<h2 id="messagebox-fastbutton">MessageBox / FastButton</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-3b85edc9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">FastButton</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">OK</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Cancel</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Apply</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">Close</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">Yes</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">No</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">Help</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">6</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">HasFlag</span><span class="p">(</span><span class="n">FastButton</span><span class="w"> </span><span class="n">set</span><span class="p">,</span><span class="w"> </span><span class="n">FastButton</span><span class="w"> </span><span class="n">flag</span><span class="p">);</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MessageBox</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Icon</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="n">Warning</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="p">,</span><span class="w"> </span><span class="n">Question</span><span class="w"> </span><span class="p">};</span>
+<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Lang</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">English</span><span class="p">,</span><span class="w"> </span><span class="n">Chinese</span><span class="w"> </span><span class="p">};</span>
+<span class="w">    </span><span class="n">MessageBox</span><span class="p">(</span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="n">parent</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">content</span><span class="p">,</span>
+<span class="w">               </span><span class="n">Icon</span><span class="w"> </span><span class="n">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Icon</span><span class="o">::</span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">FastButton</span><span class="w"> </span><span class="n">buttons</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FastButton</span><span class="o">::</span><span class="n">OK</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">blocking</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+<span class="w">    </span><span class="n">FastButton</span><span class="w"> </span><span class="nf">GetResult</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">FastButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ButtonClicked</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">EndDialog</span><span class="p">(</span><span class="n">FastButton</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetUserContent</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="p">};</span>
+</pre></div>
+<pre id="code-3b85edc9" style="display: none;">enum class FastButton : unsigned { None=0, OK=1&lt;&lt;0, Cancel=1&lt;&lt;1, Apply=1&lt;&lt;2, Close=1&lt;&lt;3, Yes=1&lt;&lt;4, No=1&lt;&lt;5, Help=1&lt;&lt;6 };
+bool HasFlag(FastButton set, FastButton flag);
+class MessageBox : public Window {
+    enum class Icon { None, Info, Warning, Error, Question };
+    enum class Lang { English, Chinese };
+    MessageBox(Window* parent, const std::wstring&amp; title, const std::wstring&amp; content,
+               Icon icon = Icon::None, FastButton buttons = FastButton::OK, bool blocking = true);
+    FastButton GetResult() const;   ZSignal&lt;FastButton&gt; ButtonClicked;   void EndDialog(FastButton);
+    void SetUserContent(std::shared_ptr&lt;UIElement&gt;);
+};</pre>
+</div>
+<ul>
+<li>按钮顺序 Yes/No/OK/Apply/Cancel/Close/Help；<strong>Enter = 最左按钮</strong>，<strong>ESC = Cancel/Close</strong>（否则最左）。</li>
+<li><strong><code>易错</code></strong>：<code>ZufyUIWindowTool.h</code> 里 <code>#undef</code> 了 Win32 <code>MessageBox</code> 宏——调用 Win32 请用 <code>MessageBoxW/A</code>。</li>
+<li><strong><code>易错</code></strong>：<code>blocking=true</code> 会在<strong>构造函数内部</strong>跑模态循环；<code>SetUserContent</code> 后没有预设按钮，必须自己 <code>EndDialog</code>。</li>
+</ul>
+<nav class="chapter-nav"><a class="prev" href="API.12.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">容器与滚动</span><span class="nav-desc">ScrollViewer、ScrollBar、SplitView、TabView</span></a><a class="next" href="API.14.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">数据视图</span><span class="nav-desc">ListView、TableView、TreeView、TreeNode（虚拟化、隐藏/筛选/可见序）</span></a></nav>
         </main>
     </div>
 

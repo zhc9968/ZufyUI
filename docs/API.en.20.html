@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>进度 · ZufyUI API 参考</title>
+    <title>Appendix · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -188,75 +188,120 @@ pre { line-height: 125%; }
 </head>
 <body class="">
     <div class="ai-read-hint">
-面向 AI 智能体：本页的「阅读辅助」区块内含有与正文完全一致的原始 Markdown 源码，已去除 HTML 标签与动画特效。建议 AI 直接读取该区块，以更低的噪声快速理解内容。
+For AI agents: the "Reading aid" section on this page contains the raw Markdown source identical to the rendered content, with HTML markup and animations removed. AI is advised to read that section directly to understand the content quickly and with less noise.
     </div>
     <!-- AI-READ: the .reading-aid element contains this page's raw Markdown source, identical to the rendered content but without HTML/animations. -->
-    <button class="toc-toggle" id="tocToggle" title="显示目录">&#9776;</button>
-    <button class="theme-toggle" id="themeToggle" title="切换主题（浅色/深色）">&#9789;</button>
+    <button class="toc-toggle" id="tocToggle" title="Show contents">&#9776;</button>
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme (light / dark)">&#9789;</button>
 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
-            <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class="active"><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍与调试通道</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>版本变化摘录</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>易错点总表</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="progressbar"><div class="toc-row"><a href="#progressbar" data-target="progressbar">ProgressBar</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="progressring"><div class="toc-row"><a href="#progressring" data-target="progressring">ProgressRing</a><span class="toc-caret-space"></span></div></li></ul></div>
+            <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class="active"><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="common-defaults"><div class="toc-row"><a href="#common-defaults" data-target="common-defaults">Common defaults</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="signal-index"><div class="toc-row"><a href="#signal-index" data-target="signal-index">Signal index</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## ProgressBar
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Common defaults
 
-```cpp
-ZSignal&lt;float&gt; ValueChanged;
-void SetValue(float);          // 归一化到 [0,1]
-void SetRange(float min,float max);  void SetRangeValue(float);   // [min,max]
-void SetIndeterminate(bool);   void SetIndeterminateBlockWidth(float);  void SetIndeterminateSpeed(float);
-```
-- **`易错`**：`SetValue` 是 `[0,1]`，`SetRangeValue` 是 `[min,max]`，**别混用**。
+| Item | Value |
+|---|---|
+| Root layout | `ColumnBox`, margin 20, spacing 10 |
+| `Color` default | `(0,0,0,1)` |
+| `Button` size | 120×36 |
+| `ToggleSwitch` | 50×24 |
+| `ScrollBar` width / `ShrunkWidthRatio` | 8 / 0.30 |
+| `TabView` tab height / indicator | 34 / 2.5 |
+| `Card` padding / radius | 12 / 8 |
+| `ChartBase` size / palette | 420×260 / 8 colors |
+| `PieChart` size | 320×260 |
+| `TextEdit` font / size / tab | Consolas 14 / 320×160 / 4 |
+| `Window::DefaultBackdropColor` | `0xFFFFFFFF` (white) |
 
-## ProgressRing
+## Signal index
 
-```cpp
-void SetValue(float);  void SetIndeterminate(bool);  void SetThickness(float);
-bool UseCache() const override { return false; }   // 每帧重绘
-```
-- **`版本`**：`v1.12.0`；`UseCache=false` `v1.12.2`；NaN/Inf 守卫 `v1.14.0`。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 11 章 · 进度</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 11 章</span><h1>进度</h1><p class="chapter-summary">ProgressBar、ProgressRing</p></header><h2 id="progressbar">ProgressBar</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-265c147e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">          </span><span class="c1">// 归一化到 [0,1]</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetRange</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">min</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">max</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRangeValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="c1">// [min,max]</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminateBlockWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminateSpeed</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-</pre></div>
-<pre id="code-265c147e" style="display: none;">ZSignal&lt;float&gt; ValueChanged;
-void SetValue(float);          // 归一化到 [0,1]
-void SetRange(float min,float max);  void SetRangeValue(float);   // [min,max]
-void SetIndeterminate(bool);   void SetIndeterminateBlockWidth(float);  void SetIndeterminateSpeed(float);</pre>
-</div>
+- Element: `MouseEnter/MouseLeave/MouseMove/MouseDown/MouseUp/Focused/Blurred/KeyDown/KeyUp/Char`
+- Button: `Clicked/Toggled`; TextBox: `TextChanged/ReturnPressed`; TextEdit: `TextChanged/CursorPositionChanged/SelectionChanged`
+- ComboBox: `SelectionChanged/DropDownOpened/DropDownClosed`; CheckBox: `Toggled/StateChanged`
+- RadioButton: `CheckedChanged/Clicked`; RadioGroup: `SelectionChanged`; ToggleSwitch: `Toggled`
+- Slider: `ValueChanged/SliderReleased`; NumberBox: `ValueChanged/TextChanged`; ProgressBar: `ValueChanged`
+- ScrollViewer: `ScrollChanged`; SplitView: `SplitChanged`; TabView: `SelectionChanged/TabCloseRequested`
+- ListView/TableView/TreeView: `SelectionChanged/ItemClicked(CellClicked)/ItemDoubleClicked/ItemRightClicked/…CheckStateChanged`
+- Chart: `PointClicked/CategoryClicked`; PieChart: `SliceClicked`
+- Window: `Activated/Deactivated/Closing/Closed/DeviceLost/RenderingError`
+- Global: `UIZSignals::DrawOverlay/GlobalMouseDown/WindowActivated/WindowDeactivated/DeviceReset/ReloadAcrylic/Error`</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 20 · Appendix</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 20</span><h1>Appendix</h1><p class="chapter-summary">Defaults &amp; signal index</p></header><h2 id="common-defaults">Common defaults</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Root layout</td>
+<td><code>ColumnBox</code>, margin 20, spacing 10</td>
+</tr>
+<tr>
+<td><code>Color</code> default</td>
+<td><code>(0,0,0,1)</code></td>
+</tr>
+<tr>
+<td><code>Button</code> size</td>
+<td>120×36</td>
+</tr>
+<tr>
+<td><code>ToggleSwitch</code></td>
+<td>50×24</td>
+</tr>
+<tr>
+<td><code>ScrollBar</code> width / <code>ShrunkWidthRatio</code></td>
+<td>8 / 0.30</td>
+</tr>
+<tr>
+<td><code>TabView</code> tab height / indicator</td>
+<td>34 / 2.5</td>
+</tr>
+<tr>
+<td><code>Card</code> padding / radius</td>
+<td>12 / 8</td>
+</tr>
+<tr>
+<td><code>ChartBase</code> size / palette</td>
+<td>420×260 / 8 colors</td>
+</tr>
+<tr>
+<td><code>PieChart</code> size</td>
+<td>320×260</td>
+</tr>
+<tr>
+<td><code>TextEdit</code> font / size / tab</td>
+<td>Consolas 14 / 320×160 / 4</td>
+</tr>
+<tr>
+<td><code>Window::DefaultBackdropColor</code></td>
+<td><code>0xFFFFFFFF</code> (white)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="signal-index">Signal index</h2>
 <ul>
-<li><strong><code>易错</code></strong>：<code>SetValue</code> 是 <code>[0,1]</code>，<code>SetRangeValue</code> 是 <code>[min,max]</code>，<strong>别混用</strong>。</li>
+<li>Element: <code>MouseEnter/MouseLeave/MouseMove/MouseDown/MouseUp/Focused/Blurred/KeyDown/KeyUp/Char</code></li>
+<li>Button: <code>Clicked/Toggled</code>; TextBox: <code>TextChanged/ReturnPressed</code>; TextEdit: <code>TextChanged/CursorPositionChanged/SelectionChanged</code></li>
+<li>ComboBox: <code>SelectionChanged/DropDownOpened/DropDownClosed</code>; CheckBox: <code>Toggled/StateChanged</code></li>
+<li>RadioButton: <code>CheckedChanged/Clicked</code>; RadioGroup: <code>SelectionChanged</code>; ToggleSwitch: <code>Toggled</code></li>
+<li>Slider: <code>ValueChanged/SliderReleased</code>; NumberBox: <code>ValueChanged/TextChanged</code>; ProgressBar: <code>ValueChanged</code></li>
+<li>ScrollViewer: <code>ScrollChanged</code>; SplitView: <code>SplitChanged</code>; TabView: <code>SelectionChanged/TabCloseRequested</code></li>
+<li>ListView/TableView/TreeView: <code>SelectionChanged/ItemClicked(CellClicked)/ItemDoubleClicked/ItemRightClicked/…CheckStateChanged</code></li>
+<li>Chart: <code>PointClicked/CategoryClicked</code>; PieChart: <code>SliceClicked</code></li>
+<li>Window: <code>Activated/Deactivated/Closing/Closed/DeviceLost/RenderingError</code></li>
+<li>Global: <code>UIZSignals::DrawOverlay/GlobalMouseDown/WindowActivated/WindowDeactivated/DeviceReset/ReloadAcrylic/Error</code></li>
 </ul>
-<h2 id="progressring">ProgressRing</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d7685962', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetThickness</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// 每帧重绘</span>
-</pre></div>
-<pre id="code-d7685962" style="display: none;">void SetValue(float);  void SetIndeterminate(bool);  void SetThickness(float);
-bool UseCache() const override { return false; }   // 每帧重绘</pre>
-</div>
-<ul>
-<li><strong><code>版本</code></strong>：<code>v1.12.0</code>；<code>UseCache=false</code> <code>v1.12.2</code>；NaN/Inf 守卫 <code>v1.14.0</code>。</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.10.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">选择与输入</span><span class="nav-desc">CheckBox、RadioButton、RadioGroup、ToggleSwitch、Slider、NumberBox</span></a><a class="next" href="API.12.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">容器与滚动</span><span class="nav-desc">ScrollViewer、ScrollBar、SplitView、TabView</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.en.19.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Pitfall index</span><span class="nav-desc">Quick lookup by topic</span></a><a class="next" href="API.en.html"><span class="nav-label">Contents &#8594;</span><span class="nav-title">Back to the chapter list</span></a></nav>
         </main>
     </div>
 
-    <div class="back-to-top" id="backToTop" title="返回顶部">&#8593;</div>
+    <div class="back-to-top" id="backToTop" title="Back to top">&#8593;</div>
 
     <script>
 
@@ -382,10 +427,10 @@ function copyCode(id, btn) {
     try {
         if (document.execCommand('copy')) {
             btn.classList.add('copied');
-            btn.textContent = '已复制!';
+            btn.textContent = 'Copied!';
             setTimeout(function () {
                 btn.classList.remove('copied');
-                btn.textContent = '复制';
+                btn.textContent = 'Copy';
             }, 2000);
         }
     } catch (err) { console.error('复制失败:', err); }

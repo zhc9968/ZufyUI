@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Window · ZufyUI API Reference</title>
+    <title>Basic controls · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,507 +197,272 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class="active"><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="openable-window-internals-overridable-and-message-interception"><div class="toc-row"><a href="#openable-window-internals-overridable-and-message-interception" data-target="openable-window-internals-overridable-and-message-interception">Openable Window internals (overridable) and message interception</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class="active"><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="label"><div class="toc-row"><a href="#label" data-target="label">Label</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="button"><div class="toc-row"><a href="#button" data-target="button">Button</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="textbox-single-line"><div class="toc-row"><a href="#textbox-single-line" data-target="textbox-single-line">TextBox (single-line)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="textedit-multi-line-editor-viewer-v1180"><div class="toc-row"><a href="#textedit-multi-line-editor-viewer-v1180" data-target="textedit-multi-line-editor-viewer-v1180">TextEdit (multi-line editor / viewer) — v1.18.0</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="combobox"><div class="toc-row"><a href="#combobox" data-target="combobox">ComboBox</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>```cpp
-class Window {
-    static Backdrop DefaultBackdrop;              // None
-    static DWORD DefaultBackdropColor;            // 0
-    static Color DefaultBackgroundColor;          // transparent
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>&gt; Shared pitfalls: text layout is globally cached by `(text, box, format)`; change internal strings via setters (or you bypass invalidation); `Color` components are [0,1]; `SetEnabled(false)` ≠ `SetVisible(false)`.
 
-    bool Create(int width, int height, const std::wstring&amp; title);   // does NOT auto-show
-    void Run();
-
-    void SetRootLayout(std::shared_ptr&lt;Layout&gt; layout);
-    std::shared_ptr&lt;Layout&gt; GetRootLayout() const;
-    std::shared_ptr&lt;ColumnBox&gt; GetRootColumnBox() const;
-
-    void SetBackdrop(Backdrop backdrop, DWORD tint = 0x00000000);
-    Backdrop GetBackdrop() const;
-    void SetBackgroundColor(Color color);
-    void SetContextMenu(std::shared_ptr&lt;Menu&gt; menu);
-
-    void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
-    void SetCaptionColor(COLORREF color);
-    void SetTitleTextColor(COLORREF color);
-    void SetBorderColor(COLORREF color);
-
-    void SetMinSize(int width, int height);
-    void SetPosition(int x, int y);            // move the window, in DIP (useful for multiple windows)
-    void SetSize(int width, int height);       // resize the window, in DIP
-    bool IsValid() const;                      // still valid (not destroyed)
-    int GetId() const;                         // unique window id (elements store ownership by id, avoiding dangling)
-    void Close();                              // close this window (others keep running)
-
-    void SetOwner(Window* owner);              // owned window: stays above the owner, minimizes with it
-    Window* GetOwner() const;
-    std::vector&lt;Window*&gt; GetOwnedWindows() const;   // all owned child windows of this window
-    int RunModal(Window* owner = nullptr);     // run modally: disables the owner, nested loop, restores on close
-
-    // Flash hint (5 consecutive flashes by default; captionOnly flashes only the caption, not the taskbar)
-    void Flash(int times = 5, bool captionOnly = true);
-    void StopFlash();
-
-    // Convenient style / extended-style helpers (e.g. SetWindowExStyleFlag(WS_EX_TOOLWINDOW, true))
-    DWORD GetStyle() const;
-    DWORD GetExStyle() const;
-    void SetWindowStyleFlag(DWORD flag, bool on);
-    void SetWindowExStyleFlag(DWORD flag, bool on);
-
-    // Show / hide / raise (bring to top of z-order)
-    void Show();
-    void ShowNoActivate();
-    void Hide();
-    void Raise();
-
-    // How an owned child handles being minimized on its own
-    enum class OwnedMinimizePolicy {
-        None,            // do nothing (an old-style "small tile" may appear)
-        Hide,            // intercept minimize -&gt; hide; restore when the owner restores/activates
-        DisableMinimize  // gray out the minimize button and ignore minimize-related messages
-    };
-    void SetOwnedMinimizePolicy(OwnedMinimizePolicy p);
-    OwnedMinimizePolicy GetOwnedMinimizePolicy() const;
-
-    // Backdrop layer (only three options): None = transparent / Acrylic / Mica
-    // enum class Backdrop { None, Acrylic, Mica };
-    // SetBackdrop(layer, overlayArgb): the overlay is an ARGB colour composited on top of the layer
-    void SetBackdrop(Backdrop layer, DWORD overlayArgb = 0x00000000);
-    Backdrop GetBackdrop() const;
-
-    // Background "4-layer parameter model" (all tunable — see below)
-    struct BackgroundParams {
-        float        blurAmount;    // Blur layer: Gaussian sigma
-        float        saturation;    // Luminosity layer: saturation (used by the Legacy/RS2 recipe)
-        D2D1_COLOR_F tint;          // Tint layer: colour (with alpha, i.e. the veil)
-        D2D1_COLOR_F luminosity;    // Luminosity layer: brightness colour
-        float        noiseOpacity;  // Noise layer
-    };
-    inline static BackgroundParams AcrylicParams;   // Acrylic: source = host backdrop (window behind)
-    inline static BackgroundParams MicaParams;      // Mica: source = cached desktop wallpaper
-    enum class AcrylicPreset { Legacy, Luminosity, Base, Thin };   // official acrylic presets
-    static void SetBackgroundParams(Backdrop layer, const BackgroundParams&amp; p);  // set all params
-    static void SetBackgroundParams(Backdrop layer, AcrylicPreset preset);       // use a preset
-
-    // Event signals
-    ZSignal&lt;bool*&gt; Closing;           // close requested; set *cancel = true to cancel
-    ZSignal&lt;&gt; BackdropUnsupported;    // requested implementation unsupported on this system
-    ZSignal&lt;&gt; DeviceLost;             // device lost
-    ZSignal&lt;HRESULT&gt; RenderingError;  // fatal rendering error
-
-    // Custom title bar (control in the "Window tools" chapter)
-    void SetCustomTitleBar(std::shared_ptr&lt;UIElement&gt; bar);   // pass nullptr to restore the native one
-    std::shared_ptr&lt;UIElement&gt; GetCustomTitleBar() const;
-    bool HasCustomTitleBar() const;
-    float GetCustomTitleBarHeight() const;
-    void SetTitleBarVisible(bool on);
-    bool IsTitleBarVisible() const;
-    void SetTitle(const std::wstring&amp; title);                 // native title text (use TitleBar::SetTitle with a custom title bar)
-    std::wstring GetTitle() const;                            // current window title (GetWindowTextW)
-    HWND GetHwnd() const;                                     // native window handle
-    void SetIcon(HICON bigIcon, HICON smallIcon);             // native title-bar icons (WM_SETICON)
-
-    // Border / resizing
-    void SetResizable(bool on);
-    bool IsResizable() const;
-
-    // Corner preference
-    enum class WindowCorner { Default, Square, Round, RoundSmall };
-    void SetWindowCorner(WindowCorner c);
-    WindowCorner GetWindowCorner() const;
-
-    // Window actions (for custom title bar buttons)
-    void Minimize();
-    void Maximize();
-    void Restore();
-    void MaximizeRestore();
-    bool IsMaximizedWindow() const;
-    void BeginSystemDrag();
-
-    void SetMouseCapture(UIElement* elem);
-    void ReleaseMouseCapture(UIElement* elem);
-};
-```
-
-`Backdrop` (**backdrop layer**, only three options): `None` (fully transparent), `Acrylic`, `Mica`. The second argument of `SetBackdrop` is the **overlay**: an ARGB colour composited on top of the layer (`A` = how much is revealed/covered, `RGB` = the colour). **`BackdropMode` no longer exists** — backdrops are always rendered by ZufyUI itself (no system material), so Win10 and Win11 look the same.
-
-**Behavior and pitfalls:**
-
-- `Create` creates the window, initializes Direct2D, applies the backdrop, and builds a default root layout: a `ColumnBox` with `margin 20` and `spacing 10`. `GetRootColumnBox()` returns it.
-- `Run()` enters the message loop and blocks until the window closes.
-- An internal 16ms timer drives animations; `timeBeginPeriod(1)` / `timeEndPeriod(1)` reduce jitter.
-- `deltaTime` is clamped to `0.033s`, so animations never jump to their end after idle/minimize.
-- Title-bar colors use Win11 DWM attributes; ignored on unsupported systems.
-- Shadows: the window composites element shadows into their caches; tooltips are drawn by the window too.
-- **Owned windows**: the owner relationship set at creation (via the `CreateWindowEx` parent parameter) means owned windows have **no separate taskbar button**; when the owner is minimized their owned children are hidden **unconditionally**, restored when the owner is restored/activated (not relying on the shell's minimize grouping, which does not apply when the owner is in the background).
-- **Modal**: `RunModal` uses the official mechanism — `EnableWindow(owner, FALSE)` + activating the modal window + an `IsDialogMessage` nested loop. **No global hooks are used**, so other processes are unaffected. Clicking the disabled owner produces the standard system hint.
-- **`OwnedMinimizePolicy`**: how an owned child handles being minimized on its own. `None` does nothing; `Hide` intercepts minimize and hides, restoring when the owner restores/activates; `DisableMinimize` grays out the minimize button and ignores minimize-related messages.
-- **Dangling cleanup**: on destroy a window clears every reference other windows hold to it (`owner_` and hidden lists), so address reuse can never affect unrelated windows.
-- **Custom title bar**: `SetCustomTitleBar(bar)` installs a non-layout title bar control (see "Window tools"); the window places it at `(0,0)` and shifts the root layout down by its height. Pass `nullptr` to restore the native title bar (sends `SWP_FRAMECHANGED`). `SetTitleBarVisible(false)` hides it while keeping the custom frame.
-- **Backdrop (`Backdrop` is a 3-way layer + overlay colour)**: the layer is only `None / Acrylic / Mica`, and it is **always rendered by ZufyUI itself** — there is no "system vs manual" split and no system material (so Win10 and Win11 look the same).
-  - `Acrylic`: our own DirectComposition implementation of the official acrylic recipe (Border noise tiling → Opacity → Gaussian blur → Luminosity/Color blends → noise multiply, plus a Saturation step and a `CompositeStep` for the tint so its alpha takes effect); source = **host backdrop** (the content behind the window).
-  - `Mica`: reads the desktop wallpaper (`SPI_GETDESKWALLPAPER` + WIC) → blur / desaturate / white veil / noise, baked once into a bitmap placed on a **separate compositor layer** (below the content layer); moving the window only changes that layer's `Offset` (a pure translation, no resampling).
-  - Parameters follow the "**4-layer model**" (Blur / Luminosity / Tint / Noise): `SetBackgroundParams(layer, BackgroundParams)` to set all of them, or `SetBackgroundParams(layer, AcrylicPreset)` for an official preset (`Legacy / Luminosity / Base / Thin`). `AcrylicParams` / `MicaParams` hold the defaults (the latter is a tuned look).
-  - If the requested effect cannot be realized on the current system, `BackdropUnsupported` fires and it does **not** substitute another effect.
-- **Rendering (1.8.0)**: Direct2D 1.1 + DXGI flip SwapChain + DirectComposition (`WS_EX_NOREDIRECTIONBITMAP`), per-pixel transparent; a process-wide shared D3D11/D2D device and WinRT `ICompositor`. `Create` **no longer shows the window**; call `Show()` explicitly.
-- **Border / resize / corners**: `SetResizable` controls edge resizing; when snapped, the DWM border/shadow is preserved (`WM_NCCALCSIZE` only insets the snapped edges), and maximizing does not inset. `SetWindowCorner` maps to `DWMWA_WINDOW_CORNER_PREFERENCE`.
-
-## Openable Window internals (overridable) and message interception
-
-`Window`'s **creation parameters, message handling and drawing** are all overridable by subclasses — this is what lets `MenuWindowBase` reuse the Window rendering path (and lets users build custom windows / popups).
+## Label
 
 ```cpp
-class Window {
-    // -- creation parameters (overridable; default = a normal top-level window)
-    virtual DWORD GetCreateStyle()   const;   // default WS_OVERLAPPEDWINDOW
-    virtual DWORD GetCreateExStyle() const;   // default WS_EX_NOREDIRECTIONBITMAP
-    virtual void  GetCreatePos(int&amp; x, int&amp; y) const;   // default CW_USEDEFAULT
-    virtual bool  WantDwmChrome()    const;   // default true; false = no system frame/shadow/corner/non-client
-    virtual bool  WantBackdrop()     const;   // default true
+enum class TextOverflow { Wrap, Ellipsis };
+enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bottom };
+Label(const std::wstring&amp; text = L"Label");
+void SetText(const std::wstring&amp;);   std::wstring GetText() const;
+void SetTextFast(const std::wstring&amp;);   // pool rebind only: self-dirty, no bubble, no repaint
+void SetTextColor(Color);   void SetTextOverflow(TextOverflow);
+void SetAlignment(HAlign, VAlign);   void SetPadding(const Thickness&amp;);
+void SetBackgroundColor(Color);  void SetBackgroundCornerRadius(float);
+void SetLineSpacing(float);  void SetMaxLines(int);   // only meaningful with Wrap
+void SetImage(std::shared_ptr&lt;Image&gt;);   void SetIcon(Icon, float size=0);
+void AddChild(std::shared_ptr&lt;UIElement&gt;);
+std::wstring GetToolTip() const override;   // auto full-text tooltip when ellipsized (v1.17.0)
+```
+- **`Pitfall`**: `SetTextFast` does not repaint — pooled containers (ListView/TableView) use it plus their own repaint. Direct use may look "not updated".
+- **`Pitfall`**: when both image and glyph are set, **image wins**.
+- **`Version`**: `SetIcon` family `v1.13.0`; auto tooltip `v1.17.0`.
 
-    // -- message interception (single entry point)
-    // called before the framework's default handling; return true = handled/swallowed, *result is returned
-    virtual bool OnWindowMessage(UINT msg, WPARAM, LPARAM, LRESULT* result);
-    virtual void OnWindowMessageHandled(UINT, WPARAM, LPARAM, LRESULT);  // observe only
-    virtual bool OnWindowClosing();           // WM_CLOSE; return true to cancel
-    virtual bool OnWindowKeyDown(int vk);     // keyboard (before dispatch to the focused element)
-    virtual bool OnWindowTimer(int id);       // WM_TIMER
+## Button
 
-    // -- self-draw
-    virtual void RenderContent(ID2D1DeviceContext* rt);   // default: draw the element tree; override to draw fully
-    float GetClientWidthDip() const; float GetClientHeightDip() const; float GetDpiScale() const;
+```cpp
+ZSignal&lt;&gt; Clicked;   ZSignal&lt;bool&gt; Toggled;     // Toggled needs SetCheckable(true)
+Button(const std::wstring&amp; text = L"Button");
+void SetText/SetIcon/SetIconColor(...);
+void SetColors(Color normal, Color hover, Color pressed);   void SetTextColor(Color);
+void SetCornerRadius(float);   void SetHoverAnimationSpeed(float);
+void SetCheckable(bool);  void SetChecked(bool);  bool IsChecked() const;
+void SetAutoRepeat(bool enable, float intervalMs=400);
+```
+- Default `120×36`; `Clicked` only if press+release are both inside.
+- **`Pitfall`**: `IsChecked()` is meaningless unless checkable.
 
-    void SetContentOpacity(float opacity);    // whole-window content opacity (0..1), for popup fade
-};
+## TextBox (single-line)
+
+```cpp
+ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;&gt; ReturnPressed;
+void SetText(const std::wstring&amp;);   // strips \r\n, truncates to maxLength, clears undo
+void SetPlaceholder(...);  void SetPasswordMode(bool);  void SetMaxLength(int);   // -1 = unlimited
+void SetReadOnly(bool);    void SetInputFilter(std::function&lt;bool(wchar_t)&gt;);
+void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
+void SelectAll/Copy/Cut/Paste/Undo/Redo();
+int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
+```
+- **`Pitfall`**: `SetImeEnabled(false)` suppresses IME/on-screen keyboard (`IsTextInput()` returns `imeEnabled_`).
+- **`Pitfall`**: programmatic `SetText` does **not** create an undo step.
+- **`Version`**: error/indicator/IME `v1.12.0`; `v1.18.0` fixes shift+click semantics.
+
+## TextEdit (multi-line editor / viewer) — v1.18.0
+
+```cpp
+enum class WrapMode { NoWrap, WidgetWidth };
+ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;int,int&gt; CursorPositionChanged;  ZSignal&lt;&gt; SelectionChanged;
+std::wstring ToPlainText() const;  void SetPlainText(const std::wstring&amp;);   // clears undo
+void AppendPlainText(...);  void InsertPlainText(...);
+void SetRichText(const std::vector&lt;std::vector&lt;TextRun&gt;&gt;&amp;);   // forces read-only; TextRun{ text, font, color, underline }
+void SetReadOnly(bool);  void SetShowLineNumbers(bool);  void SetShowNewlines(bool);
+void SetWrapMode(WrapMode);  void SetTabSize(int);  void SetInsertSpaces(bool);
+int GetCursorLine/Column() const;  void SetCursorLineColumn(int,int);   // 0-based
+void SelectLine(int);  void SelectWordAt(int);  bool Find(const std::wstring&amp;, bool fwd=true, bool matchCase=false);
+void EnsureCursorVisible();  float GetScrollOffsetY() const;  void SetScrollOffsetY(float);
+bool UseCache() const override { return false; }
+bool AcceptsTab() const override { return !readOnly_; }
+```
+- **`Pitfall`**: changing wrap width **rebuilds every line layout**. Rich text is **read-only**. Line/column APIs are **0-based**. Because `AcceptsTab` is true, Tab **inserts an indent** (not focus navigation).
+- Default `Consolas 14`, `320×160`, tabSize 4.
+
+Minimal example:
+```cpp
+auto edit = std::make_shared&lt;TextEdit&gt;();
+edit-&gt;SetPlainText(L"hello\nworld");
+edit-&gt;SetShowLineNumbers(true);
+root-&gt;AddChild(edit);                 // give it a size or let the layout fill it
 ```
 
-- **Intercept any message** via `OnWindowMessage` (the only entry, before default handling); return true to swallow it. Default returns false → unchanged behavior.
-- **Self-drawn windows / popups**: override `RenderContent(rt)` (you get the shared `ID2D1DeviceContext`); combine with `GetCreateStyle/GetCreateExStyle/WantDwmChrome/WantBackdrop` for borderless / transparent / popup windows.
-- `OnWindowMessageHandled` is observe-only (debugging / chaining).</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 9 · Window</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 9</span><h1>Window</h1><p class="chapter-summary">Creation, backdrop, title bar, and root layout</p></header><div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-6d761180', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Backdrop</span><span class="w"> </span><span class="n">DefaultBackdrop</span><span class="p">;</span><span class="w">              </span><span class="c1">// None</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">DefaultBackdropColor</span><span class="p">;</span><span class="w">            </span><span class="c1">// 0</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">DefaultBackgroundColor</span><span class="p">;</span><span class="w">          </span><span class="c1">// transparent</span>
+## ComboBox
 
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Create</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span><span class="w">   </span><span class="c1">// does NOT auto-show</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Run</span><span class="p">();</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRootLayout</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Layout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">layout</span><span class="p">);</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Layout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetRootLayout</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ColumnBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetRootColumnBox</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="w"> </span><span class="n">backdrop</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span>
-<span class="w">    </span><span class="n">Backdrop</span><span class="w"> </span><span class="nf">GetBackdrop</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="w"> </span><span class="n">color</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetContextMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="p">);</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitleBarColors</span><span class="p">(</span><span class="n">COLORREF</span><span class="w"> </span><span class="n">caption</span><span class="p">,</span><span class="w"> </span><span class="n">COLORREF</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">COLORREF</span><span class="w"> </span><span class="n">border</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCaptionColor</span><span class="p">(</span><span class="n">COLORREF</span><span class="w"> </span><span class="n">color</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitleTextColor</span><span class="p">(</span><span class="n">COLORREF</span><span class="w"> </span><span class="n">color</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBorderColor</span><span class="p">(</span><span class="n">COLORREF</span><span class="w"> </span><span class="n">color</span><span class="p">);</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMinSize</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetPosition</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span><span class="w">            </span><span class="c1">// move the window, in DIP (useful for multiple windows)</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSize</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">);</span><span class="w">       </span><span class="c1">// resize the window, in DIP</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsValid</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                      </span><span class="c1">// still valid (not destroyed)</span>
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetId</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                         </span><span class="c1">// unique window id (elements store ownership by id, avoiding dangling)</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Close</span><span class="p">();</span><span class="w">                              </span><span class="c1">// close this window (others keep running)</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetOwner</span><span class="p">(</span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="n">owner</span><span class="p">);</span><span class="w">              </span><span class="c1">// owned window: stays above the owner, minimizes with it</span>
-<span class="w">    </span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="nf">GetOwner</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">GetOwnedWindows</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// all owned child windows of this window</span>
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">RunModal</span><span class="p">(</span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="n">owner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span><span class="w">     </span><span class="c1">// run modally: disables the owner, nested loop, restores on close</span>
-
-<span class="w">    </span><span class="c1">// Flash hint (5 consecutive flashes by default; captionOnly flashes only the caption, not the taskbar)</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Flash</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">times</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">captionOnly</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">StopFlash</span><span class="p">();</span>
-
-<span class="w">    </span><span class="c1">// Convenient style / extended-style helpers (e.g. SetWindowExStyleFlag(WS_EX_TOOLWINDOW, true))</span>
-<span class="w">    </span><span class="n">DWORD</span><span class="w"> </span><span class="nf">GetStyle</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">DWORD</span><span class="w"> </span><span class="nf">GetExStyle</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetWindowStyleFlag</span><span class="p">(</span><span class="n">DWORD</span><span class="w"> </span><span class="n">flag</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetWindowExStyleFlag</span><span class="p">(</span><span class="n">DWORD</span><span class="w"> </span><span class="n">flag</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span>
-
-<span class="w">    </span><span class="c1">// Show / hide / raise (bring to top of z-order)</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Show</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowNoActivate</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Hide</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Raise</span><span class="p">();</span>
-
-<span class="w">    </span><span class="c1">// How an owned child handles being minimized on its own</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">OwnedMinimizePolicy</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">None</span><span class="p">,</span><span class="w">            </span><span class="c1">// do nothing (an old-style "small tile" may appear)</span>
-<span class="w">        </span><span class="n">Hide</span><span class="p">,</span><span class="w">            </span><span class="c1">// intercept minimize -&gt; hide; restore when the owner restores/activates</span>
-<span class="w">        </span><span class="n">DisableMinimize</span><span class="w">  </span><span class="c1">// gray out the minimize button and ignore minimize-related messages</span>
-<span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetOwnedMinimizePolicy</span><span class="p">(</span><span class="n">OwnedMinimizePolicy</span><span class="w"> </span><span class="n">p</span><span class="p">);</span>
-<span class="w">    </span><span class="n">OwnedMinimizePolicy</span><span class="w"> </span><span class="nf">GetOwnedMinimizePolicy</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="c1">// Backdrop layer (only three options): None = transparent / Acrylic / Mica</span>
-<span class="w">    </span><span class="c1">// enum class Backdrop { None, Acrylic, Mica };</span>
-<span class="w">    </span><span class="c1">// SetBackdrop(layer, overlayArgb): the overlay is an ARGB colour composited on top of the layer</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="w"> </span><span class="n">layer</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">overlayArgb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span>
-<span class="w">    </span><span class="n">Backdrop</span><span class="w"> </span><span class="nf">GetBackdrop</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="c1">// Background "4-layer parameter model" (all tunable — see below)</span>
-<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">BackgroundParams</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="kt">float</span><span class="w">        </span><span class="n">blurAmount</span><span class="p">;</span><span class="w">    </span><span class="c1">// Blur layer: Gaussian sigma</span>
-<span class="w">        </span><span class="kt">float</span><span class="w">        </span><span class="n">saturation</span><span class="p">;</span><span class="w">    </span><span class="c1">// Luminosity layer: saturation (used by the Legacy/RS2 recipe)</span>
-<span class="w">        </span><span class="n">D2D1_COLOR_F</span><span class="w"> </span><span class="n">tint</span><span class="p">;</span><span class="w">          </span><span class="c1">// Tint layer: colour (with alpha, i.e. the veil)</span>
-<span class="w">        </span><span class="n">D2D1_COLOR_F</span><span class="w"> </span><span class="n">luminosity</span><span class="p">;</span><span class="w">    </span><span class="c1">// Luminosity layer: brightness colour</span>
-<span class="w">        </span><span class="kt">float</span><span class="w">        </span><span class="n">noiseOpacity</span><span class="p">;</span><span class="w">  </span><span class="c1">// Noise layer</span>
-<span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">BackgroundParams</span><span class="w"> </span><span class="n">AcrylicParams</span><span class="p">;</span><span class="w">   </span><span class="c1">// Acrylic: source = host backdrop (window behind)</span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">BackgroundParams</span><span class="w"> </span><span class="n">MicaParams</span><span class="p">;</span><span class="w">      </span><span class="c1">// Mica: source = cached desktop wallpaper</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AcrylicPreset</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Legacy</span><span class="p">,</span><span class="w"> </span><span class="n">Luminosity</span><span class="p">,</span><span class="w"> </span><span class="n">Base</span><span class="p">,</span><span class="w"> </span><span class="n">Thin</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// official acrylic presets</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundParams</span><span class="p">(</span><span class="n">Backdrop</span><span class="w"> </span><span class="n">layer</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">BackgroundParams</span><span class="o">&amp;</span><span class="w"> </span><span class="n">p</span><span class="p">);</span><span class="w">  </span><span class="c1">// set all params</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundParams</span><span class="p">(</span><span class="n">Backdrop</span><span class="w"> </span><span class="n">layer</span><span class="p">,</span><span class="w"> </span><span class="n">AcrylicPreset</span><span class="w"> </span><span class="n">preset</span><span class="p">);</span><span class="w">       </span><span class="c1">// use a preset</span>
-
-<span class="w">    </span><span class="c1">// Event signals</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">Closing</span><span class="p">;</span><span class="w">           </span><span class="c1">// close requested; set *cancel = true to cancel</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BackdropUnsupported</span><span class="p">;</span><span class="w">    </span><span class="c1">// requested implementation unsupported on this system</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DeviceLost</span><span class="p">;</span><span class="w">             </span><span class="c1">// device lost</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">HRESULT</span><span class="o">&gt;</span><span class="w"> </span><span class="n">RenderingError</span><span class="p">;</span><span class="w">  </span><span class="c1">// fatal rendering error</span>
-
-<span class="w">    </span><span class="c1">// Custom title bar (control in the "Window tools" chapter)</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCustomTitleBar</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bar</span><span class="p">);</span><span class="w">   </span><span class="c1">// pass nullptr to restore the native one</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCustomTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">HasCustomTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetCustomTitleBarHeight</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitleBarVisible</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsTitleBarVisible</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span><span class="w">                 </span><span class="c1">// native title text (use TitleBar::SetTitle with a custom title bar)</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetTitle</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                            </span><span class="c1">// current window title (GetWindowTextW)</span>
-<span class="w">    </span><span class="n">HWND</span><span class="w"> </span><span class="nf">GetHwnd</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                                     </span><span class="c1">// native window handle</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">bigIcon</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="n">smallIcon</span><span class="p">);</span><span class="w">             </span><span class="c1">// native title-bar icons (WM_SETICON)</span>
-
-<span class="w">    </span><span class="c1">// Border / resizing</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetResizable</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsResizable</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="c1">// Corner preference</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">WindowCorner</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Default</span><span class="p">,</span><span class="w"> </span><span class="n">Square</span><span class="p">,</span><span class="w"> </span><span class="n">Round</span><span class="p">,</span><span class="w"> </span><span class="n">RoundSmall</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetWindowCorner</span><span class="p">(</span><span class="n">WindowCorner</span><span class="w"> </span><span class="n">c</span><span class="p">);</span>
-<span class="w">    </span><span class="n">WindowCorner</span><span class="w"> </span><span class="nf">GetWindowCorner</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="c1">// Window actions (for custom title bar buttons)</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Minimize</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Maximize</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Restore</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">MaximizeRestore</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsMaximizedWindow</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">BeginSystemDrag</span><span class="p">();</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMouseCapture</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">elem</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ReleaseMouseCapture</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">elem</span><span class="p">);</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-6d761180" style="display: none;">class Window {
-    static Backdrop DefaultBackdrop;              // None
-    static DWORD DefaultBackdropColor;            // 0
-    static Color DefaultBackgroundColor;          // transparent
-
-    bool Create(int width, int height, const std::wstring&amp; title);   // does NOT auto-show
-    void Run();
-
-    void SetRootLayout(std::shared_ptr&lt;Layout&gt; layout);
-    std::shared_ptr&lt;Layout&gt; GetRootLayout() const;
-    std::shared_ptr&lt;ColumnBox&gt; GetRootColumnBox() const;
-
-    void SetBackdrop(Backdrop backdrop, DWORD tint = 0x00000000);
-    Backdrop GetBackdrop() const;
-    void SetBackgroundColor(Color color);
-    void SetContextMenu(std::shared_ptr&lt;Menu&gt; menu);
-
-    void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
-    void SetCaptionColor(COLORREF color);
-    void SetTitleTextColor(COLORREF color);
-    void SetBorderColor(COLORREF color);
-
-    void SetMinSize(int width, int height);
-    void SetPosition(int x, int y);            // move the window, in DIP (useful for multiple windows)
-    void SetSize(int width, int height);       // resize the window, in DIP
-    bool IsValid() const;                      // still valid (not destroyed)
-    int GetId() const;                         // unique window id (elements store ownership by id, avoiding dangling)
-    void Close();                              // close this window (others keep running)
-
-    void SetOwner(Window* owner);              // owned window: stays above the owner, minimizes with it
-    Window* GetOwner() const;
-    std::vector&lt;Window*&gt; GetOwnedWindows() const;   // all owned child windows of this window
-    int RunModal(Window* owner = nullptr);     // run modally: disables the owner, nested loop, restores on close
-
-    // Flash hint (5 consecutive flashes by default; captionOnly flashes only the caption, not the taskbar)
-    void Flash(int times = 5, bool captionOnly = true);
-    void StopFlash();
-
-    // Convenient style / extended-style helpers (e.g. SetWindowExStyleFlag(WS_EX_TOOLWINDOW, true))
-    DWORD GetStyle() const;
-    DWORD GetExStyle() const;
-    void SetWindowStyleFlag(DWORD flag, bool on);
-    void SetWindowExStyleFlag(DWORD flag, bool on);
-
-    // Show / hide / raise (bring to top of z-order)
-    void Show();
-    void ShowNoActivate();
-    void Hide();
-    void Raise();
-
-    // How an owned child handles being minimized on its own
-    enum class OwnedMinimizePolicy {
-        None,            // do nothing (an old-style "small tile" may appear)
-        Hide,            // intercept minimize -&gt; hide; restore when the owner restores/activates
-        DisableMinimize  // gray out the minimize button and ignore minimize-related messages
-    };
-    void SetOwnedMinimizePolicy(OwnedMinimizePolicy p);
-    OwnedMinimizePolicy GetOwnedMinimizePolicy() const;
-
-    // Backdrop layer (only three options): None = transparent / Acrylic / Mica
-    // enum class Backdrop { None, Acrylic, Mica };
-    // SetBackdrop(layer, overlayArgb): the overlay is an ARGB colour composited on top of the layer
-    void SetBackdrop(Backdrop layer, DWORD overlayArgb = 0x00000000);
-    Backdrop GetBackdrop() const;
-
-    // Background "4-layer parameter model" (all tunable — see below)
-    struct BackgroundParams {
-        float        blurAmount;    // Blur layer: Gaussian sigma
-        float        saturation;    // Luminosity layer: saturation (used by the Legacy/RS2 recipe)
-        D2D1_COLOR_F tint;          // Tint layer: colour (with alpha, i.e. the veil)
-        D2D1_COLOR_F luminosity;    // Luminosity layer: brightness colour
-        float        noiseOpacity;  // Noise layer
-    };
-    inline static BackgroundParams AcrylicParams;   // Acrylic: source = host backdrop (window behind)
-    inline static BackgroundParams MicaParams;      // Mica: source = cached desktop wallpaper
-    enum class AcrylicPreset { Legacy, Luminosity, Base, Thin };   // official acrylic presets
-    static void SetBackgroundParams(Backdrop layer, const BackgroundParams&amp; p);  // set all params
-    static void SetBackgroundParams(Backdrop layer, AcrylicPreset preset);       // use a preset
-
-    // Event signals
-    ZSignal&lt;bool*&gt; Closing;           // close requested; set *cancel = true to cancel
-    ZSignal&lt;&gt; BackdropUnsupported;    // requested implementation unsupported on this system
-    ZSignal&lt;&gt; DeviceLost;             // device lost
-    ZSignal&lt;HRESULT&gt; RenderingError;  // fatal rendering error
-
-    // Custom title bar (control in the "Window tools" chapter)
-    void SetCustomTitleBar(std::shared_ptr&lt;UIElement&gt; bar);   // pass nullptr to restore the native one
-    std::shared_ptr&lt;UIElement&gt; GetCustomTitleBar() const;
-    bool HasCustomTitleBar() const;
-    float GetCustomTitleBarHeight() const;
-    void SetTitleBarVisible(bool on);
-    bool IsTitleBarVisible() const;
-    void SetTitle(const std::wstring&amp; title);                 // native title text (use TitleBar::SetTitle with a custom title bar)
-    std::wstring GetTitle() const;                            // current window title (GetWindowTextW)
-    HWND GetHwnd() const;                                     // native window handle
-    void SetIcon(HICON bigIcon, HICON smallIcon);             // native title-bar icons (WM_SETICON)
-
-    // Border / resizing
-    void SetResizable(bool on);
-    bool IsResizable() const;
-
-    // Corner preference
-    enum class WindowCorner { Default, Square, Round, RoundSmall };
-    void SetWindowCorner(WindowCorner c);
-    WindowCorner GetWindowCorner() const;
-
-    // Window actions (for custom title bar buttons)
-    void Minimize();
-    void Maximize();
-    void Restore();
-    void MaximizeRestore();
-    bool IsMaximizedWindow() const;
-    void BeginSystemDrag();
-
-    void SetMouseCapture(UIElement* elem);
-    void ReleaseMouseCapture(UIElement* elem);
-};</pre>
-</div>
-<p><code>Backdrop</code> (<strong>backdrop layer</strong>, only three options): <code>None</code> (fully transparent), <code>Acrylic</code>, <code>Mica</code>. The second argument of <code>SetBackdrop</code> is the <strong>overlay</strong>: an ARGB colour composited on top of the layer (<code>A</code> = how much is revealed/covered, <code>RGB</code> = the colour). <strong><code>BackdropMode</code> no longer exists</strong> — backdrops are always rendered by ZufyUI itself (no system material), so Win10 and Win11 look the same.</p>
-<p><strong>Behavior and pitfalls:</strong></p>
-<ul>
-<li><code>Create</code> creates the window, initializes Direct2D, applies the backdrop, and builds a default root layout: a <code>ColumnBox</code> with <code>margin 20</code> and <code>spacing 10</code>. <code>GetRootColumnBox()</code> returns it.</li>
-<li><code>Run()</code> enters the message loop and blocks until the window closes.</li>
-<li>An internal 16ms timer drives animations; <code>timeBeginPeriod(1)</code> / <code>timeEndPeriod(1)</code> reduce jitter.</li>
-<li><code>deltaTime</code> is clamped to <code>0.033s</code>, so animations never jump to their end after idle/minimize.</li>
-<li>Title-bar colors use Win11 DWM attributes; ignored on unsupported systems.</li>
-<li>Shadows: the window composites element shadows into their caches; tooltips are drawn by the window too.</li>
-<li><strong>Owned windows</strong>: the owner relationship set at creation (via the <code>CreateWindowEx</code> parent parameter) means owned windows have <strong>no separate taskbar button</strong>; when the owner is minimized their owned children are hidden <strong>unconditionally</strong>, restored when the owner is restored/activated (not relying on the shell's minimize grouping, which does not apply when the owner is in the background).</li>
-<li><strong>Modal</strong>: <code>RunModal</code> uses the official mechanism — <code>EnableWindow(owner, FALSE)</code> + activating the modal window + an <code>IsDialogMessage</code> nested loop. <strong>No global hooks are used</strong>, so other processes are unaffected. Clicking the disabled owner produces the standard system hint.</li>
-<li><strong><code>OwnedMinimizePolicy</code></strong>: how an owned child handles being minimized on its own. <code>None</code> does nothing; <code>Hide</code> intercepts minimize and hides, restoring when the owner restores/activates; <code>DisableMinimize</code> grays out the minimize button and ignores minimize-related messages.</li>
-<li><strong>Dangling cleanup</strong>: on destroy a window clears every reference other windows hold to it (<code>owner_</code> and hidden lists), so address reuse can never affect unrelated windows.</li>
-<li><strong>Custom title bar</strong>: <code>SetCustomTitleBar(bar)</code> installs a non-layout title bar control (see "Window tools"); the window places it at <code>(0,0)</code> and shifts the root layout down by its height. Pass <code>nullptr</code> to restore the native title bar (sends <code>SWP_FRAMECHANGED</code>). <code>SetTitleBarVisible(false)</code> hides it while keeping the custom frame.</li>
-<li><strong>Backdrop (<code>Backdrop</code> is a 3-way layer + overlay colour)</strong>: the layer is only <code>None / Acrylic / Mica</code>, and it is <strong>always rendered by ZufyUI itself</strong> — there is no "system vs manual" split and no system material (so Win10 and Win11 look the same).</li>
-<li><code>Acrylic</code>: our own DirectComposition implementation of the official acrylic recipe (Border noise tiling → Opacity → Gaussian blur → Luminosity/Color blends → noise multiply, plus a Saturation step and a <code>CompositeStep</code> for the tint so its alpha takes effect); source = <strong>host backdrop</strong> (the content behind the window).</li>
-<li><code>Mica</code>: reads the desktop wallpaper (<code>SPI_GETDESKWALLPAPER</code> + WIC) → blur / desaturate / white veil / noise, baked once into a bitmap placed on a <strong>separate compositor layer</strong> (below the content layer); moving the window only changes that layer's <code>Offset</code> (a pure translation, no resampling).</li>
-<li>Parameters follow the "<strong>4-layer model</strong>" (Blur / Luminosity / Tint / Noise): <code>SetBackgroundParams(layer, BackgroundParams)</code> to set all of them, or <code>SetBackgroundParams(layer, AcrylicPreset)</code> for an official preset (<code>Legacy / Luminosity / Base / Thin</code>). <code>AcrylicParams</code> / <code>MicaParams</code> hold the defaults (the latter is a tuned look).</li>
-<li>If the requested effect cannot be realized on the current system, <code>BackdropUnsupported</code> fires and it does <strong>not</strong> substitute another effect.</li>
-<li><strong>Rendering (1.8.0)</strong>: Direct2D 1.1 + DXGI flip SwapChain + DirectComposition (<code>WS_EX_NOREDIRECTIONBITMAP</code>), per-pixel transparent; a process-wide shared D3D11/D2D device and WinRT <code>ICompositor</code>. <code>Create</code> <strong>no longer shows the window</strong>; call <code>Show()</code> explicitly.</li>
-<li><strong>Border / resize / corners</strong>: <code>SetResizable</code> controls edge resizing; when snapped, the DWM border/shadow is preserved (<code>WM_NCCALCSIZE</code> only insets the snapped edges), and maximizing does not inset. <code>SetWindowCorner</code> maps to <code>DWMWA_WINDOW_CORNER_PREFERENCE</code>.</li>
-</ul>
-<h2 id="openable-window-internals-overridable-and-message-interception">Openable Window internals (overridable) and message interception</h2>
-<p><code>Window</code>'s <strong>creation parameters, message handling and drawing</strong> are all overridable by subclasses — this is what lets <code>MenuWindowBase</code> reuse the Window rendering path (and lets users build custom windows / popups).</p>
+```cpp
+ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;&gt; DropDownOpened, DropDownClosed;
+void AddItem/SetItems/InsertItem/RemoveItemAt/ClearItems(...);
+void SetSelectedIndex(int);  int GetSelectedIndex() const;             // filtered/visible index
+void SetSelectedSourceIndex(int);  int GetSelectedSourceIndex() const; // v1.15.0: source index
+void SetItemDisabled(int visibleIndex, bool);   // persists by source index
+void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
+```
+- **`Pitfall`**: the dropdown draws on the global `DrawOverlay` and may exceed the control's bounds.
+- **`Pitfall`**: `GetSelectedIndex()` is the **filtered/visible** index; `SetItemDisabled` persists by **source** index (v1.15.0).
+- **`Version`**: dropdown geometry/state `v1.12.0`; source-index API `v1.15.0`.</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 9 · Basic controls</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 9</span><h1>Basic controls</h1><p class="chapter-summary">Label, Button, TextBox, TextEdit, ComboBox</p></header><blockquote>
+<p>Shared pitfalls: text layout is globally cached by <code>(text, box, format)</code>; change internal strings via setters (or you bypass invalidation); <code>Color</code> components are [0,1]; <code>SetEnabled(false)</code> ≠ <code>SetVisible(false)</code>.</p>
+</blockquote>
+<h2 id="label">Label</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-8d1628f0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-38ccb536', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">// -- creation parameters (overridable; default = a normal top-level window)</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="nf">GetCreateStyle</span><span class="p">()</span><span class="w">   </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default WS_OVERLAPPEDWINDOW</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="nf">GetCreateExStyle</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default WS_EX_NOREDIRECTIONBITMAP</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w">  </span><span class="nf">GetCreatePos</span><span class="p">(</span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default CW_USEDEFAULT</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w">  </span><span class="nf">WantDwmChrome</span><span class="p">()</span><span class="w">    </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default true; false = no system frame/shadow/corner/non-client</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w">  </span><span class="nf">WantBackdrop</span><span class="p">()</span><span class="w">     </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default true</span>
-
-<span class="w">    </span><span class="c1">// -- message interception (single entry point)</span>
-<span class="w">    </span><span class="c1">// called before the framework's default handling; return true = handled/swallowed, *result is returned</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowMessage</span><span class="p">(</span><span class="n">UINT</span><span class="w"> </span><span class="n">msg</span><span class="p">,</span><span class="w"> </span><span class="n">WPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LRESULT</span><span class="o">*</span><span class="w"> </span><span class="n">result</span><span class="p">);</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">OnWindowMessageHandled</span><span class="p">(</span><span class="n">UINT</span><span class="p">,</span><span class="w"> </span><span class="n">WPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LRESULT</span><span class="p">);</span><span class="w">  </span><span class="c1">// observe only</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowClosing</span><span class="p">();</span><span class="w">           </span><span class="c1">// WM_CLOSE; return true to cancel</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowKeyDown</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vk</span><span class="p">);</span><span class="w">     </span><span class="c1">// keyboard (before dispatch to the focused element)</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">);</span><span class="w">       </span><span class="c1">// WM_TIMER</span>
-
-<span class="w">    </span><span class="c1">// -- self-draw</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">RenderContent</span><span class="p">(</span><span class="n">ID2D1DeviceContext</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">);</span><span class="w">   </span><span class="c1">// default: draw the element tree; override to draw fully</span>
-<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetClientWidthDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetClientHeightDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetDpiScale</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetContentOpacity</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">opacity</span><span class="p">);</span><span class="w">    </span><span class="c1">// whole-window content opacity (0..1), for popup fade</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TextOverflow</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Wrap</span><span class="p">,</span><span class="w"> </span><span class="n">Ellipsis</span><span class="w"> </span><span class="p">};</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">HAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">VAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Top</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Bottom</span><span class="w"> </span><span class="p">};</span>
+<span class="n">Label</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"Label"</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetText</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetText</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetTextFast</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// pool rebind only: self-dirty, no bubble, no repaint</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetTextColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTextOverflow</span><span class="p">(</span><span class="n">TextOverflow</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAlignment</span><span class="p">(</span><span class="n">HAlign</span><span class="p">,</span><span class="w"> </span><span class="n">VAlign</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetPadding</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Thickness</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundCornerRadius</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetLineSpacing</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMaxLines</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">   </span><span class="c1">// only meaningful with Wrap</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetImage</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">Icon</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetToolTip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">   </span><span class="c1">// auto full-text tooltip when ellipsized (v1.17.0)</span>
 </pre></div>
-<pre id="code-8d1628f0" style="display: none;">class Window {
-    // -- creation parameters (overridable; default = a normal top-level window)
-    virtual DWORD GetCreateStyle()   const;   // default WS_OVERLAPPEDWINDOW
-    virtual DWORD GetCreateExStyle() const;   // default WS_EX_NOREDIRECTIONBITMAP
-    virtual void  GetCreatePos(int&amp; x, int&amp; y) const;   // default CW_USEDEFAULT
-    virtual bool  WantDwmChrome()    const;   // default true; false = no system frame/shadow/corner/non-client
-    virtual bool  WantBackdrop()     const;   // default true
-
-    // -- message interception (single entry point)
-    // called before the framework's default handling; return true = handled/swallowed, *result is returned
-    virtual bool OnWindowMessage(UINT msg, WPARAM, LPARAM, LRESULT* result);
-    virtual void OnWindowMessageHandled(UINT, WPARAM, LPARAM, LRESULT);  // observe only
-    virtual bool OnWindowClosing();           // WM_CLOSE; return true to cancel
-    virtual bool OnWindowKeyDown(int vk);     // keyboard (before dispatch to the focused element)
-    virtual bool OnWindowTimer(int id);       // WM_TIMER
-
-    // -- self-draw
-    virtual void RenderContent(ID2D1DeviceContext* rt);   // default: draw the element tree; override to draw fully
-    float GetClientWidthDip() const; float GetClientHeightDip() const; float GetDpiScale() const;
-
-    void SetContentOpacity(float opacity);    // whole-window content opacity (0..1), for popup fade
-};</pre>
+<pre id="code-38ccb536" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
+enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bottom };
+Label(const std::wstring&amp; text = L"Label");
+void SetText(const std::wstring&amp;);   std::wstring GetText() const;
+void SetTextFast(const std::wstring&amp;);   // pool rebind only: self-dirty, no bubble, no repaint
+void SetTextColor(Color);   void SetTextOverflow(TextOverflow);
+void SetAlignment(HAlign, VAlign);   void SetPadding(const Thickness&amp;);
+void SetBackgroundColor(Color);  void SetBackgroundCornerRadius(float);
+void SetLineSpacing(float);  void SetMaxLines(int);   // only meaningful with Wrap
+void SetImage(std::shared_ptr&lt;Image&gt;);   void SetIcon(Icon, float size=0);
+void AddChild(std::shared_ptr&lt;UIElement&gt;);
+std::wstring GetToolTip() const override;   // auto full-text tooltip when ellipsized (v1.17.0)</pre>
 </div>
 <ul>
-<li><strong>Intercept any message</strong> via <code>OnWindowMessage</code> (the only entry, before default handling); return true to swallow it. Default returns false → unchanged behavior.</li>
-<li><strong>Self-drawn windows / popups</strong>: override <code>RenderContent(rt)</code> (you get the shared <code>ID2D1DeviceContext</code>); combine with <code>GetCreateStyle/GetCreateExStyle/WantDwmChrome/WantBackdrop</code> for borderless / transparent / popup windows.</li>
-<li><code>OnWindowMessageHandled</code> is observe-only (debugging / chaining).</li>
+<li><strong><code>Pitfall</code></strong>: <code>SetTextFast</code> does not repaint — pooled containers (ListView/TableView) use it plus their own repaint. Direct use may look "not updated".</li>
+<li><strong><code>Pitfall</code></strong>: when both image and glyph are set, <strong>image wins</strong>.</li>
+<li><strong><code>Version</code></strong>: <code>SetIcon</code> family <code>v1.13.0</code>; auto tooltip <code>v1.17.0</code>.</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.8.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Menus</span><span class="nav-desc">MenuItem, Menu, MenuWindow</span></a><a class="next" href="API.en.10.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Application and multiple windows</span><span class="nav-desc">Application and multi-window</span></a></nav>
+<h2 id="button">Button</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-bb80f963', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">     </span><span class="c1">// Toggled needs SetCheckable(true)</span>
+<span class="n">Button</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"Button"</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetText</span><span class="o">/</span><span class="n">SetIcon</span><span class="o">/</span><span class="n">SetIconColor</span><span class="p">(...);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetColors</span><span class="p">(</span><span class="n">Color</span><span class="w"> </span><span class="n">normal</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">hover</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">pressed</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTextColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCornerRadius</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetHoverAnimationSpeed</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCheckable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetChecked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsChecked</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoRepeat</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">enable</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">intervalMs</span><span class="o">=</span><span class="mi">400</span><span class="p">);</span>
+</pre></div>
+<pre id="code-bb80f963" style="display: none;">ZSignal&lt;&gt; Clicked;   ZSignal&lt;bool&gt; Toggled;     // Toggled needs SetCheckable(true)
+Button(const std::wstring&amp; text = L"Button");
+void SetText/SetIcon/SetIconColor(...);
+void SetColors(Color normal, Color hover, Color pressed);   void SetTextColor(Color);
+void SetCornerRadius(float);   void SetHoverAnimationSpeed(float);
+void SetCheckable(bool);  void SetChecked(bool);  bool IsChecked() const;
+void SetAutoRepeat(bool enable, float intervalMs=400);</pre>
+</div>
+<ul>
+<li>Default <code>120×36</code>; <code>Clicked</code> only if press+release are both inside.</li>
+<li><strong><code>Pitfall</code></strong>: <code>IsChecked()</code> is meaningless unless checkable.</li>
+</ul>
+<h2 id="textbox-single-line">TextBox (single-line)</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-85dd8ba5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">ReturnPressed</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetText</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// strips \r\n, truncates to maxLength, clears undo</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetPlaceholder</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetPasswordMode</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMaxLength</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">   </span><span class="c1">// -1 = unlimited</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetReadOnly</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetInputFilter</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="kt">wchar_t</span><span class="p">)</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetError</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetImeEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">        </span><span class="c1">// v1.12.0</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SelectAll</span><span class="o">/</span><span class="n">Copy</span><span class="o">/</span><span class="n">Cut</span><span class="o">/</span><span class="n">Paste</span><span class="o">/</span><span class="n">Undo</span><span class="o">/</span><span class="n">Redo</span><span class="p">();</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">GetSelectionStart</span><span class="o">/</span><span class="n">End</span><span class="o">/</span><span class="n">CursorPosition</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelection</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">);</span>
+</pre></div>
+<pre id="code-85dd8ba5" style="display: none;">ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;&gt; ReturnPressed;
+void SetText(const std::wstring&amp;);   // strips \r\n, truncates to maxLength, clears undo
+void SetPlaceholder(...);  void SetPasswordMode(bool);  void SetMaxLength(int);   // -1 = unlimited
+void SetReadOnly(bool);    void SetInputFilter(std::function&lt;bool(wchar_t)&gt;);
+void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
+void SelectAll/Copy/Cut/Paste/Undo/Redo();
+int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);</pre>
+</div>
+<ul>
+<li><strong><code>Pitfall</code></strong>: <code>SetImeEnabled(false)</code> suppresses IME/on-screen keyboard (<code>IsTextInput()</code> returns <code>imeEnabled_</code>).</li>
+<li><strong><code>Pitfall</code></strong>: programmatic <code>SetText</code> does <strong>not</strong> create an undo step.</li>
+<li><strong><code>Version</code></strong>: error/indicator/IME <code>v1.12.0</code>; <code>v1.18.0</code> fixes shift+click semantics.</li>
+</ul>
+<h2 id="textedit-multi-line-editor-viewer-v1180">TextEdit (multi-line editor / viewer) — v1.18.0</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-500596e0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">WrapMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">NoWrap</span><span class="p">,</span><span class="w"> </span><span class="n">WidgetWidth</span><span class="w"> </span><span class="p">};</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CursorPositionChanged</span><span class="p">;</span><span class="w">  </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">ToPlainText</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetPlainText</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// clears undo</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AppendPlainText</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">InsertPlainText</span><span class="p">(...);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetRichText</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TextRun</span><span class="o">&gt;&gt;&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// forces read-only; TextRun{ text, font, color, underline }</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetReadOnly</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowLineNumbers</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowNewlines</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetWrapMode</span><span class="p">(</span><span class="n">WrapMode</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabSize</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetInsertSpaces</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">GetCursorLine</span><span class="o">/</span><span class="n">Column</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCursorLineColumn</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">);</span><span class="w">   </span><span class="c1">// 0-based</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SelectLine</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SelectWordAt</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Find</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">fwd</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">matchCase</span><span class="o">=</span><span class="nb">false</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">EnsureCursorVisible</span><span class="p">();</span><span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetScrollOffsetY</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetScrollOffsetY</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">AcceptsTab</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="o">!</span><span class="n">readOnly_</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+<pre id="code-500596e0" style="display: none;">enum class WrapMode { NoWrap, WidgetWidth };
+ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;int,int&gt; CursorPositionChanged;  ZSignal&lt;&gt; SelectionChanged;
+std::wstring ToPlainText() const;  void SetPlainText(const std::wstring&amp;);   // clears undo
+void AppendPlainText(...);  void InsertPlainText(...);
+void SetRichText(const std::vector&lt;std::vector&lt;TextRun&gt;&gt;&amp;);   // forces read-only; TextRun{ text, font, color, underline }
+void SetReadOnly(bool);  void SetShowLineNumbers(bool);  void SetShowNewlines(bool);
+void SetWrapMode(WrapMode);  void SetTabSize(int);  void SetInsertSpaces(bool);
+int GetCursorLine/Column() const;  void SetCursorLineColumn(int,int);   // 0-based
+void SelectLine(int);  void SelectWordAt(int);  bool Find(const std::wstring&amp;, bool fwd=true, bool matchCase=false);
+void EnsureCursorVisible();  float GetScrollOffsetY() const;  void SetScrollOffsetY(float);
+bool UseCache() const override { return false; }
+bool AcceptsTab() const override { return !readOnly_; }</pre>
+</div>
+<ul>
+<li><strong><code>Pitfall</code></strong>: changing wrap width <strong>rebuilds every line layout</strong>. Rich text is <strong>read-only</strong>. Line/column APIs are <strong>0-based</strong>. Because <code>AcceptsTab</code> is true, Tab <strong>inserts an indent</strong> (not focus navigation).</li>
+<li>Default <code>Consolas 14</code>, <code>320×160</code>, tabSize 4.</li>
+</ul>
+<p>Minimal example:</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-cc668a44', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">edit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">TextEdit</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="n">edit</span><span class="o">-&gt;</span><span class="n">SetPlainText</span><span class="p">(</span><span class="sa">L</span><span class="s">"hello</span><span class="se">\n</span><span class="s">world"</span><span class="p">);</span>
+<span class="n">edit</span><span class="o">-&gt;</span><span class="n">SetShowLineNumbers</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">edit</span><span class="p">);</span><span class="w">                 </span><span class="c1">// give it a size or let the layout fill it</span>
+</pre></div>
+<pre id="code-cc668a44" style="display: none;">auto edit = std::make_shared&lt;TextEdit&gt;();
+edit-&gt;SetPlainText(L"hello\nworld");
+edit-&gt;SetShowLineNumbers(true);
+root-&gt;AddChild(edit);                 // give it a size or let the layout fill it</pre>
+</div>
+<h2 id="combobox">ComboBox</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-2d0fcab0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DropDownOpened</span><span class="p">,</span><span class="w"> </span><span class="n">DropDownClosed</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">AddItem</span><span class="o">/</span><span class="n">SetItems</span><span class="o">/</span><span class="n">InsertItem</span><span class="o">/</span><span class="n">RemoveItemAt</span><span class="o">/</span><span class="n">ClearItems</span><span class="p">(...);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedIndex</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetSelectedIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">             </span><span class="c1">// filtered/visible index</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedSourceIndex</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetSelectedSourceIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="c1">// v1.15.0: source index</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetItemDisabled</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">visibleIndex</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// persists by source index</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetEditable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFilterEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ApplyFilter</span><span class="p">();</span>
+</pre></div>
+<pre id="code-2d0fcab0" style="display: none;">ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;&gt; DropDownOpened, DropDownClosed;
+void AddItem/SetItems/InsertItem/RemoveItemAt/ClearItems(...);
+void SetSelectedIndex(int);  int GetSelectedIndex() const;             // filtered/visible index
+void SetSelectedSourceIndex(int);  int GetSelectedSourceIndex() const; // v1.15.0: source index
+void SetItemDisabled(int visibleIndex, bool);   // persists by source index
+void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();</pre>
+</div>
+<ul>
+<li><strong><code>Pitfall</code></strong>: the dropdown draws on the global <code>DrawOverlay</code> and may exceed the control's bounds.</li>
+<li><strong><code>Pitfall</code></strong>: <code>GetSelectedIndex()</code> is the <strong>filtered/visible</strong> index; <code>SetItemDisabled</code> persists by <strong>source</strong> index (v1.15.0).</li>
+<li><strong><code>Version</code></strong>: dropdown geometry/state <code>v1.12.0</code>; source-index API <code>v1.15.0</code>.</li>
+</ul>
+<nav class="chapter-nav"><a class="prev" href="API.en.8.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Window</span><span class="nav-desc">Window (create, show, backdrop, title bar, taskbar, DPI, render thread)</span></a><a class="next" href="API.en.10.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Selection &amp; input</span><span class="nav-desc">CheckBox, RadioButton, RadioGroup, ToggleSwitch, Slider, NumberBox</span></a></nav>
         </main>
     </div>
 

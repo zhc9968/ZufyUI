@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>核心元素 UIElement · ZufyUI API 参考</title>
+    <title>元素基类 · ZufyUI API 参考</title>
     <style>
 
 :root {
@@ -197,705 +197,382 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class="active"><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>系统对话框</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>附录</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍（UI Automation）</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>调试通道（外部调试 / 自动化）</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="布局属性"><div class="toc-row"><a href="#布局属性" data-target="布局属性">布局属性</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="测量排布与绘制自定义控件必读"><div class="toc-row"><a href="#测量排布与绘制自定义控件必读" data-target="测量排布与绘制自定义控件必读">测量、排布与绘制（自定义控件必读）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="缓存机制影响性能与显示务必理解"><div class="toc-row"><a href="#缓存机制影响性能与显示务必理解" data-target="缓存机制影响性能与显示务必理解">缓存机制（影响性能与显示，务必理解）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="启用-禁用"><div class="toc-row"><a href="#启用-禁用" data-target="启用-禁用">启用 / 禁用</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="tooltip"><div class="toc-row"><a href="#tooltip" data-target="tooltip">ToolTip</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="阴影"><div class="toc-row"><a href="#阴影" data-target="阴影">阴影</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="焦点与键盘"><div class="toc-row"><a href="#焦点与键盘" data-target="焦点与键盘">焦点与键盘</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="事件虚函数可重写"><div class="toc-row"><a href="#事件虚函数可重写" data-target="事件虚函数可重写">事件虚函数（可重写）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="事件信号zsignal"><div class="toc-row"><a href="#事件信号zsignal" data-target="事件信号zsignal">事件信号（ZSignal）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="父子可见性右键菜单与连接"><div class="toc-row"><a href="#父子可见性右键菜单与连接" data-target="父子可见性右键菜单与连接">父子、可见性、右键菜单与连接</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="字体接口"><div class="toc-row"><a href="#字体接口" data-target="字体接口">字体接口</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="自定义控件最小示例"><div class="toc-row"><a href="#自定义控件最小示例" data-target="自定义控件最小示例">自定义控件最小示例</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="布局参与-绘制时机"><div class="toc-row"><a href="#布局参与-绘制时机" data-target="布局参与-绘制时机">布局参与 / 绘制时机</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="拖动区域所有控件可用"><div class="toc-row"><a href="#拖动区域所有控件可用" data-target="拖动区域所有控件可用">拖动区域（所有控件可用）</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class="active"><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍与调试通道</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>版本变化摘录</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>易错点总表</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="布局属性"><div class="toc-row"><a href="#布局属性" data-target="布局属性">布局属性</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="绘制-子元素-裁剪-缓存"><div class="toc-row"><a href="#绘制-子元素-裁剪-缓存" data-target="绘制-子元素-裁剪-缓存">绘制 / 子元素 / 裁剪 / 缓存</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="可见性-启用-提示-光标"><div class="toc-row"><a href="#可见性-启用-提示-光标" data-target="可见性-启用-提示-光标">可见性 / 启用 / 提示 / 光标</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="右键菜单-拖动区-布局参与"><div class="toc-row"><a href="#右键菜单-拖动区-布局参与" data-target="右键菜单-拖动区-布局参与">右键菜单 / 拖动区 / 布局参与</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="事件虚函数与元素信号"><div class="toc-row"><a href="#事件虚函数与元素信号" data-target="事件虚函数与元素信号">事件虚函数与元素信号</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="无障碍uia-v1170"><div class="toc-row"><a href="#无障碍uia-v1170" data-target="无障碍uia-v1170">无障碍（UIA）— v1.17.0</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="字体元素级"><div class="toc-row"><a href="#字体元素级" data-target="字体元素级">字体（元素级）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="阴影"><div class="toc-row"><a href="#阴影" data-target="阴影">阴影</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="调试计数按元素"><div class="toc-row"><a href="#调试计数按元素" data-target="调试计数按元素">调试计数（按元素）</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>所有可视元素的基类。自定义控件需继承它并实现纯虚的 `Measure` 与 `Draw`。
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## 布局属性
 
-## 布局属性
+```cpp
+virtual Size MeasureOverride(const Size&amp; avail) = 0;
+Size Measure(const Size&amp; avail);      Size GetDesiredSize() const;
+virtual void ArrangeOverride(const Rect&amp;);   void Arrange(const Rect&amp;);
+Rect GetArrangedRect() const;
+void InvalidateLayout();      // 冒泡：向根标脏
+void InvalidateLayoutSelf();  // 只标自己（池化/虚拟 rebind 用，不冒泡）
+void SetWidth/SetHeight(float);  float GetWidth/GetHeight() const;
+void SetFillWidth/SetFillHeight(bool);   bool GetFillWidth/GetFillHeight() const;
+void SetMargin(const Thickness&amp;);
+void SetMinWidth/SetMinHeight/SetMaxWidth/SetMaxHeight(float);
+void SetMinSize/SetMaxSize(float,float);
+void SetStretchWeights(float h, float v);
+void SetHorizontalStretchWeight(float);   void SetVerticalStretchWeight(float);
+virtual float GetDefaultHorizontalStretchWeight() const;   // 同理 Vertical
+```
+- **拉伸权值**：容器（`ColumnBox`/`RowBox`/`GridLayout`）把**剩余空间**按子元素权值分配。`FillWidth/Height` 等价“该轴权值 1”。`GetDefault*` 是类型默认，`Set*` 覆盖它。
+- **`易错`**：`SetWidth/SetHeight` 是**固定尺寸**；`SetFillWidth/Height` 是**填满父轴**；两者与拉伸权值叠加，行为要分清。
+- **`易错`**：`GetDesiredSize()` 是上一次 `Measure` 的结果；未测量过/刚改内容时可能是旧值。
+- **`版本`**：`SetStretchWeights`/`GetDefault*` 自初版存在；**`ColumnBox`/`RowBox`/`GridLayout` 真正按显式权值分配剩余空间 = `v1.17.0`**。
 
-| 方法 | 说明 |
-| --- | --- |
-| `void SetMinWidth(float)` / `SetMinHeight(float)` | 最小尺寸；测量时不会被压到更小 |
-| `void SetMaxWidth(float)` / `SetMaxHeight(float)` | 最大尺寸；默认 `FLT_MAX` |
-| `void SetMinSize(float w, float h)` / `SetMaxSize(float w, float h)` | 同时设置 |
-| `float GetMinWidth()/GetMinHeight()/GetMaxWidth()/GetMaxHeight() const` | 读取 |
-| `void SetFillWidth(bool)` / `SetFillHeight(bool)` | 是否在父容器方向被拉伸填满 |
-| `bool GetFillWidth()/GetFillHeight() const` | 读取 |
-| `void SetWidth(float)` / `SetHeight(float)` | 固定尺寸（`0` 表示按测量结果） |
-| `float GetWidth()/GetHeight() const` | 读取 |
-| `void SetMargin(const Thickness&amp;)` / `Thickness GetMargin() const` | 外边距 |
-| `void SetStretchWeights(float h, float v)` | 同时设置横/纵拉伸权重 |
-| `void SetHorizontalStretchWeight(float)` / `SetVerticalStretchWeight(float)` | 单独设置 |
-| `float GetHorizontalStretchWeight()/GetVerticalStretchWeight() const` | 读取 |
-| `void InvalidateLayout()` / `bool IsLayoutDirty() const` / `ClearLayoutDirty()` | 标脏；下次绘制前的布局阶段会重新测量排布 |
+## 绘制 / 子元素 / 裁剪 / 缓存
 
-**易混点**：
+```cpp
+virtual void Draw(ID2D1RenderTarget* rt) = 0;
+virtual void RefreshChildren();                       // 更新阶段（UI 线程）重建可见子列表
+virtual const std::vector&lt;UIElement*&gt;&amp; GetChildren() const;   // 渲染阶段纯读
+virtual bool UseCache() const;   void SetUseCache(bool);      // 默认 true
+virtual std::optional&lt;D2D1_RECT_F&gt; GetClipRect() const;
+void SetClipRect(const std::optional&lt;Rect&gt;&amp;);
+void SetBleed(float);            // 阴影/外发光留边
+virtual void ReleaseDeviceResources();        // 只释放自身
+void ReleaseDeviceResourcesRecursive();        // 释放整棵子树
+virtual D2D1::Matrix3x2F GetChildRenderTransform(UIElement* child) const;
+```
+- **缓存机制**：`UseCache()==true` 的元素渲染到自身 `ID2D1Bitmap1` 离屏位图；仅当被 `RequestRepaint()` 标记或尺寸变化时重建。出现阴影时自动加 `bleed`。
+- **`易错`**：**每帧内容在变**（动画、实时文本、旋转）或**实例极多**（上千个）的控件应 `SetUseCache(false)`，否则显存与重建开销爆炸。
+- **`易错`**：`GetChildren()` 在渲染阶段**必须纯读**；渲染前要保证 `RefreshChildren()` 已调用（窗口在 `AdvanceFrame` 里统一做）。
+- **`易错`**：`ReleaseDeviceResources()` 只释放自身；释放整棵子树用 `ReleaseDeviceResourcesRecursive()`。
+- **`版本`**：`ReleaseDeviceResourcesRecursive()` = `v1.18.0`（用于隐藏页缓存延迟释放）；`SetUseCache(false)` 现在会**立即释放**已有位图。
 
-- `SetWidth/SetHeight` 是“固定尺寸”，`SetFillWidth/SetFillHeight` 是“跟随父容器拉伸”。两者都可能与父布局的拉伸权重共同作用。
-- 改任何布局属性都要 `InvalidateLayout()`；上面这些 setter 都已自动调用。
+## 可见性 / 启用 / 提示 / 光标
 
-## 测量、排布与绘制（自定义控件必读）
+```cpp
+void SetVisible(bool);  void SetVisibleNoInvalidate(bool);  bool IsVisible() const;
+void SetEnabled(bool);  bool IsEnabled() const;  bool IsEffectivelyEnabled() const;  // 沿父链
+void SetToolTip(const std::wstring&amp;);   virtual std::wstring GetToolTip() const;
+void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;
+```
+- 禁用元素不参与命中/悬停。提示会**向上解析**父级提示（如 Button → Label）。
+- **`易错`**：`SetCursor` 不直接调 `::SetCursor`，而是延迟到 `WM_SETCURSOR`，避免闪烁。
 
-| 方法 | 说明 |
-| --- | --- |
-| `virtual Size Measure(const Size&amp; availableSize) = 0` | 测量（**必须实现**）。返回你期望的尺寸；`availableSize` 可能是 `FLT_MAX`，表示“不约束”。 |
-| `virtual void Arrange(const Rect&amp; finalRect)` | 排布。默认实现记录 `arrangedRect_`；有子元素的容器要在这里给子元素 `Arrange`。 |
-| `Rect GetArrangedRect() const` | 上一轮排布结果，绘制与命中测试都用它。 |
-| `virtual void Draw(ID2D1RenderTarget* rt) = 0` | 绘制（**必须实现**）。用 `GetArrangedRect()` 里的绝对坐标绘制。 |
-| `virtual const std::vector&lt;UIElement*&gt;&amp; GetChildren() const` | 子元素列表（返回引用，容器需维护自己的视图缓冲）。**返回的是元素内部缓冲的引用**：有效期到“该元素的子列表/可见性变化或再次调用其 `GetChildren()`”；遍历期间**不要对同一个元素再次调用 `GetChildren()`**（递归子元素用的是各自的缓冲，安全）。 |
-| `virtual bool UseCache() const` / `SetUseCache(bool)` | 是否使用离屏缓存（默认 true）。 |
-| `virtual std::optional&lt;D2D1_RECT_F&gt; GetClipRect() const` | 返回子元素裁剪区（绝对坐标）；返回 `nullopt` 表示不裁剪。默认返回 `SetClipRect(...)` 设置的值。 |
-| `void SetClipRect(const std::optional&lt;Rect&gt;&amp;)` | 设置该元素子树的裁剪矩形（如 `ScrollViewer` 用它把内容裁到视口）。 |
-| `void RequestRepaint()` | 请求重绘；底层触发全局 `RepaintRequest`。 |
+## 右键菜单 / 拖动区 / 布局参与
 
-&gt; **Measure/Arrange 的契约**：`Measure(可用空间)` 只描述“我想要多大”，不要在里面改父布局状态；`Arrange(finalRect)` 才是“我被放到了哪里”，绘制永远基于 `arrangedRect_`。
+```cpp
+void SetContextMenu(std::shared_ptr&lt;Menu&gt;);
+void SetContextMenuFactory(std::function&lt;std::shared_ptr&lt;Menu&gt;()&gt;);
+std::shared_ptr&lt;Menu&gt; BuildContextMenu() const;
+enum class LayoutParticipation { Normal, DrawBeforeLayout, DrawAfterLayout };
+void SetLayoutParticipation(LayoutParticipation);
+void SetDraggable(bool); void SetDragRegion(const Rect&amp;); void ClearDragRegion();
+virtual int NonClientHitTest(float x, float y) const;
+```
+- **`易错`**：`DrawBeforeLayout`/`DrawAfterLayout` 由独立通道绘制，**不要再放进根树**，否则画两遍。自定义标题栏就是 `DrawBeforeLayout` 且自己管位置。
 
-## 缓存机制（影响性能与显示，务必理解）
+## 事件虚函数与元素信号
 
-- 默认 `UseCache()` 为 true：框架把元素绘制到一张尺寸为 `(宽+2·bleed) × (高+2·bleed)` 的离屏位图，之后每帧只贴图。`bleed` 默认 `4.0f`，用于给抗锯齿/阴影留边。
-- 对大多数控件，缓存能显著减少重复绘制；但**大量小元素**每个都建一张位图会占用可观显存，必要时 `SetUseCache(false)`。
-- 缓存只在“标记为待重绘”或“尺寸变化”时重建。改颜色/文本后需要 `RequestRepaint()`。
-- 阴影会被画进缓存（带阴影的元素缓存会额外扩大 `GetShadowExtent()`）。
-- 窗口合成时会把**完全落在裁剪区外**的子树整棵跳过（滚动出视区的内容不会建缓存）。
-- `SetVisible(false)` 会立刻释放该元素的缓存。
+```cpp
+virtual UIElement* HitTest(float x, float y);
+virtual void OnMouseEnter/Leave/Move/Down/Up(...);  virtual bool OnContextMenu(float,float);
+virtual void OnKeyDown/Up(WPARAM,LPARAM);  virtual void OnChar(wchar_t);
+virtual void OnFocus()/OnBlur();
+virtual void UpdateAnimation(float dt);  virtual bool HasActiveAnimation() const;
+virtual bool OnMouseWheel(float dx, float dy);
+virtual bool IsTextInput() const;  virtual bool AcceptsTab() const;  virtual bool IsFocusable() const;
+virtual Rect GetImeCandidateRect() const;  virtual void SetCompositionText(...);
+// 元素内置信号
+ZSignal&lt;&gt; MouseEnter, MouseLeave, Focused, Blurred;
+ZSignal&lt;float,float&gt; MouseMove, MouseDown, MouseUp;
+ZSignal&lt;WPARAM,LPARAM&gt; KeyDown, KeyUp;   ZSignal&lt;wchar_t&gt; Char;
+```
+- **`易错`**：有动画的控件必须让 `HasActiveAnimation()` 正确返回，否则帧循环停了动画就不走。
+- **`易错`**：多行编辑器要让 `AcceptsTab()` 返回 true 才会吞掉 Tab 做缩进，否则 Tab 切焦点。
+- **`版本`**：`AcceptsTab()` = `v1.18.0`（配合 `TextEdit`）。
 
-## 启用 / 禁用
+## 无障碍（UIA）— v1.17.0
 
-| 方法 | 说明 |
-| --- | --- |
-| `void SetEnabled(bool)` | 设置自身启用状态（默认为启用） |
-| `bool IsEnabled() const` | 自身启用状态 |
-| `bool IsEffectivelyEnabled() const` | 综合自身与所有祖先：任一祖先被禁用则返回 false |
+```cpp
+void SetAccessibleName(const std::wstring&amp;);  std::wstring GetAccessibleName() const;
+void SetAccessibleDescription(const std::wstring&amp;);
+void SetAutomationId(const std::wstring&amp;);     std::wstring GetAutomationIdOrAuto() const;  // 自动 e{n}
+void SetAccessibleRole(AccessibleRole);  virtual AccessibleRole GetAccessibleRole() const;
+virtual std::wstring DefaultAccessibleName() const;  virtual bool IsAccessibilityIgnored() const;
+std::vector&lt;UIElement*&gt; GetAccessibleChildren() const;
+// Pattern 虚函数（按角色分派）
+virtual void AccessibilityInvoke();
+virtual std::wstring GetAccessibleValue() const;  virtual void SetAccessibleValue(const std::wstring&amp;);
+virtual bool IsAccessibleReadOnly() const;
+virtual int  GetAccessibleToggleState() const;  virtual void AccessibilityToggle();
+virtual int  GetAccessibleExpandState() const;  virtual void AccessibilityExpand/Collapse();
+virtual double GetAccessibleRangeValue() const; virtual void SetAccessibleRangeValue(double);
+virtual double GetAccessibleRangeMin/Max/Step() const;
+void AccessibilityNotifyFocus/PropertyChanged/StructureChanged();
+```
+- **`易错`**：角色决定暴露哪些 UIA Pattern：Button/MenuItem→Invoke；Edit/Document→Value；Slider/ProgressBar→RangeValue；toggle 状态 ≥0→Toggle；expand 状态 ≥0→ExpandCollapse。隐藏节点默认不暴露。
+- **`版本`**：整套 = `v1.17.0`（对应 `Window::SetAccessibilityEnabled`，默认开）。
 
-- 禁用后：窗口不会把鼠标/键盘事件派发给它；控件应依据 `IsEffectivelyEnabled()` 把自身绘制成灰色。禁用**不改变布局**。
-- 典型用法：`btn-&gt;SetEnabled(false);`。绝大多数基础控件的 `Draw` 已经处理了灰色显示。
+## 字体（元素级）
 
-## ToolTip
-
-| 方法 | 说明 |
-| --- | --- |
-| `void SetToolTip(const std::wstring&amp;)` / `const std::wstring&amp; GetToolTip() const` | 设置/读取悬停提示文本 |
-
-- ToolTip 是**框架级统一浮层**，由 `Window` 绘制，不需要你写任何绘制代码。
-- 行为：鼠标在某元素上**静止悬停 0.5 秒**后，在“显示时的鼠标位置”上方固定偏移处渐显一个白底黑字、带柔和阴影的提示；**鼠标一移动就关闭**，并重新计时。
-- 禁用元素不显示提示。
-- 提示位置基于“触发那一刻的鼠标坐标”，显示后不会跟随鼠标移动。
-- 数据视图（列表/表格/树）的每项/单元格/节点提示也走这套机制（详见第 11 章）。
+```cpp
+static void SetGlobalFont(const FontSpec&amp;);  void SetFont(const FontSpec&amp;);
+void SetFontFamily/SetFontSize/SetFontWeight(...);  void ClearFont();
+virtual std::optional&lt;FontSpec&gt; GetTypeDefaultFont() const;  FontSpec GetEffectiveFontSpec() const;
+```
+- 解析链：**实例覆盖 → 类型默认 → 全局**。
+- **`易错`**：写 `fontOverride_`（含 `std::wstring`）必须与渲染串行；已挂载元素的 `StoreFontOverride`/`InvalidateFontCache` 内部会取 `renderLock_`。
 
 ## 阴影
 
-| 方法 | 说明 |
-| --- | --- |
-| `void SetShadow(bool)` / `bool HasShadow() const` | 开关阴影（默认关） |
-| `void SetShadowColor(Color)` | 阴影颜色；**`a` 表示“边缘可见透明度”**，内部约为其 2 倍 |
-| `void SetShadowBlur(float)` | 模糊半径；约等于高斯 `2σ`，扩散范围 ≈ `1.5×blur`（默认 10） |
-| `void SetShadowOffset(float x, float y)` | 偏移（默认 `0,3`） |
-| `void SetShadowCornerRadius(float)` | 圆角；小于 0 时按 8 处理 |
-| `float GetShadowExtent() const` | 阴影需要向外扩张的最大像素，用于扩大缓存出血 |
-
-- 阴影只对**使用缓存的元素**生效（基础 `UIElement` 默认缓存，所以大多数元素设置后可见；`Card` 会自动在开启阴影时启用缓存）。
-- 实现是“高斯 CDF 分层”：按高斯分布分配多层 alpha，叠加后逼近真实高斯模糊，观感接近 DWM 阴影，但不使用 D2D Effect（因此兼容逐像素 Alpha 的窗口）。
-
-## 焦点与键盘
-
-| 方法 | 说明 |
-| --- | --- |
-| `virtual bool IsFocusable() const` | 是否可获取键盘焦点（默认 false） |
-| `bool IsFocused() const` | 是否当前持有焦点 |
-| `void Focus()` / `void Blur()` | 请求/取消焦点 |
-
-- 窗口按 Tab 在可聚焦元素间遍历。焦点环**仅在通过 Tab 获得焦点时**显示；鼠标点击获得焦点不显示环。
-- 只有持有焦点的元素才接收 `OnKeyDown/OnKeyUp/OnChar`。
-
-## 事件虚函数（可重写）
-
-| 虚函数 | 何时被调用 / 默认行为 |
-| --- | --- |
-| `HitTest(x,y)` | 命中测试；返回命中的最内层元素或 `nullptr` |
-| `OnMouseEnter/Leave/Move/Down/Up` | 鼠标事件；需要自行 `RequestRepaint()` |
-| `OnMouseWheel(dx,dy)` | 返回 true 表示已消费，事件不再冒泡给父级 |
-| `OnKeyDown/Up(key,lParam)` | 仅在持有焦点时 |
-| `OnChar(ch)` | 字符输入（含 IME 后） |
-| `OnFocus` / `OnBlur` | 获得/失去焦点 |
-| `UpdateAnimation(dt)` | 每帧动画更新；`dt` 单位秒，已被钳制在 `0.033s` 内 |
-| `HasActiveAnimation()` | 返回 true 时窗口保持 16ms 定时器持续重绘 |
-| `IsTextInput()` | 返回 true 时鼠标悬停显示文本光标 |
-| `ReleaseDeviceResources()` | 设备丢失/重建时释放画刷等 |
-| `GetImeCandidateRect()` | 返回 IME 候选框定位矩形 |
-| `SetCompositionText(...)` | IME 组合输入回调 |
-| `GetChildRenderTransform(child)` | 子元素的渲染变换（用于页面切换等） |
-| `OnFontChanged()` | 字体变化；默认重建布局 |
-
-## 事件信号（`ZSignal`）
-
-`MouseEnter`、`MouseLeave`、`MouseMove(float,float)`、`MouseDown(float,float)`、`MouseUp(float,float)`、`KeyDown(WPARAM,LPARAM)`、`KeyUp(WPARAM,LPARAM)`、`Char(wchar_t)`、`Focused`、`Blurred`。
-
-&gt; 1.8.0 起这些事件由裸 `std::function` 回调改为 `ZSignal`，用 `Connect(elem-&gt;MouseDown, ...)` 连接（连接随元素析构自动断开）。它们与 `OnXxx` 虚函数都会被内部触发，互不冲突。
-
-## 父子、可见性、右键菜单与连接
-
-| 方法 | 说明 |
-| --- | --- |
-| `void SetParent(UIElement*)` / `UIElement* GetParent() const` | 父元素（通常由容器自动设置） |
-| `Window* GetWindow() const` | 所属窗口；未挂载或窗口已销毁时返回 `nullptr`（内部按窗口 id 查找，不持有裸指针） |
-| `void SetVisible(bool)` / `bool IsVisible() const` | 可见性；设为 false 会释放缓存，并触发 `OnVisibilityChanged(false)` |
-| `virtual void OnVisibilityChanged(bool visible)` | 可见性变化钩子；例如 `ComboBox` 在隐藏时会自动收起下拉弹层 |
-| `void SetContextMenu(std::shared_ptr&lt;Menu&gt;)` / `GetContextMenu()` | 固定右键菜单 |
-| `void SetContextMenuFactory(std::function&lt;std::shared_ptr&lt;Menu&gt;()&gt;)` / `BuildContextMenu()` | **动态菜单工厂**：每次右键现搭（可依据当前状态）；优先于固定菜单 |
-| `void SetContextMenuEnabled(bool)` / `bool IsContextMenuEnabled() const` | 是否允许右键出菜单（默认允许） |
-| `virtual bool OnContextMenu(float,float)` | 右键钩子；返回 true 表示已处理，不再弹默认菜单 |
-| `void SetBleed(float)` / `float GetBleed() const` | 缓存出血（默认 `4.0f`） |
-| `template&lt;typename Signal, typename Slot&gt; Connection Connect(Signal&amp;, Slot&amp;&amp;)` | 连接信号：连接登记进本元素的 `ConnectionGroup`（元素析构时自动断开），并返回 Qt 风格的**被动 `Connection` 句柄**（析构不断连）。忽略返回值安全；要单独断开写 `auto c = Connect(...); c.disconnect();` |
-
-## 字体接口
-
-| 方法 | 说明 |
-| --- | --- |
-| `static void SetGlobalFont(const FontSpec&amp;)` | 全局字体 |
-| `static void SetGlobalFontFamily(const std::wstring&amp;)` | 只改全局字体族（保留其余字段） |
-| `static void SetGlobalFontSize(float)` | 只改全局字号 |
-| `static FontSpec GetGlobalFont()` | 读取全局字体 |
-| `void SetFont(...)` / `SetFontFamily(...)` / `SetFontSize(...)` / `SetFontWeight(...)` | 实例级覆盖（覆盖后不再跟随全局字体） |
-| `void ClearFont()` / `bool HasFontOverride() const` | 清除/查询覆盖 |
-| `FontSpec GetEffectiveFontSpec() const` | 解析链结果（实例覆盖 → 类型默认 → 全局） |
-| `IDWriteTextFormat* GetFontFormat() const` | 共享文本格式（内部有实例级快速缓存） |
-
-## 自定义控件最小示例
-
 ```cpp
-class Dot : public UIElement {
-public:
-    Dot(float r) : r_(r) {}
-    Size Measure(const Size&amp;) override { return Size(r_ * 2, r_ * 2); }
-    void Draw(ID2D1RenderTarget* rt) override {
-        ComPtr&lt;ID2D1SolidColorBrush&gt; b;
-        rt-&gt;CreateSolidColorBrush(D2D1::ColorF(0, 0.47f, 0.84f), &amp;b);
-        D2D1_ELLIPSE e{ (arrangedRect_.x + r_), (arrangedRect_.y + r_), r_, r_ };
-        rt-&gt;FillEllipse(e, b.Get());
-    }
-private:
-    float r_;
-};
+void SetShadow(bool);  bool HasShadow() const;
+void SetShadowColor(Color); SetShadowBlur(float); SetShadowOffset(float,float); SetShadowCornerRadius(float);
+float GetShadowExtent() const;
 ```
+- 阴影仅对**开启缓存**的元素生效（`Card` 设阴影会自动开缓存）。
 
-## 布局参与 / 绘制时机
+## 调试计数（按元素）
 
-```cpp
-enum class LayoutParticipation {
-    Normal,            // 参与布局（默认）
-    DrawBeforeLayout,  // 不参与布局：在正常布局树绘制之前单独绘制
-    DrawAfterLayout    // 不参与布局：在正常布局树绘制之后、覆盖层之前单独绘制
-};
+`DebugMeasureCount/ArrangeCount/RepaintCount/DrawCount/CacheValid/CacheBytes/MeasureMs/ArrangeMs/DrawMs/AnimationProgress/ResetCounters` 等。
+- **`版本`**：`v1.17.0` 加入的逐元素调试计数，配合调试通道 Top-N 使用。</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 6 章 · 元素基类</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 6 章</span><h1>元素基类</h1><p class="chapter-summary">UIElement（布局属性、缓存、事件、无障碍、调试）</p></header><h2 id="布局属性">布局属性</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-ec31e305', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="n">Size</span><span class="w"> </span><span class="nf">MeasureOverride</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Size</span><span class="o">&amp;</span><span class="w"> </span><span class="n">avail</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="n">Size</span><span class="w"> </span><span class="nf">Measure</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Size</span><span class="o">&amp;</span><span class="w"> </span><span class="n">avail</span><span class="p">);</span><span class="w">      </span><span class="n">Size</span><span class="w"> </span><span class="nf">GetDesiredSize</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ArrangeOverride</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Rect</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">Arrange</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Rect</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="n">Rect</span><span class="w"> </span><span class="nf">GetArrangedRect</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">InvalidateLayout</span><span class="p">();</span><span class="w">      </span><span class="c1">// 冒泡：向根标脏</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">InvalidateLayoutSelf</span><span class="p">();</span><span class="w">  </span><span class="c1">// 只标自己（池化/虚拟 rebind 用，不冒泡）</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetWidth</span><span class="o">/</span><span class="n">SetHeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">GetWidth</span><span class="o">/</span><span class="n">GetHeight</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetFillWidth</span><span class="o">/</span><span class="n">SetFillHeight</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="n">GetFillWidth</span><span class="o">/</span><span class="n">GetFillHeight</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetMargin</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Thickness</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetMinWidth</span><span class="o">/</span><span class="n">SetMinHeight</span><span class="o">/</span><span class="n">SetMaxWidth</span><span class="o">/</span><span class="n">SetMaxHeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetMinSize</span><span class="o">/</span><span class="n">SetMaxSize</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetStretchWeights</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">v</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetHorizontalStretchWeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVerticalStretchWeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetDefaultHorizontalStretchWeight</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 同理 Vertical</span>
+</pre></div>
+<pre id="code-ec31e305" style="display: none;">virtual Size MeasureOverride(const Size&amp; avail) = 0;
+Size Measure(const Size&amp; avail);      Size GetDesiredSize() const;
+virtual void ArrangeOverride(const Rect&amp;);   void Arrange(const Rect&amp;);
+Rect GetArrangedRect() const;
+void InvalidateLayout();      // 冒泡：向根标脏
+void InvalidateLayoutSelf();  // 只标自己（池化/虚拟 rebind 用，不冒泡）
+void SetWidth/SetHeight(float);  float GetWidth/GetHeight() const;
+void SetFillWidth/SetFillHeight(bool);   bool GetFillWidth/GetFillHeight() const;
+void SetMargin(const Thickness&amp;);
+void SetMinWidth/SetMinHeight/SetMaxWidth/SetMaxHeight(float);
+void SetMinSize/SetMaxSize(float,float);
+void SetStretchWeights(float h, float v);
+void SetHorizontalStretchWeight(float);   void SetVerticalStretchWeight(float);
+virtual float GetDefaultHorizontalStretchWeight() const;   // 同理 Vertical</pre>
+</div>
+<ul>
+<li><strong>拉伸权值</strong>：容器（<code>ColumnBox</code>/<code>RowBox</code>/<code>GridLayout</code>）把<strong>剩余空间</strong>按子元素权值分配。<code>FillWidth/Height</code> 等价“该轴权值 1”。<code>GetDefault*</code> 是类型默认，<code>Set*</code> 覆盖它。</li>
+<li><strong><code>易错</code></strong>：<code>SetWidth/SetHeight</code> 是<strong>固定尺寸</strong>；<code>SetFillWidth/Height</code> 是<strong>填满父轴</strong>；两者与拉伸权值叠加，行为要分清。</li>
+<li><strong><code>易错</code></strong>：<code>GetDesiredSize()</code> 是上一次 <code>Measure</code> 的结果；未测量过/刚改内容时可能是旧值。</li>
+<li><strong><code>版本</code></strong>：<code>SetStretchWeights</code>/<code>GetDefault*</code> 自初版存在；<strong><code>ColumnBox</code>/<code>RowBox</code>/<code>GridLayout</code> 真正按显式权值分配剩余空间 = <code>v1.17.0</code></strong>。</li>
+</ul>
+<h2 id="绘制-子元素-裁剪-缓存">绘制 / 子元素 / 裁剪 / 缓存</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-99ce8d75', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">Draw</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">RefreshChildren</span><span class="p">();</span><span class="w">                       </span><span class="c1">// 更新阶段（UI 线程）重建可见子列表</span>
+<span class="k">virtual</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">*&gt;&amp;</span><span class="w"> </span><span class="n">GetChildren</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 渲染阶段纯读</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetUseCache</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">      </span><span class="c1">// 默认 true</span>
+<span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">D2D1_RECT_F</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetClipRect</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetClipRect</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Rect</span><span class="o">&gt;&amp;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetBleed</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">            </span><span class="c1">// 阴影/外发光留边</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ReleaseDeviceResources</span><span class="p">();</span><span class="w">        </span><span class="c1">// 只释放自身</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ReleaseDeviceResourcesRecursive</span><span class="p">();</span><span class="w">        </span><span class="c1">// 释放整棵子树</span>
+<span class="k">virtual</span><span class="w"> </span><span class="n">D2D1</span><span class="o">::</span><span class="n">Matrix3x2F</span><span class="w"> </span><span class="nf">GetChildRenderTransform</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">child</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+</pre></div>
+<pre id="code-99ce8d75" style="display: none;">virtual void Draw(ID2D1RenderTarget* rt) = 0;
+virtual void RefreshChildren();                       // 更新阶段（UI 线程）重建可见子列表
+virtual const std::vector&lt;UIElement*&gt;&amp; GetChildren() const;   // 渲染阶段纯读
+virtual bool UseCache() const;   void SetUseCache(bool);      // 默认 true
+virtual std::optional&lt;D2D1_RECT_F&gt; GetClipRect() const;
+void SetClipRect(const std::optional&lt;Rect&gt;&amp;);
+void SetBleed(float);            // 阴影/外发光留边
+virtual void ReleaseDeviceResources();        // 只释放自身
+void ReleaseDeviceResourcesRecursive();        // 释放整棵子树
+virtual D2D1::Matrix3x2F GetChildRenderTransform(UIElement* child) const;</pre>
+</div>
+<ul>
+<li><strong>缓存机制</strong>：<code>UseCache()==true</code> 的元素渲染到自身 <code>ID2D1Bitmap1</code> 离屏位图；仅当被 <code>RequestRepaint()</code> 标记或尺寸变化时重建。出现阴影时自动加 <code>bleed</code>。</li>
+<li><strong><code>易错</code></strong>：<strong>每帧内容在变</strong>（动画、实时文本、旋转）或<strong>实例极多</strong>（上千个）的控件应 <code>SetUseCache(false)</code>，否则显存与重建开销爆炸。</li>
+<li><strong><code>易错</code></strong>：<code>GetChildren()</code> 在渲染阶段<strong>必须纯读</strong>；渲染前要保证 <code>RefreshChildren()</code> 已调用（窗口在 <code>AdvanceFrame</code> 里统一做）。</li>
+<li><strong><code>易错</code></strong>：<code>ReleaseDeviceResources()</code> 只释放自身；释放整棵子树用 <code>ReleaseDeviceResourcesRecursive()</code>。</li>
+<li><strong><code>版本</code></strong>：<code>ReleaseDeviceResourcesRecursive()</code> = <code>v1.18.0</code>（用于隐藏页缓存延迟释放）；<code>SetUseCache(false)</code> 现在会<strong>立即释放</strong>已有位图。</li>
+</ul>
+<h2 id="可见性-启用-提示-光标">可见性 / 启用 / 提示 / 光标</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-5143b356', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVisibleNoInvalidate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsVisible</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsEffectivelyEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="c1">// 沿父链</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetToolTip</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetToolTip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCursor</span><span class="p">(</span><span class="n">HCURSOR</span><span class="p">);</span><span class="w">   </span><span class="n">HCURSOR</span><span class="w"> </span><span class="nf">GetDesiredCursor</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+</pre></div>
+<pre id="code-5143b356" style="display: none;">void SetVisible(bool);  void SetVisibleNoInvalidate(bool);  bool IsVisible() const;
+void SetEnabled(bool);  bool IsEnabled() const;  bool IsEffectivelyEnabled() const;  // 沿父链
+void SetToolTip(const std::wstring&amp;);   virtual std::wstring GetToolTip() const;
+void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;</pre>
+</div>
+<ul>
+<li>禁用元素不参与命中/悬停。提示会<strong>向上解析</strong>父级提示（如 Button → Label）。</li>
+<li><strong><code>易错</code></strong>：<code>SetCursor</code> 不直接调 <code>::SetCursor</code>，而是延迟到 <code>WM_SETCURSOR</code>，避免闪烁。</li>
+</ul>
+<h2 id="右键菜单-拖动区-布局参与">右键菜单 / 拖动区 / 布局参与</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-0c7dc2d9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetContextMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetContextMenuFactory</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">()</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">BuildContextMenu</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">LayoutParticipation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">DrawBeforeLayout</span><span class="p">,</span><span class="w"> </span><span class="n">DrawAfterLayout</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetLayoutParticipation</span><span class="p">(</span><span class="n">LayoutParticipation</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetDraggable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDragRegion</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Rect</span><span class="o">&amp;</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearDragRegion</span><span class="p">();</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">NonClientHitTest</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+</pre></div>
+<pre id="code-0c7dc2d9" style="display: none;">void SetContextMenu(std::shared_ptr&lt;Menu&gt;);
+void SetContextMenuFactory(std::function&lt;std::shared_ptr&lt;Menu&gt;()&gt;);
+std::shared_ptr&lt;Menu&gt; BuildContextMenu() const;
+enum class LayoutParticipation { Normal, DrawBeforeLayout, DrawAfterLayout };
 void SetLayoutParticipation(LayoutParticipation);
-LayoutParticipation GetLayoutParticipation() const;
-bool ParticipatesInLayout() const;
-```
-
-- 布局容器（ColumnBox/RowBox/GridLayout）在 Measure/Arrange 以及 `ComposeImpl` 的子递归里都会**跳过** `!ParticipatesInLayout()` 的元素。
-- 不参与布局的元素若被放进布局，其位置/尺寸需由设置者自理；`Window` 的自定义标题栏就是用它实现的（`Window` 直接把它放在 `(0,0)`）。
-
-## 拖动区域（所有控件可用）
-
-```cpp
-void SetDraggable(bool on);                 // 整个 arrangedRect 作为拖动区
-void SetDragRegion(const Rect&amp; localRect);  // 指定本地子区域
-void ClearDragRegion();
-bool HasDragRegion() const;
-Rect GetDragRegion() const;
-bool IsPointInDragRegion(float x, float y) const;
-virtual void CollectDragRegions(std::vector&lt;Rect&gt;&amp; out) const;   // Window 递归收集
-```
-
-- `Window` 每帧把整棵树的拖动区域收集起来，命中时 `WM_NCHITTEST` 返回 `HTCAPTION`，于是拖动 / Aero Snap / 双击最大化全部交给系统。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 6 章 · 核心元素 UIElement</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 6 章</span><h1>核心元素 UIElement</h1><p class="chapter-summary">尺寸、布局、绘制、事件与字体接口</p></header><p>所有可视元素的基类。自定义控件需继承它并实现纯虚的 <code>Measure</code> 与 <code>Draw</code>。</p>
-<h2 id="布局属性">布局属性</h2>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>void SetMinWidth(float)</code> / <code>SetMinHeight(float)</code></td>
-<td>最小尺寸；测量时不会被压到更小</td>
-</tr>
-<tr>
-<td><code>void SetMaxWidth(float)</code> / <code>SetMaxHeight(float)</code></td>
-<td>最大尺寸；默认 <code>FLT_MAX</code></td>
-</tr>
-<tr>
-<td><code>void SetMinSize(float w, float h)</code> / <code>SetMaxSize(float w, float h)</code></td>
-<td>同时设置</td>
-</tr>
-<tr>
-<td><code>float GetMinWidth()/GetMinHeight()/GetMaxWidth()/GetMaxHeight() const</code></td>
-<td>读取</td>
-</tr>
-<tr>
-<td><code>void SetFillWidth(bool)</code> / <code>SetFillHeight(bool)</code></td>
-<td>是否在父容器方向被拉伸填满</td>
-</tr>
-<tr>
-<td><code>bool GetFillWidth()/GetFillHeight() const</code></td>
-<td>读取</td>
-</tr>
-<tr>
-<td><code>void SetWidth(float)</code> / <code>SetHeight(float)</code></td>
-<td>固定尺寸（<code>0</code> 表示按测量结果）</td>
-</tr>
-<tr>
-<td><code>float GetWidth()/GetHeight() const</code></td>
-<td>读取</td>
-</tr>
-<tr>
-<td><code>void SetMargin(const Thickness&amp;)</code> / <code>Thickness GetMargin() const</code></td>
-<td>外边距</td>
-</tr>
-<tr>
-<td><code>void SetStretchWeights(float h, float v)</code></td>
-<td>同时设置横/纵拉伸权重</td>
-</tr>
-<tr>
-<td><code>void SetHorizontalStretchWeight(float)</code> / <code>SetVerticalStretchWeight(float)</code></td>
-<td>单独设置</td>
-</tr>
-<tr>
-<td><code>float GetHorizontalStretchWeight()/GetVerticalStretchWeight() const</code></td>
-<td>读取</td>
-</tr>
-<tr>
-<td><code>void InvalidateLayout()</code> / <code>bool IsLayoutDirty() const</code> / <code>ClearLayoutDirty()</code></td>
-<td>标脏；下次绘制前的布局阶段会重新测量排布</td>
-</tr>
-</tbody>
-</table>
-<p><strong>易混点</strong>：</p>
+void SetDraggable(bool); void SetDragRegion(const Rect&amp;); void ClearDragRegion();
+virtual int NonClientHitTest(float x, float y) const;</pre>
+</div>
 <ul>
-<li><code>SetWidth/SetHeight</code> 是“固定尺寸”，<code>SetFillWidth/SetFillHeight</code> 是“跟随父容器拉伸”。两者都可能与父布局的拉伸权重共同作用。</li>
-<li>改任何布局属性都要 <code>InvalidateLayout()</code>；上面这些 setter 都已自动调用。</li>
+<li><strong><code>易错</code></strong>：<code>DrawBeforeLayout</code>/<code>DrawAfterLayout</code> 由独立通道绘制，<strong>不要再放进根树</strong>，否则画两遍。自定义标题栏就是 <code>DrawBeforeLayout</code> 且自己管位置。</li>
 </ul>
-<h2 id="测量排布与绘制自定义控件必读">测量、排布与绘制（自定义控件必读）</h2>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>virtual Size Measure(const Size&amp; availableSize) = 0</code></td>
-<td>测量（<strong>必须实现</strong>）。返回你期望的尺寸；<code>availableSize</code> 可能是 <code>FLT_MAX</code>，表示“不约束”。</td>
-</tr>
-<tr>
-<td><code>virtual void Arrange(const Rect&amp; finalRect)</code></td>
-<td>排布。默认实现记录 <code>arrangedRect_</code>；有子元素的容器要在这里给子元素 <code>Arrange</code>。</td>
-</tr>
-<tr>
-<td><code>Rect GetArrangedRect() const</code></td>
-<td>上一轮排布结果，绘制与命中测试都用它。</td>
-</tr>
-<tr>
-<td><code>virtual void Draw(ID2D1RenderTarget* rt) = 0</code></td>
-<td>绘制（<strong>必须实现</strong>）。用 <code>GetArrangedRect()</code> 里的绝对坐标绘制。</td>
-</tr>
-<tr>
-<td><code>virtual const std::vector&lt;UIElement*&gt;&amp; GetChildren() const</code></td>
-<td>子元素列表（返回引用，容器需维护自己的视图缓冲）。<strong>返回的是元素内部缓冲的引用</strong>：有效期到“该元素的子列表/可见性变化或再次调用其 <code>GetChildren()</code>”；遍历期间<strong>不要对同一个元素再次调用 <code>GetChildren()</code></strong>（递归子元素用的是各自的缓冲，安全）。</td>
-</tr>
-<tr>
-<td><code>virtual bool UseCache() const</code> / <code>SetUseCache(bool)</code></td>
-<td>是否使用离屏缓存（默认 true）。</td>
-</tr>
-<tr>
-<td><code>virtual std::optional&lt;D2D1_RECT_F&gt; GetClipRect() const</code></td>
-<td>返回子元素裁剪区（绝对坐标）；返回 <code>nullopt</code> 表示不裁剪。默认返回 <code>SetClipRect(...)</code> 设置的值。</td>
-</tr>
-<tr>
-<td><code>void SetClipRect(const std::optional&lt;Rect&gt;&amp;)</code></td>
-<td>设置该元素子树的裁剪矩形（如 <code>ScrollViewer</code> 用它把内容裁到视口）。</td>
-</tr>
-<tr>
-<td><code>void RequestRepaint()</code></td>
-<td>请求重绘；底层触发全局 <code>RepaintRequest</code>。</td>
-</tr>
-</tbody>
-</table>
-<blockquote>
-<p><strong>Measure/Arrange 的契约</strong>：<code>Measure(可用空间)</code> 只描述“我想要多大”，不要在里面改父布局状态；<code>Arrange(finalRect)</code> 才是“我被放到了哪里”，绘制永远基于 <code>arrangedRect_</code>。</p>
-</blockquote>
-<h2 id="缓存机制影响性能与显示务必理解">缓存机制（影响性能与显示，务必理解）</h2>
+<h2 id="事件虚函数与元素信号">事件虚函数与元素信号</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-acd29854', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">HitTest</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">OnMouseEnter</span><span class="o">/</span><span class="n">Leave</span><span class="o">/</span><span class="n">Move</span><span class="o">/</span><span class="n">Down</span><span class="o">/</span><span class="n">Up</span><span class="p">(...);</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnContextMenu</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">OnKeyDown</span><span class="o">/</span><span class="n">Up</span><span class="p">(</span><span class="n">WPARAM</span><span class="p">,</span><span class="n">LPARAM</span><span class="p">);</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">OnChar</span><span class="p">(</span><span class="kt">wchar_t</span><span class="p">);</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">OnFocus</span><span class="p">()</span><span class="o">/</span><span class="n">OnBlur</span><span class="p">();</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">UpdateAnimation</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">dt</span><span class="p">);</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">HasActiveAnimation</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnMouseWheel</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">dx</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">dy</span><span class="p">);</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsTextInput</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">AcceptsTab</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsFocusable</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="k">virtual</span><span class="w"> </span><span class="n">Rect</span><span class="w"> </span><span class="nf">GetImeCandidateRect</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCompositionText</span><span class="p">(...);</span>
+<span class="c1">// 元素内置信号</span>
+<span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">MouseEnter</span><span class="p">,</span><span class="w"> </span><span class="n">MouseLeave</span><span class="p">,</span><span class="w"> </span><span class="n">Focused</span><span class="p">,</span><span class="w"> </span><span class="n">Blurred</span><span class="p">;</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">MouseMove</span><span class="p">,</span><span class="w"> </span><span class="n">MouseDown</span><span class="p">,</span><span class="w"> </span><span class="n">MouseUp</span><span class="p">;</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">WPARAM</span><span class="p">,</span><span class="n">LPARAM</span><span class="o">&gt;</span><span class="w"> </span><span class="n">KeyDown</span><span class="p">,</span><span class="w"> </span><span class="n">KeyUp</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">wchar_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Char</span><span class="p">;</span>
+</pre></div>
+<pre id="code-acd29854" style="display: none;">virtual UIElement* HitTest(float x, float y);
+virtual void OnMouseEnter/Leave/Move/Down/Up(...);  virtual bool OnContextMenu(float,float);
+virtual void OnKeyDown/Up(WPARAM,LPARAM);  virtual void OnChar(wchar_t);
+virtual void OnFocus()/OnBlur();
+virtual void UpdateAnimation(float dt);  virtual bool HasActiveAnimation() const;
+virtual bool OnMouseWheel(float dx, float dy);
+virtual bool IsTextInput() const;  virtual bool AcceptsTab() const;  virtual bool IsFocusable() const;
+virtual Rect GetImeCandidateRect() const;  virtual void SetCompositionText(...);
+// 元素内置信号
+ZSignal&lt;&gt; MouseEnter, MouseLeave, Focused, Blurred;
+ZSignal&lt;float,float&gt; MouseMove, MouseDown, MouseUp;
+ZSignal&lt;WPARAM,LPARAM&gt; KeyDown, KeyUp;   ZSignal&lt;wchar_t&gt; Char;</pre>
+</div>
 <ul>
-<li>默认 <code>UseCache()</code> 为 true：框架把元素绘制到一张尺寸为 <code>(宽+2·bleed) × (高+2·bleed)</code> 的离屏位图，之后每帧只贴图。<code>bleed</code> 默认 <code>4.0f</code>，用于给抗锯齿/阴影留边。</li>
-<li>对大多数控件，缓存能显著减少重复绘制；但<strong>大量小元素</strong>每个都建一张位图会占用可观显存，必要时 <code>SetUseCache(false)</code>。</li>
-<li>缓存只在“标记为待重绘”或“尺寸变化”时重建。改颜色/文本后需要 <code>RequestRepaint()</code>。</li>
-<li>阴影会被画进缓存（带阴影的元素缓存会额外扩大 <code>GetShadowExtent()</code>）。</li>
-<li>窗口合成时会把<strong>完全落在裁剪区外</strong>的子树整棵跳过（滚动出视区的内容不会建缓存）。</li>
-<li><code>SetVisible(false)</code> 会立刻释放该元素的缓存。</li>
+<li><strong><code>易错</code></strong>：有动画的控件必须让 <code>HasActiveAnimation()</code> 正确返回，否则帧循环停了动画就不走。</li>
+<li><strong><code>易错</code></strong>：多行编辑器要让 <code>AcceptsTab()</code> 返回 true 才会吞掉 Tab 做缩进，否则 Tab 切焦点。</li>
+<li><strong><code>版本</code></strong>：<code>AcceptsTab()</code> = <code>v1.18.0</code>（配合 <code>TextEdit</code>）。</li>
 </ul>
-<h2 id="启用-禁用">启用 / 禁用</h2>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>void SetEnabled(bool)</code></td>
-<td>设置自身启用状态（默认为启用）</td>
-</tr>
-<tr>
-<td><code>bool IsEnabled() const</code></td>
-<td>自身启用状态</td>
-</tr>
-<tr>
-<td><code>bool IsEffectivelyEnabled() const</code></td>
-<td>综合自身与所有祖先：任一祖先被禁用则返回 false</td>
-</tr>
-</tbody>
-</table>
+<h2 id="无障碍uia-v1170">无障碍（UIA）— v1.17.0</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-ed5ce0c4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleName</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetAccessibleName</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleDescription</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAutomationId</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">     </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetAutomationIdOrAuto</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="c1">// 自动 e{n}</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleRole</span><span class="p">(</span><span class="n">AccessibleRole</span><span class="p">);</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="n">AccessibleRole</span><span class="w"> </span><span class="nf">GetAccessibleRole</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">DefaultAccessibleName</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsAccessibilityIgnored</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">GetAccessibleChildren</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="c1">// Pattern 虚函数（按角色分派）</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">AccessibilityInvoke</span><span class="p">();</span>
+<span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetAccessibleValue</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleValue</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsAccessibleReadOnly</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="nf">GetAccessibleToggleState</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">AccessibilityToggle</span><span class="p">();</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="nf">GetAccessibleExpandState</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">AccessibilityExpand</span><span class="o">/</span><span class="n">Collapse</span><span class="p">();</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="nf">GetAccessibleRangeValue</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleRangeValue</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">GetAccessibleRangeMin</span><span class="o">/</span><span class="n">Max</span><span class="o">/</span><span class="n">Step</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">AccessibilityNotifyFocus</span><span class="o">/</span><span class="n">PropertyChanged</span><span class="o">/</span><span class="n">StructureChanged</span><span class="p">();</span>
+</pre></div>
+<pre id="code-ed5ce0c4" style="display: none;">void SetAccessibleName(const std::wstring&amp;);  std::wstring GetAccessibleName() const;
+void SetAccessibleDescription(const std::wstring&amp;);
+void SetAutomationId(const std::wstring&amp;);     std::wstring GetAutomationIdOrAuto() const;  // 自动 e{n}
+void SetAccessibleRole(AccessibleRole);  virtual AccessibleRole GetAccessibleRole() const;
+virtual std::wstring DefaultAccessibleName() const;  virtual bool IsAccessibilityIgnored() const;
+std::vector&lt;UIElement*&gt; GetAccessibleChildren() const;
+// Pattern 虚函数（按角色分派）
+virtual void AccessibilityInvoke();
+virtual std::wstring GetAccessibleValue() const;  virtual void SetAccessibleValue(const std::wstring&amp;);
+virtual bool IsAccessibleReadOnly() const;
+virtual int  GetAccessibleToggleState() const;  virtual void AccessibilityToggle();
+virtual int  GetAccessibleExpandState() const;  virtual void AccessibilityExpand/Collapse();
+virtual double GetAccessibleRangeValue() const; virtual void SetAccessibleRangeValue(double);
+virtual double GetAccessibleRangeMin/Max/Step() const;
+void AccessibilityNotifyFocus/PropertyChanged/StructureChanged();</pre>
+</div>
 <ul>
-<li>禁用后：窗口不会把鼠标/键盘事件派发给它；控件应依据 <code>IsEffectivelyEnabled()</code> 把自身绘制成灰色。禁用<strong>不改变布局</strong>。</li>
-<li>典型用法：<code>btn-&gt;SetEnabled(false);</code>。绝大多数基础控件的 <code>Draw</code> 已经处理了灰色显示。</li>
+<li><strong><code>易错</code></strong>：角色决定暴露哪些 UIA Pattern：Button/MenuItem→Invoke；Edit/Document→Value；Slider/ProgressBar→RangeValue；toggle 状态 ≥0→Toggle；expand 状态 ≥0→ExpandCollapse。隐藏节点默认不暴露。</li>
+<li><strong><code>版本</code></strong>：整套 = <code>v1.17.0</code>（对应 <code>Window::SetAccessibilityEnabled</code>，默认开）。</li>
 </ul>
-<h2 id="tooltip">ToolTip</h2>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>void SetToolTip(const std::wstring&amp;)</code> / <code>const std::wstring&amp; GetToolTip() const</code></td>
-<td>设置/读取悬停提示文本</td>
-</tr>
-</tbody>
-</table>
+<h2 id="字体元素级">字体（元素级）</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-edef3b4c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetGlobalFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetFontFamily</span><span class="o">/</span><span class="n">SetFontSize</span><span class="o">/</span><span class="n">SetFontWeight</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearFont</span><span class="p">();</span>
+<span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetTypeDefaultFont</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="n">FontSpec</span><span class="w"> </span><span class="nf">GetEffectiveFontSpec</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+</pre></div>
+<pre id="code-edef3b4c" style="display: none;">static void SetGlobalFont(const FontSpec&amp;);  void SetFont(const FontSpec&amp;);
+void SetFontFamily/SetFontSize/SetFontWeight(...);  void ClearFont();
+virtual std::optional&lt;FontSpec&gt; GetTypeDefaultFont() const;  FontSpec GetEffectiveFontSpec() const;</pre>
+</div>
 <ul>
-<li>ToolTip 是<strong>框架级统一浮层</strong>，由 <code>Window</code> 绘制，不需要你写任何绘制代码。</li>
-<li>行为：鼠标在某元素上<strong>静止悬停 0.5 秒</strong>后，在“显示时的鼠标位置”上方固定偏移处渐显一个白底黑字、带柔和阴影的提示；<strong>鼠标一移动就关闭</strong>，并重新计时。</li>
-<li>禁用元素不显示提示。</li>
-<li>提示位置基于“触发那一刻的鼠标坐标”，显示后不会跟随鼠标移动。</li>
-<li>数据视图（列表/表格/树）的每项/单元格/节点提示也走这套机制（详见第 11 章）。</li>
+<li>解析链：<strong>实例覆盖 → 类型默认 → 全局</strong>。</li>
+<li><strong><code>易错</code></strong>：写 <code>fontOverride_</code>（含 <code>std::wstring</code>）必须与渲染串行；已挂载元素的 <code>StoreFontOverride</code>/<code>InvalidateFontCache</code> 内部会取 <code>renderLock_</code>。</li>
 </ul>
 <h2 id="阴影">阴影</h2>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>void SetShadow(bool)</code> / <code>bool HasShadow() const</code></td>
-<td>开关阴影（默认关）</td>
-</tr>
-<tr>
-<td><code>void SetShadowColor(Color)</code></td>
-<td>阴影颜色；<strong><code>a</code> 表示“边缘可见透明度”</strong>，内部约为其 2 倍</td>
-</tr>
-<tr>
-<td><code>void SetShadowBlur(float)</code></td>
-<td>模糊半径；约等于高斯 <code>2σ</code>，扩散范围 ≈ <code>1.5×blur</code>（默认 10）</td>
-</tr>
-<tr>
-<td><code>void SetShadowOffset(float x, float y)</code></td>
-<td>偏移（默认 <code>0,3</code>）</td>
-</tr>
-<tr>
-<td><code>void SetShadowCornerRadius(float)</code></td>
-<td>圆角；小于 0 时按 8 处理</td>
-</tr>
-<tr>
-<td><code>float GetShadowExtent() const</code></td>
-<td>阴影需要向外扩张的最大像素，用于扩大缓存出血</td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li>阴影只对<strong>使用缓存的元素</strong>生效（基础 <code>UIElement</code> 默认缓存，所以大多数元素设置后可见；<code>Card</code> 会自动在开启阴影时启用缓存）。</li>
-<li>实现是“高斯 CDF 分层”：按高斯分布分配多层 alpha，叠加后逼近真实高斯模糊，观感接近 DWM 阴影，但不使用 D2D Effect（因此兼容逐像素 Alpha 的窗口）。</li>
-</ul>
-<h2 id="焦点与键盘">焦点与键盘</h2>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>virtual bool IsFocusable() const</code></td>
-<td>是否可获取键盘焦点（默认 false）</td>
-</tr>
-<tr>
-<td><code>bool IsFocused() const</code></td>
-<td>是否当前持有焦点</td>
-</tr>
-<tr>
-<td><code>void Focus()</code> / <code>void Blur()</code></td>
-<td>请求/取消焦点</td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li>窗口按 Tab 在可聚焦元素间遍历。焦点环<strong>仅在通过 Tab 获得焦点时</strong>显示；鼠标点击获得焦点不显示环。</li>
-<li>只有持有焦点的元素才接收 <code>OnKeyDown/OnKeyUp/OnChar</code>。</li>
-</ul>
-<h2 id="事件虚函数可重写">事件虚函数（可重写）</h2>
-<table>
-<thead>
-<tr>
-<th>虚函数</th>
-<th>何时被调用 / 默认行为</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>HitTest(x,y)</code></td>
-<td>命中测试；返回命中的最内层元素或 <code>nullptr</code></td>
-</tr>
-<tr>
-<td><code>OnMouseEnter/Leave/Move/Down/Up</code></td>
-<td>鼠标事件；需要自行 <code>RequestRepaint()</code></td>
-</tr>
-<tr>
-<td><code>OnMouseWheel(dx,dy)</code></td>
-<td>返回 true 表示已消费，事件不再冒泡给父级</td>
-</tr>
-<tr>
-<td><code>OnKeyDown/Up(key,lParam)</code></td>
-<td>仅在持有焦点时</td>
-</tr>
-<tr>
-<td><code>OnChar(ch)</code></td>
-<td>字符输入（含 IME 后）</td>
-</tr>
-<tr>
-<td><code>OnFocus</code> / <code>OnBlur</code></td>
-<td>获得/失去焦点</td>
-</tr>
-<tr>
-<td><code>UpdateAnimation(dt)</code></td>
-<td>每帧动画更新；<code>dt</code> 单位秒，已被钳制在 <code>0.033s</code> 内</td>
-</tr>
-<tr>
-<td><code>HasActiveAnimation()</code></td>
-<td>返回 true 时窗口保持 16ms 定时器持续重绘</td>
-</tr>
-<tr>
-<td><code>IsTextInput()</code></td>
-<td>返回 true 时鼠标悬停显示文本光标</td>
-</tr>
-<tr>
-<td><code>ReleaseDeviceResources()</code></td>
-<td>设备丢失/重建时释放画刷等</td>
-</tr>
-<tr>
-<td><code>GetImeCandidateRect()</code></td>
-<td>返回 IME 候选框定位矩形</td>
-</tr>
-<tr>
-<td><code>SetCompositionText(...)</code></td>
-<td>IME 组合输入回调</td>
-</tr>
-<tr>
-<td><code>GetChildRenderTransform(child)</code></td>
-<td>子元素的渲染变换（用于页面切换等）</td>
-</tr>
-<tr>
-<td><code>OnFontChanged()</code></td>
-<td>字体变化；默认重建布局</td>
-</tr>
-</tbody>
-</table>
-<h2 id="事件信号zsignal">事件信号（<code>ZSignal</code>）</h2>
-<p><code>MouseEnter</code>、<code>MouseLeave</code>、<code>MouseMove(float,float)</code>、<code>MouseDown(float,float)</code>、<code>MouseUp(float,float)</code>、<code>KeyDown(WPARAM,LPARAM)</code>、<code>KeyUp(WPARAM,LPARAM)</code>、<code>Char(wchar_t)</code>、<code>Focused</code>、<code>Blurred</code>。</p>
-<blockquote>
-<p>1.8.0 起这些事件由裸 <code>std::function</code> 回调改为 <code>ZSignal</code>，用 <code>Connect(elem-&gt;MouseDown, ...)</code> 连接（连接随元素析构自动断开）。它们与 <code>OnXxx</code> 虚函数都会被内部触发，互不冲突。</p>
-</blockquote>
-<h2 id="父子可见性右键菜单与连接">父子、可见性、右键菜单与连接</h2>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>void SetParent(UIElement*)</code> / <code>UIElement* GetParent() const</code></td>
-<td>父元素（通常由容器自动设置）</td>
-</tr>
-<tr>
-<td><code>Window* GetWindow() const</code></td>
-<td>所属窗口；未挂载或窗口已销毁时返回 <code>nullptr</code>（内部按窗口 id 查找，不持有裸指针）</td>
-</tr>
-<tr>
-<td><code>void SetVisible(bool)</code> / <code>bool IsVisible() const</code></td>
-<td>可见性；设为 false 会释放缓存，并触发 <code>OnVisibilityChanged(false)</code></td>
-</tr>
-<tr>
-<td><code>virtual void OnVisibilityChanged(bool visible)</code></td>
-<td>可见性变化钩子；例如 <code>ComboBox</code> 在隐藏时会自动收起下拉弹层</td>
-</tr>
-<tr>
-<td><code>void SetContextMenu(std::shared_ptr&lt;Menu&gt;)</code> / <code>GetContextMenu()</code></td>
-<td>固定右键菜单</td>
-</tr>
-<tr>
-<td><code>void SetContextMenuFactory(std::function&lt;std::shared_ptr&lt;Menu&gt;()&gt;)</code> / <code>BuildContextMenu()</code></td>
-<td><strong>动态菜单工厂</strong>：每次右键现搭（可依据当前状态）；优先于固定菜单</td>
-</tr>
-<tr>
-<td><code>void SetContextMenuEnabled(bool)</code> / <code>bool IsContextMenuEnabled() const</code></td>
-<td>是否允许右键出菜单（默认允许）</td>
-</tr>
-<tr>
-<td><code>virtual bool OnContextMenu(float,float)</code></td>
-<td>右键钩子；返回 true 表示已处理，不再弹默认菜单</td>
-</tr>
-<tr>
-<td><code>void SetBleed(float)</code> / <code>float GetBleed() const</code></td>
-<td>缓存出血（默认 <code>4.0f</code>）</td>
-</tr>
-<tr>
-<td><code>template&lt;typename Signal, typename Slot&gt; Connection Connect(Signal&amp;, Slot&amp;&amp;)</code></td>
-<td>连接信号：连接登记进本元素的 <code>ConnectionGroup</code>（元素析构时自动断开），并返回 Qt 风格的<strong>被动 <code>Connection</code> 句柄</strong>（析构不断连）。忽略返回值安全；要单独断开写 <code>auto c = Connect(...); c.disconnect();</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="字体接口">字体接口</h2>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>static void SetGlobalFont(const FontSpec&amp;)</code></td>
-<td>全局字体</td>
-</tr>
-<tr>
-<td><code>static void SetGlobalFontFamily(const std::wstring&amp;)</code></td>
-<td>只改全局字体族（保留其余字段）</td>
-</tr>
-<tr>
-<td><code>static void SetGlobalFontSize(float)</code></td>
-<td>只改全局字号</td>
-</tr>
-<tr>
-<td><code>static FontSpec GetGlobalFont()</code></td>
-<td>读取全局字体</td>
-</tr>
-<tr>
-<td><code>void SetFont(...)</code> / <code>SetFontFamily(...)</code> / <code>SetFontSize(...)</code> / <code>SetFontWeight(...)</code></td>
-<td>实例级覆盖（覆盖后不再跟随全局字体）</td>
-</tr>
-<tr>
-<td><code>void ClearFont()</code> / <code>bool HasFontOverride() const</code></td>
-<td>清除/查询覆盖</td>
-</tr>
-<tr>
-<td><code>FontSpec GetEffectiveFontSpec() const</code></td>
-<td>解析链结果（实例覆盖 → 类型默认 → 全局）</td>
-</tr>
-<tr>
-<td><code>IDWriteTextFormat* GetFontFormat() const</code></td>
-<td>共享文本格式（内部有实例级快速缓存）</td>
-</tr>
-</tbody>
-</table>
-<h2 id="自定义控件最小示例">自定义控件最小示例</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-fdf81102', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-74350e5b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Dot</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
-<span class="k">public</span><span class="o">:</span>
-<span class="w">    </span><span class="n">Dot</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">r_</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
-<span class="w">    </span><span class="n">Size</span><span class="w"> </span><span class="n">Measure</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Size</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">Size</span><span class="p">(</span><span class="n">r_</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">r_</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">Draw</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">ComPtr</span><span class="o">&lt;</span><span class="n">ID2D1SolidColorBrush</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
-<span class="w">        </span><span class="n">rt</span><span class="o">-&gt;</span><span class="n">CreateSolidColorBrush</span><span class="p">(</span><span class="n">D2D1</span><span class="o">::</span><span class="n">ColorF</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.47f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.84f</span><span class="p">),</span><span class="w"> </span><span class="o">&amp;</span><span class="n">b</span><span class="p">);</span>
-<span class="w">        </span><span class="n">D2D1_ELLIPSE</span><span class="w"> </span><span class="n">e</span><span class="p">{</span><span class="w"> </span><span class="p">(</span><span class="n">arrangedRect_</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">r_</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">arrangedRect_</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">r_</span><span class="p">),</span><span class="w"> </span><span class="n">r_</span><span class="p">,</span><span class="w"> </span><span class="n">r_</span><span class="w"> </span><span class="p">};</span>
-<span class="w">        </span><span class="n">rt</span><span class="o">-&gt;</span><span class="n">FillEllipse</span><span class="p">(</span><span class="n">e</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">Get</span><span class="p">());</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="k">private</span><span class="o">:</span>
-<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">r_</span><span class="p">;</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShadow</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">HasShadow</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetShadowColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w"> </span><span class="n">SetShadowBlur</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="n">SetShadowOffset</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="n">SetShadowCornerRadius</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">float</span><span class="w"> </span><span class="nf">GetShadowExtent</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-fdf81102" style="display: none;">class Dot : public UIElement {
-public:
-    Dot(float r) : r_(r) {}
-    Size Measure(const Size&amp;) override { return Size(r_ * 2, r_ * 2); }
-    void Draw(ID2D1RenderTarget* rt) override {
-        ComPtr&lt;ID2D1SolidColorBrush&gt; b;
-        rt-&gt;CreateSolidColorBrush(D2D1::ColorF(0, 0.47f, 0.84f), &amp;b);
-        D2D1_ELLIPSE e{ (arrangedRect_.x + r_), (arrangedRect_.y + r_), r_, r_ };
-        rt-&gt;FillEllipse(e, b.Get());
-    }
-private:
-    float r_;
-};</pre>
-</div>
-<h2 id="布局参与-绘制时机">布局参与 / 绘制时机</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a441f9e4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">LayoutParticipation</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">Normal</span><span class="p">,</span><span class="w">            </span><span class="c1">// 参与布局（默认）</span>
-<span class="w">    </span><span class="n">DrawBeforeLayout</span><span class="p">,</span><span class="w">  </span><span class="c1">// 不参与布局：在正常布局树绘制之前单独绘制</span>
-<span class="w">    </span><span class="n">DrawAfterLayout</span><span class="w">    </span><span class="c1">// 不参与布局：在正常布局树绘制之后、覆盖层之前单独绘制</span>
-<span class="p">};</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetLayoutParticipation</span><span class="p">(</span><span class="n">LayoutParticipation</span><span class="p">);</span>
-<span class="n">LayoutParticipation</span><span class="w"> </span><span class="nf">GetLayoutParticipation</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="kt">bool</span><span class="w"> </span><span class="nf">ParticipatesInLayout</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-</pre></div>
-<pre id="code-a441f9e4" style="display: none;">enum class LayoutParticipation {
-    Normal,            // 参与布局（默认）
-    DrawBeforeLayout,  // 不参与布局：在正常布局树绘制之前单独绘制
-    DrawAfterLayout    // 不参与布局：在正常布局树绘制之后、覆盖层之前单独绘制
-};
-void SetLayoutParticipation(LayoutParticipation);
-LayoutParticipation GetLayoutParticipation() const;
-bool ParticipatesInLayout() const;</pre>
+<pre id="code-74350e5b" style="display: none;">void SetShadow(bool);  bool HasShadow() const;
+void SetShadowColor(Color); SetShadowBlur(float); SetShadowOffset(float,float); SetShadowCornerRadius(float);
+float GetShadowExtent() const;</pre>
 </div>
 <ul>
-<li>布局容器（ColumnBox/RowBox/GridLayout）在 Measure/Arrange 以及 <code>ComposeImpl</code> 的子递归里都会<strong>跳过</strong> <code>!ParticipatesInLayout()</code> 的元素。</li>
-<li>不参与布局的元素若被放进布局，其位置/尺寸需由设置者自理；<code>Window</code> 的自定义标题栏就是用它实现的（<code>Window</code> 直接把它放在 <code>(0,0)</code>）。</li>
+<li>阴影仅对<strong>开启缓存</strong>的元素生效（<code>Card</code> 设阴影会自动开缓存）。</li>
 </ul>
-<h2 id="拖动区域所有控件可用">拖动区域（所有控件可用）</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-31aa6096', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDraggable</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span><span class="w">                 </span><span class="c1">// 整个 arrangedRect 作为拖动区</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetDragRegion</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Rect</span><span class="o">&amp;</span><span class="w"> </span><span class="n">localRect</span><span class="p">);</span><span class="w">  </span><span class="c1">// 指定本地子区域</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">ClearDragRegion</span><span class="p">();</span>
-<span class="kt">bool</span><span class="w"> </span><span class="nf">HasDragRegion</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="n">Rect</span><span class="w"> </span><span class="nf">GetDragRegion</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="kt">bool</span><span class="w"> </span><span class="nf">IsPointInDragRegion</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">CollectDragRegions</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Rect</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// Window 递归收集</span>
-</pre></div>
-<pre id="code-31aa6096" style="display: none;">void SetDraggable(bool on);                 // 整个 arrangedRect 作为拖动区
-void SetDragRegion(const Rect&amp; localRect);  // 指定本地子区域
-void ClearDragRegion();
-bool HasDragRegion() const;
-Rect GetDragRegion() const;
-bool IsPointInDragRegion(float x, float y) const;
-virtual void CollectDragRegions(std::vector&lt;Rect&gt;&amp; out) const;   // Window 递归收集</pre>
-</div>
-<ul>
-<li><code>Window</code> 每帧把整棵树的拖动区域收集起来，命中时 <code>WM_NCHITTEST</code> 返回 <code>HTCAPTION</code>，于是拖动 / Aero Snap / 双击最大化全部交给系统。</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.5.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">字体</span><span class="nav-desc">FontSpec 与 FontManager</span></a><a class="next" href="API.7.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">布局</span><span class="nav-desc">Layout、ColumnBox、RowBox、GridLayout、LayoutHost、Card、Page、PageHost</span></a></nav>
+<h2 id="调试计数按元素">调试计数（按元素）</h2>
+<p><code>DebugMeasureCount/ArrangeCount/RepaintCount/DrawCount/CacheValid/CacheBytes/MeasureMs/ArrangeMs/DrawMs/AnimationProgress/ResetCounters</code> 等。
+- <strong><code>版本</code></strong>：<code>v1.17.0</code> 加入的逐元素调试计数，配合调试通道 Top-N 使用。</p>
+<nav class="chapter-nav"><a class="prev" href="API.5.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">字体与图标</span><span class="nav-desc">FontSpec、FontManager、Icon</span></a><a class="next" href="API.7.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">布局系统</span><span class="nav-desc">Layout、ColumnBox、RowBox、GridLayout、Card、Page、PageHost</span></a></nav>
         </main>
     </div>
 

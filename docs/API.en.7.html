@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Layout · ZufyUI API Reference</title>
+    <title>Layout system · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,350 +197,168 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class="active"><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="layout-base"><div class="toc-row"><a href="#layout-base" data-target="layout-base">Layout (base)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="columnbox-vertical"><div class="toc-row"><a href="#columnbox-vertical" data-target="columnbox-vertical">ColumnBox (vertical)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="rowbox-horizontal"><div class="toc-row"><a href="#rowbox-horizontal" data-target="rowbox-horizontal">RowBox (horizontal)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="gridlayout-grid"><div class="toc-row"><a href="#gridlayout-grid" data-target="gridlayout-grid">GridLayout (grid)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="layouthost-swappable-layout-container"><div class="toc-row"><a href="#layouthost-swappable-layout-container" data-target="layouthost-swappable-layout-container">LayoutHost (swappable layout container)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="card"><div class="toc-row"><a href="#card" data-target="card">Card</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="page"><div class="toc-row"><a href="#page" data-target="page">Page</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="pagehost-page-host-transition-animation"><div class="toc-row"><a href="#pagehost-page-host-transition-animation" data-target="pagehost-page-host-transition-animation">PageHost (page host / transition animation)</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class="active"><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="layout-base"><div class="toc-row"><a href="#layout-base" data-target="layout-base">Layout (base)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="columnbox-vertical-rowbox-horizontal"><div class="toc-row"><a href="#columnbox-vertical-rowbox-horizontal" data-target="columnbox-vertical-rowbox-horizontal">ColumnBox (vertical) / RowBox (horizontal)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="gridlayout"><div class="toc-row"><a href="#gridlayout" data-target="gridlayout">GridLayout</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="layouthost-card-page"><div class="toc-row"><a href="#layouthost-card-page" data-target="layouthost-card-page">LayoutHost / Card / Page</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="pagehost-page-host-transitions"><div class="toc-row"><a href="#pagehost-page-host-transitions" data-target="pagehost-page-host-transitions">PageHost (page host / transitions)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="tabview"><div class="toc-row"><a href="#tabview" data-target="tabview">TabView</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Layout (base)
 
 ```cpp
-class Layout : public UIElement {
-    virtual ~Layout() = default;
-    bool UseCache() const override;   // layout containers do not cache
-};
+class Layout : public UIElement { bool UseCache() const override { return false; } };
 ```
+- Layout containers **never cache**.
 
-- Layout containers disable caching (`UseCache()==false`) because caching them is low-value and memory-heavy.
-
-## ColumnBox (vertical)
+## ColumnBox (vertical) / RowBox (horizontal)
 
 ```cpp
-class ColumnBox : public Layout {
-    void AddChild(std::shared_ptr&lt;UIElement&gt; child);
-    void SetSpacing(float spacing);
-    float GetSpacing() const;
-};
+ColumnBox(); RowBox();
+void AddChild(std::shared_ptr&lt;UIElement&gt;);
+void ClearChildren();
+void SetSpacing(float);
 ```
+- `ColumnBox` fills width, no vertical stretch; `RowBox` the opposite.
+- **`Pitfall`**: `AddChild` calls `SetParent(this)`; the container owns via `shared_ptr`. If a child sets an explicit `SetHeight`, leftover space is **added on top** by weight.
+- **`Version`**: leftover distribution by child stretch weight since `v1.17.0`.
 
-- Children are stacked top-to-bottom; `spacing` is the gap between adjacent children.
-- Default stretch weights: horizontal `1.0` (children fill width), vertical `0.0`.
-
-## RowBox (horizontal)
+## GridLayout
 
 ```cpp
-class RowBox : public Layout {
-    void AddChild(std::shared_ptr&lt;UIElement&gt; child);
-    void SetSpacing(float spacing);
-    float GetSpacing() const;
-};
+enum class Alignment { Start, Center, End };
+void AddChild(std::shared_ptr&lt;UIElement&gt;, int row, int col, int rowSpan=1, int colSpan=1);
+void SetSpacing(float h, float v);
+void SetColumnStretch(int col, float weight);   void SetRowStretch(int row, float weight);
+void SetHorizontalAlignment(Alignment);         void SetVerticalAlignment(Alignment);
 ```
+- Without explicit row/col stretch, the cell weight is the **max** of spanned children's weights.
 
-- Children are laid out left-to-right; default weights horizontal `0.0`, vertical `1.0`.
-
-## GridLayout (grid)
+## LayoutHost / Card / Page
 
 ```cpp
-class GridLayout : public Layout {
-    enum class Alignment { Start, Center, End };
-    void AddChild(std::shared_ptr&lt;UIElement&gt; child, int row, int col, int rowSpan = 1, int colSpan = 1);
-    void SetSpacing(float horizontal, float vertical);
-    void SetColumnStretch(int col, float weight);
-    void SetRowStretch(int row, float weight);
-    void SetHorizontalAlignment(Alignment align);
-    void SetVerticalAlignment(Alignment align);
-};
+class LayoutHost : public UIElement { std::shared_ptr&lt;UIElement&gt; GetLayout() const; void SetLayout(...); };
+class Card : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
+class Page : public LayoutHost { DefaultPadding=10; ... };
 ```
+- `LayoutHost` is a single-slot container; `Card` is a rounded/bordered/hover card; `Page` is the page container for `TabView`/`PageHost`.
+- `Card::UseCache()` = `HasShadow()`; `Page::UseCache()` = false.
 
-- Defaults: spacing `0`, alignment `Start`, both stretch weights `1.0`.
-- `SetColumnStretch/SetRowStretch` control how extra space is distributed; `0` means "do not participate".
-- `rowSpan/colSpan` span rows/columns. `LayoutHost` holds a `GridLayout` by default, so `Card`/`Page` usually add children via `GetLayoutAs&lt;GridLayout&gt;()`.
-
-## LayoutHost (swappable layout container)
+## PageHost (page host / transitions)
 
 ```cpp
-class LayoutHost : public UIElement {
-    std::shared_ptr&lt;UIElement&gt; GetLayout() const;
-    void SetLayout(std::shared_ptr&lt;UIElement&gt; layout);
-    template&lt;typename T&gt; std::shared_ptr&lt;T&gt; GetLayoutAs() const;
-};
+enum class TransitionDirection { Left, Right, Up, Down };
+enum class TransitionEasing { Linear, EaseInOut, EaseOut };
+void AddPage(std::shared_ptr&lt;Page&gt;);  void RemovePage(int);  void ClearPages();
+void NavigateTo(int index);   void SetCurrentIndexInstant(int index);
+void SetTransitionDirection(...);  void SetTransitionEasing(...);  void SetAnimationDuration(float);
+int GetCurrentIndex() const;  std::shared_ptr&lt;Page&gt; GetCurrentPage() const;
 ```
+- During a transition it returns **both** source and target pages as visible children; `UpdateAnimation` updates each page only once (otherwise double speed).
+- **`Pitfall`**: `NavigateTo` is **asynchronous** (switches after the animation); `GetCurrentPage()`/`GetCurrentIndex()` may still be old during it.
+- **`Version`**: easing `v1.8.1`; **delayed hidden-page cache release (~1.2 s, recursive)** = `v1.18.0`.
 
-- Holds a `GridLayout` by default. `GetLayoutAs&lt;GridLayout&gt;()` is the usual way to reach it.
-- `SetLayout` replaces the inner layout and reparents it; `nullptr` or `this` is ignored.
+## TabView
 
-## Card
-
-```cpp
-class Card : public LayoutHost {
-    static float DefaultPadding;           // 12.0f
-    static float DefaultCornerRadius;      // 8.0f
-    static Color DefaultBgColor;           // white
-    static Color DefaultBorderColor;       // 200,200,200
-
-    void SetPadding(float);
-    void SetCornerRadius(float);
-    void SetBackgroundColor(Color);
-    void SetBorderColor(Color);
-    void SetHoverBackgroundColor(Color);   // hover background
-    void SetHoverBorderColor(Color);       // hover border
-    void SetHoverAnimationSpeed(float);
-};
-```
-
-- A card is a container with background/border/corner-radius/padding. Add children to its inner layout (`GetLayoutAs&lt;GridLayout&gt;()`).
-- Supports hover colors with a smooth transition; enabling a shadow auto-enables caching.
-- When disabled it is drawn grey.
-
-## Page
-
-```cpp
-class Page : public LayoutHost {
-    static float DefaultPadding;     // 10.0f
-    void SetPadding(float);
-    void SetBackgroundColor(Color);
-};
-```
-
-- A `Page` is typically one screen of a `PageHost`.
-
-## PageHost (page host / transition animation)
-
-```cpp
-class PageHost : public UIElement {
-    enum class TransitionDirection { Left, Right, Up, Down };
-    enum class TransitionEasing { Linear, EaseInOut, EaseOut };   // transition easing
-
-    void AddPage(std::shared_ptr&lt;Page&gt; page);
-    void NavigateTo(int index);
-    void SetTransitionDirection(TransitionDirection dir);
-    void SetTransitionEasing(TransitionEasing e);   // default EaseInOut (smooth)
-    TransitionEasing GetTransitionEasing() const;
-    void SetAnimationDuration(float seconds);   // min 0.01s, default 0.3s
-    int GetCurrentIndex() const;
-    std::shared_ptr&lt;Page&gt; GetCurrentPage() const;
-};
-```
-
-- `NavigateTo` starts a slide transition. During the animation only the source and target pages are updated; after it finishes only the current page is (so a page is never updated twice per frame, which previously doubled nested-animation speed).
-- Non-current page caches are released after the transition to save memory.
-- **Note**: `GetCurrentIndex()` changes only after the animation completes — do not assume it already equals the target during the transition.</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 7 · Layout</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 7</span><h1>Layout</h1><p class="chapter-summary">Layout, ColumnBox, RowBox, GridLayout, LayoutHost, Card, Page, PageHost</p></header><h2 id="layout-base">Layout (base)</h2>
+See the "Containers &amp; Scrolling / Tabs" chapter.</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 7 · Layout system</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 7</span><h1>Layout system</h1><p class="chapter-summary">Layout, ColumnBox, RowBox, GridLayout, Card, Page, PageHost</p></header><h2 id="layout-base">Layout (base)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c44bc4ca', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-ee42bdda', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Layout</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="o">~</span><span class="n">Layout</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">   </span><span class="c1">// layout containers do not cache</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Layout</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-c44bc4ca" style="display: none;">class Layout : public UIElement {
-    virtual ~Layout() = default;
-    bool UseCache() const override;   // layout containers do not cache
-};</pre>
+<pre id="code-ee42bdda" style="display: none;">class Layout : public UIElement { bool UseCache() const override { return false; } };</pre>
 </div>
 <ul>
-<li>Layout containers disable caching (<code>UseCache()==false</code>) because caching them is low-value and memory-heavy.</li>
+<li>Layout containers <strong>never cache</strong>.</li>
 </ul>
-<h2 id="columnbox-vertical">ColumnBox (vertical)</h2>
+<h2 id="columnbox-vertical-rowbox-horizontal">ColumnBox (vertical) / RowBox (horizontal)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e665172a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-81301a17', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ColumnBox</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Layout</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">child</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSpacing</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">spacing</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetSpacing</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="n">ColumnBox</span><span class="p">();</span><span class="w"> </span><span class="n">RowBox</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ClearChildren</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetSpacing</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 </pre></div>
-<pre id="code-e665172a" style="display: none;">class ColumnBox : public Layout {
-    void AddChild(std::shared_ptr&lt;UIElement&gt; child);
-    void SetSpacing(float spacing);
-    float GetSpacing() const;
-};</pre>
+<pre id="code-81301a17" style="display: none;">ColumnBox(); RowBox();
+void AddChild(std::shared_ptr&lt;UIElement&gt;);
+void ClearChildren();
+void SetSpacing(float);</pre>
 </div>
 <ul>
-<li>Children are stacked top-to-bottom; <code>spacing</code> is the gap between adjacent children.</li>
-<li>Default stretch weights: horizontal <code>1.0</code> (children fill width), vertical <code>0.0</code>.</li>
+<li><code>ColumnBox</code> fills width, no vertical stretch; <code>RowBox</code> the opposite.</li>
+<li><strong><code>Pitfall</code></strong>: <code>AddChild</code> calls <code>SetParent(this)</code>; the container owns via <code>shared_ptr</code>. If a child sets an explicit <code>SetHeight</code>, leftover space is <strong>added on top</strong> by weight.</li>
+<li><strong><code>Version</code></strong>: leftover distribution by child stretch weight since <code>v1.17.0</code>.</li>
 </ul>
-<h2 id="rowbox-horizontal">RowBox (horizontal)</h2>
+<h2 id="gridlayout">GridLayout</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-aa5ec079', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-7c83d85f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">RowBox</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Layout</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">child</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSpacing</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">spacing</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetSpacing</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Alignment</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Start</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">End</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">rowSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">colSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetSpacing</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">v</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnStretch</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">weight</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRowStretch</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">weight</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetHorizontalAlignment</span><span class="p">(</span><span class="n">Alignment</span><span class="p">);</span><span class="w">         </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVerticalAlignment</span><span class="p">(</span><span class="n">Alignment</span><span class="p">);</span>
 </pre></div>
-<pre id="code-aa5ec079" style="display: none;">class RowBox : public Layout {
-    void AddChild(std::shared_ptr&lt;UIElement&gt; child);
-    void SetSpacing(float spacing);
-    float GetSpacing() const;
-};</pre>
+<pre id="code-7c83d85f" style="display: none;">enum class Alignment { Start, Center, End };
+void AddChild(std::shared_ptr&lt;UIElement&gt;, int row, int col, int rowSpan=1, int colSpan=1);
+void SetSpacing(float h, float v);
+void SetColumnStretch(int col, float weight);   void SetRowStretch(int row, float weight);
+void SetHorizontalAlignment(Alignment);         void SetVerticalAlignment(Alignment);</pre>
 </div>
 <ul>
-<li>Children are laid out left-to-right; default weights horizontal <code>0.0</code>, vertical <code>1.0</code>.</li>
+<li>Without explicit row/col stretch, the cell weight is the <strong>max</strong> of spanned children's weights.</li>
 </ul>
-<h2 id="gridlayout-grid">GridLayout (grid)</h2>
+<h2 id="layouthost-card-page">LayoutHost / Card / Page</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9f932940', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-2f5530a8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">GridLayout</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Layout</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Alignment</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Start</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">End</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">child</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">rowSpan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">colSpan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSpacing</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">horizontal</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">vertical</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnStretch</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">weight</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRowStretch</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">weight</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetHorizontalAlignment</span><span class="p">(</span><span class="n">Alignment</span><span class="w"> </span><span class="n">align</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVerticalAlignment</span><span class="p">(</span><span class="n">Alignment</span><span class="w"> </span><span class="n">align</span><span class="p">);</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">LayoutHost</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetLayout</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetLayout</span><span class="p">(...);</span><span class="w"> </span><span class="p">};</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Card</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">LayoutHost</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">DefaultPadding</span><span class="o">=</span><span class="mi">12</span><span class="p">;</span><span class="w"> </span><span class="n">DefaultCornerRadius</span><span class="o">=</span><span class="mi">8</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Page</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">LayoutHost</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">DefaultPadding</span><span class="o">=</span><span class="mi">10</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-9f932940" style="display: none;">class GridLayout : public Layout {
-    enum class Alignment { Start, Center, End };
-    void AddChild(std::shared_ptr&lt;UIElement&gt; child, int row, int col, int rowSpan = 1, int colSpan = 1);
-    void SetSpacing(float horizontal, float vertical);
-    void SetColumnStretch(int col, float weight);
-    void SetRowStretch(int row, float weight);
-    void SetHorizontalAlignment(Alignment align);
-    void SetVerticalAlignment(Alignment align);
-};</pre>
+<pre id="code-2f5530a8" style="display: none;">class LayoutHost : public UIElement { std::shared_ptr&lt;UIElement&gt; GetLayout() const; void SetLayout(...); };
+class Card : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
+class Page : public LayoutHost { DefaultPadding=10; ... };</pre>
 </div>
 <ul>
-<li>Defaults: spacing <code>0</code>, alignment <code>Start</code>, both stretch weights <code>1.0</code>.</li>
-<li><code>SetColumnStretch/SetRowStretch</code> control how extra space is distributed; <code>0</code> means "do not participate".</li>
-<li><code>rowSpan/colSpan</code> span rows/columns. <code>LayoutHost</code> holds a <code>GridLayout</code> by default, so <code>Card</code>/<code>Page</code> usually add children via <code>GetLayoutAs&lt;GridLayout&gt;()</code>.</li>
+<li><code>LayoutHost</code> is a single-slot container; <code>Card</code> is a rounded/bordered/hover card; <code>Page</code> is the page container for <code>TabView</code>/<code>PageHost</code>.</li>
+<li><code>Card::UseCache()</code> = <code>HasShadow()</code>; <code>Page::UseCache()</code> = false.</li>
 </ul>
-<h2 id="layouthost-swappable-layout-container">LayoutHost (swappable layout container)</h2>
+<h2 id="pagehost-page-host-transitions">PageHost (page host / transitions)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-48d4518c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-3340350c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">LayoutHost</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetLayout</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetLayout</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">layout</span><span class="p">);</span>
-<span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetLayoutAs</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TransitionDirection</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="p">,</span><span class="w"> </span><span class="n">Up</span><span class="p">,</span><span class="w"> </span><span class="n">Down</span><span class="w"> </span><span class="p">};</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TransitionEasing</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Linear</span><span class="p">,</span><span class="w"> </span><span class="n">EaseInOut</span><span class="p">,</span><span class="w"> </span><span class="n">EaseOut</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddPage</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Page</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">RemovePage</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearPages</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">NavigateTo</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCurrentIndexInstant</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionDirection</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionEasing</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationDuration</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">GetCurrentIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Page</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCurrentPage</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-48d4518c" style="display: none;">class LayoutHost : public UIElement {
-    std::shared_ptr&lt;UIElement&gt; GetLayout() const;
-    void SetLayout(std::shared_ptr&lt;UIElement&gt; layout);
-    template&lt;typename T&gt; std::shared_ptr&lt;T&gt; GetLayoutAs() const;
-};</pre>
+<pre id="code-3340350c" style="display: none;">enum class TransitionDirection { Left, Right, Up, Down };
+enum class TransitionEasing { Linear, EaseInOut, EaseOut };
+void AddPage(std::shared_ptr&lt;Page&gt;);  void RemovePage(int);  void ClearPages();
+void NavigateTo(int index);   void SetCurrentIndexInstant(int index);
+void SetTransitionDirection(...);  void SetTransitionEasing(...);  void SetAnimationDuration(float);
+int GetCurrentIndex() const;  std::shared_ptr&lt;Page&gt; GetCurrentPage() const;</pre>
 </div>
 <ul>
-<li>Holds a <code>GridLayout</code> by default. <code>GetLayoutAs&lt;GridLayout&gt;()</code> is the usual way to reach it.</li>
-<li><code>SetLayout</code> replaces the inner layout and reparents it; <code>nullptr</code> or <code>this</code> is ignored.</li>
+<li>During a transition it returns <strong>both</strong> source and target pages as visible children; <code>UpdateAnimation</code> updates each page only once (otherwise double speed).</li>
+<li><strong><code>Pitfall</code></strong>: <code>NavigateTo</code> is <strong>asynchronous</strong> (switches after the animation); <code>GetCurrentPage()</code>/<code>GetCurrentIndex()</code> may still be old during it.</li>
+<li><strong><code>Version</code></strong>: easing <code>v1.8.1</code>; <strong>delayed hidden-page cache release (~1.2 s, recursive)</strong> = <code>v1.18.0</code>.</li>
 </ul>
-<h2 id="card">Card</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-cf76c04d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Card</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">LayoutHost</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">DefaultPadding</span><span class="p">;</span><span class="w">           </span><span class="c1">// 12.0f</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">DefaultCornerRadius</span><span class="p">;</span><span class="w">      </span><span class="c1">// 8.0f</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">DefaultBgColor</span><span class="p">;</span><span class="w">           </span><span class="c1">// white</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">DefaultBorderColor</span><span class="p">;</span><span class="w">       </span><span class="c1">// 200,200,200</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetPadding</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCornerRadius</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBorderColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetHoverBackgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w">   </span><span class="c1">// hover background</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetHoverBorderColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w">       </span><span class="c1">// hover border</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetHoverAnimationSpeed</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-cf76c04d" style="display: none;">class Card : public LayoutHost {
-    static float DefaultPadding;           // 12.0f
-    static float DefaultCornerRadius;      // 8.0f
-    static Color DefaultBgColor;           // white
-    static Color DefaultBorderColor;       // 200,200,200
-
-    void SetPadding(float);
-    void SetCornerRadius(float);
-    void SetBackgroundColor(Color);
-    void SetBorderColor(Color);
-    void SetHoverBackgroundColor(Color);   // hover background
-    void SetHoverBorderColor(Color);       // hover border
-    void SetHoverAnimationSpeed(float);
-};</pre>
-</div>
-<ul>
-<li>A card is a container with background/border/corner-radius/padding. Add children to its inner layout (<code>GetLayoutAs&lt;GridLayout&gt;()</code>).</li>
-<li>Supports hover colors with a smooth transition; enabling a shadow auto-enables caching.</li>
-<li>When disabled it is drawn grey.</li>
-</ul>
-<h2 id="page">Page</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b83b2af0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Page</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">LayoutHost</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">DefaultPadding</span><span class="p">;</span><span class="w">     </span><span class="c1">// 10.0f</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetPadding</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-b83b2af0" style="display: none;">class Page : public LayoutHost {
-    static float DefaultPadding;     // 10.0f
-    void SetPadding(float);
-    void SetBackgroundColor(Color);
-};</pre>
-</div>
-<ul>
-<li>A <code>Page</code> is typically one screen of a <code>PageHost</code>.</li>
-</ul>
-<h2 id="pagehost-page-host-transition-animation">PageHost (page host / transition animation)</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-471581e1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">PageHost</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TransitionDirection</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="p">,</span><span class="w"> </span><span class="n">Up</span><span class="p">,</span><span class="w"> </span><span class="n">Down</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TransitionEasing</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Linear</span><span class="p">,</span><span class="w"> </span><span class="n">EaseInOut</span><span class="p">,</span><span class="w"> </span><span class="n">EaseOut</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// transition easing</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddPage</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Page</span><span class="o">&gt;</span><span class="w"> </span><span class="n">page</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">NavigateTo</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionDirection</span><span class="p">(</span><span class="n">TransitionDirection</span><span class="w"> </span><span class="n">dir</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionEasing</span><span class="p">(</span><span class="n">TransitionEasing</span><span class="w"> </span><span class="n">e</span><span class="p">);</span><span class="w">   </span><span class="c1">// default EaseInOut (smooth)</span>
-<span class="w">    </span><span class="n">TransitionEasing</span><span class="w"> </span><span class="nf">GetTransitionEasing</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationDuration</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">seconds</span><span class="p">);</span><span class="w">   </span><span class="c1">// min 0.01s, default 0.3s</span>
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetCurrentIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Page</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCurrentPage</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-471581e1" style="display: none;">class PageHost : public UIElement {
-    enum class TransitionDirection { Left, Right, Up, Down };
-    enum class TransitionEasing { Linear, EaseInOut, EaseOut };   // transition easing
-
-    void AddPage(std::shared_ptr&lt;Page&gt; page);
-    void NavigateTo(int index);
-    void SetTransitionDirection(TransitionDirection dir);
-    void SetTransitionEasing(TransitionEasing e);   // default EaseInOut (smooth)
-    TransitionEasing GetTransitionEasing() const;
-    void SetAnimationDuration(float seconds);   // min 0.01s, default 0.3s
-    int GetCurrentIndex() const;
-    std::shared_ptr&lt;Page&gt; GetCurrentPage() const;
-};</pre>
-</div>
-<ul>
-<li><code>NavigateTo</code> starts a slide transition. During the animation only the source and target pages are updated; after it finishes only the current page is (so a page is never updated twice per frame, which previously doubled nested-animation speed).</li>
-<li>Non-current page caches are released after the transition to save memory.</li>
-<li><strong>Note</strong>: <code>GetCurrentIndex()</code> changes only after the animation completes — do not assume it already equals the target during the transition.</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.6.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Core element UIElement</span><span class="nav-desc">Size, layout, drawing, events, and fonts</span></a><a class="next" href="API.en.8.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Menus</span><span class="nav-desc">MenuItem, Menu, MenuWindow</span></a></nav>
+<h2 id="tabview">TabView</h2>
+<p>See the "Containers &amp; Scrolling / Tabs" chapter.</p>
+<nav class="chapter-nav"><a class="prev" href="API.en.6.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Element base</span><span class="nav-desc">UIElement (layout props, cache, events, accessibility, debug)</span></a><a class="next" href="API.en.8.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Window</span><span class="nav-desc">Window (create, show, backdrop, title bar, taskbar, DPI, render thread)</span></a></nav>
         </main>
     </div>
 

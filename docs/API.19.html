@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>进度 · ZufyUI API 参考</title>
+    <title>易错点总表 · ZufyUI API 参考</title>
     <style>
 
 :root {
@@ -197,62 +197,35 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class="active"><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍与调试通道</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>版本变化摘录</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>易错点总表</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="progressbar"><div class="toc-row"><a href="#progressbar" data-target="progressbar">ProgressBar</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="progressring"><div class="toc-row"><a href="#progressring" data-target="progressring">ProgressRing</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍与调试通道</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>版本变化摘录</a></li><li class="active"><a href="API.19.html"><span class="chapter-index">19</span>易错点总表</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>附录</a></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## ProgressBar
-
-```cpp
-ZSignal&lt;float&gt; ValueChanged;
-void SetValue(float);          // 归一化到 [0,1]
-void SetRange(float min,float max);  void SetRangeValue(float);   // [min,max]
-void SetIndeterminate(bool);   void SetIndeterminateBlockWidth(float);  void SetIndeterminateSpeed(float);
-```
-- **`易错`**：`SetValue` 是 `[0,1]`，`SetRangeValue` 是 `[min,max]`，**别混用**。
-
-## ProgressRing
-
-```cpp
-void SetValue(float);  void SetIndeterminate(bool);  void SetThickness(float);
-bool UseCache() const override { return false; }   // 每帧重绘
-```
-- **`版本`**：`v1.12.0`；`UseCache=false` `v1.12.2`；NaN/Inf 守卫 `v1.14.0`。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 11 章 · 进度</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 11 章</span><h1>进度</h1><p class="chapter-summary">ProgressBar、ProgressRing</p></header><h2 id="progressbar">ProgressBar</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-265c147e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">          </span><span class="c1">// 归一化到 [0,1]</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetRange</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">min</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">max</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRangeValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="c1">// [min,max]</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminateBlockWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminateSpeed</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-</pre></div>
-<pre id="code-265c147e" style="display: none;">ZSignal&lt;float&gt; ValueChanged;
-void SetValue(float);          // 归一化到 [0,1]
-void SetRange(float min,float max);  void SetRangeValue(float);   // [min,max]
-void SetIndeterminate(bool);   void SetIndeterminateBlockWidth(float);  void SetIndeterminateSpeed(float);</pre>
-</div>
-<ul>
-<li><strong><code>易错</code></strong>：<code>SetValue</code> 是 <code>[0,1]</code>，<code>SetRangeValue</code> 是 <code>[min,max]</code>，<strong>别混用</strong>。</li>
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>- **颜色**：`Color` 分量是 [0,1]；整数用 `Color::FromArgb`。
+- **尺寸/布局**：`SetWidth/Height` 是固定尺寸；`SetFill*` 是填满父轴；拉伸权值分配**剩余**空间（v1.17.0）；图表尺寸来自自身 `width_/height_`，且默认权值 0。
+- **窗口最小尺寸**：含长文本/图表的窗口建议显式 `SetMinSize`，否则会被内容测量结果撑大。
+- **重绘**：`RequestRepaint()` 只标脏、**不排帧**；不要试图在标脏处强制出帧（会持续重渲染卡顿）。`InvalidateLayout()` 冒泡，`InvalidateLayoutSelf()` 不冒泡（池化/虚拟 rebind 用）。
+- **缓存**：默认开；每帧内容变化/实例极多的控件 `SetUseCache(false)`；释放整棵子树用 `ReleaseDeviceResourcesRecursive()`。
+- **文本**：`SetTextFast` 不重绘（池化专用）；`FontManager` 返回的 layout/format 共享只读，勿改。
+- **信号**：`Fire` 快照遍历、可安全 disconnect；`Connection` 析构不断开；`DrawOverlay` 必须按窗口过滤；别用捕获自身 `shared_ptr` 的 lambda 连自己。
+- **数据视图**：源行号 vs 可见序两套坐标；`Sort` 重排并清多选，`SortView` 只改可见序；`parent` 是 `weak_ptr`；行背景用 `node-&gt;bgColor`。
+- **多行编辑**：`AcceptsTab` 为真时 Tab 是缩进；富文本只读；换行宽度变化重建全部行 layout。
+- **滚动条**：宿主用 `ShrunkWidthRatio` 预留槽位；空闲缩小是**惰性**的。
+- **无障碍/调试**：角色决定暴露的 UIA Pattern；调试命令发送要带超时。</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 19 章 · 易错点总表</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 19 章</span><h1>易错点总表</h1><p class="chapter-summary">按主题速查</p></header><ul>
+<li><strong>颜色</strong>：<code>Color</code> 分量是 [0,1]；整数用 <code>Color::FromArgb</code>。</li>
+<li><strong>尺寸/布局</strong>：<code>SetWidth/Height</code> 是固定尺寸；<code>SetFill*</code> 是填满父轴；拉伸权值分配<strong>剩余</strong>空间（v1.17.0）；图表尺寸来自自身 <code>width_/height_</code>，且默认权值 0。</li>
+<li><strong>窗口最小尺寸</strong>：含长文本/图表的窗口建议显式 <code>SetMinSize</code>，否则会被内容测量结果撑大。</li>
+<li><strong>重绘</strong>：<code>RequestRepaint()</code> 只标脏、<strong>不排帧</strong>；不要试图在标脏处强制出帧（会持续重渲染卡顿）。<code>InvalidateLayout()</code> 冒泡，<code>InvalidateLayoutSelf()</code> 不冒泡（池化/虚拟 rebind 用）。</li>
+<li><strong>缓存</strong>：默认开；每帧内容变化/实例极多的控件 <code>SetUseCache(false)</code>；释放整棵子树用 <code>ReleaseDeviceResourcesRecursive()</code>。</li>
+<li><strong>文本</strong>：<code>SetTextFast</code> 不重绘（池化专用）；<code>FontManager</code> 返回的 layout/format 共享只读，勿改。</li>
+<li><strong>信号</strong>：<code>Fire</code> 快照遍历、可安全 disconnect；<code>Connection</code> 析构不断开；<code>DrawOverlay</code> 必须按窗口过滤；别用捕获自身 <code>shared_ptr</code> 的 lambda 连自己。</li>
+<li><strong>数据视图</strong>：源行号 vs 可见序两套坐标；<code>Sort</code> 重排并清多选，<code>SortView</code> 只改可见序；<code>parent</code> 是 <code>weak_ptr</code>；行背景用 <code>node-&gt;bgColor</code>。</li>
+<li><strong>多行编辑</strong>：<code>AcceptsTab</code> 为真时 Tab 是缩进；富文本只读；换行宽度变化重建全部行 layout。</li>
+<li><strong>滚动条</strong>：宿主用 <code>ShrunkWidthRatio</code> 预留槽位；空闲缩小是<strong>惰性</strong>的。</li>
+<li><strong>无障碍/调试</strong>：角色决定暴露的 UIA Pattern；调试命令发送要带超时。</li>
 </ul>
-<h2 id="progressring">ProgressRing</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d7685962', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetThickness</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// 每帧重绘</span>
-</pre></div>
-<pre id="code-d7685962" style="display: none;">void SetValue(float);  void SetIndeterminate(bool);  void SetThickness(float);
-bool UseCache() const override { return false; }   // 每帧重绘</pre>
-</div>
-<ul>
-<li><strong><code>版本</code></strong>：<code>v1.12.0</code>；<code>UseCache=false</code> <code>v1.12.2</code>；NaN/Inf 守卫 <code>v1.14.0</code>。</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.10.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">选择与输入</span><span class="nav-desc">CheckBox、RadioButton、RadioGroup、ToggleSwitch、Slider、NumberBox</span></a><a class="next" href="API.12.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">容器与滚动</span><span class="nav-desc">ScrollViewer、ScrollBar、SplitView、TabView</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.18.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.18.0</span></a><a class="next" href="API.20.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">附录</span><span class="nav-desc">默认值与信号索引</span></a></nav>
         </main>
     </div>
 

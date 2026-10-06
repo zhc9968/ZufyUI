@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Application and multiple windows · ZufyUI API Reference</title>
+    <title>Selection & input · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,361 +197,153 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class="active"><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="application"><div class="toc-row"><a href="#application" data-target="application">Application</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="app-identity-self-registration-registerapp-appinfo"><div class="toc-row"><a href="#app-identity-self-registration-registerapp-appinfo" data-target="app-identity-self-registration-registerapp-appinfo">App identity self-registration (RegisterApp / AppInfo)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="independence-and-compatibility"><div class="toc-row"><a href="#independence-and-compatibility" data-target="independence-and-compatibility">Independence and compatibility</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="multi-window-pitfalls"><div class="toc-row"><a href="#multi-window-pitfalls" data-target="multi-window-pitfalls">Multi-window pitfalls</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="window-lifetime-and-semantics-show-runmodal-owned-shared_ptr"><div class="toc-row"><a href="#window-lifetime-and-semantics-show-runmodal-owned-shared_ptr" data-target="window-lifetime-and-semantics-show-runmodal-owned-shared_ptr">Window lifetime and semantics (Show / RunModal / owned / shared_ptr)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="coordinate-helpers-in-data-views"><div class="toc-row"><a href="#coordinate-helpers-in-data-views" data-target="coordinate-helpers-in-data-views">Coordinate helpers in data views</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class="active"><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="checkbox"><div class="toc-row"><a href="#checkbox" data-target="checkbox">CheckBox</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="radiobutton-radiogroup"><div class="toc-row"><a href="#radiobutton-radiogroup" data-target="radiobutton-radiogroup">RadioButton / RadioGroup</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="toggleswitch"><div class="toc-row"><a href="#toggleswitch" data-target="toggleswitch">ToggleSwitch</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="slider"><div class="toc-row"><a href="#slider" data-target="slider">Slider</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="numberbox-with-internal-spinbutton"><div class="toc-row"><a href="#numberbox-with-internal-spinbutton" data-target="numberbox-with-internal-spinbutton">NumberBox (with internal SpinButton)</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Application
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>&gt; Several of these emit a "live" signal during the drag and a separate "commit" signal. The static `DrawBox` is shared with data views, so changing its look changes list/table/tree check rows too.
 
-`Application` is the process / UI-thread-level object that manages one shared message loop and all top-level windows. It is decoupled from window lifetime: `Application` is just a handle to an internal singleton, so constructing/destroying it does **not** destroy existing windows (no "app destroyed, windows dangling" pitfalls).
-
-```cpp
-class Application {
-    std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title);
-    std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title, Window* owner); // owned child
-    void AddWindow(const std::shared_ptr&lt;Window&gt;&amp; w);
-    int Run();
-    void Quit(int code = 0);
-    void CloseAllWindows();
-    size_t WindowCount() const;
-    bool RegisterApp(const AppInfo&amp; info);   // app identity self-registration (see "App identity self-registration")
-    static Application&amp; Instance();
-};
-```
-
-**Recommended usage (Qt style):**
+## CheckBox
 
 ```cpp
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-    ZufyUI::Application app;
-    auto w1 = app.CreateWindow(1000, 700, L"Main");
-    auto w2 = app.CreateWindow(640, 480, L"Tool");
-    // build each UI: w1-&gt;GetRootColumnBox()-&gt;AddChild(...)
-    return app.Run();                    // one shared message loop
-}
+enum class State { Unchecked, PartiallyChecked, Checked };
+ZSignal&lt;bool&gt; Toggled;   ZSignal&lt;State&gt; StateChanged;
+void SetChecked(bool);  void SetState(State);  void Toggle();  void SetTriState(bool);
+static void DrawBox(...);
 ```
 
-**Behavior:**
-
-- `CreateWindow` creates and registers a window; you **must hold** the returned `shared_ptr&lt;Window&gt;`, otherwise the window is destroyed when the pointer dies.
-- `Run()` runs **one** message loop; messages for all windows on the thread are dispatched by it.
-- Calling `CreateWindow` while the loop is running also works.
-- Closing one window leaves the others running; the loop exits when the **last** window closes. You can also call `Quit()`.
-- A process should run windows on a single UI thread (same as Win32).
-
-## App identity self-registration (RegisterApp / AppInfo)
-
-Declare "app name + icon" once; the library sets the **process-level AppUserModelID** for you and (once authorized) writes the registry + caches the icon locally, so the **toast top-left shows the app name and icon**, and the jump list / taskbar grouping belong to that identity.
+## RadioButton / RadioGroup
 
 ```cpp
-struct AppInfo {
-    std::wstring displayName;      // display name (toast / jump list / taskbar grouping)
-    std::wstring aumid;            // unique id; empty = derived from displayName
-    std::shared_ptr&lt;Image&gt; icon;   // icon (optional)
-};
-
-bool RegisterApp(const AppInfo&amp; info);                 // free function
-bool Application::RegisterApp(const AppInfo&amp; info);    // forwards to the above (equivalent)
+class RadioButton { ZSignal&lt;bool&gt; CheckedChanged; ZSignal&lt;&gt; Clicked; void SetChecked(bool); };
+class RadioGroup  { enum class Orientation { Vertical, Horizontal };
+                    ZSignal&lt;int&gt; SelectionChanged;
+                    std::function&lt;bool(int newIdx, int oldIdx)&gt; SelectionChanging;   // false vetoes
+                    int AddItem(const std::wstring&amp;, bool selected=false); std::shared_ptr&lt;RadioButton&gt; GetButton(int index) const; int GetItemCount() const; void SetSelectedIndex(int); ... };
 ```
+- **`Pitfall`**: a lone `RadioButton` does not enforce exclusion — `RadioGroup` does.
+- **`Version`**: `v1.11.0`.
 
-**Authorization macro (important)**: this library is not a system library, so touching the registry/files on the app's behalf is out of scope — it therefore requires **explicit authorization**: define the macro **before including the library headers**:
+## ToggleSwitch
 
 ```cpp
-#define ZUFYUI_ALLOW_APP_REGISTRATION
+ZSignal&lt;bool&gt; Toggled;   void SetOn(bool);  bool IsOn() const;
+void SetIndeterminate(bool);   // half-selected appearance
 ```
+- Default 50×24.
 
-Without it, `RegisterApp` only sets the process AUMID (**no side effects**) and writes no registry / files.
-
-**What the library does when authorized**:
-
-1. Set the process AUMID: `SetCurrentProcessExplicitAppUserModelID`
-2. Write the registry key `HKCU\Software\Classes\AppUserModelId\&lt;AUMID&gt;`: `DisplayName` + `IconUri`
-3. Cache the icon at `%LOCALAPPDATA%\ZufyUI\AppReg\&lt;AUMID&gt;\app.ico` (exported from `Image` as a single-image `.ico`)
-4. **On process exit**: delete that cache directory and the registry key above (so `IconUri` never points at a deleted file)
-
-**Usage** (call once, preferably before creating windows):
+## Slider
 
 ```cpp
-#define ZUFYUI_ALLOW_APP_REGISTRATION   // must be before the include
-...
-int WINAPI WinMain(...) {
-    RegisterApp(AppInfo{ L"MyApp", L"ZufyUI.MyApp", myIcon });   // aumid may be empty = derived
-    auto w = Application::Instance().CreateWindow(/*...*/);
-    // ...
-    return Application::Instance().Run();
-}
+ZSignal&lt;float&gt; ValueChanged;   ZSignal&lt;&gt; SliderReleased;
+void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);  void SetSnapToStep(bool);
 ```
+- **`Pitfall`**: `ValueChanged` fires **continuously** during a drag; commit with `SliderReleased`.
+- **`Version`**: `v1.18.0` fixes the zero-width NaN path.
 
-**Notes:**
-
-- The AUMID is per-process and unique; **call once**. When `aumid` is empty it is derived from `displayName` (spaces/illegal chars stripped; a `ZufyUI.` prefix is added if there is no dot; max 128 chars).
-- The authorization macro is a **compile-time** switch; when absent, nothing is left on the user's machine.
-- On Win10/11 a legacy tray balloon is upgraded to a toast; its top-left icon/app name come from the registry keyed by the AUMID — exactly what this registration solves (otherwise it is blank).
-- Exit cleanup is handled inside the library; the app writes no code for it.
-
-## Independence and compatibility
-
-- **Per-window repaint/layout**: each element records its owning window (`UIElement::GetWindow()`); `RequestRepaint()` / `InvalidateLayout()` only affect that window — windows do not repaint each other.
-- **Per-window DPI**: the current DPI scale is **thread-local** and set per window before drawing, so mixed-DPI windows snap correctly.
-- **Per-window activation**: `Window` exposes instance signals `Activated` / `Deactivated` / `Closed`; global `UIZSignals::WindowDeactivated` now carries a `Window*`, and `GlobalMouseDown` carries a `Window*`. Controls such as ComboBox only react to their own window's events.
-- **Per-window overlay drawing**: global `UIZSignals::DrawOverlay` now carries a `Window*` (plus the render target); subscribers **must** filter with `GetWindow()`, otherwise window A's popup will be drawn onto window B — the classic multi-window cross-talk. ZufyUI's own controls already do this.
-- **Mouse capture**: Win32 `SetCapture` is used only while the mouse button is held (dragging) and is released on mouse-up (element-level logical capture is unaffected). This fixes ComboBoxes holding the thread-wide capture after expanding, which made other windows unusable.
-- **Modal / owned windows**: `Window::SetOwner(owner)` creates an owned child (stays above and minimizes with the owner); `Window::RunModal(owner)` runs a window modally (disables the owner, nested loop, restores on close). While modal, clicking the disabled owner **flashes** the modal window.
-- **Window handle &amp; dangling**: elements store the owning window as an **id** (not a raw pointer); after the window is destroyed `GetWindow()` returns `nullptr`, eliminating crashes from elements holding a dangling window pointer.
-- **Shared resources**: the `ID2D1Factory` and the system timer period (`timeBeginPeriod`) are managed by the application core and shared by all windows.
-- **Independent render thread (experimental; off by default, not recommended)**: `ZUFYUI_RENDER_THREAD` defaults to **`0`** — single-threaded `WM_PAINT` rendering, which is stable and **recommended**. Setting it to `1` enables a dedicated render thread (composition / `Present` / vblank cadence; the UI thread only does messages/input/layout/animation and marks dirty). ⚠️ **This mechanism is currently unstable and buggy** (blank popups/menus, delayed hover/tooltip and button-hover updates, delayed nested page switches, occasional crashes with large virtualized lists, etc.). **Not recommended for production**; use it only when you truly need vblank-level smoothness and can afford the debugging cost.
-- **Backward compatible**: the single-window style still works — `Window win; win.Create(...); win.Show(); win.Run();` (since 1.8.0 `Create` no longer auto-shows; call `Show()`); `Run()` forwards to the app-level loop.
-
-## Multi-window pitfalls
-
-- Keep the `shared_ptr` returned by `CreateWindow` alive (e.g. store it in a container).
-- Window-scoped global signals (`GlobalMouseDown`, `WindowDeactivated`) carry a `Window*`; filter with `GetWindow()`.
-- Create and run all windows on the same UI thread.
-
-## Window lifetime and semantics (Show / RunModal / owned / shared_ptr)
-
-Three "show" paths with different semantics — don't mix them:
-
-| Path | Semantics | Ownership | Use for |
-|---|---|---|---|
-| `Window win; win.Create(...); win.Show();` | non-modal, single window | the `win` object itself (stack/member) | main window / single-window apps |
-| `Application::Instance().CreateWindow(...)` -&gt; `shared_ptr&lt;Window&gt;` | non-modal, multi | **you must keep the returned `shared_ptr`** (drop it and the window is destroyed) | multi-window / dynamic open |
-| `win.RunModal(Window* owner)` (after `Show()`) | **modal**: disables the owner, runs a nested message loop, restores on close | decided by the holder | dialogs / confirmations |
-
-Notes:
-- **`Create` no longer auto-shows** (since 1.8.0): you must call `Show()` explicitly afterwards.
-- **`shared_ptr` IS ownership**: a window returned by `CreateWindow` is destroyed as soon as nobody holds it. To keep it open, store it (e.g. `std::vector&lt;std::shared_ptr&lt;Window&gt;&gt;`).
-- **Use `RunModal(owner)` for modal, not `Show`**: it disables the owner, enters a nested loop, and restores the owner on close. `MessageBox` with `blocking=true` does this for you.
-- **owned child windows**: `CreateWindow(..., Window* owner)` or `SetOwner(owner)` — always above the owner, minimized with it; `SetOwnedMinimizePolicy` can Hide / disable minimize.
-- **Don't write your own message loop**: all windows share one `Application::Run()`; the modal nested loop is managed by the library.
-
-## Coordinate helpers in data views
-
-`ListView` / `TableView` / `TreeView` provide content &lt;-&gt; local coordinate conversion (collapsing the scattered `arrangedRect_.x - Snap(scrollOffsetX_)` into one place):
+## NumberBox (with internal SpinButton)
 
 ```cpp
-float ContentToLocalX(float cx) const;   // content X -&gt; local X (with scroll offset)
-float ContentToLocalY(float cy) const;
-float LocalToContentX(float lx) const;   // local X -&gt; content X
-float LocalToContentY(float ly) const;
+ZSignal&lt;double&gt; ValueChanged;   ZSignal&lt;const std::wstring&amp;&gt; TextChanged;
+void SetValue(double, bool fire=true);  void SetRange(double lo,double hi);
+void SetStep(double);  void SetDecimals(int);  void SetWrap(bool);
+void SetDefaultValue(double);  void ResetToDefault();
 ```
-
-- `ListView` scrolls vertically only, so its `ContentToLocalX/LocalToContentX` carry no scroll offset.
-- `TableView` / `TreeView` have a header; their vertical conversion already accounts for it per class.</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 10 · Application and multiple windows</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 10</span><h1>Application and multiple windows</h1><p class="chapter-summary">Application and multi-window</p></header><h2 id="application">Application</h2>
-<p><code>Application</code> is the process / UI-thread-level object that manages one shared message loop and all top-level windows. It is decoupled from window lifetime: <code>Application</code> is just a handle to an internal singleton, so constructing/destroying it does <strong>not</strong> destroy existing windows (no "app destroyed, windows dangling" pitfalls).</p>
+- **`Pitfall`**: **empty text is treated as an error** by the control; step buttons call `CommitText()` first, so an unfocused edited value is not lost.
+- **`Version`**: `v1.12.0`; `ResetToDefault` error-clear `v1.12.2`.</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 10 · Selection &amp; input</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 10</span><h1>Selection &amp; input</h1><p class="chapter-summary">CheckBox, RadioButton, RadioGroup, ToggleSwitch, Slider, NumberBox</p></header><blockquote>
+<p>Several of these emit a "live" signal during the drag and a separate "commit" signal. The static <code>DrawBox</code> is shared with data views, so changing its look changes list/table/tree check rows too.</p>
+</blockquote>
+<h2 id="checkbox">CheckBox</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e5f0f812', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-af04cbdc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Application</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateWindow</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateWindow</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="n">owner</span><span class="p">);</span><span class="w"> </span><span class="c1">// owned child</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddWindow</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">w</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">Run</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Quit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAllWindows</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">WindowCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">   </span><span class="c1">// app identity self-registration (see "App identity self-registration")</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Application</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">State</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Unchecked</span><span class="p">,</span><span class="w"> </span><span class="n">PartiallyChecked</span><span class="p">,</span><span class="w"> </span><span class="n">Checked</span><span class="w"> </span><span class="p">};</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">State</span><span class="o">&gt;</span><span class="w"> </span><span class="n">StateChanged</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetChecked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetState</span><span class="p">(</span><span class="n">State</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">Toggle</span><span class="p">();</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTriState</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">DrawBox</span><span class="p">(...);</span>
 </pre></div>
-<pre id="code-e5f0f812" style="display: none;">class Application {
-    std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title);
-    std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title, Window* owner); // owned child
-    void AddWindow(const std::shared_ptr&lt;Window&gt;&amp; w);
-    int Run();
-    void Quit(int code = 0);
-    void CloseAllWindows();
-    size_t WindowCount() const;
-    bool RegisterApp(const AppInfo&amp; info);   // app identity self-registration (see "App identity self-registration")
-    static Application&amp; Instance();
-};</pre>
+<pre id="code-af04cbdc" style="display: none;">enum class State { Unchecked, PartiallyChecked, Checked };
+ZSignal&lt;bool&gt; Toggled;   ZSignal&lt;State&gt; StateChanged;
+void SetChecked(bool);  void SetState(State);  void Toggle();  void SetTriState(bool);
+static void DrawBox(...);</pre>
 </div>
-<p><strong>Recommended usage (Qt style):</strong></p>
+<h2 id="radiobutton-radiogroup">RadioButton / RadioGroup</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d24b682d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-00f286b4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="nf">WinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">Application</span><span class="w"> </span><span class="n">app</span><span class="p">;</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">w1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">CreateWindow</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">700</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Main"</span><span class="p">);</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">w2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">CreateWindow</span><span class="p">(</span><span class="mi">640</span><span class="p">,</span><span class="w"> </span><span class="mi">480</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Tool"</span><span class="p">);</span>
-<span class="w">    </span><span class="c1">// build each UI: w1-&gt;GetRootColumnBox()-&gt;AddChild(...)</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span><span class="w">                    </span><span class="c1">// one shared message loop</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">RadioButton</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CheckedChanged</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetChecked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="p">};</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RadioGroup</span><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span>
+<span class="w">                    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span>
+<span class="w">                    </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">newIdx</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">oldIdx</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanging</span><span class="p">;</span><span class="w">   </span><span class="c1">// false vetoes</span>
+<span class="w">                    </span><span class="kt">int</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">selected</span><span class="o">=</span><span class="nb">false</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">RadioButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetButton</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetItemCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedIndex</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-d24b682d" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-    ZufyUI::Application app;
-    auto w1 = app.CreateWindow(1000, 700, L"Main");
-    auto w2 = app.CreateWindow(640, 480, L"Tool");
-    // build each UI: w1-&gt;GetRootColumnBox()-&gt;AddChild(...)
-    return app.Run();                    // one shared message loop
-}</pre>
-</div>
-<p><strong>Behavior:</strong></p>
-<ul>
-<li><code>CreateWindow</code> creates and registers a window; you <strong>must hold</strong> the returned <code>shared_ptr&lt;Window&gt;</code>, otherwise the window is destroyed when the pointer dies.</li>
-<li><code>Run()</code> runs <strong>one</strong> message loop; messages for all windows on the thread are dispatched by it.</li>
-<li>Calling <code>CreateWindow</code> while the loop is running also works.</li>
-<li>Closing one window leaves the others running; the loop exits when the <strong>last</strong> window closes. You can also call <code>Quit()</code>.</li>
-<li>A process should run windows on a single UI thread (same as Win32).</li>
-</ul>
-<h2 id="app-identity-self-registration-registerapp-appinfo">App identity self-registration (RegisterApp / AppInfo)</h2>
-<p>Declare "app name + icon" once; the library sets the <strong>process-level AppUserModelID</strong> for you and (once authorized) writes the registry + caches the icon locally, so the <strong>toast top-left shows the app name and icon</strong>, and the jump list / taskbar grouping belong to that identity.</p>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-71d7f326', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">AppInfo</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">displayName</span><span class="p">;</span><span class="w">      </span><span class="c1">// display name (toast / jump list / taskbar grouping)</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">aumid</span><span class="p">;</span><span class="w">            </span><span class="c1">// unique id; empty = derived from displayName</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span><span class="w">   </span><span class="c1">// icon (optional)</span>
-<span class="p">};</span>
-
-<span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">                 </span><span class="c1">// free function</span>
-<span class="kt">bool</span><span class="w"> </span><span class="nf">Application::RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">    </span><span class="c1">// forwards to the above (equivalent)</span>
-</pre></div>
-<pre id="code-71d7f326" style="display: none;">struct AppInfo {
-    std::wstring displayName;      // display name (toast / jump list / taskbar grouping)
-    std::wstring aumid;            // unique id; empty = derived from displayName
-    std::shared_ptr&lt;Image&gt; icon;   // icon (optional)
-};
-
-bool RegisterApp(const AppInfo&amp; info);                 // free function
-bool Application::RegisterApp(const AppInfo&amp; info);    // forwards to the above (equivalent)</pre>
-</div>
-<p><strong>Authorization macro (important)</strong>: this library is not a system library, so touching the registry/files on the app's behalf is out of scope — it therefore requires <strong>explicit authorization</strong>: define the macro <strong>before including the library headers</strong>:</p>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f87e3998', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION</span>
-</pre></div>
-<pre id="code-f87e3998" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION</pre>
-</div>
-<p>Without it, <code>RegisterApp</code> only sets the process AUMID (<strong>no side effects</strong>) and writes no registry / files.</p>
-<p><strong>What the library does when authorized</strong>:</p>
-<ol>
-<li>Set the process AUMID: <code>SetCurrentProcessExplicitAppUserModelID</code></li>
-<li>Write the registry key <code>HKCU\Software\Classes\AppUserModelId\&lt;AUMID&gt;</code>: <code>DisplayName</code> + <code>IconUri</code></li>
-<li>Cache the icon at <code>%LOCALAPPDATA%\ZufyUI\AppReg\&lt;AUMID&gt;\app.ico</code> (exported from <code>Image</code> as a single-image <code>.ico</code>)</li>
-<li><strong>On process exit</strong>: delete that cache directory and the registry key above (so <code>IconUri</code> never points at a deleted file)</li>
-</ol>
-<p><strong>Usage</strong> (call once, preferably before creating windows):</p>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a65b0778', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION   </span><span class="c1">// must be before the include</span>
-<span class="p">...</span>
-<span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="n">WinMain</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">RegisterApp</span><span class="p">(</span><span class="n">AppInfo</span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"MyApp"</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"ZufyUI.MyApp"</span><span class="p">,</span><span class="w"> </span><span class="n">myIcon</span><span class="w"> </span><span class="p">});</span><span class="w">   </span><span class="c1">// aumid may be empty = derived</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">().</span><span class="n">CreateWindow</span><span class="p">(</span><span class="cm">/*...*/</span><span class="p">);</span>
-<span class="w">    </span><span class="c1">// ...</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">().</span><span class="n">Run</span><span class="p">();</span>
-<span class="p">}</span>
-</pre></div>
-<pre id="code-a65b0778" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION   // must be before the include
-...
-int WINAPI WinMain(...) {
-    RegisterApp(AppInfo{ L"MyApp", L"ZufyUI.MyApp", myIcon });   // aumid may be empty = derived
-    auto w = Application::Instance().CreateWindow(/*...*/);
-    // ...
-    return Application::Instance().Run();
-}</pre>
-</div>
-<p><strong>Notes:</strong></p>
-<ul>
-<li>The AUMID is per-process and unique; <strong>call once</strong>. When <code>aumid</code> is empty it is derived from <code>displayName</code> (spaces/illegal chars stripped; a <code>ZufyUI.</code> prefix is added if there is no dot; max 128 chars).</li>
-<li>The authorization macro is a <strong>compile-time</strong> switch; when absent, nothing is left on the user's machine.</li>
-<li>On Win10/11 a legacy tray balloon is upgraded to a toast; its top-left icon/app name come from the registry keyed by the AUMID — exactly what this registration solves (otherwise it is blank).</li>
-<li>Exit cleanup is handled inside the library; the app writes no code for it.</li>
-</ul>
-<h2 id="independence-and-compatibility">Independence and compatibility</h2>
-<ul>
-<li><strong>Per-window repaint/layout</strong>: each element records its owning window (<code>UIElement::GetWindow()</code>); <code>RequestRepaint()</code> / <code>InvalidateLayout()</code> only affect that window — windows do not repaint each other.</li>
-<li><strong>Per-window DPI</strong>: the current DPI scale is <strong>thread-local</strong> and set per window before drawing, so mixed-DPI windows snap correctly.</li>
-<li><strong>Per-window activation</strong>: <code>Window</code> exposes instance signals <code>Activated</code> / <code>Deactivated</code> / <code>Closed</code>; global <code>UIZSignals::WindowDeactivated</code> now carries a <code>Window*</code>, and <code>GlobalMouseDown</code> carries a <code>Window*</code>. Controls such as ComboBox only react to their own window's events.</li>
-<li><strong>Per-window overlay drawing</strong>: global <code>UIZSignals::DrawOverlay</code> now carries a <code>Window*</code> (plus the render target); subscribers <strong>must</strong> filter with <code>GetWindow()</code>, otherwise window A's popup will be drawn onto window B — the classic multi-window cross-talk. ZufyUI's own controls already do this.</li>
-<li><strong>Mouse capture</strong>: Win32 <code>SetCapture</code> is used only while the mouse button is held (dragging) and is released on mouse-up (element-level logical capture is unaffected). This fixes ComboBoxes holding the thread-wide capture after expanding, which made other windows unusable.</li>
-<li><strong>Modal / owned windows</strong>: <code>Window::SetOwner(owner)</code> creates an owned child (stays above and minimizes with the owner); <code>Window::RunModal(owner)</code> runs a window modally (disables the owner, nested loop, restores on close). While modal, clicking the disabled owner <strong>flashes</strong> the modal window.</li>
-<li><strong>Window handle &amp; dangling</strong>: elements store the owning window as an <strong>id</strong> (not a raw pointer); after the window is destroyed <code>GetWindow()</code> returns <code>nullptr</code>, eliminating crashes from elements holding a dangling window pointer.</li>
-<li><strong>Shared resources</strong>: the <code>ID2D1Factory</code> and the system timer period (<code>timeBeginPeriod</code>) are managed by the application core and shared by all windows.</li>
-<li><strong>Independent render thread (experimental; off by default, not recommended)</strong>: <code>ZUFYUI_RENDER_THREAD</code> defaults to <strong><code>0</code></strong> — single-threaded <code>WM_PAINT</code> rendering, which is stable and <strong>recommended</strong>. Setting it to <code>1</code> enables a dedicated render thread (composition / <code>Present</code> / vblank cadence; the UI thread only does messages/input/layout/animation and marks dirty). ⚠️ <strong>This mechanism is currently unstable and buggy</strong> (blank popups/menus, delayed hover/tooltip and button-hover updates, delayed nested page switches, occasional crashes with large virtualized lists, etc.). <strong>Not recommended for production</strong>; use it only when you truly need vblank-level smoothness and can afford the debugging cost.</li>
-<li><strong>Backward compatible</strong>: the single-window style still works — <code>Window win; win.Create(...); win.Show(); win.Run();</code> (since 1.8.0 <code>Create</code> no longer auto-shows; call <code>Show()</code>); <code>Run()</code> forwards to the app-level loop.</li>
-</ul>
-<h2 id="multi-window-pitfalls">Multi-window pitfalls</h2>
-<ul>
-<li>Keep the <code>shared_ptr</code> returned by <code>CreateWindow</code> alive (e.g. store it in a container).</li>
-<li>Window-scoped global signals (<code>GlobalMouseDown</code>, <code>WindowDeactivated</code>) carry a <code>Window*</code>; filter with <code>GetWindow()</code>.</li>
-<li>Create and run all windows on the same UI thread.</li>
-</ul>
-<h2 id="window-lifetime-and-semantics-show-runmodal-owned-shared_ptr">Window lifetime and semantics (Show / RunModal / owned / shared_ptr)</h2>
-<p>Three "show" paths with different semantics — don't mix them:</p>
-<table>
-<thead>
-<tr>
-<th>Path</th>
-<th>Semantics</th>
-<th>Ownership</th>
-<th>Use for</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>Window win; win.Create(...); win.Show();</code></td>
-<td>non-modal, single window</td>
-<td>the <code>win</code> object itself (stack/member)</td>
-<td>main window / single-window apps</td>
-</tr>
-<tr>
-<td><code>Application::Instance().CreateWindow(...)</code> -&gt; <code>shared_ptr&lt;Window&gt;</code></td>
-<td>non-modal, multi</td>
-<td><strong>you must keep the returned <code>shared_ptr</code></strong> (drop it and the window is destroyed)</td>
-<td>multi-window / dynamic open</td>
-</tr>
-<tr>
-<td><code>win.RunModal(Window* owner)</code> (after <code>Show()</code>)</td>
-<td><strong>modal</strong>: disables the owner, runs a nested message loop, restores on close</td>
-<td>decided by the holder</td>
-<td>dialogs / confirmations</td>
-</tr>
-</tbody>
-</table>
-<p>Notes:
-- <strong><code>Create</code> no longer auto-shows</strong> (since 1.8.0): you must call <code>Show()</code> explicitly afterwards.
-- <strong><code>shared_ptr</code> IS ownership</strong>: a window returned by <code>CreateWindow</code> is destroyed as soon as nobody holds it. To keep it open, store it (e.g. <code>std::vector&lt;std::shared_ptr&lt;Window&gt;&gt;</code>).
-- <strong>Use <code>RunModal(owner)</code> for modal, not <code>Show</code></strong>: it disables the owner, enters a nested loop, and restores the owner on close. <code>MessageBox</code> with <code>blocking=true</code> does this for you.
-- <strong>owned child windows</strong>: <code>CreateWindow(..., Window* owner)</code> or <code>SetOwner(owner)</code> — always above the owner, minimized with it; <code>SetOwnedMinimizePolicy</code> can Hide / disable minimize.
-- <strong>Don't write your own message loop</strong>: all windows share one <code>Application::Run()</code>; the modal nested loop is managed by the library.</p>
-<h2 id="coordinate-helpers-in-data-views">Coordinate helpers in data views</h2>
-<p><code>ListView</code> / <code>TableView</code> / <code>TreeView</code> provide content &lt;-&gt; local coordinate conversion (collapsing the scattered <code>arrangedRect_.x - Snap(scrollOffsetX_)</code> into one place):</p>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b705dc86', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="kt">float</span><span class="w"> </span><span class="nf">ContentToLocalX</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">cx</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// content X -&gt; local X (with scroll offset)</span>
-<span class="kt">float</span><span class="w"> </span><span class="nf">ContentToLocalY</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">cy</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="kt">float</span><span class="w"> </span><span class="nf">LocalToContentX</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">lx</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// local X -&gt; content X</span>
-<span class="kt">float</span><span class="w"> </span><span class="nf">LocalToContentY</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">ly</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-</pre></div>
-<pre id="code-b705dc86" style="display: none;">float ContentToLocalX(float cx) const;   // content X -&gt; local X (with scroll offset)
-float ContentToLocalY(float cy) const;
-float LocalToContentX(float lx) const;   // local X -&gt; content X
-float LocalToContentY(float ly) const;</pre>
+<pre id="code-00f286b4" style="display: none;">class RadioButton { ZSignal&lt;bool&gt; CheckedChanged; ZSignal&lt;&gt; Clicked; void SetChecked(bool); };
+class RadioGroup  { enum class Orientation { Vertical, Horizontal };
+                    ZSignal&lt;int&gt; SelectionChanged;
+                    std::function&lt;bool(int newIdx, int oldIdx)&gt; SelectionChanging;   // false vetoes
+                    int AddItem(const std::wstring&amp;, bool selected=false); std::shared_ptr&lt;RadioButton&gt; GetButton(int index) const; int GetItemCount() const; void SetSelectedIndex(int); ... };</pre>
 </div>
 <ul>
-<li><code>ListView</code> scrolls vertically only, so its <code>ContentToLocalX/LocalToContentX</code> carry no scroll offset.</li>
-<li><code>TableView</code> / <code>TreeView</code> have a header; their vertical conversion already accounts for it per class.</li>
+<li><strong><code>Pitfall</code></strong>: a lone <code>RadioButton</code> does not enforce exclusion — <code>RadioGroup</code> does.</li>
+<li><strong><code>Version</code></strong>: <code>v1.11.0</code>.</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.9.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Window</span><span class="nav-desc">Creation, backdrop, title bar, and root layout</span></a><a class="next" href="API.en.11.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Basic controls</span><span class="nav-desc">Label, Button, TextBox, ComboBox, ToggleSwitch, CheckBox, ScrollViewer, ProgressBar, Slider</span></a></nav>
+<h2 id="toggleswitch">ToggleSwitch</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-9ed513d7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetOn</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsOn</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// half-selected appearance</span>
+</pre></div>
+<pre id="code-9ed513d7" style="display: none;">ZSignal&lt;bool&gt; Toggled;   void SetOn(bool);  bool IsOn() const;
+void SetIndeterminate(bool);   // half-selected appearance</pre>
+</div>
+<ul>
+<li>Default 50×24.</li>
+</ul>
+<h2 id="slider">Slider</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-1ac03e2c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">SliderReleased</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetRange</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">min</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">max</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStep</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSnapToStep</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+</pre></div>
+<pre id="code-1ac03e2c" style="display: none;">ZSignal&lt;float&gt; ValueChanged;   ZSignal&lt;&gt; SliderReleased;
+void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);  void SetSnapToStep(bool);</pre>
+</div>
+<ul>
+<li><strong><code>Pitfall</code></strong>: <code>ValueChanged</code> fires <strong>continuously</strong> during a drag; commit with <code>SliderReleased</code>.</li>
+<li><strong><code>Version</code></strong>: <code>v1.18.0</code> fixes the zero-width NaN path.</li>
+</ul>
+<h2 id="numberbox-with-internal-spinbutton">NumberBox (with internal SpinButton)</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-aa676ac0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">fire</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRange</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">lo</span><span class="p">,</span><span class="kt">double</span><span class="w"> </span><span class="n">hi</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetStep</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDecimals</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetWrap</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultValue</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ResetToDefault</span><span class="p">();</span>
+</pre></div>
+<pre id="code-aa676ac0" style="display: none;">ZSignal&lt;double&gt; ValueChanged;   ZSignal&lt;const std::wstring&amp;&gt; TextChanged;
+void SetValue(double, bool fire=true);  void SetRange(double lo,double hi);
+void SetStep(double);  void SetDecimals(int);  void SetWrap(bool);
+void SetDefaultValue(double);  void ResetToDefault();</pre>
+</div>
+<ul>
+<li><strong><code>Pitfall</code></strong>: <strong>empty text is treated as an error</strong> by the control; step buttons call <code>CommitText()</code> first, so an unfocused edited value is not lost.</li>
+<li><strong><code>Version</code></strong>: <code>v1.12.0</code>; <code>ResetToDefault</code> error-clear <code>v1.12.2</code>.</li>
+</ul>
+<nav class="chapter-nav"><a class="prev" href="API.en.9.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Basic controls</span><span class="nav-desc">Label, Button, TextBox, TextEdit, ComboBox</span></a><a class="next" href="API.en.11.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Progress</span><span class="nav-desc">ProgressBar, ProgressRing</span></a></nav>
         </main>
     </div>
 

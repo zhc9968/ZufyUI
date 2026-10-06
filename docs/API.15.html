@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>系统对话框 · ZufyUI API 参考</title>
+    <title>图表 · ZufyUI API 参考</title>
     <style>
 
 :root {
@@ -197,194 +197,277 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class="active"><a href="API.15.html"><span class="chapter-index">15</span>系统对话框</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>附录</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍（UI Automation）</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>调试通道（外部调试 / 自动化）</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="filedialog"><div class="toc-row"><a href="#filedialog" data-target="filedialog">FileDialog</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="colordialog"><div class="toc-row"><a href="#colordialog" data-target="colordialog">ColorDialog</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="主题化common-controls-v6可选"><div class="toc-row"><a href="#主题化common-controls-v6可选" data-target="主题化common-controls-v6可选">主题化：Common Controls v6（可选）</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class="active"><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍与调试通道</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>版本变化摘录</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>易错点总表</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="chartbase"><div class="toc-row"><a href="#chartbase" data-target="chartbase">ChartBase</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="barchart"><div class="toc-row"><a href="#barchart" data-target="barchart">BarChart</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="linechart"><div class="toc-row"><a href="#linechart" data-target="linechart">LineChart</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="piechart独立-uielement"><div class="toc-row"><a href="#piechart独立-uielement" data-target="piechart独立-uielement">PieChart（独立 UIElement）</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>&gt; 定义在 `ZufyUIWindowTool.h`。文件/文件夹用**新版 COM 接口** `IFileOpenDialog` / `IFileSaveDialog`（替代过时的 `GetOpenFileName` / `GetSaveFileName`），支持类型过滤、多选、选文件夹、另存为。颜色用 Windows 通用 `ChooseColor`。
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>&gt; 头文件 `ZufyUICharts.h`。`ChartBase` 集中处理绘图几何、Nice 刻度、类别轴、网格、图例、调色板、内部滚动条、吸附轴、悬停/命中、Ctrl 缩放、拖动平移、进场动画；`BarChart`/`LineChart` 只实现 `DrawData`。
 
-## FileDialog
-
+最小示例：
 ```cpp
-struct FileFilter {
-    std::wstring label;                  // 显示名，如 "图片"
-    std::vector&lt;std::wstring&gt; patterns;  // 如 { "*.png", "*.jpg" }
-};
-
-struct FileDialogOptions {
-    std::wstring title;
-    std::wstring initialDir;             // 初始目录
-    std::wstring defaultFileName;        // 另存为默认文件名
-    std::wstring defaultExtension;       // 另存为默认扩展名（如 "png"）
-    std::vector&lt;FileFilter&gt; filters;     // 类型选型（可多组）
-    int  filterIndex = 1;                // 1-based，默认选中第几组
-    bool addAllFiles = true;             // 追加“所有文件 (*.*)”
-    bool pickFolders = false;            // 选文件夹
-    bool multiSelect = false;            // 多项批量
-    bool save = false;                   // 另存为
-    bool forceFilesystem = true;         // 只返回真实文件系统项
-};
-
-class FileDialog {
-public:
-    static std::vector&lt;std::wstring&gt; Open(HWND owner, const FileDialogOptions&amp; = {});
-    static std::vector&lt;std::wstring&gt; OpenFiles(HWND owner, const FileDialogOptions&amp; = {});    // 多选
-    static std::vector&lt;std::wstring&gt; PickFolders(HWND owner, const FileDialogOptions&amp; = {});  // 文件夹（可多选）
-    static std::vector&lt;std::wstring&gt; Save(HWND owner, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; OpenOne(HWND, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; PickFolder(HWND, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; SaveOne(HWND, const FileDialogOptions&amp; = {});
-    static std::vector&lt;std::wstring&gt; FilterLabels(const std::vector&lt;FileFilter&gt;&amp;, bool addAllFiles = true);
-};
+#include "ZufyUICharts.h"
+auto chart = std::make_shared&lt;BarChart&gt;();
+chart-&gt;AddSeries(L"销量");
+chart-&gt;AddCategory(L"Q1"); chart-&gt;AddCategory(L"Q2"); chart-&gt;AddCategory(L"Q3");
+chart-&gt;SetSeriesValues(0, { 12.0, 30.0, 22.0 });
+chart-&gt;SetWidth(420); chart-&gt;SetHeight(260);   // 图表尺寸来自自身，必须显式给或给布局权值
+root-&gt;AddChild(chart);
 ```
 
-- 返回**绝对路径**（多选返回全部）；用户取消返回空。
-- **类型过滤** = `filters`；**多项批量** = `multiSelect`（或直接 `OpenFiles`）；**文件夹** = `pickFolders`（`FOS_PICKFOLDERS`）；**另存为** = `IFileSaveDialog` + `defaultFileName` / `defaultExtension`。
-- COM 自动 `CoInitializeEx(STA)`，仅在本次初始化时 `CoUninitialize`；`RPC_E_CHANGED_MODE`（MTA）下 `CoCreateInstance` 失败→返回空。
-- 用法：
-```cpp
-FileDialogOptions o;
-o.title = L"选择图片";
-o.filters = { { L"图片", { L"*.png", L"*.jpg", L"*.bmp" } }, { L"文本", { L"*.txt" } } };
-o.multiSelect = true;
-auto files  = FileDialog::OpenFiles(win.GetHwnd(), o);   // 多选
-auto folder = FileDialog::PickFolder(win.GetHwnd());     // 选文件夹
-```
-
-## ColorDialog
+## ChartBase
 
 ```cpp
-class ColorDialog {
-public:
-    struct Options { bool fullOpen = true; bool allowCustom = true; std::vector&lt;Color&gt; custom; };
-    static std::optional&lt;Color&gt; Pick(HWND owner, Color initial = Color(1,0,0,1), const Options&amp; = {});
-};
+enum class AText { Left, Center, Right };   enum class AVert { Top, Center };
+struct Series { std::wstring name; std::vector&lt;double&gt; values; Color color; };
+inline static std::vector&lt;Color&gt; DefaultPalette;   // 8 色
+ZSignal&lt;int,int&gt; PointClicked;    // (series, category)
+ZSignal&lt;int&gt; CategoryClicked;     // (category)
+
+// 数据
+void AddCategory(const std::wstring&amp;);
+void AddSeries(const std::wstring&amp; name, const std::vector&lt;double&gt;&amp; v = {});
+void SetValue(int s, int c, double);
+void SetSeriesValues(int s, const std::vector&lt;double&gt;&amp;);      // 重置并重播进场动画
+void UpdateSeriesValues(int s, const std::vector&lt;double&gt;&amp;);   // 只重绘，不重播动画（实时刷新用）
+void ClearData();
+int CategoryCount() const;   int SeriesCount() const;
+
+// 配置
+void SetPalette(const std::vector&lt;Color&gt;&amp;);   void SetSeriesColor(int s, Color);
+void SetValueAxisRange(double min, double max);   void SetValueAxisAutoRange();
+void SetValueTickCount(int n);   void SetValueTickStep(double);
+void SetValueFormat(int decimals, const std::wstring&amp; prefix=L"", const std::wstring&amp; suffix=L"");
+void SetShowGrid(bool);  void SetShowVGrid(bool);  void SetShowLegend(bool);  void SetShowValues(bool);
+void SetShowCategoryLabels(bool);  void SetLabelFont(const FontSpec&amp;);   void SetColors(Color axis, Color grid, Color label);
+void SetStickyAxes(bool);   // 吸附轴（默认开）
+void SetAnimationEnabled(bool);   void SetAnimationDuration(float);
+void SetCategoryWidth(float);   void SetPlotHeight(float);   void SetFitPlotSize(bool);
+void SetReferenceLine(double value, const std::wstring&amp; label=L"", Color c=...);   void ClearReferenceLine();
+void SetVReferenceLine(int category, const std::wstring&amp; label=L"", Color c=...);  void ClearVReferenceLine();
+
+// 扩展点
+virtual void DrawData(ID2D1RenderTarget*) = 0;
+virtual void ComputeValueRange(double&amp; lo, double&amp; hi);
+virtual void UpdateHover(float,float);   virtual void OnDataClick(float,float);
+virtual std::wstring HoveredText() const;
 ```
-- 基于 Windows 通用颜色对话框 `ChooseColor`；返回颜色的 alpha 保留 `initial` 的 alpha，取消返回 `std::nullopt`。
+- **`易错`**：图表尺寸来自自身的 `width_/height_`（默认 `420×260`）。**只 `SetFillWidth/Height` 不会改变图表尺寸**——要显式 `SetWidth/SetHeight`，或用布局的拉伸权值让其铺满。图表默认拉伸权值为 0。
+- **`易错`**：自定义 `ChartBase` 子类**必须调用 `InitScrollBars()`**（`BarChart`/`LineChart` 构造里已调），否则内部滚动条为空。
+- **`易错`**：实时数据用 `UpdateSeriesValues`（不重播动画），别用 `SetSeriesValues`（会重置进场动画，配合 250ms 刷新会一直闪）。
+- **`易错`**：`SetValueAxisRange(min,max)` 仅当 `max&gt;min` 生效；滚轮 `Ctrl`=缩放(0.4..3)、`Shift`=横向滚动、否则纵向；拖动位移 &gt; 4 DIP 才判为平移。
+- **`易错`**：折线**面积填充的基线夹在可见轴范围内**（`ValueY(clamp(0, axisMin, axisMax))`），自动量程下不会填满整块。`LineChart` 进场为左→右揭示。
 
-## 主题化：Common Controls v6（可选）
+## BarChart
 
-`ChooseColor` / `MessageBox` 等系统公共控件的观感取决于应用的 **manifest**。在包含本库头之前 `#define ZUFYUI_ENABLE_COMCTL_V6`，本库会注入 Common Controls v6 的 manifest 依赖（主题化）。因 manifest 是**应用级**的，可能与其它清单/依赖冲突，**默认关闭**，由应用自行决定。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 15 章 · 系统对话框</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 15 章</span><h1>系统对话框</h1><p class="chapter-summary">FileDialog（文件/文件夹）· ColorDialog（颜色）</p></header><blockquote>
-<p>定义在 <code>ZufyUIWindowTool.h</code>。文件/文件夹用<strong>新版 COM 接口</strong> <code>IFileOpenDialog</code> / <code>IFileSaveDialog</code>（替代过时的 <code>GetOpenFileName</code> / <code>GetSaveFileName</code>），支持类型过滤、多选、选文件夹、另存为。颜色用 Windows 通用 <code>ChooseColor</code>。</p>
+```cpp
+enum class Orientation { Vertical, Horizontal };   // v1.18.0补全 Horizontal 实现
+enum class StackMode { Grouped, Stacked, PercentStacked, Overlapped };
+void SetOrientation(Orientation);  void SetStackMode(StackMode);
+void SetBarGap(float 0..0.9);  void SetStackBarRatio(float 0.1..1);  void SetGroupGap(float 0..0.9);
+void SetCornerRadius(float);  void SetBarOutline(float w, Color c=...);
+void SetBarColor(int s, int c, Color);  void SetSelectedCategory(int c);
+```
+
+## LineChart
+
+```cpp
+enum class Marker { None, Circle, Square };
+void SetLineWidth(float);  void SetSmooth(bool);  void SetDashed(bool);
+void SetShowMarkers(bool);  void SetMarkerSize(float);  void SetMarker(Marker);
+void SetAreaFill(bool on, float alpha=0.25f);
+```
+
+## PieChart（独立 UIElement）
+
+```cpp
+enum class LabelMode { None, Percent, Value, LabelAndPercent };
+ZSignal&lt;int&gt; SliceClicked;
+void AddSlice(const std::wstring&amp; label, double value, Color = auto);
+void Clear();   int SliceCount() const;
+void SetDonut(float ratio);   // 0=饼图，0.5=环形
+void SetStartAngle(float deg);   void SetClockwise(bool);   void SetSliceGap(float deg);
+void SetLabelMode(LabelMode);   void SetShowLegend(bool);   void SetPalette(...);
+void SetZoom(float);   float GetZoom() const;   // v1.18.0：滚轮缩放 0.4..4
+bool OnMouseWheel(float,float) override;   // 滚轮缩放；绘制半径与命中检测同用 zoom_
+void SetAnimationEnabled(bool);
+```
+- **`易错`**：`PieChart` 默认拉伸权值为 0，需要显式尺寸或布局权值。
+- **`易错`**：标签带引导线，**右半边文字左对齐接在引线末端右边、左半边右对齐贴在末端左边**。</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 15 章 · 图表</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 15 章</span><h1>图表</h1><p class="chapter-summary">ChartBase、BarChart、LineChart、PieChart（v1.18.0）</p></header><blockquote>
+<p>头文件 <code>ZufyUICharts.h</code>。<code>ChartBase</code> 集中处理绘图几何、Nice 刻度、类别轴、网格、图例、调色板、内部滚动条、吸附轴、悬停/命中、Ctrl 缩放、拖动平移、进场动画；<code>BarChart</code>/<code>LineChart</code> 只实现 <code>DrawData</code>。</p>
 </blockquote>
-<h2 id="filedialog">FileDialog</h2>
+<p>最小示例：</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b93bb978', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-0bd9b559', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FileFilter</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">label</span><span class="p">;</span><span class="w">                  </span><span class="c1">// 显示名，如 "图片"</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">patterns</span><span class="p">;</span><span class="w">  </span><span class="c1">// 如 { "*.png", "*.jpg" }</span>
-<span class="p">};</span>
-
-<span class="k">struct</span><span class="w"> </span><span class="nc">FileDialogOptions</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">title</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">initialDir</span><span class="p">;</span><span class="w">             </span><span class="c1">// 初始目录</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">defaultFileName</span><span class="p">;</span><span class="w">        </span><span class="c1">// 另存为默认文件名</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">defaultExtension</span><span class="p">;</span><span class="w">       </span><span class="c1">// 另存为默认扩展名（如 "png"）</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FileFilter</span><span class="o">&gt;</span><span class="w"> </span><span class="n">filters</span><span class="p">;</span><span class="w">     </span><span class="c1">// 类型选型（可多组）</span>
-<span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="n">filterIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">                </span><span class="c1">// 1-based，默认选中第几组</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">addAllFiles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w">             </span><span class="c1">// 追加“所有文件 (*.*)”</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">pickFolders</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">            </span><span class="c1">// 选文件夹</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">multiSelect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">            </span><span class="c1">// 多项批量</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">save</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">                   </span><span class="c1">// 另存为</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">forceFilesystem</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w">         </span><span class="c1">// 只返回真实文件系统项</span>
-<span class="p">};</span>
-
-<span class="k">class</span><span class="w"> </span><span class="nc">FileDialog</span><span class="w"> </span><span class="p">{</span>
-<span class="k">public</span><span class="o">:</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Open</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">OpenFiles</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span><span class="w">    </span><span class="c1">// 多选</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">PickFolders</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span><span class="w">  </span><span class="c1">// 文件夹（可多选）</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Save</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">OpenOne</span><span class="p">(</span><span class="n">HWND</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">PickFolder</span><span class="p">(</span><span class="n">HWND</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SaveOne</span><span class="p">(</span><span class="n">HWND</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FilterLabels</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FileFilter</span><span class="o">&gt;&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">addAllFiles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUICharts.h"</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">chart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">BarChart</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="n">chart</span><span class="o">-&gt;</span><span class="n">AddSeries</span><span class="p">(</span><span class="sa">L</span><span class="s">"销量"</span><span class="p">);</span>
+<span class="n">chart</span><span class="o">-&gt;</span><span class="n">AddCategory</span><span class="p">(</span><span class="sa">L</span><span class="s">"Q1"</span><span class="p">);</span><span class="w"> </span><span class="n">chart</span><span class="o">-&gt;</span><span class="n">AddCategory</span><span class="p">(</span><span class="sa">L</span><span class="s">"Q2"</span><span class="p">);</span><span class="w"> </span><span class="n">chart</span><span class="o">-&gt;</span><span class="n">AddCategory</span><span class="p">(</span><span class="sa">L</span><span class="s">"Q3"</span><span class="p">);</span>
+<span class="n">chart</span><span class="o">-&gt;</span><span class="n">SetSeriesValues</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mf">12.0</span><span class="p">,</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span><span class="w"> </span><span class="mf">22.0</span><span class="w"> </span><span class="p">});</span>
+<span class="n">chart</span><span class="o">-&gt;</span><span class="n">SetWidth</span><span class="p">(</span><span class="mi">420</span><span class="p">);</span><span class="w"> </span><span class="n">chart</span><span class="o">-&gt;</span><span class="n">SetHeight</span><span class="p">(</span><span class="mi">260</span><span class="p">);</span><span class="w">   </span><span class="c1">// 图表尺寸来自自身，必须显式给或给布局权值</span>
+<span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">chart</span><span class="p">);</span>
 </pre></div>
-<pre id="code-b93bb978" style="display: none;">struct FileFilter {
-    std::wstring label;                  // 显示名，如 "图片"
-    std::vector&lt;std::wstring&gt; patterns;  // 如 { "*.png", "*.jpg" }
-};
+<pre id="code-0bd9b559" style="display: none;">#include "ZufyUICharts.h"
+auto chart = std::make_shared&lt;BarChart&gt;();
+chart-&gt;AddSeries(L"销量");
+chart-&gt;AddCategory(L"Q1"); chart-&gt;AddCategory(L"Q2"); chart-&gt;AddCategory(L"Q3");
+chart-&gt;SetSeriesValues(0, { 12.0, 30.0, 22.0 });
+chart-&gt;SetWidth(420); chart-&gt;SetHeight(260);   // 图表尺寸来自自身，必须显式给或给布局权值
+root-&gt;AddChild(chart);</pre>
+</div>
+<h2 id="chartbase">ChartBase</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-b8b3bced', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AText</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AVert</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Top</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="w"> </span><span class="p">};</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">Series</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">values</span><span class="p">;</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">color</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">DefaultPalette</span><span class="p">;</span><span class="w">   </span><span class="c1">// 8 色</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">PointClicked</span><span class="p">;</span><span class="w">    </span><span class="c1">// (series, category)</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CategoryClicked</span><span class="p">;</span><span class="w">     </span><span class="c1">// (category)</span>
 
-struct FileDialogOptions {
-    std::wstring title;
-    std::wstring initialDir;             // 初始目录
-    std::wstring defaultFileName;        // 另存为默认文件名
-    std::wstring defaultExtension;       // 另存为默认扩展名（如 "png"）
-    std::vector&lt;FileFilter&gt; filters;     // 类型选型（可多组）
-    int  filterIndex = 1;                // 1-based，默认选中第几组
-    bool addAllFiles = true;             // 追加“所有文件 (*.*)”
-    bool pickFolders = false;            // 选文件夹
-    bool multiSelect = false;            // 多项批量
-    bool save = false;                   // 另存为
-    bool forceFilesystem = true;         // 只返回真实文件系统项
-};
+<span class="c1">// 数据</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddCategory</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddSeries</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetSeriesValues</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span><span class="p">);</span><span class="w">      </span><span class="c1">// 重置并重播进场动画</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">UpdateSeriesValues</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// 只重绘，不重播动画（实时刷新用）</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ClearData</span><span class="p">();</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">CategoryCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">SeriesCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 
-class FileDialog {
-public:
-    static std::vector&lt;std::wstring&gt; Open(HWND owner, const FileDialogOptions&amp; = {});
-    static std::vector&lt;std::wstring&gt; OpenFiles(HWND owner, const FileDialogOptions&amp; = {});    // 多选
-    static std::vector&lt;std::wstring&gt; PickFolders(HWND owner, const FileDialogOptions&amp; = {});  // 文件夹（可多选）
-    static std::vector&lt;std::wstring&gt; Save(HWND owner, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; OpenOne(HWND, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; PickFolder(HWND, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; SaveOne(HWND, const FileDialogOptions&amp; = {});
-    static std::vector&lt;std::wstring&gt; FilterLabels(const std::vector&lt;FileFilter&gt;&amp;, bool addAllFiles = true);
-};</pre>
+<span class="c1">// 配置</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetPalette</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSeriesColor</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetValueAxisRange</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">min</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">max</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValueAxisAutoRange</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetValueTickCount</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValueTickStep</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetValueFormat</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">decimals</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">prefix</span><span class="o">=</span><span class="sa">L</span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">suffix</span><span class="o">=</span><span class="sa">L</span><span class="s">""</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetShowGrid</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowVGrid</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowLegend</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowValues</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetShowCategoryLabels</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetLabelFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetColors</span><span class="p">(</span><span class="n">Color</span><span class="w"> </span><span class="n">axis</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">grid</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">label</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetStickyAxes</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// 吸附轴（默认开）</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationDuration</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCategoryWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetPlotHeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFitPlotSize</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetReferenceLine</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">label</span><span class="o">=</span><span class="sa">L</span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">c</span><span class="o">=</span><span class="p">...);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearReferenceLine</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetVReferenceLine</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">category</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">label</span><span class="o">=</span><span class="sa">L</span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">c</span><span class="o">=</span><span class="p">...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearVReferenceLine</span><span class="p">();</span>
+
+<span class="c1">// 扩展点</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">DrawData</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ComputeValueRange</span><span class="p">(</span><span class="kt">double</span><span class="o">&amp;</span><span class="w"> </span><span class="n">lo</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&amp;</span><span class="w"> </span><span class="n">hi</span><span class="p">);</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">UpdateHover</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">OnDataClick</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
+<span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">HoveredText</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+</pre></div>
+<pre id="code-b8b3bced" style="display: none;">enum class AText { Left, Center, Right };   enum class AVert { Top, Center };
+struct Series { std::wstring name; std::vector&lt;double&gt; values; Color color; };
+inline static std::vector&lt;Color&gt; DefaultPalette;   // 8 色
+ZSignal&lt;int,int&gt; PointClicked;    // (series, category)
+ZSignal&lt;int&gt; CategoryClicked;     // (category)
+
+// 数据
+void AddCategory(const std::wstring&amp;);
+void AddSeries(const std::wstring&amp; name, const std::vector&lt;double&gt;&amp; v = {});
+void SetValue(int s, int c, double);
+void SetSeriesValues(int s, const std::vector&lt;double&gt;&amp;);      // 重置并重播进场动画
+void UpdateSeriesValues(int s, const std::vector&lt;double&gt;&amp;);   // 只重绘，不重播动画（实时刷新用）
+void ClearData();
+int CategoryCount() const;   int SeriesCount() const;
+
+// 配置
+void SetPalette(const std::vector&lt;Color&gt;&amp;);   void SetSeriesColor(int s, Color);
+void SetValueAxisRange(double min, double max);   void SetValueAxisAutoRange();
+void SetValueTickCount(int n);   void SetValueTickStep(double);
+void SetValueFormat(int decimals, const std::wstring&amp; prefix=L"", const std::wstring&amp; suffix=L"");
+void SetShowGrid(bool);  void SetShowVGrid(bool);  void SetShowLegend(bool);  void SetShowValues(bool);
+void SetShowCategoryLabels(bool);  void SetLabelFont(const FontSpec&amp;);   void SetColors(Color axis, Color grid, Color label);
+void SetStickyAxes(bool);   // 吸附轴（默认开）
+void SetAnimationEnabled(bool);   void SetAnimationDuration(float);
+void SetCategoryWidth(float);   void SetPlotHeight(float);   void SetFitPlotSize(bool);
+void SetReferenceLine(double value, const std::wstring&amp; label=L"", Color c=...);   void ClearReferenceLine();
+void SetVReferenceLine(int category, const std::wstring&amp; label=L"", Color c=...);  void ClearVReferenceLine();
+
+// 扩展点
+virtual void DrawData(ID2D1RenderTarget*) = 0;
+virtual void ComputeValueRange(double&amp; lo, double&amp; hi);
+virtual void UpdateHover(float,float);   virtual void OnDataClick(float,float);
+virtual std::wstring HoveredText() const;</pre>
 </div>
 <ul>
-<li>返回<strong>绝对路径</strong>（多选返回全部）；用户取消返回空。</li>
-<li><strong>类型过滤</strong> = <code>filters</code>；<strong>多项批量</strong> = <code>multiSelect</code>（或直接 <code>OpenFiles</code>）；<strong>文件夹</strong> = <code>pickFolders</code>（<code>FOS_PICKFOLDERS</code>）；<strong>另存为</strong> = <code>IFileSaveDialog</code> + <code>defaultFileName</code> / <code>defaultExtension</code>。</li>
-<li>COM 自动 <code>CoInitializeEx(STA)</code>，仅在本次初始化时 <code>CoUninitialize</code>；<code>RPC_E_CHANGED_MODE</code>（MTA）下 <code>CoCreateInstance</code> 失败→返回空。</li>
-<li>用法：</li>
+<li><strong><code>易错</code></strong>：图表尺寸来自自身的 <code>width_/height_</code>（默认 <code>420×260</code>）。<strong>只 <code>SetFillWidth/Height</code> 不会改变图表尺寸</strong>——要显式 <code>SetWidth/SetHeight</code>，或用布局的拉伸权值让其铺满。图表默认拉伸权值为 0。</li>
+<li><strong><code>易错</code></strong>：自定义 <code>ChartBase</code> 子类<strong>必须调用 <code>InitScrollBars()</code></strong>（<code>BarChart</code>/<code>LineChart</code> 构造里已调），否则内部滚动条为空。</li>
+<li><strong><code>易错</code></strong>：实时数据用 <code>UpdateSeriesValues</code>（不重播动画），别用 <code>SetSeriesValues</code>（会重置进场动画，配合 250ms 刷新会一直闪）。</li>
+<li><strong><code>易错</code></strong>：<code>SetValueAxisRange(min,max)</code> 仅当 <code>max&gt;min</code> 生效；滚轮 <code>Ctrl</code>=缩放(0.4..3)、<code>Shift</code>=横向滚动、否则纵向；拖动位移 &gt; 4 DIP 才判为平移。</li>
+<li><strong><code>易错</code></strong>：折线<strong>面积填充的基线夹在可见轴范围内</strong>（<code>ValueY(clamp(0, axisMin, axisMax))</code>），自动量程下不会填满整块。<code>LineChart</code> 进场为左→右揭示。</li>
 </ul>
+<h2 id="barchart">BarChart</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e9206f34', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-6fe258f8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="n">FileDialogOptions</span><span class="w"> </span><span class="n">o</span><span class="p">;</span>
-<span class="n">o</span><span class="p">.</span><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"选择图片"</span><span class="p">;</span>
-<span class="n">o</span><span class="p">.</span><span class="n">filters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"图片"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"*.png"</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"*.jpg"</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"*.bmp"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"文本"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"*.txt"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">};</span>
-<span class="n">o</span><span class="p">.</span><span class="n">multiSelect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
-<span class="k">auto</span><span class="w"> </span><span class="n">files</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">FileDialog</span><span class="o">::</span><span class="n">OpenFiles</span><span class="p">(</span><span class="n">win</span><span class="p">.</span><span class="n">GetHwnd</span><span class="p">(),</span><span class="w"> </span><span class="n">o</span><span class="p">);</span><span class="w">   </span><span class="c1">// 多选</span>
-<span class="k">auto</span><span class="w"> </span><span class="n">folder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FileDialog</span><span class="o">::</span><span class="n">PickFolder</span><span class="p">(</span><span class="n">win</span><span class="p">.</span><span class="n">GetHwnd</span><span class="p">());</span><span class="w">     </span><span class="c1">// 选文件夹</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// v1.18.0补全 Horizontal 实现</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">StackMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Grouped</span><span class="p">,</span><span class="w"> </span><span class="n">Stacked</span><span class="p">,</span><span class="w"> </span><span class="n">PercentStacked</span><span class="p">,</span><span class="w"> </span><span class="n">Overlapped</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetOrientation</span><span class="p">(</span><span class="n">Orientation</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStackMode</span><span class="p">(</span><span class="n">StackMode</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetBarGap</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="mf">0..0.9</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStackBarRatio</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="mf">0.1</span><span class="p">.</span><span class="mf">.1</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetGroupGap</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="mf">0..0.9</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCornerRadius</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBarOutline</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">c</span><span class="o">=</span><span class="p">...);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetBarColor</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedCategory</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">);</span>
 </pre></div>
-<pre id="code-e9206f34" style="display: none;">FileDialogOptions o;
-o.title = L"选择图片";
-o.filters = { { L"图片", { L"*.png", L"*.jpg", L"*.bmp" } }, { L"文本", { L"*.txt" } } };
-o.multiSelect = true;
-auto files  = FileDialog::OpenFiles(win.GetHwnd(), o);   // 多选
-auto folder = FileDialog::PickFolder(win.GetHwnd());     // 选文件夹</pre>
+<pre id="code-6fe258f8" style="display: none;">enum class Orientation { Vertical, Horizontal };   // v1.18.0补全 Horizontal 实现
+enum class StackMode { Grouped, Stacked, PercentStacked, Overlapped };
+void SetOrientation(Orientation);  void SetStackMode(StackMode);
+void SetBarGap(float 0..0.9);  void SetStackBarRatio(float 0.1..1);  void SetGroupGap(float 0..0.9);
+void SetCornerRadius(float);  void SetBarOutline(float w, Color c=...);
+void SetBarColor(int s, int c, Color);  void SetSelectedCategory(int c);</pre>
 </div>
-<h2 id="colordialog">ColorDialog</h2>
+<h2 id="linechart">LineChart</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-58c5bf3e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-091b54fb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ColorDialog</span><span class="w"> </span><span class="p">{</span>
-<span class="k">public</span><span class="o">:</span>
-<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">Options</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">fullOpen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">allowCustom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">custom</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Pick</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">initial</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Options</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Marker</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Circle</span><span class="p">,</span><span class="w"> </span><span class="n">Square</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetLineWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSmooth</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDashed</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetShowMarkers</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMarkerSize</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMarker</span><span class="p">(</span><span class="n">Marker</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAreaFill</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.25f</span><span class="p">);</span>
 </pre></div>
-<pre id="code-58c5bf3e" style="display: none;">class ColorDialog {
-public:
-    struct Options { bool fullOpen = true; bool allowCustom = true; std::vector&lt;Color&gt; custom; };
-    static std::optional&lt;Color&gt; Pick(HWND owner, Color initial = Color(1,0,0,1), const Options&amp; = {});
-};</pre>
+<pre id="code-091b54fb" style="display: none;">enum class Marker { None, Circle, Square };
+void SetLineWidth(float);  void SetSmooth(bool);  void SetDashed(bool);
+void SetShowMarkers(bool);  void SetMarkerSize(float);  void SetMarker(Marker);
+void SetAreaFill(bool on, float alpha=0.25f);</pre>
+</div>
+<h2 id="piechart独立-uielement">PieChart（独立 UIElement）</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-105541b1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">LabelMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Percent</span><span class="p">,</span><span class="w"> </span><span class="n">Value</span><span class="p">,</span><span class="w"> </span><span class="n">LabelAndPercent</span><span class="w"> </span><span class="p">};</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SliceClicked</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddSlice</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">auto</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Clear</span><span class="p">();</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">SliceCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetDonut</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">ratio</span><span class="p">);</span><span class="w">   </span><span class="c1">// 0=饼图，0.5=环形</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetStartAngle</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">deg</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetClockwise</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSliceGap</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">deg</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetLabelMode</span><span class="p">(</span><span class="n">LabelMode</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowLegend</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetPalette</span><span class="p">(...);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetZoom</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetZoom</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// v1.18.0：滚轮缩放 0.4..4</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">OnMouseWheel</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">   </span><span class="c1">// 滚轮缩放；绘制半径与命中检测同用 zoom_</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+</pre></div>
+<pre id="code-105541b1" style="display: none;">enum class LabelMode { None, Percent, Value, LabelAndPercent };
+ZSignal&lt;int&gt; SliceClicked;
+void AddSlice(const std::wstring&amp; label, double value, Color = auto);
+void Clear();   int SliceCount() const;
+void SetDonut(float ratio);   // 0=饼图，0.5=环形
+void SetStartAngle(float deg);   void SetClockwise(bool);   void SetSliceGap(float deg);
+void SetLabelMode(LabelMode);   void SetShowLegend(bool);   void SetPalette(...);
+void SetZoom(float);   float GetZoom() const;   // v1.18.0：滚轮缩放 0.4..4
+bool OnMouseWheel(float,float) override;   // 滚轮缩放；绘制半径与命中检测同用 zoom_
+void SetAnimationEnabled(bool);</pre>
 </div>
 <ul>
-<li>基于 Windows 通用颜色对话框 <code>ChooseColor</code>；返回颜色的 alpha 保留 <code>initial</code> 的 alpha，取消返回 <code>std::nullopt</code>。</li>
+<li><strong><code>易错</code></strong>：<code>PieChart</code> 默认拉伸权值为 0，需要显式尺寸或布局权值。</li>
+<li><strong><code>易错</code></strong>：标签带引导线，<strong>右半边文字左对齐接在引线末端右边、左半边右对齐贴在末端左边</strong>。</li>
 </ul>
-<h2 id="主题化common-controls-v6可选">主题化：Common Controls v6（可选）</h2>
-<p><code>ChooseColor</code> / <code>MessageBox</code> 等系统公共控件的观感取决于应用的 <strong>manifest</strong>。在包含本库头之前 <code>#define ZUFYUI_ENABLE_COMCTL_V6</code>，本库会注入 Common Controls v6 的 manifest 依赖（主题化）。因 manifest 是<strong>应用级</strong>的，可能与其它清单/依赖冲突，<strong>默认关闭</strong>，由应用自行决定。</p>
-<nav class="chapter-nav"><a class="prev" href="API.14.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">窗口工具</span><span class="nav-desc">TitleBar / MessageBox / 托盘 / 任务栏 / 图标与激活</span></a><a class="next" href="API.16.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">附录</span><span class="nav-desc">信号一览、默认值速查与常见坑</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.14.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">数据视图</span><span class="nav-desc">ListView、TableView、TreeView、TreeNode（虚拟化、隐藏/筛选/可见序）</span></a><a class="next" href="API.16.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">窗口周边</span><span class="nav-desc">图像、托盘、系统对话框、应用注册</span></a></nav>
         </main>
     </div>
 

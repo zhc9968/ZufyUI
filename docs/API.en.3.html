@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global functions and DPI · ZufyUI API Reference</title>
+    <title>Basic types · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,73 +197,117 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class="active"><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class="active"><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="color"><div class="toc-row"><a href="#color" data-target="color">Color</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="rect"><div class="toc-row"><a href="#rect" data-target="rect">Rect</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="thickness"><div class="toc-row"><a href="#thickness" data-target="thickness">Thickness</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="size"><div class="toc-row"><a href="#size" data-target="size">Size</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>```cpp
-template&lt;typename T&gt; T clamp(T value, T low, T high);
-inline float&amp; GlobalDpiScaleRef();
-inline void SetGlobalDpiScale(float scale);
-inline float GetGlobalDpiScale();
-inline float Snap(float dip);
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Color
+
+```cpp
+struct Color {
+    float r, g, b, a;                 // components in [0,1], NOT 0..255
+    Color(float r=0, float g=0, float b=0, float a=1.0f);
+    static Color FromArgb(uint8_t a, uint8_t r, uint8_t g, uint8_t b);
+    D2D1_COLOR_F ToD2D() const;
+    static Color Lerp(const Color&amp; c1, const Color&amp; c2, float t);
+};
+```
+- **`Pitfall`**: components are floats in **[0,1]**; `Color(255,0,0)` is wrong (over-bright). For integer input use `Color::FromArgb(255,255,0,0)`.
+- **`Note`**: `Color::Lerp(a, b, t)` does **not** clamp `t`; keep it in 0..1 (out of range extrapolates).
+
+## Rect
+
+```cpp
+struct Rect {
+    float x, y, width, height;
+    Rect(float x=0, float y=0, float w=0, float h=0);
+    bool Contains(float px, float py) const;   // half-open: x&lt;=px&lt;x+w
+    D2D1_RECT_F ToD2D() const;
+};
+```
+- `Contains` is **half-open [left,right)**; hit-testing relies on it.
+
+## Thickness
+
+```cpp
+struct Thickness { float left, top, right, bottom; Thickness(float l=0,float t=0,float r=0,float b=0); };
 ```
 
-| Function | Implementation notes |
-| --- | --- |
-| `clamp(v, low, high)` | Order is **`(value, low, high)`** (same as `std::clamp`), **not** `(value, high, low)`. Returns the boundary on overflow. |
-| `SetGlobalDpiScale(s)` | Set automatically by `Window` to `dpi/96` before rendering. `s&lt;=0` falls back to `1.0f`. Normally you never call it. |
-| `GetGlobalDpiScale()` | Reads the current scale, default `1.0f`. |
-| `Snap(dip)` | Snaps a DIP coordinate to the physical-pixel grid (`round(dip*scale)/scale`). The framework calls it before drawing. |
+## Size
 
-&gt; **Why `Snap` exists**: Direct2D antialiases on non-integer pixels, making text and 1px lines look fuzzy. Snapping to physical pixels keeps them sharp.</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 3 · Global functions and DPI</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 3</span><h1>Global functions and DPI</h1><p class="chapter-summary">clamp, DPI scale, pixel snapping</p></header><div class="code-container">
+```cpp
+struct Size { float width, height; Size(float w=0, float h=0); };
+```</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 3 · Basic types</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 3</span><h1>Basic types</h1><p class="chapter-summary">Color, Rect, Thickness, Size</p></header><h2 id="color">Color</h2>
+<div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-34942242', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-1db6445c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">clamp</span><span class="p">(</span><span class="n">T</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">low</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="n">high</span><span class="p">);</span>
-<span class="kr">inline</span><span class="w"> </span><span class="kt">float</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">GlobalDpiScaleRef</span><span class="p">();</span>
-<span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetGlobalDpiScale</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">scale</span><span class="p">);</span>
-<span class="kr">inline</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetGlobalDpiScale</span><span class="p">();</span>
-<span class="kr">inline</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">Snap</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">dip</span><span class="p">);</span>
+<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Color</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">;</span><span class="w">                 </span><span class="c1">// components in [0,1], NOT 0..255</span>
+<span class="w">    </span><span class="n">Color</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">g</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">b</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">a</span><span class="o">=</span><span class="mf">1.0f</span><span class="p">);</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="nf">FromArgb</span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">b</span><span class="p">);</span>
+<span class="w">    </span><span class="n">D2D1_COLOR_F</span><span class="w"> </span><span class="nf">ToD2D</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="nf">Lerp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Color</span><span class="o">&amp;</span><span class="w"> </span><span class="n">c1</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Color</span><span class="o">&amp;</span><span class="w"> </span><span class="n">c2</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">t</span><span class="p">);</span>
+<span class="p">};</span>
 </pre></div>
-<pre id="code-34942242" style="display: none;">template&lt;typename T&gt; T clamp(T value, T low, T high);
-inline float&amp; GlobalDpiScaleRef();
-inline void SetGlobalDpiScale(float scale);
-inline float GetGlobalDpiScale();
-inline float Snap(float dip);</pre>
+<pre id="code-1db6445c" style="display: none;">struct Color {
+    float r, g, b, a;                 // components in [0,1], NOT 0..255
+    Color(float r=0, float g=0, float b=0, float a=1.0f);
+    static Color FromArgb(uint8_t a, uint8_t r, uint8_t g, uint8_t b);
+    D2D1_COLOR_F ToD2D() const;
+    static Color Lerp(const Color&amp; c1, const Color&amp; c2, float t);
+};</pre>
 </div>
-<table>
-<thead>
-<tr>
-<th>Function</th>
-<th>Implementation notes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>clamp(v, low, high)</code></td>
-<td>Order is <strong><code>(value, low, high)</code></strong> (same as <code>std::clamp</code>), <strong>not</strong> <code>(value, high, low)</code>. Returns the boundary on overflow.</td>
-</tr>
-<tr>
-<td><code>SetGlobalDpiScale(s)</code></td>
-<td>Set automatically by <code>Window</code> to <code>dpi/96</code> before rendering. <code>s&lt;=0</code> falls back to <code>1.0f</code>. Normally you never call it.</td>
-</tr>
-<tr>
-<td><code>GetGlobalDpiScale()</code></td>
-<td>Reads the current scale, default <code>1.0f</code>.</td>
-</tr>
-<tr>
-<td><code>Snap(dip)</code></td>
-<td>Snaps a DIP coordinate to the physical-pixel grid (<code>round(dip*scale)/scale</code>). The framework calls it before drawing.</td>
-</tr>
-</tbody>
-</table>
-<blockquote>
-<p><strong>Why <code>Snap</code> exists</strong>: Direct2D antialiases on non-integer pixels, making text and 1px lines look fuzzy. Snapping to physical pixels keeps them sharp.</p>
-</blockquote>
-<nav class="chapter-nav"><a class="prev" href="API.en.2.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Basic types</span><span class="nav-desc">Color, Rect, Thickness, Size</span></a><a class="next" href="API.en.4.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Signals and connections</span><span class="nav-desc">ZSignal, Connection, ConnectionGroup, and global signals</span></a></nav>
+<ul>
+<li><strong><code>Pitfall</code></strong>: components are floats in <strong>[0,1]</strong>; <code>Color(255,0,0)</code> is wrong (over-bright). For integer input use <code>Color::FromArgb(255,255,0,0)</code>.</li>
+<li><strong><code>Note</code></strong>: <code>Color::Lerp(a, b, t)</code> does <strong>not</strong> clamp <code>t</code>; keep it in 0..1 (out of range extrapolates).</li>
+</ul>
+<h2 id="rect">Rect</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-fbe11a27', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Rect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="n">height</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Rect</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Contains</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">px</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">py</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// half-open: x&lt;=px&lt;x+w</span>
+<span class="w">    </span><span class="n">D2D1_RECT_F</span><span class="w"> </span><span class="nf">ToD2D</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+<pre id="code-fbe11a27" style="display: none;">struct Rect {
+    float x, y, width, height;
+    Rect(float x=0, float y=0, float w=0, float h=0);
+    bool Contains(float px, float py) const;   // half-open: x&lt;=px&lt;x+w
+    D2D1_RECT_F ToD2D() const;
+};</pre>
+</div>
+<ul>
+<li><code>Contains</code> is <strong>half-open [left,right)</strong>; hit-testing relies on it.</li>
+</ul>
+<h2 id="thickness">Thickness</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-9e98550f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Thickness</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">left</span><span class="p">,</span><span class="w"> </span><span class="n">top</span><span class="p">,</span><span class="w"> </span><span class="n">right</span><span class="p">,</span><span class="w"> </span><span class="n">bottom</span><span class="p">;</span><span class="w"> </span><span class="n">Thickness</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">l</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">b</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="p">};</span>
+</pre></div>
+<pre id="code-9e98550f" style="display: none;">struct Thickness { float left, top, right, bottom; Thickness(float l=0,float t=0,float r=0,float b=0); };</pre>
+</div>
+<h2 id="size">Size</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-b5027ae9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Size</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="n">height</span><span class="p">;</span><span class="w"> </span><span class="n">Size</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="p">};</span>
+</pre></div>
+<pre id="code-b5027ae9" style="display: none;">struct Size { float width, height; Size(float w=0, float h=0); };</pre>
+</div>
+<nav class="chapter-nav"><a class="prev" href="API.en.2.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Quick start</span><span class="nav-desc">Minimal program, structure, reading path</span></a><a class="next" href="API.en.4.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Events &amp; Signals</span><span class="nav-desc">ZSignal, Connection, cross-thread</span></a></nav>
         </main>
     </div>
 

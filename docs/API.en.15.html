@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System dialogs · ZufyUI API Reference</title>
+    <title>Charts · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,194 +197,275 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class="active"><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="filedialog"><div class="toc-row"><a href="#filedialog" data-target="filedialog">FileDialog</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="colordialog"><div class="toc-row"><a href="#colordialog" data-target="colordialog">ColorDialog</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="theming-common-controls-v6-optional"><div class="toc-row"><a href="#theming-common-controls-v6-optional" data-target="theming-common-controls-v6-optional">Theming: Common Controls v6 (optional)</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class="active"><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="chartbase"><div class="toc-row"><a href="#chartbase" data-target="chartbase">ChartBase</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="barchart"><div class="toc-row"><a href="#barchart" data-target="barchart">BarChart</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="linechart"><div class="toc-row"><a href="#linechart" data-target="linechart">LineChart</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="piechart-standalone-uielement"><div class="toc-row"><a href="#piechart-standalone-uielement" data-target="piechart-standalone-uielement">PieChart (standalone UIElement)</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>&gt; Defined in `ZufyUIWindowTool.h`. File/folder use the **modern COM interfaces** `IFileOpenDialog` / `IFileSaveDialog` (replacing the obsolete `GetOpenFileName` / `GetSaveFileName`), supporting type filters, multi-select, folder picking and save-as. Color uses the Windows common `ChooseColor`.
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>&gt; Header `ZufyUICharts.h`. `ChartBase` centralizes plot geometry, "nice" ticks, category axis, grid, legend, palette, internal scrollbars, sticky axes, hover/hit, Ctrl-zoom, drag-pan, entrance animation; `BarChart`/`LineChart` implement only `DrawData`.
 
-## FileDialog
-
+Minimal example:
 ```cpp
-struct FileFilter {
-    std::wstring label;                  // e.g. "Images"
-    std::vector&lt;std::wstring&gt; patterns;  // e.g. { "*.png", "*.jpg" }
-};
-
-struct FileDialogOptions {
-    std::wstring title;
-    std::wstring initialDir;             // initial directory
-    std::wstring defaultFileName;        // save-as default file name
-    std::wstring defaultExtension;       // save-as default extension (e.g. "png")
-    std::vector&lt;FileFilter&gt; filters;     // type filters (multiple groups)
-    int  filterIndex = 1;                // 1-based, default selected group
-    bool addAllFiles = true;             // append "All files (*.*)"
-    bool pickFolders = false;            // pick folders
-    bool multiSelect = false;            // multi-select
-    bool save = false;                   // save-as
-    bool forceFilesystem = true;         // only return real filesystem items
-};
-
-class FileDialog {
-public:
-    static std::vector&lt;std::wstring&gt; Open(HWND owner, const FileDialogOptions&amp; = {});
-    static std::vector&lt;std::wstring&gt; OpenFiles(HWND owner, const FileDialogOptions&amp; = {});    // multi-select
-    static std::vector&lt;std::wstring&gt; PickFolders(HWND owner, const FileDialogOptions&amp; = {});  // folders (multi allowed)
-    static std::vector&lt;std::wstring&gt; Save(HWND owner, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; OpenOne(HWND, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; PickFolder(HWND, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; SaveOne(HWND, const FileDialogOptions&amp; = {});
-    static std::vector&lt;std::wstring&gt; FilterLabels(const std::vector&lt;FileFilter&gt;&amp;, bool addAllFiles = true);
-};
+#include "ZufyUICharts.h"
+auto chart = std::make_shared&lt;BarChart&gt;();
+chart-&gt;AddSeries(L"Sales");
+chart-&gt;AddCategory(L"Q1"); chart-&gt;AddCategory(L"Q2"); chart-&gt;AddCategory(L"Q3");
+chart-&gt;SetSeriesValues(0, { 12.0, 30.0, 22.0 });
+chart-&gt;SetWidth(420); chart-&gt;SetHeight(260);   // size comes from the chart itself — set it or give a layout weight
+root-&gt;AddChild(chart);
 ```
 
-- Returns **absolute paths** (all selected for multi-select); empty on cancel.
-- **Type filter** = `filters`; **multi-select** = `multiSelect` (or just `OpenFiles`); **folders** = `pickFolders` (`FOS_PICKFOLDERS`); **save-as** = `IFileSaveDialog` + `defaultFileName` / `defaultExtension`.
-- COM auto `CoInitializeEx(STA)`, `CoUninitialize` only when this call initialized it; under `RPC_E_CHANGED_MODE` (MTA) `CoCreateInstance` fails and an empty result is returned.
-- Example:
-```cpp
-FileDialogOptions o;
-o.title = L"Pick images";
-o.filters = { { L"Images", { L"*.png", L"*.jpg", L"*.bmp" } }, { L"Text", { L"*.txt" } } };
-o.multiSelect = true;
-auto files  = FileDialog::OpenFiles(win.GetHwnd(), o);
-auto folder = FileDialog::PickFolder(win.GetHwnd());
-```
-
-## ColorDialog
+## ChartBase
 
 ```cpp
-class ColorDialog {
-public:
-    struct Options { bool fullOpen = true; bool allowCustom = true; std::vector&lt;Color&gt; custom; };
-    static std::optional&lt;Color&gt; Pick(HWND owner, Color initial = Color(1,0,0,1), const Options&amp; = {});
-};
+enum class AText { Left, Center, Right };   enum class AVert { Top, Center };
+struct Series { std::wstring name; std::vector&lt;double&gt; values; Color color; };
+inline static std::vector&lt;Color&gt; DefaultPalette;   // 8 colors
+ZSignal&lt;int,int&gt; PointClicked;    // (series, category)
+ZSignal&lt;int&gt; CategoryClicked;     // (category)
+
+// data
+void AddCategory(const std::wstring&amp;);
+void AddSeries(const std::wstring&amp; name, const std::vector&lt;double&gt;&amp; v = {});
+void SetValue(int s, int c, double);
+void SetSeriesValues(int s, const std::vector&lt;double&gt;&amp;);      // resets + replays entrance animation
+void UpdateSeriesValues(int s, const std::vector&lt;double&gt;&amp;);   // repaint only, no animation (live)
+void ClearData();
+int CategoryCount() const;   int SeriesCount() const;
+
+// config
+void SetPalette(const std::vector&lt;Color&gt;&amp;);   void SetSeriesColor(int s, Color);
+void SetValueAxisRange(double min, double max);   void SetValueAxisAutoRange();
+void SetValueTickCount(int n);   void SetValueTickStep(double);
+void SetValueFormat(int decimals, const std::wstring&amp; prefix=L"", const std::wstring&amp; suffix=L"");
+void SetShowGrid(bool);  void SetShowVGrid(bool);  void SetShowLegend(bool);  void SetShowValues(bool);
+void SetShowCategoryLabels(bool);  void SetLabelFont(const FontSpec&amp;);   void SetColors(Color axis, Color grid, Color label);
+void SetStickyAxes(bool);   // sticky axes (on by default)
+void SetAnimationEnabled(bool);   void SetAnimationDuration(float);
+void SetCategoryWidth(float);   void SetPlotHeight(float);   void SetFitPlotSize(bool);
+void SetReferenceLine(double value, const std::wstring&amp; label=L"", Color c=...);   void ClearReferenceLine();
+void SetVReferenceLine(int category, const std::wstring&amp; label=L"", Color c=...);  void ClearVReferenceLine();
+
+// extension points
+virtual void DrawData(ID2D1RenderTarget*) = 0;
+virtual void ComputeValueRange(double&amp; lo, double&amp; hi);
+virtual void UpdateHover(float,float);   virtual void OnDataClick(float,float);
+virtual std::wstring HoveredText() const;
 ```
-- Uses the Windows common color dialog `ChooseColor`; the returned color keeps `initial`'s alpha. Returns `std::nullopt` on cancel.
+- **`Pitfall`**: size comes from the chart's own `width_/height_` (default `420×260`). **`SetFillWidth/Height` alone won't size the chart** — set explicit `SetWidth/SetHeight`, or give it a layout stretch weight. Charts default to weight 0.
+- **`Pitfall`**: a custom `ChartBase` subclass **must call `InitScrollBars()`** (as BarChart/LineChart do) or the internal scrollbars stay null.
+- **`Pitfall`**: for live data use `UpdateSeriesValues` (no animation replay), not `SetSeriesValues`.
+- **`Pitfall`**: wheel = Ctrl-zoom (0.4..3) / Shift-horizontal scroll / else vertical; drag pans only after &gt; 4 DIP. Area-fill baseline is clamped into the visible axis range so auto-ranged charts don't flood the plot.
 
-## Theming: Common Controls v6 (optional)
+## BarChart
 
-The look of system common controls (`ChooseColor`, `MessageBox`, ...) depends on the application **manifest**. Define `ZUFYUI_ENABLE_COMCTL_V6` before including the library header and the library injects the Common Controls v6 manifest dependency (themed). Because the manifest is **application-wide**, it is **off by default** and left to the application.</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 15 · System dialogs</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 15</span><h1>System dialogs</h1><p class="chapter-summary">FileDialog (file/folder) · ColorDialog (color)</p></header><blockquote>
-<p>Defined in <code>ZufyUIWindowTool.h</code>. File/folder use the <strong>modern COM interfaces</strong> <code>IFileOpenDialog</code> / <code>IFileSaveDialog</code> (replacing the obsolete <code>GetOpenFileName</code> / <code>GetSaveFileName</code>), supporting type filters, multi-select, folder picking and save-as. Color uses the Windows common <code>ChooseColor</code>.</p>
+```cpp
+enum class Orientation { Vertical, Horizontal };   // Horizontal implemented v1.18.0
+enum class StackMode { Grouped, Stacked, PercentStacked, Overlapped };
+void SetOrientation(Orientation);  void SetStackMode(StackMode);
+void SetBarGap(float);  void SetStackBarRatio(float);  void SetGroupGap(float);
+void SetCornerRadius(float);  void SetBarOutline(float w, Color=...);
+void SetBarColor(int s, int c, Color);  void SetSelectedCategory(int c);
+```
+
+## LineChart
+
+```cpp
+enum class Marker { None, Circle, Square };
+void SetLineWidth(float);  void SetSmooth(bool);  void SetDashed(bool);
+void SetShowMarkers(bool);  void SetMarkerSize(float);  void SetMarker(Marker);
+void SetAreaFill(bool on, float alpha=0.25f);
+```
+
+## PieChart (standalone UIElement)
+
+```cpp
+enum class LabelMode { None, Percent, Value, LabelAndPercent };
+ZSignal&lt;int&gt; SliceClicked;
+void AddSlice(const std::wstring&amp; label, double value, Color = auto);
+void Clear();   int SliceCount() const;
+void SetDonut(float ratio);   // 0=pie, 0.5=donut
+void SetStartAngle(float deg);   void SetClockwise(bool);   void SetSliceGap(float deg);
+void SetLabelMode(LabelMode);   void SetShowLegend(bool);
+void SetZoom(float);   float GetZoom() const;   // v1.18.0: wheel zoom 0.4..4
+bool OnMouseWheel(float,float) override;         // draw radius and hit-test share zoom_
+void SetAnimationEnabled(bool);
+```
+- **`Pitfall`**: `PieChart` default stretch weight is 0 — needs an explicit size or layout weight.
+- **`Pitfall`**: labels use leader lines — on the right half, text is left-aligned just after the leader end; on the left half, right-aligned just before it.</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 15 · Charts</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 15</span><h1>Charts</h1><p class="chapter-summary">ChartBase, BarChart, LineChart, PieChart (v1.18.0)</p></header><blockquote>
+<p>Header <code>ZufyUICharts.h</code>. <code>ChartBase</code> centralizes plot geometry, "nice" ticks, category axis, grid, legend, palette, internal scrollbars, sticky axes, hover/hit, Ctrl-zoom, drag-pan, entrance animation; <code>BarChart</code>/<code>LineChart</code> implement only <code>DrawData</code>.</p>
 </blockquote>
-<h2 id="filedialog">FileDialog</h2>
+<p>Minimal example:</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-bab38933', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-13c1213c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FileFilter</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">label</span><span class="p">;</span><span class="w">                  </span><span class="c1">// e.g. "Images"</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">patterns</span><span class="p">;</span><span class="w">  </span><span class="c1">// e.g. { "*.png", "*.jpg" }</span>
-<span class="p">};</span>
-
-<span class="k">struct</span><span class="w"> </span><span class="nc">FileDialogOptions</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">title</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">initialDir</span><span class="p">;</span><span class="w">             </span><span class="c1">// initial directory</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">defaultFileName</span><span class="p">;</span><span class="w">        </span><span class="c1">// save-as default file name</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">defaultExtension</span><span class="p">;</span><span class="w">       </span><span class="c1">// save-as default extension (e.g. "png")</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FileFilter</span><span class="o">&gt;</span><span class="w"> </span><span class="n">filters</span><span class="p">;</span><span class="w">     </span><span class="c1">// type filters (multiple groups)</span>
-<span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="n">filterIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">                </span><span class="c1">// 1-based, default selected group</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">addAllFiles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w">             </span><span class="c1">// append "All files (*.*)"</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">pickFolders</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">            </span><span class="c1">// pick folders</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">multiSelect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">            </span><span class="c1">// multi-select</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">save</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">                   </span><span class="c1">// save-as</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">forceFilesystem</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w">         </span><span class="c1">// only return real filesystem items</span>
-<span class="p">};</span>
-
-<span class="k">class</span><span class="w"> </span><span class="nc">FileDialog</span><span class="w"> </span><span class="p">{</span>
-<span class="k">public</span><span class="o">:</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Open</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">OpenFiles</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span><span class="w">    </span><span class="c1">// multi-select</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">PickFolders</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span><span class="w">  </span><span class="c1">// folders (multi allowed)</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Save</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">OpenOne</span><span class="p">(</span><span class="n">HWND</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">PickFolder</span><span class="p">(</span><span class="n">HWND</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SaveOne</span><span class="p">(</span><span class="n">HWND</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">FileDialogOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">FilterLabels</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FileFilter</span><span class="o">&gt;&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">addAllFiles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUICharts.h"</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">chart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">BarChart</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="n">chart</span><span class="o">-&gt;</span><span class="n">AddSeries</span><span class="p">(</span><span class="sa">L</span><span class="s">"Sales"</span><span class="p">);</span>
+<span class="n">chart</span><span class="o">-&gt;</span><span class="n">AddCategory</span><span class="p">(</span><span class="sa">L</span><span class="s">"Q1"</span><span class="p">);</span><span class="w"> </span><span class="n">chart</span><span class="o">-&gt;</span><span class="n">AddCategory</span><span class="p">(</span><span class="sa">L</span><span class="s">"Q2"</span><span class="p">);</span><span class="w"> </span><span class="n">chart</span><span class="o">-&gt;</span><span class="n">AddCategory</span><span class="p">(</span><span class="sa">L</span><span class="s">"Q3"</span><span class="p">);</span>
+<span class="n">chart</span><span class="o">-&gt;</span><span class="n">SetSeriesValues</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mf">12.0</span><span class="p">,</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span><span class="w"> </span><span class="mf">22.0</span><span class="w"> </span><span class="p">});</span>
+<span class="n">chart</span><span class="o">-&gt;</span><span class="n">SetWidth</span><span class="p">(</span><span class="mi">420</span><span class="p">);</span><span class="w"> </span><span class="n">chart</span><span class="o">-&gt;</span><span class="n">SetHeight</span><span class="p">(</span><span class="mi">260</span><span class="p">);</span><span class="w">   </span><span class="c1">// size comes from the chart itself — set it or give a layout weight</span>
+<span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">chart</span><span class="p">);</span>
 </pre></div>
-<pre id="code-bab38933" style="display: none;">struct FileFilter {
-    std::wstring label;                  // e.g. "Images"
-    std::vector&lt;std::wstring&gt; patterns;  // e.g. { "*.png", "*.jpg" }
-};
+<pre id="code-13c1213c" style="display: none;">#include "ZufyUICharts.h"
+auto chart = std::make_shared&lt;BarChart&gt;();
+chart-&gt;AddSeries(L"Sales");
+chart-&gt;AddCategory(L"Q1"); chart-&gt;AddCategory(L"Q2"); chart-&gt;AddCategory(L"Q3");
+chart-&gt;SetSeriesValues(0, { 12.0, 30.0, 22.0 });
+chart-&gt;SetWidth(420); chart-&gt;SetHeight(260);   // size comes from the chart itself — set it or give a layout weight
+root-&gt;AddChild(chart);</pre>
+</div>
+<h2 id="chartbase">ChartBase</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-070b87e9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AText</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AVert</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Top</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="w"> </span><span class="p">};</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">Series</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">values</span><span class="p">;</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">color</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">DefaultPalette</span><span class="p">;</span><span class="w">   </span><span class="c1">// 8 colors</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">PointClicked</span><span class="p">;</span><span class="w">    </span><span class="c1">// (series, category)</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CategoryClicked</span><span class="p">;</span><span class="w">     </span><span class="c1">// (category)</span>
 
-struct FileDialogOptions {
-    std::wstring title;
-    std::wstring initialDir;             // initial directory
-    std::wstring defaultFileName;        // save-as default file name
-    std::wstring defaultExtension;       // save-as default extension (e.g. "png")
-    std::vector&lt;FileFilter&gt; filters;     // type filters (multiple groups)
-    int  filterIndex = 1;                // 1-based, default selected group
-    bool addAllFiles = true;             // append "All files (*.*)"
-    bool pickFolders = false;            // pick folders
-    bool multiSelect = false;            // multi-select
-    bool save = false;                   // save-as
-    bool forceFilesystem = true;         // only return real filesystem items
-};
+<span class="c1">// data</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddCategory</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddSeries</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetSeriesValues</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span><span class="p">);</span><span class="w">      </span><span class="c1">// resets + replays entrance animation</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">UpdateSeriesValues</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// repaint only, no animation (live)</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ClearData</span><span class="p">();</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">CategoryCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">SeriesCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 
-class FileDialog {
-public:
-    static std::vector&lt;std::wstring&gt; Open(HWND owner, const FileDialogOptions&amp; = {});
-    static std::vector&lt;std::wstring&gt; OpenFiles(HWND owner, const FileDialogOptions&amp; = {});    // multi-select
-    static std::vector&lt;std::wstring&gt; PickFolders(HWND owner, const FileDialogOptions&amp; = {});  // folders (multi allowed)
-    static std::vector&lt;std::wstring&gt; Save(HWND owner, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; OpenOne(HWND, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; PickFolder(HWND, const FileDialogOptions&amp; = {});
-    static std::optional&lt;std::wstring&gt; SaveOne(HWND, const FileDialogOptions&amp; = {});
-    static std::vector&lt;std::wstring&gt; FilterLabels(const std::vector&lt;FileFilter&gt;&amp;, bool addAllFiles = true);
-};</pre>
+<span class="c1">// config</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetPalette</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSeriesColor</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetValueAxisRange</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">min</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">max</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValueAxisAutoRange</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetValueTickCount</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValueTickStep</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetValueFormat</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">decimals</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">prefix</span><span class="o">=</span><span class="sa">L</span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">suffix</span><span class="o">=</span><span class="sa">L</span><span class="s">""</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetShowGrid</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowVGrid</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowLegend</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowValues</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetShowCategoryLabels</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetLabelFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetColors</span><span class="p">(</span><span class="n">Color</span><span class="w"> </span><span class="n">axis</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">grid</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">label</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetStickyAxes</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// sticky axes (on by default)</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationDuration</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCategoryWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetPlotHeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFitPlotSize</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetReferenceLine</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">label</span><span class="o">=</span><span class="sa">L</span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">c</span><span class="o">=</span><span class="p">...);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearReferenceLine</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetVReferenceLine</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">category</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">label</span><span class="o">=</span><span class="sa">L</span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">c</span><span class="o">=</span><span class="p">...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearVReferenceLine</span><span class="p">();</span>
+
+<span class="c1">// extension points</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">DrawData</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ComputeValueRange</span><span class="p">(</span><span class="kt">double</span><span class="o">&amp;</span><span class="w"> </span><span class="n">lo</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&amp;</span><span class="w"> </span><span class="n">hi</span><span class="p">);</span>
+<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">UpdateHover</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">OnDataClick</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
+<span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">HoveredText</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+</pre></div>
+<pre id="code-070b87e9" style="display: none;">enum class AText { Left, Center, Right };   enum class AVert { Top, Center };
+struct Series { std::wstring name; std::vector&lt;double&gt; values; Color color; };
+inline static std::vector&lt;Color&gt; DefaultPalette;   // 8 colors
+ZSignal&lt;int,int&gt; PointClicked;    // (series, category)
+ZSignal&lt;int&gt; CategoryClicked;     // (category)
+
+// data
+void AddCategory(const std::wstring&amp;);
+void AddSeries(const std::wstring&amp; name, const std::vector&lt;double&gt;&amp; v = {});
+void SetValue(int s, int c, double);
+void SetSeriesValues(int s, const std::vector&lt;double&gt;&amp;);      // resets + replays entrance animation
+void UpdateSeriesValues(int s, const std::vector&lt;double&gt;&amp;);   // repaint only, no animation (live)
+void ClearData();
+int CategoryCount() const;   int SeriesCount() const;
+
+// config
+void SetPalette(const std::vector&lt;Color&gt;&amp;);   void SetSeriesColor(int s, Color);
+void SetValueAxisRange(double min, double max);   void SetValueAxisAutoRange();
+void SetValueTickCount(int n);   void SetValueTickStep(double);
+void SetValueFormat(int decimals, const std::wstring&amp; prefix=L"", const std::wstring&amp; suffix=L"");
+void SetShowGrid(bool);  void SetShowVGrid(bool);  void SetShowLegend(bool);  void SetShowValues(bool);
+void SetShowCategoryLabels(bool);  void SetLabelFont(const FontSpec&amp;);   void SetColors(Color axis, Color grid, Color label);
+void SetStickyAxes(bool);   // sticky axes (on by default)
+void SetAnimationEnabled(bool);   void SetAnimationDuration(float);
+void SetCategoryWidth(float);   void SetPlotHeight(float);   void SetFitPlotSize(bool);
+void SetReferenceLine(double value, const std::wstring&amp; label=L"", Color c=...);   void ClearReferenceLine();
+void SetVReferenceLine(int category, const std::wstring&amp; label=L"", Color c=...);  void ClearVReferenceLine();
+
+// extension points
+virtual void DrawData(ID2D1RenderTarget*) = 0;
+virtual void ComputeValueRange(double&amp; lo, double&amp; hi);
+virtual void UpdateHover(float,float);   virtual void OnDataClick(float,float);
+virtual std::wstring HoveredText() const;</pre>
 </div>
 <ul>
-<li>Returns <strong>absolute paths</strong> (all selected for multi-select); empty on cancel.</li>
-<li><strong>Type filter</strong> = <code>filters</code>; <strong>multi-select</strong> = <code>multiSelect</code> (or just <code>OpenFiles</code>); <strong>folders</strong> = <code>pickFolders</code> (<code>FOS_PICKFOLDERS</code>); <strong>save-as</strong> = <code>IFileSaveDialog</code> + <code>defaultFileName</code> / <code>defaultExtension</code>.</li>
-<li>COM auto <code>CoInitializeEx(STA)</code>, <code>CoUninitialize</code> only when this call initialized it; under <code>RPC_E_CHANGED_MODE</code> (MTA) <code>CoCreateInstance</code> fails and an empty result is returned.</li>
-<li>Example:</li>
+<li><strong><code>Pitfall</code></strong>: size comes from the chart's own <code>width_/height_</code> (default <code>420×260</code>). <strong><code>SetFillWidth/Height</code> alone won't size the chart</strong> — set explicit <code>SetWidth/SetHeight</code>, or give it a layout stretch weight. Charts default to weight 0.</li>
+<li><strong><code>Pitfall</code></strong>: a custom <code>ChartBase</code> subclass <strong>must call <code>InitScrollBars()</code></strong> (as BarChart/LineChart do) or the internal scrollbars stay null.</li>
+<li><strong><code>Pitfall</code></strong>: for live data use <code>UpdateSeriesValues</code> (no animation replay), not <code>SetSeriesValues</code>.</li>
+<li><strong><code>Pitfall</code></strong>: wheel = Ctrl-zoom (0.4..3) / Shift-horizontal scroll / else vertical; drag pans only after &gt; 4 DIP. Area-fill baseline is clamped into the visible axis range so auto-ranged charts don't flood the plot.</li>
 </ul>
+<h2 id="barchart">BarChart</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3e5da61b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-cd5c3bf3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="n">FileDialogOptions</span><span class="w"> </span><span class="n">o</span><span class="p">;</span>
-<span class="n">o</span><span class="p">.</span><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"Pick images"</span><span class="p">;</span>
-<span class="n">o</span><span class="p">.</span><span class="n">filters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"Images"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"*.png"</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"*.jpg"</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"*.bmp"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"Text"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"*.txt"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">};</span>
-<span class="n">o</span><span class="p">.</span><span class="n">multiSelect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
-<span class="k">auto</span><span class="w"> </span><span class="n">files</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">FileDialog</span><span class="o">::</span><span class="n">OpenFiles</span><span class="p">(</span><span class="n">win</span><span class="p">.</span><span class="n">GetHwnd</span><span class="p">(),</span><span class="w"> </span><span class="n">o</span><span class="p">);</span>
-<span class="k">auto</span><span class="w"> </span><span class="n">folder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FileDialog</span><span class="o">::</span><span class="n">PickFolder</span><span class="p">(</span><span class="n">win</span><span class="p">.</span><span class="n">GetHwnd</span><span class="p">());</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// Horizontal implemented v1.18.0</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">StackMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Grouped</span><span class="p">,</span><span class="w"> </span><span class="n">Stacked</span><span class="p">,</span><span class="w"> </span><span class="n">PercentStacked</span><span class="p">,</span><span class="w"> </span><span class="n">Overlapped</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetOrientation</span><span class="p">(</span><span class="n">Orientation</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStackMode</span><span class="p">(</span><span class="n">StackMode</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetBarGap</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStackBarRatio</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetGroupGap</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCornerRadius</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBarOutline</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="o">=</span><span class="p">...);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetBarColor</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedCategory</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">);</span>
 </pre></div>
-<pre id="code-3e5da61b" style="display: none;">FileDialogOptions o;
-o.title = L"Pick images";
-o.filters = { { L"Images", { L"*.png", L"*.jpg", L"*.bmp" } }, { L"Text", { L"*.txt" } } };
-o.multiSelect = true;
-auto files  = FileDialog::OpenFiles(win.GetHwnd(), o);
-auto folder = FileDialog::PickFolder(win.GetHwnd());</pre>
+<pre id="code-cd5c3bf3" style="display: none;">enum class Orientation { Vertical, Horizontal };   // Horizontal implemented v1.18.0
+enum class StackMode { Grouped, Stacked, PercentStacked, Overlapped };
+void SetOrientation(Orientation);  void SetStackMode(StackMode);
+void SetBarGap(float);  void SetStackBarRatio(float);  void SetGroupGap(float);
+void SetCornerRadius(float);  void SetBarOutline(float w, Color=...);
+void SetBarColor(int s, int c, Color);  void SetSelectedCategory(int c);</pre>
 </div>
-<h2 id="colordialog">ColorDialog</h2>
+<h2 id="linechart">LineChart</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-70466c34', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-ef66f7f6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ColorDialog</span><span class="w"> </span><span class="p">{</span>
-<span class="k">public</span><span class="o">:</span>
-<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">Options</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">fullOpen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">allowCustom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">custom</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Pick</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">initial</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Options</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Marker</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Circle</span><span class="p">,</span><span class="w"> </span><span class="n">Square</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetLineWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSmooth</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDashed</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetShowMarkers</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMarkerSize</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMarker</span><span class="p">(</span><span class="n">Marker</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAreaFill</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.25f</span><span class="p">);</span>
 </pre></div>
-<pre id="code-70466c34" style="display: none;">class ColorDialog {
-public:
-    struct Options { bool fullOpen = true; bool allowCustom = true; std::vector&lt;Color&gt; custom; };
-    static std::optional&lt;Color&gt; Pick(HWND owner, Color initial = Color(1,0,0,1), const Options&amp; = {});
-};</pre>
+<pre id="code-ef66f7f6" style="display: none;">enum class Marker { None, Circle, Square };
+void SetLineWidth(float);  void SetSmooth(bool);  void SetDashed(bool);
+void SetShowMarkers(bool);  void SetMarkerSize(float);  void SetMarker(Marker);
+void SetAreaFill(bool on, float alpha=0.25f);</pre>
+</div>
+<h2 id="piechart-standalone-uielement">PieChart (standalone UIElement)</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-e2739c86', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">LabelMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Percent</span><span class="p">,</span><span class="w"> </span><span class="n">Value</span><span class="p">,</span><span class="w"> </span><span class="n">LabelAndPercent</span><span class="w"> </span><span class="p">};</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SliceClicked</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddSlice</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">auto</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Clear</span><span class="p">();</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">SliceCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetDonut</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">ratio</span><span class="p">);</span><span class="w">   </span><span class="c1">// 0=pie, 0.5=donut</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetStartAngle</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">deg</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetClockwise</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSliceGap</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">deg</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetLabelMode</span><span class="p">(</span><span class="n">LabelMode</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowLegend</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetZoom</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetZoom</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// v1.18.0: wheel zoom 0.4..4</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">OnMouseWheel</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">         </span><span class="c1">// draw radius and hit-test share zoom_</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+</pre></div>
+<pre id="code-e2739c86" style="display: none;">enum class LabelMode { None, Percent, Value, LabelAndPercent };
+ZSignal&lt;int&gt; SliceClicked;
+void AddSlice(const std::wstring&amp; label, double value, Color = auto);
+void Clear();   int SliceCount() const;
+void SetDonut(float ratio);   // 0=pie, 0.5=donut
+void SetStartAngle(float deg);   void SetClockwise(bool);   void SetSliceGap(float deg);
+void SetLabelMode(LabelMode);   void SetShowLegend(bool);
+void SetZoom(float);   float GetZoom() const;   // v1.18.0: wheel zoom 0.4..4
+bool OnMouseWheel(float,float) override;         // draw radius and hit-test share zoom_
+void SetAnimationEnabled(bool);</pre>
 </div>
 <ul>
-<li>Uses the Windows common color dialog <code>ChooseColor</code>; the returned color keeps <code>initial</code>'s alpha. Returns <code>std::nullopt</code> on cancel.</li>
+<li><strong><code>Pitfall</code></strong>: <code>PieChart</code> default stretch weight is 0 — needs an explicit size or layout weight.</li>
+<li><strong><code>Pitfall</code></strong>: labels use leader lines — on the right half, text is left-aligned just after the leader end; on the left half, right-aligned just before it.</li>
 </ul>
-<h2 id="theming-common-controls-v6-optional">Theming: Common Controls v6 (optional)</h2>
-<p>The look of system common controls (<code>ChooseColor</code>, <code>MessageBox</code>, ...) depends on the application <strong>manifest</strong>. Define <code>ZUFYUI_ENABLE_COMCTL_V6</code> before including the library header and the library injects the Common Controls v6 manifest dependency (themed). Because the manifest is <strong>application-wide</strong>, it is <strong>off by default</strong> and left to the application.</p>
-<nav class="chapter-nav"><a class="prev" href="API.en.14.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Window tools</span><span class="nav-desc">TitleBar / MessageBox / Tray / Taskbar / Icons and activation</span></a><a class="next" href="API.en.16.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Appendix</span><span class="nav-desc">Signal list, default values, and common pitfalls</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.en.14.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Data views</span><span class="nav-desc">ListView, TableView, TreeView, TreeNode (virtualization, hide/filter/visible order)</span></a><a class="next" href="API.en.16.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Window extras</span><span class="nav-desc">Images, tray, system dialogs, app registration</span></a></nav>
         </main>
     </div>
 

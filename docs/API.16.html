@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>附录 · ZufyUI API 参考</title>
+    <title>窗口周边 · ZufyUI API 参考</title>
     <style>
 
 :root {
@@ -197,414 +197,132 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>系统对话框</a></li><li class="active"><a href="API.16.html"><span class="chapter-index">16</span>附录</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍（UI Automation）</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>调试通道（外部调试 / 自动化）</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="信号一览更新后"><div class="toc-row"><a href="#信号一览更新后" data-target="信号一览更新后">信号一览（更新后）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="常用默认值速查"><div class="toc-row"><a href="#常用默认值速查" data-target="常用默认值速查">常用默认值速查</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="常见坑实战最容易踩"><div class="toc-row"><a href="#常见坑实战最容易踩" data-target="常见坑实战最容易踩">常见坑（实战最容易踩）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="完整示例"><div class="toc-row"><a href="#完整示例" data-target="完整示例">完整示例</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class="active"><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍与调试通道</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>版本变化摘录</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>易错点总表</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="image-imagemanager-imagedevicecache"><div class="toc-row"><a href="#image-imagemanager-imagedevicecache" data-target="image-imagemanager-imagedevicecache">Image / ImageManager / ImageDeviceCache</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="trayicon"><div class="toc-row"><a href="#trayicon" data-target="trayicon">TrayIcon</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="系统对话框-filedialog-colordialogv1160"><div class="toc-row"><a href="#系统对话框-filedialog-colordialogv1160" data-target="系统对话框-filedialog-colordialogv1160">系统对话框 — FileDialog / ColorDialog（v1.16.0）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="应用注册-appinfo-registerapp"><div class="toc-row"><a href="#应用注册-appinfo-registerapp" data-target="应用注册-appinfo-registerapp">应用注册 AppInfo / RegisterApp</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## 信号一览（更新后）
-
-| 类 | 信号 | 参数 |
-| --- | --- | --- |
-| `Button` | `Clicked` / `Toggled` | — / `bool` |
-| `CheckBox` | `Toggled` / `StateChanged` | `bool` / `State` |
-| `TextBox` | `TextChanged` / `ReturnPressed` | `const std::wstring&amp;` / — |
-| `ComboBox` | `SelectionChanged` / `DropDownOpened` / `DropDownClosed` | `int` / — / — |
-| `ToggleSwitch` | `Toggled` | `bool` |
-| `ProgressBar` | `ValueChanged` | `float` |
-| `Slider` | `ValueChanged` / `SliderReleased` | `float` / — |
-| `ScrollViewer` | `ScrollChanged` | `float, float` |
-| `ListView` | `SelectionChanged` / `ItemClicked` / `ItemDoubleClicked` / `SelectionChangedMulti` / `ItemCheckStateChanged` / `ItemRightClicked` | `int` / `int` / `int` / `std::vector&lt;int&gt;` / `int,bool` / `int` |
-| `TableView` | `CellClicked` / `CellDoubleClicked` / `HeaderClicked` / `CurrentCellChanged` / `SelectionChangedCells` / `ItemCheckStateChanged` / `CellRightClicked` | `int,int` / `int,int` / `int` / `int,int` / `vector&lt;pair&lt;int,int&gt;&gt;` / `int,bool` / `int,int` |
-| `TrayIcon` | `Clicked` / `DoubleClicked` / `RightClicked` / `HoverEnter` / `HoverLeave` / `Selected` / `BalloonClicked` / `BalloonDismissed` / `BalloonTimeout` | — |
-| `Menu` | `ItemSelected` | `int` |
-| `TreeView` | `SelectionChanged` / `NodeClicked` / `ItemDoubleClicked` / `ItemRightClicked` / `HeaderClicked` / `SelectionChangedMulti` / `ExpandChanged` / `ItemCheckStateChanged` | 见上 |
-| `FontManager` | `GlobalFontChanged` | — |
-| `UIZSignals` | `DrawOverlay` / `GlobalMouseDown` / `WindowDeactivated` / `ElementCaptureRequest` / `ElementCaptureRelease` / `RepaintRequest` / `LayoutInvalidated` / `DeviceReset` | 见第 4 章 |
-
-## 常用默认值速查
-
-| 项 | 值 |
-| --- | --- |
-| 全局字体 | `Segoe UI` / `14.0f` |
-| 窗口默认背景 | `Backdrop::None` / tint `0` |
-| 根布局 margin / spacing | `20` / `10` |
-| 帧时间上限 `deltaTime` | `0.033s` |
-| 窗口定时器 | `16ms`，`timeBeginPeriod(1)` |
-| 阴影默认 | 颜色 `(0,0,0.02,0.42)`，`blur 10`，`offset (0,3)` |
-| ToolTip 悬停延迟 | `0.5s` |
-| Label | 字号 `16`，`Ellipsis`，垂直居中 |
-| Button | `120×36`，圆角 `4`，蓝底白字 |
-| TextBox | `160×30`，字号 `14`，光标闪烁 `0.5s` |
-| ComboBox | `160×30`，列表项高 `24` |
-| ToggleSwitch | `50×24` |
-| CheckBox | 尺寸 `16`，圆角 `4` |
-| ScrollViewer | 滚动条宽 `8`，最小长度 `20`，滚轮步长 `30` |
-| ProgressBar | `200×20` |
-| Slider | `160×24`，范围 `[0,100]`，轨道高 `4`，滑块 `14` |
-| ListView | `200×200`，行高 `28` |
-| TableView | `400×300`，表头 `26`，默认行高 `24`，最小列宽 `40` |
-| TreeView | `400×300`，行高 `24`，缩进 `16` |
-
-## 常见坑（实战最容易踩）
-
-1. **颜色分量是 `[0,1]`**：`Color(255,0,0)` 是错的；用 `Color(1,0,0)` 或 `FromArgb(255,255,0,0)`。
-2. **信号里捕获了宿主的 `shared_ptr`**：形成引用环导致整棵子树泄漏。改捕获原始指针或 `weak_ptr`（见第 4 章）。
-3. **改属性后忘记重绘**：框架提供的 setter 通常已 `RequestRepaint()`；若你直接改内部数据，要自己调。
-4. **元素不可见后仍想更新其状态**：`SetVisible(false)` 会释放缓存，但布局仍保留；重新显示时会重建。
-5. **禁用不等于隐藏**：`SetEnabled(false)` 仍占布局、仍显示（灰色）；隐藏用 `SetVisible(false)`。
-6. **焦点环只在 Tab 时出现**：鼠标点击获得焦点不画环，这是刻意行为，不是 bug。
-7. **`deltaTime` 已被钳制**：写动画时按“秒”计算即可，不用再自己防超大 `dt`。
-8. **数据视图排序后附加信息错位**：当前版本已通过“按项目绑定 / 元数据重映射”修复；但如果你**自己重排**内部容器，需要自行维护这些信息。
-9. **`PageHost::NavigateTo` 是异步的**：动画结束后 `GetCurrentIndex()` 才变化。
-10. **`GetChildren()` 返回引用**：不要缓存它在手的同时去修改元素的子列表；遍历中调用是安全的。
-
-## 完整示例
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## Image / ImageManager / ImageDeviceCache
 
 ```cpp
-#include "ZDataViewer.h"
-using namespace ZufyUI;
+class Image { int Width() const; int Height() const; bool IsNull() const; ... };   // 从文件/资源/HICON/流加载
+class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };
+```
+- **`易错`**：`ImageDeviceCache::Get` 内部“锁外 GPU 上传 + 锁内 emplace”。**仅当 `ZUFYUI_RENDER_THREAD=1`** 才有与 `DeviceReset` 并发的极小悬垂窗口；单线程路径无风险。
+- 设备丢失时（`UIZSignals::DeviceReset`）应释放与渲染目标绑定的位图缓存。
 
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-    Window win;
-    if (!win.Create(900, 600, L"ZufyUI 示例")) return 1;
+## TrayIcon
 
-    auto root = win.GetRootColumnBox();
-    root-&gt;SetSpacing(10);
+```cpp
+bool Add(HICON icon, const std::wstring&amp; tooltip, UINT id=1);
+void SetIcon(HICON);  void SetToolTip(const std::wstring&amp;);  void SetMenu(std::shared_ptr&lt;Menu&gt;);
+void SetBadge(Color = ...);   void ClearBadge();
+enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
+void ShowBalloon(const std::wstring&amp; title, const std::wstring&amp; text, BalloonIcon = BalloonIcon::Custom, HICON = nullptr, ...);
+ZSignal&lt;&gt; Clicked, DoubleClicked, RightClicked, HoverEnter, HoverLeave, BalloonClicked, ...;
+```
+- 相同 `id` 再次 `Add` 变 `NIM_MODIFY`；Explorer 重启后自动重加。
+- **`易错`**：NOTIFYICON_VERSION_4 下右键以 `WM_CONTEXTMENU` 在回调里到达，**双击需手动计时**（没有 `WM_LBUTTONDBLCLK`）。自定义回调消息 `WM_APP+0x400`。
+- **`版本`**：`v1.16.0` 修回调消息撞号。
 
-    // 顶部：开关 + 滑块 + 进度条
-    auto row = std::make_shared&lt;RowBox&gt;();
-    row-&gt;SetSpacing(10);
+## 系统对话框 — FileDialog / ColorDialog（v1.16.0）
 
-    auto toggle = std::make_shared&lt;ToggleSwitch&gt;(false);
-    auto slider = std::make_shared&lt;Slider&gt;();
-    slider-&gt;SetRange(0.0f, 1.0f);
-    slider-&gt;SetStep(0.1f);
-    slider-&gt;SetSnapToStep(true);
-    auto bar = std::make_shared&lt;ProgressBar&gt;();
-    bar-&gt;SetShowText(true);
+```cpp
+struct FileFilter { std::wstring label; std::vector&lt;std::wstring&gt; patterns; };
+struct FileDialogOptions {
+    std::wstring title, initialDir, defaultFileName, defaultExtension;
+    std::vector&lt;FileFilter&gt; filters; int filterIndex = 1;
+    bool addAllFiles = true, pickFolders = false, multiSelect = false, save = false, forceFilesystem = true;
+};
+```
+- 基于 `IFileDialog`/`ChooseColor`；`forceFilesystem=true` 强制文件系统路径（否则可能返回虚拟项）。
 
-    toggle-&gt;Connect(toggle-&gt;Toggled, [bar](bool on) { bar-&gt;SetIndeterminate(on); });
-    slider-&gt;Connect(slider-&gt;ValueChanged, [bar](float v) { bar-&gt;SetValue(v); });
+## 应用注册 AppInfo / RegisterApp
 
-    row-&gt;AddChild(toggle);
-    row-&gt;AddChild(slider);
-    row-&gt;AddChild(bar);
-    root-&gt;AddChild(row);
-
-    // 中间：列表（含禁用项、颜色、提示、排序）
-    auto list = std::make_shared&lt;ListView&gt;();
-    list-&gt;SetFillHeight(true);
-    list-&gt;SetSelectionMode(ListView::SelectionMode::Extended);
-    list-&gt;SetCheckable(true);
-    for (int i = 1; i &lt;= 20; ++i)
-        list-&gt;AddItem(L"项目 " + std::to_wstring(i));
-    list-&gt;SetItemDisabled(2, true);                                  // 第 3 项禁用
-    list-&gt;SetItemTextColor(3, Color::FromArgb(255, 200, 60, 60));    // 第 4 项红字
-    list-&gt;SetItemToolTip(1, L"这是第 2 项的提示");
-    list-&gt;SetSortComparator([](const std::wstring&amp; a, const std::wstring&amp; b) { return a &lt; b; });
-    list-&gt;SetShowSortIndicator(true);
-    list-&gt;SetSelectedIndex(0);
-    root-&gt;AddChild(list);
-
-    win.Show();          // 1.8.0 起 Create 不再自动显示，由应用调用 Show()
-    win.Run();
-    return 0;
-}
-```</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 16 章 · 附录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 16 章</span><h1>附录</h1><p class="chapter-summary">信号一览、默认值速查与常见坑</p></header><h2 id="信号一览更新后">信号一览（更新后）</h2>
-<table>
-<thead>
-<tr>
-<th>类</th>
-<th>信号</th>
-<th>参数</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>Button</code></td>
-<td><code>Clicked</code> / <code>Toggled</code></td>
-<td>— / <code>bool</code></td>
-</tr>
-<tr>
-<td><code>CheckBox</code></td>
-<td><code>Toggled</code> / <code>StateChanged</code></td>
-<td><code>bool</code> / <code>State</code></td>
-</tr>
-<tr>
-<td><code>TextBox</code></td>
-<td><code>TextChanged</code> / <code>ReturnPressed</code></td>
-<td><code>const std::wstring&amp;</code> / —</td>
-</tr>
-<tr>
-<td><code>ComboBox</code></td>
-<td><code>SelectionChanged</code> / <code>DropDownOpened</code> / <code>DropDownClosed</code></td>
-<td><code>int</code> / — / —</td>
-</tr>
-<tr>
-<td><code>ToggleSwitch</code></td>
-<td><code>Toggled</code></td>
-<td><code>bool</code></td>
-</tr>
-<tr>
-<td><code>ProgressBar</code></td>
-<td><code>ValueChanged</code></td>
-<td><code>float</code></td>
-</tr>
-<tr>
-<td><code>Slider</code></td>
-<td><code>ValueChanged</code> / <code>SliderReleased</code></td>
-<td><code>float</code> / —</td>
-</tr>
-<tr>
-<td><code>ScrollViewer</code></td>
-<td><code>ScrollChanged</code></td>
-<td><code>float, float</code></td>
-</tr>
-<tr>
-<td><code>ListView</code></td>
-<td><code>SelectionChanged</code> / <code>ItemClicked</code> / <code>ItemDoubleClicked</code> / <code>SelectionChangedMulti</code> / <code>ItemCheckStateChanged</code> / <code>ItemRightClicked</code></td>
-<td><code>int</code> / <code>int</code> / <code>int</code> / <code>std::vector&lt;int&gt;</code> / <code>int,bool</code> / <code>int</code></td>
-</tr>
-<tr>
-<td><code>TableView</code></td>
-<td><code>CellClicked</code> / <code>CellDoubleClicked</code> / <code>HeaderClicked</code> / <code>CurrentCellChanged</code> / <code>SelectionChangedCells</code> / <code>ItemCheckStateChanged</code> / <code>CellRightClicked</code></td>
-<td><code>int,int</code> / <code>int,int</code> / <code>int</code> / <code>int,int</code> / <code>vector&lt;pair&lt;int,int&gt;&gt;</code> / <code>int,bool</code> / <code>int,int</code></td>
-</tr>
-<tr>
-<td><code>TrayIcon</code></td>
-<td><code>Clicked</code> / <code>DoubleClicked</code> / <code>RightClicked</code> / <code>HoverEnter</code> / <code>HoverLeave</code> / <code>Selected</code> / <code>BalloonClicked</code> / <code>BalloonDismissed</code> / <code>BalloonTimeout</code></td>
-<td>—</td>
-</tr>
-<tr>
-<td><code>Menu</code></td>
-<td><code>ItemSelected</code></td>
-<td><code>int</code></td>
-</tr>
-<tr>
-<td><code>TreeView</code></td>
-<td><code>SelectionChanged</code> / <code>NodeClicked</code> / <code>ItemDoubleClicked</code> / <code>ItemRightClicked</code> / <code>HeaderClicked</code> / <code>SelectionChangedMulti</code> / <code>ExpandChanged</code> / <code>ItemCheckStateChanged</code></td>
-<td>见上</td>
-</tr>
-<tr>
-<td><code>FontManager</code></td>
-<td><code>GlobalFontChanged</code></td>
-<td>—</td>
-</tr>
-<tr>
-<td><code>UIZSignals</code></td>
-<td><code>DrawOverlay</code> / <code>GlobalMouseDown</code> / <code>WindowDeactivated</code> / <code>ElementCaptureRequest</code> / <code>ElementCaptureRelease</code> / <code>RepaintRequest</code> / <code>LayoutInvalidated</code> / <code>DeviceReset</code></td>
-<td>见第 4 章</td>
-</tr>
-</tbody>
-</table>
-<h2 id="常用默认值速查">常用默认值速查</h2>
-<table>
-<thead>
-<tr>
-<th>项</th>
-<th>值</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>全局字体</td>
-<td><code>Segoe UI</code> / <code>14.0f</code></td>
-</tr>
-<tr>
-<td>窗口默认背景</td>
-<td><code>Backdrop::None</code> / tint <code>0</code></td>
-</tr>
-<tr>
-<td>根布局 margin / spacing</td>
-<td><code>20</code> / <code>10</code></td>
-</tr>
-<tr>
-<td>帧时间上限 <code>deltaTime</code></td>
-<td><code>0.033s</code></td>
-</tr>
-<tr>
-<td>窗口定时器</td>
-<td><code>16ms</code>，<code>timeBeginPeriod(1)</code></td>
-</tr>
-<tr>
-<td>阴影默认</td>
-<td>颜色 <code>(0,0,0.02,0.42)</code>，<code>blur 10</code>，<code>offset (0,3)</code></td>
-</tr>
-<tr>
-<td>ToolTip 悬停延迟</td>
-<td><code>0.5s</code></td>
-</tr>
-<tr>
-<td>Label</td>
-<td>字号 <code>16</code>，<code>Ellipsis</code>，垂直居中</td>
-</tr>
-<tr>
-<td>Button</td>
-<td><code>120×36</code>，圆角 <code>4</code>，蓝底白字</td>
-</tr>
-<tr>
-<td>TextBox</td>
-<td><code>160×30</code>，字号 <code>14</code>，光标闪烁 <code>0.5s</code></td>
-</tr>
-<tr>
-<td>ComboBox</td>
-<td><code>160×30</code>，列表项高 <code>24</code></td>
-</tr>
-<tr>
-<td>ToggleSwitch</td>
-<td><code>50×24</code></td>
-</tr>
-<tr>
-<td>CheckBox</td>
-<td>尺寸 <code>16</code>，圆角 <code>4</code></td>
-</tr>
-<tr>
-<td>ScrollViewer</td>
-<td>滚动条宽 <code>8</code>，最小长度 <code>20</code>，滚轮步长 <code>30</code></td>
-</tr>
-<tr>
-<td>ProgressBar</td>
-<td><code>200×20</code></td>
-</tr>
-<tr>
-<td>Slider</td>
-<td><code>160×24</code>，范围 <code>[0,100]</code>，轨道高 <code>4</code>，滑块 <code>14</code></td>
-</tr>
-<tr>
-<td>ListView</td>
-<td><code>200×200</code>，行高 <code>28</code></td>
-</tr>
-<tr>
-<td>TableView</td>
-<td><code>400×300</code>，表头 <code>26</code>，默认行高 <code>24</code>，最小列宽 <code>40</code></td>
-</tr>
-<tr>
-<td>TreeView</td>
-<td><code>400×300</code>，行高 <code>24</code>，缩进 <code>16</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="常见坑实战最容易踩">常见坑（实战最容易踩）</h2>
-<ol>
-<li><strong>颜色分量是 <code>[0,1]</code></strong>：<code>Color(255,0,0)</code> 是错的；用 <code>Color(1,0,0)</code> 或 <code>FromArgb(255,255,0,0)</code>。</li>
-<li><strong>信号里捕获了宿主的 <code>shared_ptr</code></strong>：形成引用环导致整棵子树泄漏。改捕获原始指针或 <code>weak_ptr</code>（见第 4 章）。</li>
-<li><strong>改属性后忘记重绘</strong>：框架提供的 setter 通常已 <code>RequestRepaint()</code>；若你直接改内部数据，要自己调。</li>
-<li><strong>元素不可见后仍想更新其状态</strong>：<code>SetVisible(false)</code> 会释放缓存，但布局仍保留；重新显示时会重建。</li>
-<li><strong>禁用不等于隐藏</strong>：<code>SetEnabled(false)</code> 仍占布局、仍显示（灰色）；隐藏用 <code>SetVisible(false)</code>。</li>
-<li><strong>焦点环只在 Tab 时出现</strong>：鼠标点击获得焦点不画环，这是刻意行为，不是 bug。</li>
-<li><strong><code>deltaTime</code> 已被钳制</strong>：写动画时按“秒”计算即可，不用再自己防超大 <code>dt</code>。</li>
-<li><strong>数据视图排序后附加信息错位</strong>：当前版本已通过“按项目绑定 / 元数据重映射”修复；但如果你<strong>自己重排</strong>内部容器，需要自行维护这些信息。</li>
-<li><strong><code>PageHost::NavigateTo</code> 是异步的</strong>：动画结束后 <code>GetCurrentIndex()</code> 才变化。</li>
-<li><strong><code>GetChildren()</code> 返回引用</strong>：不要缓存它在手的同时去修改元素的子列表；遍历中调用是安全的。</li>
-</ol>
-<h2 id="完整示例">完整示例</h2>
+```cpp
+struct AppInfo { std::wstring displayName, aumid; std::shared_ptr&lt;Image&gt; icon; };
+bool RegisterApp(const AppInfo&amp;);     // 或 Application::Instance().RegisterApp(info)
+```
+- 默认只设 AUMID（零文件/注册表副作用）；定义 `ZUFYUI_ALLOW_APP_REGISTRATION` 才会写 `%LOCALAPPDATA%\ZufyUI\AppReg\...` 与 `HKCU\...\AppUserModelId`（让 Win10/11 toast 显示应用名/图标），退出自动清理。</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 16 章 · 窗口周边</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 16 章</span><h1>窗口周边</h1><p class="chapter-summary">图像、托盘、系统对话框、应用注册</p></header><h2 id="image-imagemanager-imagedevicecache">Image / ImageManager / ImageDeviceCache</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-8154b6f2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e4af3c70', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZDataViewer.h"</span>
-<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
-
-<span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="nf">WinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">Window</span><span class="w"> </span><span class="n">win</span><span class="p">;</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">win</span><span class="p">.</span><span class="n">Create</span><span class="p">(</span><span class="mi">900</span><span class="p">,</span><span class="w"> </span><span class="mi">600</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"ZufyUI 示例"</span><span class="p">))</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
-
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">win</span><span class="p">.</span><span class="n">GetRootColumnBox</span><span class="p">();</span>
-<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">SetSpacing</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
-
-<span class="w">    </span><span class="c1">// 顶部：开关 + 滑块 + 进度条</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">row</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">RowBox</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">SetSpacing</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
-
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">toggle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">ToggleSwitch</span><span class="o">&gt;</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">slider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Slider</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">SetRange</span><span class="p">(</span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">);</span>
-<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">SetStep</span><span class="p">(</span><span class="mf">0.1f</span><span class="p">);</span>
-<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">SetSnapToStep</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">ProgressBar</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetShowText</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
-
-<span class="w">    </span><span class="n">toggle</span><span class="o">-&gt;</span><span class="n">Connect</span><span class="p">(</span><span class="n">toggle</span><span class="o">-&gt;</span><span class="n">Toggled</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="n">bar</span><span class="p">](</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetIndeterminate</span><span class="p">(</span><span class="n">on</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
-<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">Connect</span><span class="p">(</span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">ValueChanged</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="n">bar</span><span class="p">](</span><span class="kt">float</span><span class="w"> </span><span class="n">v</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetValue</span><span class="p">(</span><span class="n">v</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
-
-<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">toggle</span><span class="p">);</span>
-<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">slider</span><span class="p">);</span>
-<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
-<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">row</span><span class="p">);</span>
-
-<span class="w">    </span><span class="c1">// 中间：列表（含禁用项、颜色、提示、排序）</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">list</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">ListView</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetFillHeight</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetSelectionMode</span><span class="p">(</span><span class="n">ListView</span><span class="o">::</span><span class="n">SelectionMode</span><span class="o">::</span><span class="n">Extended</span><span class="p">);</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetCheckable</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
-<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span>
-<span class="w">        </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">AddItem</span><span class="p">(</span><span class="sa">L</span><span class="s">"项目 "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">to_wstring</span><span class="p">(</span><span class="n">i</span><span class="p">));</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetItemDisabled</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span><span class="w">                                  </span><span class="c1">// 第 3 项禁用</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetItemTextColor</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="o">::</span><span class="n">FromArgb</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="mi">60</span><span class="p">));</span><span class="w">    </span><span class="c1">// 第 4 项红字</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetItemToolTip</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"这是第 2 项的提示"</span><span class="p">);</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetSortComparator</span><span class="p">([](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">b</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetShowSortIndicator</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetSelectedIndex</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">list</span><span class="p">);</span>
-
-<span class="w">    </span><span class="n">win</span><span class="p">.</span><span class="n">Show</span><span class="p">();</span><span class="w">          </span><span class="c1">// 1.8.0 起 Create 不再自动显示，由应用调用 Show()</span>
-<span class="w">    </span><span class="n">win</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Image</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">Width</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">Height</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsNull</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// 从文件/资源/HICON/流加载</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ImageDeviceCache</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* 按渲染目标缓存的设备位图 */</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-8154b6f2" style="display: none;">#include "ZDataViewer.h"
-using namespace ZufyUI;
-
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-    Window win;
-    if (!win.Create(900, 600, L"ZufyUI 示例")) return 1;
-
-    auto root = win.GetRootColumnBox();
-    root-&gt;SetSpacing(10);
-
-    // 顶部：开关 + 滑块 + 进度条
-    auto row = std::make_shared&lt;RowBox&gt;();
-    row-&gt;SetSpacing(10);
-
-    auto toggle = std::make_shared&lt;ToggleSwitch&gt;(false);
-    auto slider = std::make_shared&lt;Slider&gt;();
-    slider-&gt;SetRange(0.0f, 1.0f);
-    slider-&gt;SetStep(0.1f);
-    slider-&gt;SetSnapToStep(true);
-    auto bar = std::make_shared&lt;ProgressBar&gt;();
-    bar-&gt;SetShowText(true);
-
-    toggle-&gt;Connect(toggle-&gt;Toggled, [bar](bool on) { bar-&gt;SetIndeterminate(on); });
-    slider-&gt;Connect(slider-&gt;ValueChanged, [bar](float v) { bar-&gt;SetValue(v); });
-
-    row-&gt;AddChild(toggle);
-    row-&gt;AddChild(slider);
-    row-&gt;AddChild(bar);
-    root-&gt;AddChild(row);
-
-    // 中间：列表（含禁用项、颜色、提示、排序）
-    auto list = std::make_shared&lt;ListView&gt;();
-    list-&gt;SetFillHeight(true);
-    list-&gt;SetSelectionMode(ListView::SelectionMode::Extended);
-    list-&gt;SetCheckable(true);
-    for (int i = 1; i &lt;= 20; ++i)
-        list-&gt;AddItem(L"项目 " + std::to_wstring(i));
-    list-&gt;SetItemDisabled(2, true);                                  // 第 3 项禁用
-    list-&gt;SetItemTextColor(3, Color::FromArgb(255, 200, 60, 60));    // 第 4 项红字
-    list-&gt;SetItemToolTip(1, L"这是第 2 项的提示");
-    list-&gt;SetSortComparator([](const std::wstring&amp; a, const std::wstring&amp; b) { return a &lt; b; });
-    list-&gt;SetShowSortIndicator(true);
-    list-&gt;SetSelectedIndex(0);
-    root-&gt;AddChild(list);
-
-    win.Show();          // 1.8.0 起 Create 不再自动显示，由应用调用 Show()
-    win.Run();
-    return 0;
-}</pre>
+<pre id="code-e4af3c70" style="display: none;">class Image { int Width() const; int Height() const; bool IsNull() const; ... };   // 从文件/资源/HICON/流加载
+class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };</pre>
 </div>
-<nav class="chapter-nav"><a class="prev" href="API.15.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">系统对话框</span><span class="nav-desc">FileDialog（文件/文件夹）· ColorDialog（颜色）</span></a><a class="next" href="API.17.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">无障碍（UI Automation）</span><span class="nav-desc">默认开启；角色 / Pattern / 事件 / 命中与焦点</span></a></nav>
+<ul>
+<li><strong><code>易错</code></strong>：<code>ImageDeviceCache::Get</code> 内部“锁外 GPU 上传 + 锁内 emplace”。<strong>仅当 <code>ZUFYUI_RENDER_THREAD=1</code></strong> 才有与 <code>DeviceReset</code> 并发的极小悬垂窗口；单线程路径无风险。</li>
+<li>设备丢失时（<code>UIZSignals::DeviceReset</code>）应释放与渲染目标绑定的位图缓存。</li>
+</ul>
+<h2 id="trayicon">TrayIcon</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-2d5316bc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">Add</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">icon</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="o">=</span><span class="mi">1</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">HICON</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetToolTip</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetBadge</span><span class="p">(</span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">...);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearBadge</span><span class="p">();</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BalloonIcon</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="n">Warning</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="p">,</span><span class="w"> </span><span class="n">Custom</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ShowBalloon</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">BalloonIcon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BalloonIcon</span><span class="o">::</span><span class="n">Custom</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span>
+<span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">,</span><span class="w"> </span><span class="n">DoubleClicked</span><span class="p">,</span><span class="w"> </span><span class="n">RightClicked</span><span class="p">,</span><span class="w"> </span><span class="n">HoverEnter</span><span class="p">,</span><span class="w"> </span><span class="n">HoverLeave</span><span class="p">,</span><span class="w"> </span><span class="n">BalloonClicked</span><span class="p">,</span><span class="w"> </span><span class="p">...;</span>
+</pre></div>
+<pre id="code-2d5316bc" style="display: none;">bool Add(HICON icon, const std::wstring&amp; tooltip, UINT id=1);
+void SetIcon(HICON);  void SetToolTip(const std::wstring&amp;);  void SetMenu(std::shared_ptr&lt;Menu&gt;);
+void SetBadge(Color = ...);   void ClearBadge();
+enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
+void ShowBalloon(const std::wstring&amp; title, const std::wstring&amp; text, BalloonIcon = BalloonIcon::Custom, HICON = nullptr, ...);
+ZSignal&lt;&gt; Clicked, DoubleClicked, RightClicked, HoverEnter, HoverLeave, BalloonClicked, ...;</pre>
+</div>
+<ul>
+<li>相同 <code>id</code> 再次 <code>Add</code> 变 <code>NIM_MODIFY</code>；Explorer 重启后自动重加。</li>
+<li><strong><code>易错</code></strong>：NOTIFYICON_VERSION_4 下右键以 <code>WM_CONTEXTMENU</code> 在回调里到达，<strong>双击需手动计时</strong>（没有 <code>WM_LBUTTONDBLCLK</code>）。自定义回调消息 <code>WM_APP+0x400</code>。</li>
+<li><strong><code>版本</code></strong>：<code>v1.16.0</code> 修回调消息撞号。</li>
+</ul>
+<h2 id="系统对话框-filedialog-colordialogv1160">系统对话框 — FileDialog / ColorDialog（v1.16.0）</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-98add2ea', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FileFilter</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">label</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">patterns</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">FileDialogOptions</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">initialDir</span><span class="p">,</span><span class="w"> </span><span class="n">defaultFileName</span><span class="p">,</span><span class="w"> </span><span class="n">defaultExtension</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FileFilter</span><span class="o">&gt;</span><span class="w"> </span><span class="n">filters</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">filterIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">addAllFiles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="n">pickFolders</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">multiSelect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">save</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">forceFilesystem</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+<pre id="code-98add2ea" style="display: none;">struct FileFilter { std::wstring label; std::vector&lt;std::wstring&gt; patterns; };
+struct FileDialogOptions {
+    std::wstring title, initialDir, defaultFileName, defaultExtension;
+    std::vector&lt;FileFilter&gt; filters; int filterIndex = 1;
+    bool addAllFiles = true, pickFolders = false, multiSelect = false, save = false, forceFilesystem = true;
+};</pre>
+</div>
+<ul>
+<li>基于 <code>IFileDialog</code>/<code>ChooseColor</code>；<code>forceFilesystem=true</code> 强制文件系统路径（否则可能返回虚拟项）。</li>
+</ul>
+<h2 id="应用注册-appinfo-registerapp">应用注册 AppInfo / RegisterApp</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-09598410', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">AppInfo</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">displayName</span><span class="p">,</span><span class="w"> </span><span class="n">aumid</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="p">);</span><span class="w">     </span><span class="c1">// 或 Application::Instance().RegisterApp(info)</span>
+</pre></div>
+<pre id="code-09598410" style="display: none;">struct AppInfo { std::wstring displayName, aumid; std::shared_ptr&lt;Image&gt; icon; };
+bool RegisterApp(const AppInfo&amp;);     // 或 Application::Instance().RegisterApp(info)</pre>
+</div>
+<ul>
+<li>默认只设 AUMID（零文件/注册表副作用）；定义 <code>ZUFYUI_ALLOW_APP_REGISTRATION</code> 才会写 <code>%LOCALAPPDATA%\ZufyUI\AppReg\...</code> 与 <code>HKCU\...\AppUserModelId</code>（让 Win10/11 toast 显示应用名/图标），退出自动清理。</li>
+</ul>
+<nav class="chapter-nav"><a class="prev" href="API.15.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">图表</span><span class="nav-desc">ChartBase、BarChart、LineChart、PieChart（v1.18.0）</span></a><a class="next" href="API.17.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a></nav>
         </main>
     </div>
 

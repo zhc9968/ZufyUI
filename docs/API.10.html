@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>应用与多窗口 · ZufyUI API 参考</title>
+    <title>选择与输入 · ZufyUI API 参考</title>
     <style>
 
 :root {
@@ -197,361 +197,157 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class="active"><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>系统对话框</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>附录</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍（UI Automation）</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>调试通道（外部调试 / 自动化）</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="application"><div class="toc-row"><a href="#application" data-target="application">Application</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="应用身份自注册registerapp-appinfo"><div class="toc-row"><a href="#应用身份自注册registerapp-appinfo" data-target="应用身份自注册registerapp-appinfo">应用身份自注册（RegisterApp / AppInfo）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="多窗口的独立性与兼容"><div class="toc-row"><a href="#多窗口的独立性与兼容" data-target="多窗口的独立性与兼容">多窗口的独立性与兼容</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="多窗口常见坑"><div class="toc-row"><a href="#多窗口常见坑" data-target="多窗口常见坑">多窗口常见坑</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="窗口生命周期与语义show-runmodal-owned-shared_ptr"><div class="toc-row"><a href="#窗口生命周期与语义show-runmodal-owned-shared_ptr" data-target="窗口生命周期与语义show-runmodal-owned-shared_ptr">窗口生命周期与语义（Show / RunModal / owned / shared_ptr）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="数据视图的坐标换算辅助方法"><div class="toc-row"><a href="#数据视图的坐标换算辅助方法" data-target="数据视图的坐标换算辅助方法">数据视图的坐标换算（辅助方法）</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class="active"><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍与调试通道</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>版本变化摘录</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>易错点总表</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="checkbox"><div class="toc-row"><a href="#checkbox" data-target="checkbox">CheckBox</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="radiobutton-radiogroup"><div class="toc-row"><a href="#radiobutton-radiogroup" data-target="radiobutton-radiogroup">RadioButton / RadioGroup</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="toggleswitch"><div class="toc-row"><a href="#toggleswitch" data-target="toggleswitch">ToggleSwitch</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="slider"><div class="toc-row"><a href="#slider" data-target="slider">Slider</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="numberbox-内部-spinbutton"><div class="toc-row"><a href="#numberbox-内部-spinbutton" data-target="numberbox-内部-spinbutton">NumberBox（+ 内部 SpinButton）</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## Application
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>&gt; 本类共性：多个控件会**同时**发“过程信号”和“提交信号”；静态 `DrawBox` 与数据视图共用，改外观会同时影响列表/表格/树的勾选行。
 
-`Application` 是进程 / UI 线程级的应用对象，管理一个共享消息循环与所有顶层窗口。它与窗口的生命周期解耦：`Application` 只是内部单例的句柄，构造 / 析构它**不会**销毁已创建的窗口（因此不会出现“app 先析构、窗口悬垂”这类问题）。
-
-```cpp
-class Application {
-    std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title);
-    std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title, Window* owner); // owned 子窗口
-    void AddWindow(const std::shared_ptr&lt;Window&gt;&amp; w);
-    int Run();
-    void Quit(int code = 0);
-    void CloseAllWindows();
-    size_t WindowCount() const;
-    bool RegisterApp(const AppInfo&amp; info);   // 应用身份自注册（见「应用身份自注册」）
-    static Application&amp; Instance();
-};
-```
-
-**推荐用法（Qt 风格）**：
+## CheckBox
 
 ```cpp
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-    ZufyUI::Application app;
-    auto w1 = app.CreateWindow(1000, 700, L"主窗口");
-    auto w2 = app.CreateWindow(640, 480, L"工具窗口");
-    // 各自搭 UI：w1-&gt;GetRootColumnBox()-&gt;AddChild(...)
-    return app.Run();                    // 单一消息循环，所有窗口共用
-}
+enum class State { Unchecked, PartiallyChecked, Checked };
+ZSignal&lt;bool&gt; Toggled;   ZSignal&lt;State&gt; StateChanged;
+void SetChecked(bool);  void SetState(State);  void Toggle();  void SetTriState(bool);
+static void DrawBox(...);   // 可复用的勾选框绘制（数据视图也用）
 ```
+- **`版本`**：早期加入（`1d886f5`，v1.6.0 之前）。
 
-**行为与要点**：
-
-- `CreateWindow` 创建窗口并登记进应用；返回的 `shared_ptr&lt;Window&gt;` **必须由你持有**，否则 `shared_ptr` 析构会让窗口立即被销毁。
-- `Run()` 只运行**一个**消息循环；同线程创建的所有窗口消息都由它分发。
-- 在 `Run()` 之后（消息循环运行期间）调用 `CreateWindow` 也能正常显示新窗口。
-- 关闭任意窗口不影响其它窗口；**最后一个窗口关闭时**循环自动退出。也可用 `Quit()` 主动退出。
-- 单进程应只有一个 UI 线程在跑窗口（与 Win32 一致）。
-
-## 应用身份自注册（RegisterApp / AppInfo）
-
-把「应用名 + 图标」声明一次，库统一替你设好**进程级 AppUserModelID**，并（在授权后）写注册表 + 把图标缓存到本地，让 **toast 左上角显示应用名与图标**、跳转列表 / 任务栏分组也统一归属该身份。
+## RadioButton / RadioGroup
 
 ```cpp
-struct AppInfo {
-    std::wstring displayName;      // 显示名称（toast / 跳转列表 / 任务栏分组）
-    std::wstring aumid;            // 唯一 ID；留空=由 displayName 自动派生
-    std::shared_ptr&lt;Image&gt; icon;   // 图标（可空）
-};
-
-bool RegisterApp(const AppInfo&amp; info);                 // 自由函数
-bool Application::RegisterApp(const AppInfo&amp; info);    // 转发到上面（两者等价）
+class RadioButton { ZSignal&lt;bool&gt; CheckedChanged; ZSignal&lt;&gt; Clicked; void SetChecked(bool); ... };
+class RadioGroup  { enum class Orientation { Vertical, Horizontal };
+                    ZSignal&lt;int&gt; SelectionChanged;
+                    std::function&lt;bool(int newIdx, int oldIdx)&gt; SelectionChanging;   // 返回 false 可否决
+                    int AddItem(const std::wstring&amp;, bool selected=false); std::shared_ptr&lt;RadioButton&gt; GetButton(int index) const; int GetItemCount() const; void SetSelectedIndex(int); ... };
 ```
+- **`易错`**：单独一个 `RadioButton` 不做互斥；互斥由 `RadioGroup` 保证。
+- **`版本`**：`v1.11.0`。
 
-**授权宏（重要）**：本库不是系统库，替应用动注册表/文件属于越界行为，因此**必须显式授权**——在包含本库头文件**之前**定义宏：
+## ToggleSwitch
 
 ```cpp
-#define ZUFYUI_ALLOW_APP_REGISTRATION
+ZSignal&lt;bool&gt; Toggled;   void SetOn(bool);  bool IsOn() const;
+void SetIndeterminate(bool);   // 半选外观
 ```
+- 默认 50×24。
 
-未定义该宏时：`RegisterApp` 只设置进程 AUMID（**无副作用**），不写注册表、不落文件。
-
-**授权后库会做什么**：
-
-1. 设置进程级 AUMID：`SetCurrentProcessExplicitAppUserModelID`
-2. 写注册表 `HKCU\Software\Classes\AppUserModelId\&lt;AUMID&gt;`：`DisplayName` + `IconUri`
-3. 把图标缓存到 `%LOCALAPPDATA%\ZufyUI\AppReg\&lt;AUMID&gt;\app.ico`（由 `Image` 导出为单图 `.ico`）
-4. **进程退出时**清空该缓存目录，并删除上面写的注册表项（避免 `IconUri` 指向已删除文件）
-
-**用法**（建议创建窗口前调用一次）：
+## Slider
 
 ```cpp
-#define ZUFYUI_ALLOW_APP_REGISTRATION   // 需在 include 之前
-...
-int WINAPI WinMain(...) {
-    RegisterApp(AppInfo{ L"我的应用", L"ZufyUI.MyApp", myIcon });   // aumid 可留空自动派生
-    auto w = Application::Instance().CreateWindow(/*...*/);
-    // ...
-    return Application::Instance().Run();
-}
+ZSignal&lt;float&gt; ValueChanged;   ZSignal&lt;&gt; SliderReleased;
+void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);  void SetSnapToStep(bool);
 ```
+- **`易错`**：`ValueChanged` 在拖动中**连续**触发；提交用 `SliderReleased`。
+- **`版本`**：`v1.18.0` 修 0 宽时 0/0→NaN 静默把值设成 min/max。
 
-**要点**：
-
-- AUMID 每进程唯一；**只需调用一次**。`aumid` 留空时由 `displayName` 派生（去空格/非法字符；无点号则自动加 `ZufyUI.` 前缀，最长 128 字符）。
-- 授权宏是**编译期**开关；未授权不会在用户机器上留下任何痕迹。
-- Win10/11 里老式托盘气球会升级成 toast，其左上角图标/应用名由系统按 AUMID 查注册表得到——这一步正是「库替应用注册」解决的事（否则为空白）。
-- 退出清理在库内部完成，无需应用写任何代码。
-
-## 多窗口的独立性与兼容
-
-- **重绘 / 布局按窗口路由**：每个元素记录所属窗口（`UIElement::GetWindow()`）；`RequestRepaint()` / `InvalidateLayout()` 只作用于所属窗口，窗口之间不会互相触发重绘。
-- **DPI 每窗口**：当前 DPI 缩放是**线程本地**的，渲染每个窗口前会设置该窗口自己的缩放，所以混合 DPI 的多窗口也能正确 `Snap`。
-- **激活 / 失活按窗口**：`Window` 提供实例信号 `Activated` / `Deactivated` / `Closed`，以及 `Closing`（`bool*`，置 `*cancel=true` 可取消关闭）、`BackdropUnsupported` / `DeviceLost` / `RenderingError`；全局 `UIZSignals::WindowDeactivated` 带 `Window*` 参数、`GlobalMouseDown` 带 `Window*`。ComboBox 等控件据此只响应“本窗口”的事件，不会因别的窗口而误收起。
-- **叠加绘制按窗口**：全局 `UIZSignals::DrawOverlay` 现在带 `Window*`（以及渲染目标）参数；订阅者**必须**用 `GetWindow()` 过滤，否则会把 A 窗口的下拉/弹层画到 B 窗口上（这是多窗口下最典型的串扰）。ZufyUI 自带控件已按此处理。
-- **鼠标捕获**：Win32 `SetCapture` 只用于“按住鼠标”的拖拽，松开立即释放（元素级逻辑捕获不受影响）。修复了“ComboBox 展开后一直持有系统鼠标捕获、导致其它窗口无法使用”的问题。
-- **模态 / 父子窗口**：`Window::SetOwner(owner)` 建立 owned 子窗口（始终在所有者之上、随其最小化）；`Window::RunModal(owner)` 以模态运行（禁用所有者、嵌套消息循环、关闭后恢复）。模态期间点击被禁用的所有者窗口，模态窗口会**闪烁**提示。
-- **窗口句柄与悬垂**：元素内部用**窗口 id** 记录所属窗口（而不是裸指针），窗口销毁后 `GetWindow()` 返回 `nullptr`，从根本上避免“元素持有已销毁窗口指针”导致的崩溃。
-- **共享资源**：`ID2D1Factory` 与系统计时器精度（`timeBeginPeriod`）由应用核心统一管理，多窗口共享。
-- **独立渲染线程（实验特性，默认关闭、不建议开启）**：`ZUFYUI_RENDER_THREAD` 默认为 **`0`** —— 单线程 `WM_PAINT` 绘制，行为稳定，**推荐**。置 `1` 会启用独立 render 线程（负责**合成 / `Present` / vblank 节拍**，UI 线程只做消息/输入/布局/动画并标脏）。⚠️ **该机制目前不稳定、bug 较多**（弹窗/菜单空白、悬停/`tooltip` 与按钮 hover 更新延迟、嵌套页面切换延迟、大数据量虚拟列表偶发崩溃等），**不建议在正式项目开启**；仅在确需 vblank 级顺滑且能承担调试成本时谨慎试用。
-- **向后兼容**：单窗口写法仍然有效——`Window win; win.Create(...); win.Show(); win.Run();`（1.8.0 起 `Create` 不再自动显示，需显式 `Show()`）；`Run()` 会转发到应用级消息循环。
-
-## 多窗口常见坑
-
-- `CreateWindow` 返回的 `shared_ptr` 不要丢；丢了窗口即被销毁（可像示例那样放进容器长期持有）。
-- 需要窗口归属的全局信号（`GlobalMouseDown`、`WindowDeactivated`）都带上了 `Window*`；订阅时用 `GetWindow()` 过滤，只处理本窗口。
-- 所有窗口必须在同一 UI 线程创建与运行。
-
-## 窗口生命周期与语义（Show / RunModal / owned / shared_ptr）
-
-三种"显示"方式语义不同，别混用：
-
-| 方式 | 语义 | 所有权 | 适用 |
-|---|---|---|---|
-| `Window win; win.Create(...); win.Show();` | 非模态、单窗口 | `win` 对象本身（栈/成员） | 主窗口 / 单窗口应用 |
-| `Application::Instance().CreateWindow(...)` → `shared_ptr&lt;Window&gt;` | 非模态、可多开 | **必须自己持有返回的 `shared_ptr`**（丢了窗口即销毁） | 多窗口 / 动态开窗 |
-| `win.RunModal(Window* owner)`（`Show()` 之后调用） | **模态**：禁用 owner、进入嵌套消息循环、关闭后恢复 | 由持有者决定 | 对话框 / 确认框 |
-
-要点：
-- **`Create` 不再自动显示**（1.8.0 起）：`Create` 之后必须显式 `Show()`。
-- **`shared_ptr` 即所有权**：`CreateWindow` 返回的窗口，外部一旦不再持有就立即销毁。想"开着不关"就放进容器（如 `std::vector&lt;std::shared_ptr&lt;Window&gt;&gt;`）。
-- **模态用 `RunModal(owner)`，不是 `Show`**：它禁用 owner、跑嵌套消息循环、关闭后恢复 owner。`MessageBox` 的 `blocking=true` 就是内部替你 `RunModal`。
-- **owned 子窗口**：`CreateWindow(..., Window* owner)` 或 `SetOwner(owner)` —— 始终在 owner 之上、随 owner 最小化；`SetOwnedMinimizePolicy` 可选 隐藏 / 禁用最小化。
-- **不要手写消息循环**：多窗口共用一个 `Application::Run()`；`RunModal` 的嵌套循环由库管理。
-
-## 数据视图的坐标换算（辅助方法）
-
-`ListView` / `TableView` / `TreeView` 都提供内容坐标 &lt;-&gt; 控件本地坐标的换算（把原先散落各处的 `arrangedRect_.x - Snap(scrollOffsetX_)` 收敛到一处）：
+## NumberBox（+ 内部 SpinButton）
 
 ```cpp
-float ContentToLocalX(float cx) const;   // 内容 X → 本地 X（含滚动偏移）
-float ContentToLocalY(float cy) const;
-float LocalToContentX(float lx) const;   // 本地 X → 内容 X
-float LocalToContentY(float ly) const;
+ZSignal&lt;double&gt; ValueChanged;   ZSignal&lt;const std::wstring&amp;&gt; TextChanged;
+void SetValue(double, bool fire=true);  void SetRange(double lo,double hi);
+void SetStep(double);  void SetDecimals(int);  void SetWrap(bool);
+void SetDefaultValue(double);  void ResetToDefault();
 ```
-
-- `ListView` 只有纵向滚动，其 `ContentToLocalX/LocalToContentX` 不含滚动偏移。
-- `TableView` / `TreeView` 带表头，纵向换算在各自内部已含表头处理（用它们提供的 `ContentToLocalY` 时注意语义）。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 10 章 · 应用与多窗口</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 10 章</span><h1>应用与多窗口</h1><p class="chapter-summary">Application 与多窗口</p></header><h2 id="application">Application</h2>
-<p><code>Application</code> 是进程 / UI 线程级的应用对象，管理一个共享消息循环与所有顶层窗口。它与窗口的生命周期解耦：<code>Application</code> 只是内部单例的句柄，构造 / 析构它<strong>不会</strong>销毁已创建的窗口（因此不会出现“app 先析构、窗口悬垂”这类问题）。</p>
+- **`易错`**：**空文本按“错误”处理**是控件行为（不是调用方责任）；步进按钮会先 `CommitText()`，所以未失焦的编辑值不会丢。
+- **`版本`**：`v1.12.0`；`ResetToDefault` 清错误 `v1.12.2`。</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 10 章 · 选择与输入</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 10 章</span><h1>选择与输入</h1><p class="chapter-summary">CheckBox、RadioButton、RadioGroup、ToggleSwitch、Slider、NumberBox</p></header><blockquote>
+<p>本类共性：多个控件会<strong>同时</strong>发“过程信号”和“提交信号”；静态 <code>DrawBox</code> 与数据视图共用，改外观会同时影响列表/表格/树的勾选行。</p>
+</blockquote>
+<h2 id="checkbox">CheckBox</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-47082617', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-31d8e688', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Application</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateWindow</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateWindow</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="n">owner</span><span class="p">);</span><span class="w"> </span><span class="c1">// owned 子窗口</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddWindow</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">w</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">Run</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Quit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAllWindows</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">WindowCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">   </span><span class="c1">// 应用身份自注册（见「应用身份自注册」）</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Application</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">State</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Unchecked</span><span class="p">,</span><span class="w"> </span><span class="n">PartiallyChecked</span><span class="p">,</span><span class="w"> </span><span class="n">Checked</span><span class="w"> </span><span class="p">};</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">State</span><span class="o">&gt;</span><span class="w"> </span><span class="n">StateChanged</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetChecked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetState</span><span class="p">(</span><span class="n">State</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">Toggle</span><span class="p">();</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTriState</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">DrawBox</span><span class="p">(...);</span><span class="w">   </span><span class="c1">// 可复用的勾选框绘制（数据视图也用）</span>
 </pre></div>
-<pre id="code-47082617" style="display: none;">class Application {
-    std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title);
-    std::shared_ptr&lt;Window&gt; CreateWindow(int width, int height, const std::wstring&amp; title, Window* owner); // owned 子窗口
-    void AddWindow(const std::shared_ptr&lt;Window&gt;&amp; w);
-    int Run();
-    void Quit(int code = 0);
-    void CloseAllWindows();
-    size_t WindowCount() const;
-    bool RegisterApp(const AppInfo&amp; info);   // 应用身份自注册（见「应用身份自注册」）
-    static Application&amp; Instance();
-};</pre>
-</div>
-<p><strong>推荐用法（Qt 风格）</strong>：</p>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c95f6da0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="nf">WinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">Application</span><span class="w"> </span><span class="n">app</span><span class="p">;</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">w1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">CreateWindow</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">700</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"主窗口"</span><span class="p">);</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">w2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">CreateWindow</span><span class="p">(</span><span class="mi">640</span><span class="p">,</span><span class="w"> </span><span class="mi">480</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"工具窗口"</span><span class="p">);</span>
-<span class="w">    </span><span class="c1">// 各自搭 UI：w1-&gt;GetRootColumnBox()-&gt;AddChild(...)</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span><span class="w">                    </span><span class="c1">// 单一消息循环，所有窗口共用</span>
-<span class="p">}</span>
-</pre></div>
-<pre id="code-c95f6da0" style="display: none;">int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-    ZufyUI::Application app;
-    auto w1 = app.CreateWindow(1000, 700, L"主窗口");
-    auto w2 = app.CreateWindow(640, 480, L"工具窗口");
-    // 各自搭 UI：w1-&gt;GetRootColumnBox()-&gt;AddChild(...)
-    return app.Run();                    // 单一消息循环，所有窗口共用
-}</pre>
-</div>
-<p><strong>行为与要点</strong>：</p>
-<ul>
-<li><code>CreateWindow</code> 创建窗口并登记进应用；返回的 <code>shared_ptr&lt;Window&gt;</code> <strong>必须由你持有</strong>，否则 <code>shared_ptr</code> 析构会让窗口立即被销毁。</li>
-<li><code>Run()</code> 只运行<strong>一个</strong>消息循环；同线程创建的所有窗口消息都由它分发。</li>
-<li>在 <code>Run()</code> 之后（消息循环运行期间）调用 <code>CreateWindow</code> 也能正常显示新窗口。</li>
-<li>关闭任意窗口不影响其它窗口；<strong>最后一个窗口关闭时</strong>循环自动退出。也可用 <code>Quit()</code> 主动退出。</li>
-<li>单进程应只有一个 UI 线程在跑窗口（与 Win32 一致）。</li>
-</ul>
-<h2 id="应用身份自注册registerapp-appinfo">应用身份自注册（RegisterApp / AppInfo）</h2>
-<p>把「应用名 + 图标」声明一次，库统一替你设好<strong>进程级 AppUserModelID</strong>，并（在授权后）写注册表 + 把图标缓存到本地，让 <strong>toast 左上角显示应用名与图标</strong>、跳转列表 / 任务栏分组也统一归属该身份。</p>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-39387340', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">AppInfo</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">displayName</span><span class="p">;</span><span class="w">      </span><span class="c1">// 显示名称（toast / 跳转列表 / 任务栏分组）</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">aumid</span><span class="p">;</span><span class="w">            </span><span class="c1">// 唯一 ID；留空=由 displayName 自动派生</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span><span class="w">   </span><span class="c1">// 图标（可空）</span>
-<span class="p">};</span>
-
-<span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">                 </span><span class="c1">// 自由函数</span>
-<span class="kt">bool</span><span class="w"> </span><span class="nf">Application::RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="w"> </span><span class="n">info</span><span class="p">);</span><span class="w">    </span><span class="c1">// 转发到上面（两者等价）</span>
-</pre></div>
-<pre id="code-39387340" style="display: none;">struct AppInfo {
-    std::wstring displayName;      // 显示名称（toast / 跳转列表 / 任务栏分组）
-    std::wstring aumid;            // 唯一 ID；留空=由 displayName 自动派生
-    std::shared_ptr&lt;Image&gt; icon;   // 图标（可空）
-};
-
-bool RegisterApp(const AppInfo&amp; info);                 // 自由函数
-bool Application::RegisterApp(const AppInfo&amp; info);    // 转发到上面（两者等价）</pre>
-</div>
-<p><strong>授权宏（重要）</strong>：本库不是系统库，替应用动注册表/文件属于越界行为，因此<strong>必须显式授权</strong>——在包含本库头文件<strong>之前</strong>定义宏：</p>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f6c70a3f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION</span>
-</pre></div>
-<pre id="code-f6c70a3f" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION</pre>
-</div>
-<p>未定义该宏时：<code>RegisterApp</code> 只设置进程 AUMID（<strong>无副作用</strong>），不写注册表、不落文件。</p>
-<p><strong>授权后库会做什么</strong>：</p>
-<ol>
-<li>设置进程级 AUMID：<code>SetCurrentProcessExplicitAppUserModelID</code></li>
-<li>写注册表 <code>HKCU\Software\Classes\AppUserModelId\&lt;AUMID&gt;</code>：<code>DisplayName</code> + <code>IconUri</code></li>
-<li>把图标缓存到 <code>%LOCALAPPDATA%\ZufyUI\AppReg\&lt;AUMID&gt;\app.ico</code>（由 <code>Image</code> 导出为单图 <code>.ico</code>）</li>
-<li><strong>进程退出时</strong>清空该缓存目录，并删除上面写的注册表项（避免 <code>IconUri</code> 指向已删除文件）</li>
-</ol>
-<p><strong>用法</strong>（建议创建窗口前调用一次）：</p>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2b678199', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="cp">#define ZUFYUI_ALLOW_APP_REGISTRATION   </span><span class="c1">// 需在 include 之前</span>
-<span class="p">...</span>
-<span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="n">WinMain</span><span class="p">(...)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">RegisterApp</span><span class="p">(</span><span class="n">AppInfo</span><span class="p">{</span><span class="w"> </span><span class="sa">L</span><span class="s">"我的应用"</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"ZufyUI.MyApp"</span><span class="p">,</span><span class="w"> </span><span class="n">myIcon</span><span class="w"> </span><span class="p">});</span><span class="w">   </span><span class="c1">// aumid 可留空自动派生</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">().</span><span class="n">CreateWindow</span><span class="p">(</span><span class="cm">/*...*/</span><span class="p">);</span>
-<span class="w">    </span><span class="c1">// ...</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">().</span><span class="n">Run</span><span class="p">();</span>
-<span class="p">}</span>
-</pre></div>
-<pre id="code-2b678199" style="display: none;">#define ZUFYUI_ALLOW_APP_REGISTRATION   // 需在 include 之前
-...
-int WINAPI WinMain(...) {
-    RegisterApp(AppInfo{ L"我的应用", L"ZufyUI.MyApp", myIcon });   // aumid 可留空自动派生
-    auto w = Application::Instance().CreateWindow(/*...*/);
-    // ...
-    return Application::Instance().Run();
-}</pre>
-</div>
-<p><strong>要点</strong>：</p>
-<ul>
-<li>AUMID 每进程唯一；<strong>只需调用一次</strong>。<code>aumid</code> 留空时由 <code>displayName</code> 派生（去空格/非法字符；无点号则自动加 <code>ZufyUI.</code> 前缀，最长 128 字符）。</li>
-<li>授权宏是<strong>编译期</strong>开关；未授权不会在用户机器上留下任何痕迹。</li>
-<li>Win10/11 里老式托盘气球会升级成 toast，其左上角图标/应用名由系统按 AUMID 查注册表得到——这一步正是「库替应用注册」解决的事（否则为空白）。</li>
-<li>退出清理在库内部完成，无需应用写任何代码。</li>
-</ul>
-<h2 id="多窗口的独立性与兼容">多窗口的独立性与兼容</h2>
-<ul>
-<li><strong>重绘 / 布局按窗口路由</strong>：每个元素记录所属窗口（<code>UIElement::GetWindow()</code>）；<code>RequestRepaint()</code> / <code>InvalidateLayout()</code> 只作用于所属窗口，窗口之间不会互相触发重绘。</li>
-<li><strong>DPI 每窗口</strong>：当前 DPI 缩放是<strong>线程本地</strong>的，渲染每个窗口前会设置该窗口自己的缩放，所以混合 DPI 的多窗口也能正确 <code>Snap</code>。</li>
-<li><strong>激活 / 失活按窗口</strong>：<code>Window</code> 提供实例信号 <code>Activated</code> / <code>Deactivated</code> / <code>Closed</code>，以及 <code>Closing</code>（<code>bool*</code>，置 <code>*cancel=true</code> 可取消关闭）、<code>BackdropUnsupported</code> / <code>DeviceLost</code> / <code>RenderingError</code>；全局 <code>UIZSignals::WindowDeactivated</code> 带 <code>Window*</code> 参数、<code>GlobalMouseDown</code> 带 <code>Window*</code>。ComboBox 等控件据此只响应“本窗口”的事件，不会因别的窗口而误收起。</li>
-<li><strong>叠加绘制按窗口</strong>：全局 <code>UIZSignals::DrawOverlay</code> 现在带 <code>Window*</code>（以及渲染目标）参数；订阅者<strong>必须</strong>用 <code>GetWindow()</code> 过滤，否则会把 A 窗口的下拉/弹层画到 B 窗口上（这是多窗口下最典型的串扰）。ZufyUI 自带控件已按此处理。</li>
-<li><strong>鼠标捕获</strong>：Win32 <code>SetCapture</code> 只用于“按住鼠标”的拖拽，松开立即释放（元素级逻辑捕获不受影响）。修复了“ComboBox 展开后一直持有系统鼠标捕获、导致其它窗口无法使用”的问题。</li>
-<li><strong>模态 / 父子窗口</strong>：<code>Window::SetOwner(owner)</code> 建立 owned 子窗口（始终在所有者之上、随其最小化）；<code>Window::RunModal(owner)</code> 以模态运行（禁用所有者、嵌套消息循环、关闭后恢复）。模态期间点击被禁用的所有者窗口，模态窗口会<strong>闪烁</strong>提示。</li>
-<li><strong>窗口句柄与悬垂</strong>：元素内部用<strong>窗口 id</strong> 记录所属窗口（而不是裸指针），窗口销毁后 <code>GetWindow()</code> 返回 <code>nullptr</code>，从根本上避免“元素持有已销毁窗口指针”导致的崩溃。</li>
-<li><strong>共享资源</strong>：<code>ID2D1Factory</code> 与系统计时器精度（<code>timeBeginPeriod</code>）由应用核心统一管理，多窗口共享。</li>
-<li><strong>独立渲染线程（实验特性，默认关闭、不建议开启）</strong>：<code>ZUFYUI_RENDER_THREAD</code> 默认为 <strong><code>0</code></strong> —— 单线程 <code>WM_PAINT</code> 绘制，行为稳定，<strong>推荐</strong>。置 <code>1</code> 会启用独立 render 线程（负责<strong>合成 / <code>Present</code> / vblank 节拍</strong>，UI 线程只做消息/输入/布局/动画并标脏）。⚠️ <strong>该机制目前不稳定、bug 较多</strong>（弹窗/菜单空白、悬停/<code>tooltip</code> 与按钮 hover 更新延迟、嵌套页面切换延迟、大数据量虚拟列表偶发崩溃等），<strong>不建议在正式项目开启</strong>；仅在确需 vblank 级顺滑且能承担调试成本时谨慎试用。</li>
-<li><strong>向后兼容</strong>：单窗口写法仍然有效——<code>Window win; win.Create(...); win.Show(); win.Run();</code>（1.8.0 起 <code>Create</code> 不再自动显示，需显式 <code>Show()</code>）；<code>Run()</code> 会转发到应用级消息循环。</li>
-</ul>
-<h2 id="多窗口常见坑">多窗口常见坑</h2>
-<ul>
-<li><code>CreateWindow</code> 返回的 <code>shared_ptr</code> 不要丢；丢了窗口即被销毁（可像示例那样放进容器长期持有）。</li>
-<li>需要窗口归属的全局信号（<code>GlobalMouseDown</code>、<code>WindowDeactivated</code>）都带上了 <code>Window*</code>；订阅时用 <code>GetWindow()</code> 过滤，只处理本窗口。</li>
-<li>所有窗口必须在同一 UI 线程创建与运行。</li>
-</ul>
-<h2 id="窗口生命周期与语义show-runmodal-owned-shared_ptr">窗口生命周期与语义（Show / RunModal / owned / shared_ptr）</h2>
-<p>三种"显示"方式语义不同，别混用：</p>
-<table>
-<thead>
-<tr>
-<th>方式</th>
-<th>语义</th>
-<th>所有权</th>
-<th>适用</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>Window win; win.Create(...); win.Show();</code></td>
-<td>非模态、单窗口</td>
-<td><code>win</code> 对象本身（栈/成员）</td>
-<td>主窗口 / 单窗口应用</td>
-</tr>
-<tr>
-<td><code>Application::Instance().CreateWindow(...)</code> → <code>shared_ptr&lt;Window&gt;</code></td>
-<td>非模态、可多开</td>
-<td><strong>必须自己持有返回的 <code>shared_ptr</code></strong>（丢了窗口即销毁）</td>
-<td>多窗口 / 动态开窗</td>
-</tr>
-<tr>
-<td><code>win.RunModal(Window* owner)</code>（<code>Show()</code> 之后调用）</td>
-<td><strong>模态</strong>：禁用 owner、进入嵌套消息循环、关闭后恢复</td>
-<td>由持有者决定</td>
-<td>对话框 / 确认框</td>
-</tr>
-</tbody>
-</table>
-<p>要点：
-- <strong><code>Create</code> 不再自动显示</strong>（1.8.0 起）：<code>Create</code> 之后必须显式 <code>Show()</code>。
-- <strong><code>shared_ptr</code> 即所有权</strong>：<code>CreateWindow</code> 返回的窗口，外部一旦不再持有就立即销毁。想"开着不关"就放进容器（如 <code>std::vector&lt;std::shared_ptr&lt;Window&gt;&gt;</code>）。
-- <strong>模态用 <code>RunModal(owner)</code>，不是 <code>Show</code></strong>：它禁用 owner、跑嵌套消息循环、关闭后恢复 owner。<code>MessageBox</code> 的 <code>blocking=true</code> 就是内部替你 <code>RunModal</code>。
-- <strong>owned 子窗口</strong>：<code>CreateWindow(..., Window* owner)</code> 或 <code>SetOwner(owner)</code> —— 始终在 owner 之上、随 owner 最小化；<code>SetOwnedMinimizePolicy</code> 可选 隐藏 / 禁用最小化。
-- <strong>不要手写消息循环</strong>：多窗口共用一个 <code>Application::Run()</code>；<code>RunModal</code> 的嵌套循环由库管理。</p>
-<h2 id="数据视图的坐标换算辅助方法">数据视图的坐标换算（辅助方法）</h2>
-<p><code>ListView</code> / <code>TableView</code> / <code>TreeView</code> 都提供内容坐标 &lt;-&gt; 控件本地坐标的换算（把原先散落各处的 <code>arrangedRect_.x - Snap(scrollOffsetX_)</code> 收敛到一处）：</p>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-be9c080c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="kt">float</span><span class="w"> </span><span class="nf">ContentToLocalX</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">cx</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 内容 X → 本地 X（含滚动偏移）</span>
-<span class="kt">float</span><span class="w"> </span><span class="nf">ContentToLocalY</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">cy</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="kt">float</span><span class="w"> </span><span class="nf">LocalToContentX</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">lx</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 本地 X → 内容 X</span>
-<span class="kt">float</span><span class="w"> </span><span class="nf">LocalToContentY</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">ly</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-</pre></div>
-<pre id="code-be9c080c" style="display: none;">float ContentToLocalX(float cx) const;   // 内容 X → 本地 X（含滚动偏移）
-float ContentToLocalY(float cy) const;
-float LocalToContentX(float lx) const;   // 本地 X → 内容 X
-float LocalToContentY(float ly) const;</pre>
+<pre id="code-31d8e688" style="display: none;">enum class State { Unchecked, PartiallyChecked, Checked };
+ZSignal&lt;bool&gt; Toggled;   ZSignal&lt;State&gt; StateChanged;
+void SetChecked(bool);  void SetState(State);  void Toggle();  void SetTriState(bool);
+static void DrawBox(...);   // 可复用的勾选框绘制（数据视图也用）</pre>
 </div>
 <ul>
-<li><code>ListView</code> 只有纵向滚动，其 <code>ContentToLocalX/LocalToContentX</code> 不含滚动偏移。</li>
-<li><code>TableView</code> / <code>TreeView</code> 带表头，纵向换算在各自内部已含表头处理（用它们提供的 <code>ContentToLocalY</code> 时注意语义）。</li>
+<li><strong><code>版本</code></strong>：早期加入（<code>1d886f5</code>，v1.6.0 之前）。</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.9.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">窗口 Window</span><span class="nav-desc">创建、背景、标题栏与根布局</span></a><a class="next" href="API.11.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">基础控件</span><span class="nav-desc">Label、Button、TextBox、ComboBox、ToggleSwitch、CheckBox、ScrollViewer、ProgressBar、Slider</span></a></nav>
+<h2 id="radiobutton-radiogroup">RadioButton / RadioGroup</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-62e041c2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">RadioButton</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CheckedChanged</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetChecked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RadioGroup</span><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span>
+<span class="w">                    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span>
+<span class="w">                    </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">newIdx</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">oldIdx</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanging</span><span class="p">;</span><span class="w">   </span><span class="c1">// 返回 false 可否决</span>
+<span class="w">                    </span><span class="kt">int</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">selected</span><span class="o">=</span><span class="nb">false</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">RadioButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetButton</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetItemCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedIndex</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+</pre></div>
+<pre id="code-62e041c2" style="display: none;">class RadioButton { ZSignal&lt;bool&gt; CheckedChanged; ZSignal&lt;&gt; Clicked; void SetChecked(bool); ... };
+class RadioGroup  { enum class Orientation { Vertical, Horizontal };
+                    ZSignal&lt;int&gt; SelectionChanged;
+                    std::function&lt;bool(int newIdx, int oldIdx)&gt; SelectionChanging;   // 返回 false 可否决
+                    int AddItem(const std::wstring&amp;, bool selected=false); std::shared_ptr&lt;RadioButton&gt; GetButton(int index) const; int GetItemCount() const; void SetSelectedIndex(int); ... };</pre>
+</div>
+<ul>
+<li><strong><code>易错</code></strong>：单独一个 <code>RadioButton</code> 不做互斥；互斥由 <code>RadioGroup</code> 保证。</li>
+<li><strong><code>版本</code></strong>：<code>v1.11.0</code>。</li>
+</ul>
+<h2 id="toggleswitch">ToggleSwitch</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-447acd84', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetOn</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsOn</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// 半选外观</span>
+</pre></div>
+<pre id="code-447acd84" style="display: none;">ZSignal&lt;bool&gt; Toggled;   void SetOn(bool);  bool IsOn() const;
+void SetIndeterminate(bool);   // 半选外观</pre>
+</div>
+<ul>
+<li>默认 50×24。</li>
+</ul>
+<h2 id="slider">Slider</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-21463c0d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">SliderReleased</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetRange</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">min</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">max</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStep</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSnapToStep</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+</pre></div>
+<pre id="code-21463c0d" style="display: none;">ZSignal&lt;float&gt; ValueChanged;   ZSignal&lt;&gt; SliderReleased;
+void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);  void SetSnapToStep(bool);</pre>
+</div>
+<ul>
+<li><strong><code>易错</code></strong>：<code>ValueChanged</code> 在拖动中<strong>连续</strong>触发；提交用 <code>SliderReleased</code>。</li>
+<li><strong><code>版本</code></strong>：<code>v1.18.0</code> 修 0 宽时 0/0→NaN 静默把值设成 min/max。</li>
+</ul>
+<h2 id="numberbox-内部-spinbutton">NumberBox（+ 内部 SpinButton）</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-8c670bb0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">fire</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRange</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">lo</span><span class="p">,</span><span class="kt">double</span><span class="w"> </span><span class="n">hi</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetStep</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDecimals</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetWrap</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultValue</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ResetToDefault</span><span class="p">();</span>
+</pre></div>
+<pre id="code-8c670bb0" style="display: none;">ZSignal&lt;double&gt; ValueChanged;   ZSignal&lt;const std::wstring&amp;&gt; TextChanged;
+void SetValue(double, bool fire=true);  void SetRange(double lo,double hi);
+void SetStep(double);  void SetDecimals(int);  void SetWrap(bool);
+void SetDefaultValue(double);  void ResetToDefault();</pre>
+</div>
+<ul>
+<li><strong><code>易错</code></strong>：<strong>空文本按“错误”处理</strong>是控件行为（不是调用方责任）；步进按钮会先 <code>CommitText()</code>，所以未失焦的编辑值不会丢。</li>
+<li><strong><code>版本</code></strong>：<code>v1.12.0</code>；<code>ResetToDefault</code> 清错误 <code>v1.12.2</code>。</li>
+</ul>
+<nav class="chapter-nav"><a class="prev" href="API.9.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">基础控件</span><span class="nav-desc">Label、Button、TextBox、TextEdit、ComboBox</span></a><a class="next" href="API.11.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">进度</span><span class="nav-desc">ProgressBar、ProgressRing</span></a></nav>
         </main>
     </div>
 

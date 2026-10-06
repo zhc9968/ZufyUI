@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fonts · ZufyUI API Reference</title>
+    <title>Fonts & Icons · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,7 +197,7 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class="active"><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="fontspec"><div class="toc-row"><a href="#fontspec" data-target="fontspec">FontSpec</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="fontmanager-singleton"><div class="toc-row"><a href="#fontmanager-singleton" data-target="fontmanager-singleton">FontManager (singleton)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="font-resolution-chain-important"><div class="toc-row"><a href="#font-resolution-chain-important" data-target="font-resolution-chain-important">Font resolution chain (important)</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class="active"><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="fontspec"><div class="toc-row"><a href="#fontspec" data-target="fontspec">FontSpec</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="fontmanager-singleton-text-layout-cache"><div class="toc-row"><a href="#fontmanager-singleton-text-layout-cache" data-target="fontmanager-singleton-text-layout-cache">FontManager (singleton, text-layout cache)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="icon-font-glyphs"><div class="toc-row"><a href="#icon-font-glyphs" data-target="icon-font-glyphs">Icon (font glyphs)</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## FontSpec
@@ -207,123 +207,121 @@ struct FontSpec {
     std::wstring familyName = L"Segoe UI";
     float size = 14.0f;
     DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
-    DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL;
+    DWRITE_FONT_STYLE  style  = DWRITE_FONT_STYLE_NORMAL;
     DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL;
     std::wstring locale = L"en-us";
-    bool operator==(const FontSpec&amp; other) const;
-    bool operator!=(const FontSpec&amp; other) const;
+    bool operator==/!=(...) const;
 };
 ```
 
-- A comparable value object, usable as a hash key (`FontSpecHash`), so it can live in an `unordered_map`.
-- `size` is in points under DIP.
-- `familyName` is a system font name (e.g. `Microsoft YaHei`, `Segoe UI`).
+## FontManager (singleton, text-layout cache)
 
-## FontManager (singleton)
+```cpp
+static FontManager&amp; Instance();
+IDWriteFactory* GetFactory();
+IDWriteTextFormat* GetFormat(const FontSpec&amp;);        // never evicted
+ComPtr&lt;IDWriteTextLayout&gt; GetRawLayout(text, fmt, maxW, maxH, noWrap);
+ComPtr&lt;IDWriteTextLayout&gt; GetDisplayLayout(origText, fmt, maxW, maxH, noWrap);   // ellipsized
+ComPtr&lt;IDWriteTextLayout&gt; GetStyledLayout(text, fmt, w, h, noWrap, hAlign, vAlign, lineSpacing, maxLines);
+ComPtr&lt;IDWriteTextLayout&gt; GetStyledDisplayLayout(...);
+void CacheDisplayLayout(...);  void CacheStyledDisplayLayout(...);
+void SetGlobalFont(const FontSpec&amp;);
+ZSignal&lt;&gt; GlobalFontChanged;
+```
+- **`Pitfall`**: returned layouts are **shared read-only**; do not call `SetTextAlignment/SetLineSpacing/SetTrimming` on them (the cache key would no longer match).
+- The layout cache is **bounded** (400 entries, FIFO evicts ¼) and returns strong refs (`ComPtr`), safe during use.
+- **`Pitfall`**: `GetFormat`'s `IDWriteTextFormat*` is **never evicted** — do not mutate it.
+- **`Version`**: `GetStyledLayout`/global layout cache hardened in `v1.10.1`.
 
-| Method | Notes |
-| --- | --- |
-| `static FontManager&amp; Instance()` | Meyers singleton, constructed on first use. |
-| `IDWriteFactory* GetFactory()` | Lazily creates and shares `IDWriteFactory`. |
-| `IDWriteTextFormat* GetFormat(const FontSpec&amp;)` | Caches a shared `IDWriteTextFormat` per spec. Returns a **shared** object — do not `Release` or mutate it. |
-| `void SetGlobalFont(const FontSpec&amp;)` | Sets the global font and fires `GlobalFontChanged`. |
-| `const FontSpec&amp; GetGlobalFont() const` | Reads the global font. |
-| `ZSignal&lt;&gt; GlobalFontChanged` | Every element without an instance font override subscribes to it and rebuilds its text layout. |
+## Icon (font glyphs)
 
-## Font resolution chain (important)
-
-An element's effective font resolves as:
-
-1. instance override via `SetFont(...)` / `SetFontFamily(...)` / `SetFontSize(...)` / `SetFontWeight(...)`;
-2. type default (a control overriding `GetTypeDefaultFont()`, e.g. `Label` defaults to 16, `TextBox` to 14);
-3. global default (`FontManager::GetGlobalFont()`).
-
-`GetEffectiveFontSpec()` returns the resolved spec; `GetFontFormat()` turns it into a shared `IDWriteTextFormat` (with a per-instance fast cache).
-
-- After calling an instance `SetFont*`, `HasFontOverride()` is true and the element **no longer** follows global font changes.
-- `ClearFont()` clears the override and returns to the chain.</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 5 · Fonts</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 5</span><h1>Fonts</h1><p class="chapter-summary">FontSpec and FontManager</p></header><h2 id="fontspec">FontSpec</h2>
+```cpp
+enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., Pin=0xE718, View=0xE890, ... };
+inline const std::wstring&amp; IconFontFamily();   // Segoe Fluent Icons → fallback Segoe MDL2 Assets
+inline std::wstring IconGlyph(Icon);
+```
+- **`Pitfall`**: the enum value **is the font codepoint**. Font fallback is probed **once, statically**; runtime font changes are not re-probed; a few Win11-only glyphs render as a box.
+- **`Version`**: `Icon` sunk into `ZufyUIWidgets.h` in `v1.13.0`; all `Label`-derived controls gained `SetIcon`.</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 5 · Fonts &amp; Icons</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 5</span><h1>Fonts &amp; Icons</h1><p class="chapter-summary">FontSpec, FontManager, Icon</p></header><h2 id="fontspec">FontSpec</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-51991d6e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-a20e2bec', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FontSpec</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">familyName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"Segoe UI"</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">14.0f</span><span class="p">;</span>
 <span class="w">    </span><span class="n">DWRITE_FONT_WEIGHT</span><span class="w"> </span><span class="n">weight</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DWRITE_FONT_WEIGHT_NORMAL</span><span class="p">;</span>
-<span class="w">    </span><span class="n">DWRITE_FONT_STYLE</span><span class="w"> </span><span class="n">style</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DWRITE_FONT_STYLE_NORMAL</span><span class="p">;</span>
+<span class="w">    </span><span class="n">DWRITE_FONT_STYLE</span><span class="w">  </span><span class="n">style</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">DWRITE_FONT_STYLE_NORMAL</span><span class="p">;</span>
 <span class="w">    </span><span class="n">DWRITE_FONT_STRETCH</span><span class="w"> </span><span class="n">stretch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DWRITE_FONT_STRETCH_NORMAL</span><span class="p">;</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">locale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"en-us"</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="k">operator</span><span class="o">==</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="w"> </span><span class="n">other</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="k">operator</span><span class="o">!=</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="w"> </span><span class="n">other</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="k">operator</span><span class="o">==/!=</span><span class="p">(...)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-51991d6e" style="display: none;">struct FontSpec {
+<pre id="code-a20e2bec" style="display: none;">struct FontSpec {
     std::wstring familyName = L"Segoe UI";
     float size = 14.0f;
     DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
-    DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL;
+    DWRITE_FONT_STYLE  style  = DWRITE_FONT_STYLE_NORMAL;
     DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL;
     std::wstring locale = L"en-us";
-    bool operator==(const FontSpec&amp; other) const;
-    bool operator!=(const FontSpec&amp; other) const;
+    bool operator==/!=(...) const;
 };</pre>
 </div>
+<h2 id="fontmanager-singleton-text-layout-cache">FontManager (singleton, text-layout cache)</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-6b550710', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">FontManager</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
+<span class="n">IDWriteFactory</span><span class="o">*</span><span class="w"> </span><span class="nf">GetFactory</span><span class="p">();</span>
+<span class="n">IDWriteTextFormat</span><span class="o">*</span><span class="w"> </span><span class="nf">GetFormat</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span><span class="w">        </span><span class="c1">// never evicted</span>
+<span class="n">ComPtr</span><span class="o">&lt;</span><span class="n">IDWriteTextLayout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetRawLayout</span><span class="p">(</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">fmt</span><span class="p">,</span><span class="w"> </span><span class="n">maxW</span><span class="p">,</span><span class="w"> </span><span class="n">maxH</span><span class="p">,</span><span class="w"> </span><span class="n">noWrap</span><span class="p">);</span>
+<span class="n">ComPtr</span><span class="o">&lt;</span><span class="n">IDWriteTextLayout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetDisplayLayout</span><span class="p">(</span><span class="n">origText</span><span class="p">,</span><span class="w"> </span><span class="n">fmt</span><span class="p">,</span><span class="w"> </span><span class="n">maxW</span><span class="p">,</span><span class="w"> </span><span class="n">maxH</span><span class="p">,</span><span class="w"> </span><span class="n">noWrap</span><span class="p">);</span><span class="w">   </span><span class="c1">// ellipsized</span>
+<span class="n">ComPtr</span><span class="o">&lt;</span><span class="n">IDWriteTextLayout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetStyledLayout</span><span class="p">(</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">fmt</span><span class="p">,</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="n">noWrap</span><span class="p">,</span><span class="w"> </span><span class="n">hAlign</span><span class="p">,</span><span class="w"> </span><span class="n">vAlign</span><span class="p">,</span><span class="w"> </span><span class="n">lineSpacing</span><span class="p">,</span><span class="w"> </span><span class="n">maxLines</span><span class="p">);</span>
+<span class="n">ComPtr</span><span class="o">&lt;</span><span class="n">IDWriteTextLayout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetStyledDisplayLayout</span><span class="p">(...);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">CacheDisplayLayout</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">CacheStyledDisplayLayout</span><span class="p">(...);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetGlobalFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">GlobalFontChanged</span><span class="p">;</span>
+</pre></div>
+<pre id="code-6b550710" style="display: none;">static FontManager&amp; Instance();
+IDWriteFactory* GetFactory();
+IDWriteTextFormat* GetFormat(const FontSpec&amp;);        // never evicted
+ComPtr&lt;IDWriteTextLayout&gt; GetRawLayout(text, fmt, maxW, maxH, noWrap);
+ComPtr&lt;IDWriteTextLayout&gt; GetDisplayLayout(origText, fmt, maxW, maxH, noWrap);   // ellipsized
+ComPtr&lt;IDWriteTextLayout&gt; GetStyledLayout(text, fmt, w, h, noWrap, hAlign, vAlign, lineSpacing, maxLines);
+ComPtr&lt;IDWriteTextLayout&gt; GetStyledDisplayLayout(...);
+void CacheDisplayLayout(...);  void CacheStyledDisplayLayout(...);
+void SetGlobalFont(const FontSpec&amp;);
+ZSignal&lt;&gt; GlobalFontChanged;</pre>
+</div>
 <ul>
-<li>A comparable value object, usable as a hash key (<code>FontSpecHash</code>), so it can live in an <code>unordered_map</code>.</li>
-<li><code>size</code> is in points under DIP.</li>
-<li><code>familyName</code> is a system font name (e.g. <code>Microsoft YaHei</code>, <code>Segoe UI</code>).</li>
+<li><strong><code>Pitfall</code></strong>: returned layouts are <strong>shared read-only</strong>; do not call <code>SetTextAlignment/SetLineSpacing/SetTrimming</code> on them (the cache key would no longer match).</li>
+<li>The layout cache is <strong>bounded</strong> (400 entries, FIFO evicts ¼) and returns strong refs (<code>ComPtr</code>), safe during use.</li>
+<li><strong><code>Pitfall</code></strong>: <code>GetFormat</code>'s <code>IDWriteTextFormat*</code> is <strong>never evicted</strong> — do not mutate it.</li>
+<li><strong><code>Version</code></strong>: <code>GetStyledLayout</code>/global layout cache hardened in <code>v1.10.1</code>.</li>
 </ul>
-<h2 id="fontmanager-singleton">FontManager (singleton)</h2>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>static FontManager&amp; Instance()</code></td>
-<td>Meyers singleton, constructed on first use.</td>
-</tr>
-<tr>
-<td><code>IDWriteFactory* GetFactory()</code></td>
-<td>Lazily creates and shares <code>IDWriteFactory</code>.</td>
-</tr>
-<tr>
-<td><code>IDWriteTextFormat* GetFormat(const FontSpec&amp;)</code></td>
-<td>Caches a shared <code>IDWriteTextFormat</code> per spec. Returns a <strong>shared</strong> object — do not <code>Release</code> or mutate it.</td>
-</tr>
-<tr>
-<td><code>void SetGlobalFont(const FontSpec&amp;)</code></td>
-<td>Sets the global font and fires <code>GlobalFontChanged</code>.</td>
-</tr>
-<tr>
-<td><code>const FontSpec&amp; GetGlobalFont() const</code></td>
-<td>Reads the global font.</td>
-</tr>
-<tr>
-<td><code>ZSignal&lt;&gt; GlobalFontChanged</code></td>
-<td>Every element without an instance font override subscribes to it and rebuilds its text layout.</td>
-</tr>
-</tbody>
-</table>
-<h2 id="font-resolution-chain-important">Font resolution chain (important)</h2>
-<p>An element's effective font resolves as:</p>
-<ol>
-<li>instance override via <code>SetFont(...)</code> / <code>SetFontFamily(...)</code> / <code>SetFontSize(...)</code> / <code>SetFontWeight(...)</code>;</li>
-<li>type default (a control overriding <code>GetTypeDefaultFont()</code>, e.g. <code>Label</code> defaults to 16, <code>TextBox</code> to 14);</li>
-<li>global default (<code>FontManager::GetGlobalFont()</code>).</li>
-</ol>
-<p><code>GetEffectiveFontSpec()</code> returns the resolved spec; <code>GetFontFormat()</code> turns it into a shared <code>IDWriteTextFormat</code> (with a per-instance fast cache).</p>
+<h2 id="icon-font-glyphs">Icon (font glyphs)</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-f0888cfb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Icon</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">short</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="o">=</span><span class="mh">0x0000</span><span class="p">,</span><span class="w"> </span><span class="n">Add</span><span class="o">=</span><span class="mh">0xE710</span><span class="p">,</span><span class="w"> </span><span class="n">Remove</span><span class="o">=</span><span class="mh">0xE738</span><span class="p">,</span><span class="w"> </span><span class="p">...,</span><span class="w"> </span><span class="n">Pin</span><span class="o">=</span><span class="mh">0xE718</span><span class="p">,</span><span class="w"> </span><span class="n">View</span><span class="o">=</span><span class="mh">0xE890</span><span class="p">,</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+<span class="kr">inline</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">IconFontFamily</span><span class="p">();</span><span class="w">   </span><span class="c1">// Segoe Fluent Icons → fallback Segoe MDL2 Assets</span>
+<span class="kr">inline</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">IconGlyph</span><span class="p">(</span><span class="n">Icon</span><span class="p">);</span>
+</pre></div>
+<pre id="code-f0888cfb" style="display: none;">enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., Pin=0xE718, View=0xE890, ... };
+inline const std::wstring&amp; IconFontFamily();   // Segoe Fluent Icons → fallback Segoe MDL2 Assets
+inline std::wstring IconGlyph(Icon);</pre>
+</div>
 <ul>
-<li>After calling an instance <code>SetFont*</code>, <code>HasFontOverride()</code> is true and the element <strong>no longer</strong> follows global font changes.</li>
-<li><code>ClearFont()</code> clears the override and returns to the chain.</li>
+<li><strong><code>Pitfall</code></strong>: the enum value <strong>is the font codepoint</strong>. Font fallback is probed <strong>once, statically</strong>; runtime font changes are not re-probed; a few Win11-only glyphs render as a box.</li>
+<li><strong><code>Version</code></strong>: <code>Icon</code> sunk into <code>ZufyUIWidgets.h</code> in <code>v1.13.0</code>; all <code>Label</code>-derived controls gained <code>SetIcon</code>.</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.4.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Signals and connections</span><span class="nav-desc">ZSignal, Connection, ConnectionGroup, and global signals</span></a><a class="next" href="API.en.6.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Core element UIElement</span><span class="nav-desc">Size, layout, drawing, events, and fonts</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.en.4.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Events &amp; Signals</span><span class="nav-desc">ZSignal, Connection, cross-thread</span></a><a class="next" href="API.en.6.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Element base</span><span class="nav-desc">UIElement (layout props, cache, events, accessibility, debug)</span></a></nav>
         </main>
     </div>
 

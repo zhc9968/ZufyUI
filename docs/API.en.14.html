@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Window tools · ZufyUI API Reference</title>
+    <title>Data views · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,747 +197,259 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class="active"><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="messagebox-fastbutton"><div class="toc-row"><a href="#messagebox-fastbutton" data-target="messagebox-fastbutton">MessageBox / FastButton</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="window-icon-activation-flash"><div class="toc-row"><a href="#window-icon-activation-flash" data-target="window-icon-activation-flash">Window icon / activation / flash</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="tray-icon-trayicon"><div class="toc-row"><a href="#tray-icon-trayicon" data-target="tray-icon-trayicon">Tray icon (TrayIcon)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="taskbar-progress-overlay-badge-thumbnail-toolbar-jump-list"><div class="toc-row"><a href="#taskbar-progress-overlay-badge-thumbnail-toolbar-jump-list" data-target="taskbar-progress-overlay-badge-thumbnail-toolbar-jump-list">Taskbar (progress / overlay badge / thumbnail toolbar / jump list)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="window-level-hooks-overridable"><div class="toc-row"><a href="#window-level-hooks-overridable" data-target="window-level-hooks-overridable">Window-level hooks (overridable)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="timer"><div class="toc-row"><a href="#timer" data-target="timer">Timer</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class="active"><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="listview"><div class="toc-row"><a href="#listview" data-target="listview">ListView</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="tableview"><div class="toc-row"><a href="#tableview" data-target="tableview">TableView</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="treenode-plain-struct"><div class="toc-row"><a href="#treenode-plain-struct" data-target="treenode-plain-struct">TreeNode (plain struct)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="treeview"><div class="toc-row"><a href="#treeview" data-target="treeview">TreeView</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>Window-level controls live in `ZufyUIWindowTool.h` (a collection that will later also host a built-in MessageBox, etc.).
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>&gt; **Read this first.** Since **v1.15.0** all three views are **viewport-virtualized + Label-pooled**. There are **two coordinate systems** — **source row index** (stable; legacy APIs/signals) and **visible order** (post hide/filter/sort). **Mixing them is the #1 bug source.** In virtual mode rows have no persistent `Label`; `SetTextFast` is the pool rebind path. Serialize data mutation with rendering (`RenderGuard()`).
+
+## ListView
 
 ```cpp
-class TitleBar : public UIElement {
-    void SetTitle(const std::wstring&amp;);
-    const std::wstring&amp; GetTitle() const;
-    void SetIcon(std::shared_ptr&lt;Image&gt;);        // reuses the image system
-    void SetIconSize(float w, float h);
-    void SetShowIcon(bool);
-    void SetShowTitle(bool);
-    void SetContentPadding(float left, float right = 8.0f);
-    void SetBackgroundColor(Color);  void SetActiveBackgroundColor(Color);
-    void SetTitleColor(Color);       void SetActiveTitleColor(Color);
-    void SetButtonWidth(float);      // also SetButtonHeight / SetRightMargin
-    void SetButtonHeight(float);
-    void SetRightMargin(float);
-    void ClearRightMargin();
-    void SetButtonsEnabled(bool);
-    bool AreButtonsEnabled() const;
-    // Per-button control (detailed disable API)
-    std::shared_ptr&lt;CaptionButton&gt; GetButton(CaptionButton::Kind) const;
-    void SetButtonEnabled(CaptionButton::Kind, bool);   // gray out, ignore input, don't report the NC button code
-    bool IsButtonEnabled(CaptionButton::Kind) const;
-    void SetButtonVisible(CaptionButton::Kind, bool);   // hidden buttons take no space
-    bool IsButtonVisible(CaptionButton::Kind) const;
-};
-
-class CaptionButton : public UIElement {
-    enum class Kind { Minimize, MaximizeRestore, Close };
-    explicit CaptionButton(Kind kind);
-    ZSignal&lt;&gt; Clicked;              // default behaviour wired by DefaultTitleBar
-    void SetHoverColor(Color);      void SetPressedColor(Color);
-    void SetCloseHoverColor(Color); void SetClosePressedColor(Color);
-    void SetGlyphColor(Color);
-    void SetButtonWidth(float);
-    void SetAnimationSpeed(float);
-};
-
-class DefaultTitleBar : public TitleBar {
-    DefaultTitleBar();               // built-in minimize / maximize-restore / close
-    std::shared_ptr&lt;CaptionButton&gt; GetMinButton() const;
-    std::shared_ptr&lt;CaptionButton&gt; GetMaxButton() const;
-    std::shared_ptr&lt;CaptionButton&gt; GetCloseButton() const;
-    // convenience: enable/disable, show/hide the three buttons individually
-    void SetMinimizeEnabled(bool);  void SetMaximizeEnabled(bool);  void SetCloseEnabled(bool);
-    void SetMinimizeVisible(bool);  void SetMaximizeVisible(bool);  void SetCloseVisible(bool);
-};
+enum class SelectionMode { Single, Extended, Multi, None };
+ZSignal&lt;int&gt; SelectionChanged, ItemClicked, ItemDoubleClicked, ItemRightClicked;
+ZSignal&lt;std::vector&lt;int&gt;&gt; SelectionChangedMulti;   ZSignal&lt;int,bool&gt; ItemCheckStateChanged;
+float ContentToLocalX/Y(float) const;   float LocalToContentX/Y(float) const;   // v1.10.0
+void AddItem(const std::wstring&amp;);   void SetItem(int, const std::wstring&amp;);
+std::wstring GetItemText(int) const;   int GetItemCount() const;
+void SortItems(std::function&lt;bool(const std::wstring&amp;,const std::wstring&amp;)&gt;);   void ScrollToItem(int);
+void BeginUpdate();   void EndUpdate();
+// virtualization (v1.15.0)
+void SetItemCount(int n);
+void SetItemHidden(int src, bool=true);   bool IsItemHidden(int src) const;   void ClearHidden();
+void SetFilter(std::function&lt;bool(int)&gt;);  void ClearFilter();
+void SetViewComparator(std::function&lt;bool(int,int)&gt;);  void SortView(bool ascending=true);  void ClearViewSort();
+int  VisibleCount() const;   int SourceOfVisible(int vi) const;   int VisibleOfSource(int src) const;
+std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   int GetSelectedVisible() const;
+// check / per-item metadata
+void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector&lt;int&gt; GetCheckedIndices() const;
+void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&amp;);
 ```
+- **`Pitfall`**: `Sort()` rearranges `items_` and **clears multi-selection/checks**; `SortView` only changes **visible order**.
+- **`Pitfall`**: pooled text uses `SetTextFast`, and the container must re-measure on width change (`v1.18.0` adds `poolW_` to re-measure on width change, fixing stale ellipsis).
+- **`Version`**: `BeginUpdate` `v1.9.6`; coords `v1.10.0`; virtualization/hide/filter/visible order `v1.15.0`.
 
-**Usage**:
+## TableView
 
 ```cpp
-auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
-bar-&gt;SetTitle(L"My Window");
-bar-&gt;SetIcon(myImage);                 // optional
-win.SetCustomTitleBar(bar);            // install; win.SetCustomTitleBar(nullptr) restores the native one
+enum class SelectionMode { Cell, Row, Column, None };
+static long long CellKey(int r,int c); static int CellKeyRow(long long); static int CellKeyCol(long long);
+ZSignal&lt;int,int&gt; CellClicked, CellDoubleClicked, CurrentCellChanged, CellRightClicked;
+ZSignal&lt;int&gt; HeaderClicked;  ZSignal&lt;std::vector&lt;std::pair&lt;int,int&gt;&gt;&gt; SelectionChangedCells;
+void SetRowCount(int);  void SetColumnCount(int);  void AppendRow/Column(); InsertRow/Column(int); RemoveRow/Column(int);
+void SetItem(int row,int col,const std::wstring&amp;);  std::wstring GetItemText(int r,int c) const;
+void SetHeaderLabel(int,const std::wstring&amp;);  void SetColumnWidth(int,float);   // min 40
+void SetColumnAlignment(int, TextHAlign);   void SetRowHeight(float);  void SetRowHeightAt(int,float);
+void SetColumnVisible(int,bool);
+// virtualization (v1.15.0; all by source row): SetItemHidden/SetFilter/SetViewComparator/SortView/VisibleCount/SourceOfVisible/VisibleOfSource
+// selection / check / metadata
+void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow(int);  void GetSelectedCells();
+void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int,bool);
+void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&amp;);
+void SetColumnComparator(int, std::function&lt;bool(const std::wstring&amp;,const std::wstring&amp;)&gt;);  void SortByColumn(int,bool=true);
 ```
+- **`Pitfall`**: default `Cell` selection; row/cell metadata **remaps** with insert/remove/sort; hidden columns don't hit-test.
 
-**Notes and pitfalls**:
-
-- The title bar does **not participate in layout** (Window places it at `(0,0)`), defaults to `DrawAfterLayout`, is **not focusable** (skipped by Tab) and has `UseCache()==true` (repaints only on state change).
-- Buttons are drawn with the system icon font `Segoe Fluent Icons` (Win11) / `Segoe MDL2 Assets` (Win10), matching the system glyphs (minimize `E921`, maximize `E922`, restore `E923`, close `E8BB`); a vector fallback is used when the font is unavailable.
-- Hover/press are animated; minimize/maximize hover light gray, **close hover red** (`#C42B1C`).
-- Buttons report system hit codes (`HTMINBUTTON` / `HTMAXBUTTON` / `HTCLOSE`) from `WM_NCHITTEST`, so **hovering the maximize button shows the system Snap Layouts**; clicks are handled in `WM_NCLBUTTONUP`.
-- The title bar's own rect (excluding buttons) is the window **drag region**; dragging / Aero Snap / double-click maximize are handled by the system.
-- It is **not recommended** to `AddChild` the title bar into a layout (it does not participate); use `Window::SetCustomTitleBar`.
-
-## MessageBox / FastButton
-
-Preset message box built on `Window` / `DefaultTitleBar` / `Window::RunModal`. It *is* a `Window`, so you can add any controls to it.
+## TreeNode (plain struct)
 
 ```cpp
-enum class FastButton : unsigned {   // bit flags, combine with |
-    None = 0, OK = 1 &lt;&lt; 0, Cancel = 1 &lt;&lt; 1, Apply = 1 &lt;&lt; 2,
-    Close = 1 &lt;&lt; 3, Yes = 1 &lt;&lt; 4, No = 1 &lt;&lt; 5, Help = 1 &lt;&lt; 6
-};
-FastButton operator|(FastButton, FastButton);
-FastButton operator&amp;(FastButton, FastButton);
-bool HasFlag(FastButton set, FastButton flag);      // bit test
-
-class MessageBox : public Window {
-    enum class Icon { None, Info, Warning, Error, Question };
-    enum class Lang { English, Chinese };
-
-    // Quick call: creates the window in the ctor; blocking=true runs the modal loop inside the ctor
-    MessageBox(Window* parent, const std::wstring&amp; title, const std::wstring&amp; content,
-               Icon icon = Icon::None, FastButton buttons = FastButton::OK, bool blocking = true);
-    MessageBox(HWND parent, const std::wstring&amp; title, const std::wstring&amp; content, ...);
-    MessageBox(const std::wstring&amp; title, const std::wstring&amp; content, ...);   // no parent
-    // content can also be a control (Label / TextBox / GridLayout ...)
-    MessageBox(Window* parent, const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content, ...);
-
-    static void SetLanguage(Lang);                          // preset EN/ZH button text, default English
-    static Lang GetLanguage();
-    static std::wstring ButtonLabel(FastButton);
-    void SetButtonText(FastButton, const std::wstring&amp;);    // override one button's text
-    void SetIconImage(std::shared_ptr&lt;Image&gt;);              // custom icon (default: built-in system icon)
-    void SetUserContent(std::shared_ptr&lt;UIElement&gt;);        // afterwards no preset buttons; fully user-controlled
-    void EndDialog(FastButton);                             // end manually with custom content
-
-    FastButton GetResult() const;
-    ZSignal&lt;FastButton&gt; ButtonClicked;
-};
+enum class CheckState { Unchecked, PartiallyChecked, Checked };
+std::vector&lt;std::shared_ptr&lt;Label&gt;&gt; columns;   // one real Label per column; col0 = node text
+std::weak_ptr&lt;TreeNode&gt; parent;                // weak! use .lock()
+std::vector&lt;std::shared_ptr&lt;TreeNode&gt;&gt; children;
+bool expanded;  int depth;  void* userData;
+std::wstring icon;  bool checkable;  CheckState checkState;  bool selected;  bool enabled;
+std::wstring tooltip;   Color bgColor = Color(0,0,0,0);   // row background, v1.17.0
 ```
+- **`Pitfall`**: `parent` is `weak_ptr`; row background is the **`node-&gt;bgColor`** field (**no** `SetNodeBackgroundColor`).
+- **`Version`**: `bgColor` `v1.17.0`.
+
+## TreeView
 
 ```cpp
-ZufyUI::MessageBox box(owner, L"Title", L"Body", MessageBox::Icon::Info,
-                    FastButton::Yes | FastButton::No | FastButton::Cancel);
-if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }
+enum class SelectionMode { Single, Extended, Multi };   enum class CheckMode { Linked, Independent };
+ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;&gt; SelectionChanged, NodeClicked, ItemDoubleClicked, ItemRightClicked;
+ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;,bool&gt; ExpandChanged;   ZSignal&lt;int&gt; HeaderClicked;
+ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;, TreeNode::CheckState&gt; ItemCheckStateChanged;
+void SetColumnCount(int);  void SetHeaderLabels(const std::vector&lt;std::wstring&gt;&amp;);  void SetColumnWidth(int,float);
+std::shared_ptr&lt;TreeNode&gt; AddRoot(const std::wstring&amp;);   std::shared_ptr&lt;TreeNode&gt; AddChild(parent, const std::wstring&amp;);
+void RemoveNode(node);  void RemoveChildren(node);  void MoveNode(node, newParent, int index);  void Clear();
+void BeginUpdate();  void EndUpdate();                       // v1.15.0: defer BuildVisibleList (avoids O(N^2))
+void SetNodeText(node,int col,const std::wstring&amp;);   void SetNodeTooltip(node, ...);   void SetNodeIcon(node, ...);
+void ExpandNode(node,bool);  void ExpandAll();  void CollapseAll();  void ExpandToDepth(int);
+void SetDefaultExpandDepth(int);                             // affects only future inserts
+void SetFilter(std::function&lt;bool(const std::shared_ptr&lt;TreeNode&gt;&amp;)&gt;);   void Search(const std::wstring&amp;);
+void SetSelectionMode(SelectionMode);  void SetSelectedNode(node);  std::vector&lt;std::shared_ptr&lt;TreeNode&gt;&gt; GetSelectedNodes() const;
+void SetCheckable(bool enable, bool recursive=true);  void SetCheckMode(CheckMode);
+void SetNodeCheckState(node, TreeNode::CheckState, bool updateChildren=true, bool updateParent=true);
+float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToNode(node);   // v1.17.0
 ```
-
-- Button order (left to right): `Yes No OK Apply Cancel Close Help`; **Enter = leftmost button, ESC = Cancel/Close (leftmost if absent)**; buttons are right-aligned.
-- `parent` may be a `Window*` / `HWND` / omitted; it is an owned window (no taskbar button), not resizable, close button only.
-- Height auto-fits the content; a **truncated button shows its full text as a tooltip on hover** (a user `SetToolTip` wins).
-- Customize with `SetUserContent` (no preset buttons afterwards) or the `shared_ptr&lt;UIElement&gt;` ctor; for full flow control build with `blocking=false` and call `RunModal` yourself.
-- Note: `windows.h` defines `MessageBox` as a macro for `MessageBoxW`; this library `#undef`s it in `ZufyUIWindowTool.h`. Use `MessageBoxW/A` explicitly for Win32.
-
-## Window icon / activation / flash
-
-```cpp
-class Window {
-    // Unified app icon (native big/small + class icons + custom title bar)
-    void SetAppIcon(HICON bigIcon, HICON smallIcon);
-    void SetAppIcon(std::shared_ptr&lt;Image&gt; big, std::shared_ptr&lt;Image&gt; small = nullptr);  // auto-converts
-    void SetAppIconFromResource(int bigId, int smallId = 0);
-
-    enum class ActivateMode { Raise, Activate, Foreground, All };
-    void ShowActivate(ActivateMode mode = ActivateMode::All);   // restores if minimized; Foreground/All call SetForegroundWindow
-    void Raise();                                               // raise Z-order only
-
-    void Flash(int times = 5, bool alsoTaskbar = true);         // default FLASHW_ALL
-    void FlashUntilForeground();
-    void StopFlash();
-};
-```
-
-- `SetAppIcon(Image)` uses `Image::ToHICON()`; after setting, the taskbar / Alt-Tab / title bar icons are consistent (class icons included).
-- `ShowActivate(All)` = restore (if minimized) + raise + `SetForegroundWindow` (uses `AttachThreadInput` for reliability).
-- `Flash()` defaults to `FLASHW_ALL` (taskbar button + window caption).
-
-## Tray icon (TrayIcon)
-
-`Shell_NotifyIcon` wrapper (`NOTIFYICON_VERSION_4`): hover / click / right-click menu / badge / balloon.
-
-```cpp
-class TrayIcon {
-    bool Add(HICON icon, const std::wstring&amp; tooltip, UINT id = 1);
-    bool Add(std::shared_ptr&lt;Image&gt; icon, const std::wstring&amp; tooltip, UINT id = 1);   // auto-converts
-    bool AddFromResource(int resId, const std::wstring&amp; tooltip, UINT id = 1);
-    bool AddFromFile(const std::wstring&amp; icoPath, const std::wstring&amp; tooltip, UINT id = 1);
-    void Remove();
-    bool IsAdded() const;
-
-    void SetIcon(HICON);   void SetIcon(std::shared_ptr&lt;Image&gt;);
-    void SetToolTip(const std::wstring&amp;);
-    void SetMenu(std::shared_ptr&lt;Menu&gt;);
-
-    void SetBadge(Color color = Color::FromArgb(255, 220, 40, 40));   // bottom-right red dot
-    void ClearBadge();
-
-    enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
-    void ShowBalloon(const std::wstring&amp; title, const std::wstring&amp; text,
-                     BalloonIcon icon = BalloonIcon::Custom,
-                     HICON customIcon = nullptr, bool realtime = false, bool noSound = false);
-
-    bool GetRect(RECT&amp; out) const;
-    HWND GetHwnd() const;
-
-    ZSignal&lt;&gt; Clicked; ZSignal&lt;&gt; DoubleClicked; ZSignal&lt;&gt; RightClicked;
-    ZSignal&lt;&gt; HoverEnter; ZSignal&lt;&gt; HoverLeave; ZSignal&lt;&gt; Selected;
-    ZSignal&lt;&gt; BalloonClicked; ZSignal&lt;&gt; BalloonDismissed; ZSignal&lt;&gt; BalloonTimeout;
-};
-```
-
-**Notes:**
-
-- v4 callbacks: right-click arrives as `WM_CONTEXTMENU`; hover as `NIN_POPUPOPEN/CLOSE`; double-click is detected in `NIN_SELECT` via `GetDoubleClickTime()`.
-- `Add` with the same id does `NIM_MODIFY`; re-added automatically after `explorer` restarts (`TaskbarCreated`).
-- `BalloonIcon`: `None/Info/Warning/Error` (system icons) / `Custom` (uses `customIcon`, default = current tray icon); `realtime=true` (`NIF_REALTIME`); `noSound=true` mutes.
-- ⚠️ When Win10/11 upgrades a balloon to a toast, the **top-left "app icon" comes from the registry keyed by the AUMID** (`hBalloonIcon` is ignored) → use `RegisterApp` to register the app identity so the app name and icon show.
-
-## Taskbar (progress / overlay badge / thumbnail toolbar / jump list)
-
-```cpp
-class Window {
-    enum class TaskbarProgress { None = 0, Indeterminate = 1, Normal = 2, Error = 4, Paused = 8 };
-    void SetTaskbarProgress(TaskbarProgress state, ULONGLONG completed = 0, ULONGLONG total = 0);
-    void SetTaskbarProgressValue(ULONGLONG completed, ULONGLONG total);
-    void ClearTaskbarProgress();
-
-    void SetTaskbarOverlayIcon(HICON, const std::wstring&amp; description = L"");
-    void SetTaskbarOverlayIcon(std::shared_ptr&lt;Image&gt;, const std::wstring&amp; description = L"");
-    void ClearTaskbarOverlayIcon();
-
-    // Thumbnail toolbar (buttons shown when hovering the taskbar thumbnail); ThumbButtonId is a command id
-    ZSignal&lt;ThumbButtonId&gt; ThumbButtonClicked;
-    void SetThumbButtons(const std::vector&lt;std::pair&lt;ThumbButtonId, std::wstring&gt;&gt;&amp; buttons, HIMAGELIST images);
-    void SetThumbButtons(const std::vector&lt;std::pair&lt;ThumbButtonId, std::wstring&gt;&gt;&amp; buttons,
-                         const std::vector&lt;std::shared_ptr&lt;Image&gt;&gt;&amp; images);   // auto-builds HIMAGELIST
-    void UpdateThumbButton(ThumbButtonId id, bool enabled);
-
-    // Jump list
-    struct JumpListItem { std::wstring title, arguments, target, iconPath; int iconIndex = 0; };
-    void SetJumpList(const std::vector&lt;JumpListItem&gt;&amp; tasks = {},
-                     const std::vector&lt;std::pair&lt;std::wstring, std::vector&lt;JumpListItem&gt;&gt;&gt;&amp; categories = {},
-                     bool includeRecent = false);
-    void SetAppUserModelID(const std::wstring&amp;);                 // this window's AUMID
-    static void SetProcessAppUserModelID(const std::wstring&amp;);   // process-level
-};
-```
-
-**Notes:**
-
-- Taskbar features depend on the **process/window AUMID**; prefer `RegisterApp` to register the identity once (jump list / grouping / taskbar all belong to it).
-- The `Image` overload of `SetThumbButtons` auto-converts `Image -&gt; HICON -&gt; HIMAGELIST`; clicks are reported via `ThumbButtonClicked(id)`.
-- `SetJumpList` supports `tasks` (user tasks) and `categories` (custom categories) + `includeRecent` (system "Recent").
-
-## Window-level hooks (overridable)
-
-```cpp
-virtual bool OnWindowKeyDown(int vk);   // called before dispatching to the focused element; true = handled
-virtual bool OnWindowTimer(int id);     // WM_TIMER (app-defined id)
-virtual void OnWindowSize();            // WM_SIZE (final layout that depends on client width)
-void SetInputBlocked(bool on);          // block mouse/keyboard input for this window
-std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);   // signal-based repeating timer (see Timer)
-
-// ---- Frame-rate limit (A3, optional) ----
-// fps&lt;=0 or unset = follow the display refresh (default); &gt;0 = cap the average animation frame rate (lowers GPU/CPU).
-// Per-window override of the process default; SetFrameRateLimit(0) explicitly removes the cap.
-void SetFrameRateLimit(int fps);
-int  GetFrameRateLimit() const;
-static void SetDefaultFrameRateLimit(int fps);
-static int  GetDefaultFrameRateLimit();
-```
-
-## Timer
-
-```cpp
-class Timer {
-    ZSignal&lt;&gt; Tick;                    // fires on each interval (UI thread)
-    inline static int DefaultInterval; // 1000
-
-    void Attach(Window* owner);
-    Window* GetWindow() const;
-    void Start(int intervalMs);        // set interval and start
-    void Start();                      // start with the current interval
-    void Stop();
-    void SetInterval(int ms);
-    int  GetInterval() const;
-    bool IsRunning() const;
-};
-
-// Convenience entry point (recommended):
-std::shared_ptr&lt;Timer&gt; Window::CreateTimer(int intervalMs = 1000);
-```
-
-- Backed by `WM_TIMER`, but the **id uses a reserved framework range (`0x7F00+`)** so it never collides with the library's internal timer (id 1) or app-defined ids.
-- Usage:
-  ```cpp
-  auto t = window-&gt;CreateTimer(500);      // every 500 ms
-  t-&gt;Tick.connect([this]{ Refresh(); });
-  t-&gt;Stop(); t-&gt;Start(); t-&gt;SetInterval(1000);
-  ```
-- Holding the `shared_ptr` keeps it alive; the window **auto-detaches the timer when it is destroyed** (a later `Start()` becomes a no-op, no dangling pointer); destroying the timer auto-`Stop`s + unregisters it.
-- Manual form: `Timer t; t.Attach(win); t.Start(ms);`.</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 14 · Window tools</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 14</span><h1>Window tools</h1><p class="chapter-summary">TitleBar / MessageBox / Tray / Taskbar / Icons and activation</p></header><p>Window-level controls live in <code>ZufyUIWindowTool.h</code> (a collection that will later also host a built-in MessageBox, etc.).</p>
+- **`Pitfall`**: `Search` keeps a hit node **plus its ancestor chain**; `SetDefaultExpandDepth` affects only **future** inserts; `CheckMode::Linked` auto-computes `PartiallyChecked`.
+- **`Version`**: `BeginUpdate`/`SetNodeText`/tooltip + concurrency `v1.15.0`; first-column ellipsis fix `v1.16.0`; `Get/SetScrollOffsetY` + `ScrollToNode` + `bgColor` `v1.17.0`.</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 14 · Data views</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 14</span><h1>Data views</h1><p class="chapter-summary">ListView, TableView, TreeView, TreeNode (virtualization, hide/filter/visible order)</p></header><blockquote>
+<p><strong>Read this first.</strong> Since <strong>v1.15.0</strong> all three views are <strong>viewport-virtualized + Label-pooled</strong>. There are <strong>two coordinate systems</strong> — <strong>source row index</strong> (stable; legacy APIs/signals) and <strong>visible order</strong> (post hide/filter/sort). <strong>Mixing them is the #1 bug source.</strong> In virtual mode rows have no persistent <code>Label</code>; <code>SetTextFast</code> is the pool rebind path. Serialize data mutation with rendering (<code>RenderGuard()</code>).</p>
+</blockquote>
+<h2 id="listview">ListView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-77b9d163', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-8e9c0fd3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TitleBar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
-<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">GetTitle</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">);</span><span class="w">        </span><span class="c1">// reuses the image system</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIconSize</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowIcon</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowTitle</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetContentPadding</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">left</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">8.0f</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetActiveBackgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitleColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w">       </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetActiveTitleColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetButtonWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">      </span><span class="c1">// also SetButtonHeight / SetRightMargin</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetButtonHeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRightMargin</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearRightMargin</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetButtonsEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">AreButtonsEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="c1">// Per-button control (detailed disable API)</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">CaptionButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetButton</span><span class="p">(</span><span class="n">CaptionButton</span><span class="o">::</span><span class="n">Kind</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetButtonEnabled</span><span class="p">(</span><span class="n">CaptionButton</span><span class="o">::</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// gray out, ignore input, don't report the NC button code</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsButtonEnabled</span><span class="p">(</span><span class="n">CaptionButton</span><span class="o">::</span><span class="n">Kind</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetButtonVisible</span><span class="p">(</span><span class="n">CaptionButton</span><span class="o">::</span><span class="n">Kind</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// hidden buttons take no space</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsButtonVisible</span><span class="p">(</span><span class="n">CaptionButton</span><span class="o">::</span><span class="n">Kind</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="k">class</span><span class="w"> </span><span class="nc">CaptionButton</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Kind</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Minimize</span><span class="p">,</span><span class="w"> </span><span class="n">MaximizeRestore</span><span class="p">,</span><span class="w"> </span><span class="n">Close</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="k">explicit</span><span class="w"> </span><span class="n">CaptionButton</span><span class="p">(</span><span class="n">Kind</span><span class="w"> </span><span class="n">kind</span><span class="p">);</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w">              </span><span class="c1">// default behaviour wired by DefaultTitleBar</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetHoverColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w">      </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetPressedColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCloseHoverColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetClosePressedColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetGlyphColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetButtonWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationSpeed</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="p">};</span>
-
-<span class="k">class</span><span class="w"> </span><span class="nc">DefaultTitleBar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">TitleBar</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">DefaultTitleBar</span><span class="p">();</span><span class="w">               </span><span class="c1">// built-in minimize / maximize-restore / close</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">CaptionButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetMinButton</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">CaptionButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetMaxButton</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">CaptionButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCloseButton</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="c1">// convenience: enable/disable, show/hide the three buttons individually</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMinimizeEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMaximizeEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCloseEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMinimizeVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMaximizeVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCloseVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">,</span><span class="w"> </span><span class="n">ItemClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemDoubleClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemRightClicked</span><span class="p">;</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">SelectionChangedMulti</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemCheckStateChanged</span><span class="p">;</span>
+<span class="kt">float</span><span class="w"> </span><span class="n">ContentToLocalX</span><span class="o">/</span><span class="n">Y</span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">float</span><span class="w"> </span><span class="n">LocalToContentX</span><span class="o">/</span><span class="n">Y</span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// v1.10.0</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItem</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetItemText</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetItemCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SortItems</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ScrollToItem</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">BeginUpdate</span><span class="p">();</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">EndUpdate</span><span class="p">();</span>
+<span class="c1">// virtualization (v1.15.0)</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetItemCount</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetItemHidden</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsItemHidden</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearHidden</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetFilter</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearFilter</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetViewComparator</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">)</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SortView</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">ascending</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearViewSort</span><span class="p">();</span>
+<span class="kt">int</span><span class="w">  </span><span class="nf">VisibleCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">SourceOfVisible</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vi</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">VisibleOfSource</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">TextAtVisible</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vi</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedVisible</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vi</span><span class="p">);</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetSelectedVisible</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="c1">// check / per-item metadata</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCheckable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItemChecked</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCheckedIndices</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetItemDisabled</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItemTextColor</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="n">Color</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItemToolTip</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 </pre></div>
-<pre id="code-77b9d163" style="display: none;">class TitleBar : public UIElement {
-    void SetTitle(const std::wstring&amp;);
-    const std::wstring&amp; GetTitle() const;
-    void SetIcon(std::shared_ptr&lt;Image&gt;);        // reuses the image system
-    void SetIconSize(float w, float h);
-    void SetShowIcon(bool);
-    void SetShowTitle(bool);
-    void SetContentPadding(float left, float right = 8.0f);
-    void SetBackgroundColor(Color);  void SetActiveBackgroundColor(Color);
-    void SetTitleColor(Color);       void SetActiveTitleColor(Color);
-    void SetButtonWidth(float);      // also SetButtonHeight / SetRightMargin
-    void SetButtonHeight(float);
-    void SetRightMargin(float);
-    void ClearRightMargin();
-    void SetButtonsEnabled(bool);
-    bool AreButtonsEnabled() const;
-    // Per-button control (detailed disable API)
-    std::shared_ptr&lt;CaptionButton&gt; GetButton(CaptionButton::Kind) const;
-    void SetButtonEnabled(CaptionButton::Kind, bool);   // gray out, ignore input, don't report the NC button code
-    bool IsButtonEnabled(CaptionButton::Kind) const;
-    void SetButtonVisible(CaptionButton::Kind, bool);   // hidden buttons take no space
-    bool IsButtonVisible(CaptionButton::Kind) const;
-};
-
-class CaptionButton : public UIElement {
-    enum class Kind { Minimize, MaximizeRestore, Close };
-    explicit CaptionButton(Kind kind);
-    ZSignal&lt;&gt; Clicked;              // default behaviour wired by DefaultTitleBar
-    void SetHoverColor(Color);      void SetPressedColor(Color);
-    void SetCloseHoverColor(Color); void SetClosePressedColor(Color);
-    void SetGlyphColor(Color);
-    void SetButtonWidth(float);
-    void SetAnimationSpeed(float);
-};
-
-class DefaultTitleBar : public TitleBar {
-    DefaultTitleBar();               // built-in minimize / maximize-restore / close
-    std::shared_ptr&lt;CaptionButton&gt; GetMinButton() const;
-    std::shared_ptr&lt;CaptionButton&gt; GetMaxButton() const;
-    std::shared_ptr&lt;CaptionButton&gt; GetCloseButton() const;
-    // convenience: enable/disable, show/hide the three buttons individually
-    void SetMinimizeEnabled(bool);  void SetMaximizeEnabled(bool);  void SetCloseEnabled(bool);
-    void SetMinimizeVisible(bool);  void SetMaximizeVisible(bool);  void SetCloseVisible(bool);
-};</pre>
-</div>
-<p><strong>Usage</strong>:</p>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a1d4e22a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">DefaultTitleBar</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetTitle</span><span class="p">(</span><span class="sa">L</span><span class="s">"My Window"</span><span class="p">);</span>
-<span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetIcon</span><span class="p">(</span><span class="n">myImage</span><span class="p">);</span><span class="w">                 </span><span class="c1">// optional</span>
-<span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span><span class="w">            </span><span class="c1">// install; win.SetCustomTitleBar(nullptr) restores the native one</span>
-</pre></div>
-<pre id="code-a1d4e22a" style="display: none;">auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
-bar-&gt;SetTitle(L"My Window");
-bar-&gt;SetIcon(myImage);                 // optional
-win.SetCustomTitleBar(bar);            // install; win.SetCustomTitleBar(nullptr) restores the native one</pre>
-</div>
-<p><strong>Notes and pitfalls</strong>:</p>
-<ul>
-<li>The title bar does <strong>not participate in layout</strong> (Window places it at <code>(0,0)</code>), defaults to <code>DrawAfterLayout</code>, is <strong>not focusable</strong> (skipped by Tab) and has <code>UseCache()==true</code> (repaints only on state change).</li>
-<li>Buttons are drawn with the system icon font <code>Segoe Fluent Icons</code> (Win11) / <code>Segoe MDL2 Assets</code> (Win10), matching the system glyphs (minimize <code>E921</code>, maximize <code>E922</code>, restore <code>E923</code>, close <code>E8BB</code>); a vector fallback is used when the font is unavailable.</li>
-<li>Hover/press are animated; minimize/maximize hover light gray, <strong>close hover red</strong> (<code>#C42B1C</code>).</li>
-<li>Buttons report system hit codes (<code>HTMINBUTTON</code> / <code>HTMAXBUTTON</code> / <code>HTCLOSE</code>) from <code>WM_NCHITTEST</code>, so <strong>hovering the maximize button shows the system Snap Layouts</strong>; clicks are handled in <code>WM_NCLBUTTONUP</code>.</li>
-<li>The title bar's own rect (excluding buttons) is the window <strong>drag region</strong>; dragging / Aero Snap / double-click maximize are handled by the system.</li>
-<li>It is <strong>not recommended</strong> to <code>AddChild</code> the title bar into a layout (it does not participate); use <code>Window::SetCustomTitleBar</code>.</li>
-</ul>
-<h2 id="messagebox-fastbutton">MessageBox / FastButton</h2>
-<p>Preset message box built on <code>Window</code> / <code>DefaultTitleBar</code> / <code>Window::RunModal</code>. It <em>is</em> a <code>Window</code>, so you can add any controls to it.</p>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-63e9d6cb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">FastButton</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="p">{</span><span class="w">   </span><span class="c1">// bit flags, combine with |</span>
-<span class="w">    </span><span class="n">None</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">OK</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Cancel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Apply</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
-<span class="w">    </span><span class="n">Close</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">Yes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">No</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">Help</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">6</span>
-<span class="p">};</span>
-<span class="n">FastButton</span><span class="w"> </span><span class="k">operator</span><span class="o">|</span><span class="p">(</span><span class="n">FastButton</span><span class="p">,</span><span class="w"> </span><span class="n">FastButton</span><span class="p">);</span>
-<span class="n">FastButton</span><span class="w"> </span><span class="k">operator</span><span class="o">&amp;</span><span class="p">(</span><span class="n">FastButton</span><span class="p">,</span><span class="w"> </span><span class="n">FastButton</span><span class="p">);</span>
-<span class="kt">bool</span><span class="w"> </span><span class="nf">HasFlag</span><span class="p">(</span><span class="n">FastButton</span><span class="w"> </span><span class="n">set</span><span class="p">,</span><span class="w"> </span><span class="n">FastButton</span><span class="w"> </span><span class="n">flag</span><span class="p">);</span><span class="w">      </span><span class="c1">// bit test</span>
-
-<span class="k">class</span><span class="w"> </span><span class="nc">MessageBox</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Icon</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="n">Warning</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="p">,</span><span class="w"> </span><span class="n">Question</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Lang</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">English</span><span class="p">,</span><span class="w"> </span><span class="n">Chinese</span><span class="w"> </span><span class="p">};</span>
-
-<span class="w">    </span><span class="c1">// Quick call: creates the window in the ctor; blocking=true runs the modal loop inside the ctor</span>
-<span class="w">    </span><span class="n">MessageBox</span><span class="p">(</span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="n">parent</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">content</span><span class="p">,</span>
-<span class="w">               </span><span class="n">Icon</span><span class="w"> </span><span class="n">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Icon</span><span class="o">::</span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">FastButton</span><span class="w"> </span><span class="n">buttons</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FastButton</span><span class="o">::</span><span class="n">OK</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">blocking</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
-<span class="w">    </span><span class="n">MessageBox</span><span class="p">(</span><span class="n">HWND</span><span class="w"> </span><span class="n">parent</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">content</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span>
-<span class="w">    </span><span class="n">MessageBox</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">content</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span><span class="w">   </span><span class="c1">// no parent</span>
-<span class="w">    </span><span class="c1">// content can also be a control (Label / TextBox / GridLayout ...)</span>
-<span class="w">    </span><span class="n">MessageBox</span><span class="p">(</span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="n">parent</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span>
-
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetLanguage</span><span class="p">(</span><span class="n">Lang</span><span class="p">);</span><span class="w">                          </span><span class="c1">// preset EN/ZH button text, default English</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Lang</span><span class="w"> </span><span class="nf">GetLanguage</span><span class="p">();</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">ButtonLabel</span><span class="p">(</span><span class="n">FastButton</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetButtonText</span><span class="p">(</span><span class="n">FastButton</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">    </span><span class="c1">// override one button's text</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIconImage</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">);</span><span class="w">              </span><span class="c1">// custom icon (default: built-in system icon)</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetUserContent</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span><span class="w">        </span><span class="c1">// afterwards no preset buttons; fully user-controlled</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">EndDialog</span><span class="p">(</span><span class="n">FastButton</span><span class="p">);</span><span class="w">                             </span><span class="c1">// end manually with custom content</span>
-
-<span class="w">    </span><span class="n">FastButton</span><span class="w"> </span><span class="nf">GetResult</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">FastButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ButtonClicked</span><span class="p">;</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-63e9d6cb" style="display: none;">enum class FastButton : unsigned {   // bit flags, combine with |
-    None = 0, OK = 1 &lt;&lt; 0, Cancel = 1 &lt;&lt; 1, Apply = 1 &lt;&lt; 2,
-    Close = 1 &lt;&lt; 3, Yes = 1 &lt;&lt; 4, No = 1 &lt;&lt; 5, Help = 1 &lt;&lt; 6
-};
-FastButton operator|(FastButton, FastButton);
-FastButton operator&amp;(FastButton, FastButton);
-bool HasFlag(FastButton set, FastButton flag);      // bit test
-
-class MessageBox : public Window {
-    enum class Icon { None, Info, Warning, Error, Question };
-    enum class Lang { English, Chinese };
-
-    // Quick call: creates the window in the ctor; blocking=true runs the modal loop inside the ctor
-    MessageBox(Window* parent, const std::wstring&amp; title, const std::wstring&amp; content,
-               Icon icon = Icon::None, FastButton buttons = FastButton::OK, bool blocking = true);
-    MessageBox(HWND parent, const std::wstring&amp; title, const std::wstring&amp; content, ...);
-    MessageBox(const std::wstring&amp; title, const std::wstring&amp; content, ...);   // no parent
-    // content can also be a control (Label / TextBox / GridLayout ...)
-    MessageBox(Window* parent, const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content, ...);
-
-    static void SetLanguage(Lang);                          // preset EN/ZH button text, default English
-    static Lang GetLanguage();
-    static std::wstring ButtonLabel(FastButton);
-    void SetButtonText(FastButton, const std::wstring&amp;);    // override one button's text
-    void SetIconImage(std::shared_ptr&lt;Image&gt;);              // custom icon (default: built-in system icon)
-    void SetUserContent(std::shared_ptr&lt;UIElement&gt;);        // afterwards no preset buttons; fully user-controlled
-    void EndDialog(FastButton);                             // end manually with custom content
-
-    FastButton GetResult() const;
-    ZSignal&lt;FastButton&gt; ButtonClicked;
-};</pre>
-</div>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9b2d8e4c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">MessageBox</span><span class="w"> </span><span class="n">box</span><span class="p">(</span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Title"</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Body"</span><span class="p">,</span><span class="w"> </span><span class="n">MessageBox</span><span class="o">::</span><span class="n">Icon</span><span class="o">::</span><span class="n">Info</span><span class="p">,</span>
-<span class="w">                    </span><span class="n">FastButton</span><span class="o">::</span><span class="n">Yes</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">FastButton</span><span class="o">::</span><span class="n">No</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">FastButton</span><span class="o">::</span><span class="n">Cancel</span><span class="p">);</span>
-<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">HasFlag</span><span class="p">(</span><span class="n">box</span><span class="p">.</span><span class="n">GetResult</span><span class="p">(),</span><span class="w"> </span><span class="n">FastButton</span><span class="o">::</span><span class="n">Yes</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">}</span>
-</pre></div>
-<pre id="code-9b2d8e4c" style="display: none;">ZufyUI::MessageBox box(owner, L"Title", L"Body", MessageBox::Icon::Info,
-                    FastButton::Yes | FastButton::No | FastButton::Cancel);
-if (HasFlag(box.GetResult(), FastButton::Yes)) { /* ... */ }</pre>
+<pre id="code-8e9c0fd3" style="display: none;">enum class SelectionMode { Single, Extended, Multi, None };
+ZSignal&lt;int&gt; SelectionChanged, ItemClicked, ItemDoubleClicked, ItemRightClicked;
+ZSignal&lt;std::vector&lt;int&gt;&gt; SelectionChangedMulti;   ZSignal&lt;int,bool&gt; ItemCheckStateChanged;
+float ContentToLocalX/Y(float) const;   float LocalToContentX/Y(float) const;   // v1.10.0
+void AddItem(const std::wstring&amp;);   void SetItem(int, const std::wstring&amp;);
+std::wstring GetItemText(int) const;   int GetItemCount() const;
+void SortItems(std::function&lt;bool(const std::wstring&amp;,const std::wstring&amp;)&gt;);   void ScrollToItem(int);
+void BeginUpdate();   void EndUpdate();
+// virtualization (v1.15.0)
+void SetItemCount(int n);
+void SetItemHidden(int src, bool=true);   bool IsItemHidden(int src) const;   void ClearHidden();
+void SetFilter(std::function&lt;bool(int)&gt;);  void ClearFilter();
+void SetViewComparator(std::function&lt;bool(int,int)&gt;);  void SortView(bool ascending=true);  void ClearViewSort();
+int  VisibleCount() const;   int SourceOfVisible(int vi) const;   int VisibleOfSource(int src) const;
+std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   int GetSelectedVisible() const;
+// check / per-item metadata
+void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector&lt;int&gt; GetCheckedIndices() const;
+void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&amp;);</pre>
 </div>
 <ul>
-<li>Button order (left to right): <code>Yes No OK Apply Cancel Close Help</code>; <strong>Enter = leftmost button, ESC = Cancel/Close (leftmost if absent)</strong>; buttons are right-aligned.</li>
-<li><code>parent</code> may be a <code>Window*</code> / <code>HWND</code> / omitted; it is an owned window (no taskbar button), not resizable, close button only.</li>
-<li>Height auto-fits the content; a <strong>truncated button shows its full text as a tooltip on hover</strong> (a user <code>SetToolTip</code> wins).</li>
-<li>Customize with <code>SetUserContent</code> (no preset buttons afterwards) or the <code>shared_ptr&lt;UIElement&gt;</code> ctor; for full flow control build with <code>blocking=false</code> and call <code>RunModal</code> yourself.</li>
-<li>Note: <code>windows.h</code> defines <code>MessageBox</code> as a macro for <code>MessageBoxW</code>; this library <code>#undef</code>s it in <code>ZufyUIWindowTool.h</code>. Use <code>MessageBoxW/A</code> explicitly for Win32.</li>
+<li><strong><code>Pitfall</code></strong>: <code>Sort()</code> rearranges <code>items_</code> and <strong>clears multi-selection/checks</strong>; <code>SortView</code> only changes <strong>visible order</strong>.</li>
+<li><strong><code>Pitfall</code></strong>: pooled text uses <code>SetTextFast</code>, and the container must re-measure on width change (<code>v1.18.0</code> adds <code>poolW_</code> to re-measure on width change, fixing stale ellipsis).</li>
+<li><strong><code>Version</code></strong>: <code>BeginUpdate</code> <code>v1.9.6</code>; coords <code>v1.10.0</code>; virtualization/hide/filter/visible order <code>v1.15.0</code>.</li>
 </ul>
-<h2 id="window-icon-activation-flash">Window icon / activation / flash</h2>
+<h2 id="tableview">TableView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-df3391bd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-a2e7ca05', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">// Unified app icon (native big/small + class icons + custom title bar)</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAppIcon</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">bigIcon</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="n">smallIcon</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAppIcon</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">big</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">small</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span><span class="w">  </span><span class="c1">// auto-converts</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAppIconFromResource</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">bigId</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">smallId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ActivateMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Raise</span><span class="p">,</span><span class="w"> </span><span class="n">Activate</span><span class="p">,</span><span class="w"> </span><span class="n">Foreground</span><span class="p">,</span><span class="w"> </span><span class="n">All</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowActivate</span><span class="p">(</span><span class="n">ActivateMode</span><span class="w"> </span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ActivateMode</span><span class="o">::</span><span class="n">All</span><span class="p">);</span><span class="w">   </span><span class="c1">// restores if minimized; Foreground/All call SetForegroundWindow</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Raise</span><span class="p">();</span><span class="w">                                               </span><span class="c1">// raise Z-order only</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Flash</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">times</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">alsoTaskbar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span><span class="w">         </span><span class="c1">// default FLASHW_ALL</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">FlashUntilForeground</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">StopFlash</span><span class="p">();</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Cell</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Column</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="nf">CellKey</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">);</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">CellKeyRow</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="p">);</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">CellKeyCol</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="p">);</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CellClicked</span><span class="p">,</span><span class="w"> </span><span class="n">CellDoubleClicked</span><span class="p">,</span><span class="w"> </span><span class="n">CurrentCellChanged</span><span class="p">,</span><span class="w"> </span><span class="n">CellRightClicked</span><span class="p">;</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">HeaderClicked</span><span class="p">;</span><span class="w">  </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;&gt;&gt;</span><span class="w"> </span><span class="n">SelectionChangedCells</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetRowCount</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnCount</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">AppendRow</span><span class="o">/</span><span class="n">Column</span><span class="p">();</span><span class="w"> </span><span class="n">InsertRow</span><span class="o">/</span><span class="n">Column</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w"> </span><span class="n">RemoveRow</span><span class="o">/</span><span class="n">Column</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetItem</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetItemText</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetHeaderLabel</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnWidth</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="c1">// min 40</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnAlignment</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">TextHAlign</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRowHeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRowHeightAt</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnVisible</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">bool</span><span class="p">);</span>
+<span class="c1">// virtualization (v1.15.0; all by source row): SetItemHidden/SetFilter/SetViewComparator/SortView/VisibleCount/SourceOfVisible/VisibleOfSource</span>
+<span class="c1">// selection / check / metadata</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectionMode</span><span class="p">(</span><span class="n">SelectionMode</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCurrentCell</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SelectRow</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">GetSelectedCells</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCheckable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRowChecked</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRowDisabled</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCellTextColor</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">,</span><span class="n">Color</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCellToolTip</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnComparator</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SortByColumn</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span>
 </pre></div>
-<pre id="code-df3391bd" style="display: none;">class Window {
-    // Unified app icon (native big/small + class icons + custom title bar)
-    void SetAppIcon(HICON bigIcon, HICON smallIcon);
-    void SetAppIcon(std::shared_ptr&lt;Image&gt; big, std::shared_ptr&lt;Image&gt; small = nullptr);  // auto-converts
-    void SetAppIconFromResource(int bigId, int smallId = 0);
-
-    enum class ActivateMode { Raise, Activate, Foreground, All };
-    void ShowActivate(ActivateMode mode = ActivateMode::All);   // restores if minimized; Foreground/All call SetForegroundWindow
-    void Raise();                                               // raise Z-order only
-
-    void Flash(int times = 5, bool alsoTaskbar = true);         // default FLASHW_ALL
-    void FlashUntilForeground();
-    void StopFlash();
-};</pre>
+<pre id="code-a2e7ca05" style="display: none;">enum class SelectionMode { Cell, Row, Column, None };
+static long long CellKey(int r,int c); static int CellKeyRow(long long); static int CellKeyCol(long long);
+ZSignal&lt;int,int&gt; CellClicked, CellDoubleClicked, CurrentCellChanged, CellRightClicked;
+ZSignal&lt;int&gt; HeaderClicked;  ZSignal&lt;std::vector&lt;std::pair&lt;int,int&gt;&gt;&gt; SelectionChangedCells;
+void SetRowCount(int);  void SetColumnCount(int);  void AppendRow/Column(); InsertRow/Column(int); RemoveRow/Column(int);
+void SetItem(int row,int col,const std::wstring&amp;);  std::wstring GetItemText(int r,int c) const;
+void SetHeaderLabel(int,const std::wstring&amp;);  void SetColumnWidth(int,float);   // min 40
+void SetColumnAlignment(int, TextHAlign);   void SetRowHeight(float);  void SetRowHeightAt(int,float);
+void SetColumnVisible(int,bool);
+// virtualization (v1.15.0; all by source row): SetItemHidden/SetFilter/SetViewComparator/SortView/VisibleCount/SourceOfVisible/VisibleOfSource
+// selection / check / metadata
+void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow(int);  void GetSelectedCells();
+void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int,bool);
+void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&amp;);
+void SetColumnComparator(int, std::function&lt;bool(const std::wstring&amp;,const std::wstring&amp;)&gt;);  void SortByColumn(int,bool=true);</pre>
 </div>
 <ul>
-<li><code>SetAppIcon(Image)</code> uses <code>Image::ToHICON()</code>; after setting, the taskbar / Alt-Tab / title bar icons are consistent (class icons included).</li>
-<li><code>ShowActivate(All)</code> = restore (if minimized) + raise + <code>SetForegroundWindow</code> (uses <code>AttachThreadInput</code> for reliability).</li>
-<li><code>Flash()</code> defaults to <code>FLASHW_ALL</code> (taskbar button + window caption).</li>
+<li><strong><code>Pitfall</code></strong>: default <code>Cell</code> selection; row/cell metadata <strong>remaps</strong> with insert/remove/sort; hidden columns don't hit-test.</li>
 </ul>
-<h2 id="tray-icon-trayicon">Tray icon (TrayIcon)</h2>
-<p><code>Shell_NotifyIcon</code> wrapper (<code>NOTIFYICON_VERSION_4</code>): hover / click / right-click menu / badge / balloon.</p>
+<h2 id="treenode-plain-struct">TreeNode (plain struct)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-39964f44', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-4648c7c0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TrayIcon</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Add</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">icon</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Add</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w">   </span><span class="c1">// auto-converts</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">AddFromResource</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">resId</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">AddFromFile</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">icoPath</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Remove</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsAdded</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">HICON</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetToolTip</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBadge</span><span class="p">(</span><span class="n">Color</span><span class="w"> </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="o">::</span><span class="n">FromArgb</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">220</span><span class="p">,</span><span class="w"> </span><span class="mi">40</span><span class="p">,</span><span class="w"> </span><span class="mi">40</span><span class="p">));</span><span class="w">   </span><span class="c1">// bottom-right red dot</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearBadge</span><span class="p">();</span>
-
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BalloonIcon</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="n">Warning</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="p">,</span><span class="w"> </span><span class="n">Custom</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowBalloon</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span>
-<span class="w">                     </span><span class="n">BalloonIcon</span><span class="w"> </span><span class="n">icon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BalloonIcon</span><span class="o">::</span><span class="n">Custom</span><span class="p">,</span>
-<span class="w">                     </span><span class="n">HICON</span><span class="w"> </span><span class="n">customIcon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">realtime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">noSound</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
-
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">GetRect</span><span class="p">(</span><span class="n">RECT</span><span class="o">&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">HWND</span><span class="w"> </span><span class="nf">GetHwnd</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DoubleClicked</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">RightClicked</span><span class="p">;</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">HoverEnter</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">HoverLeave</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Selected</span><span class="p">;</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BalloonClicked</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BalloonDismissed</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BalloonTimeout</span><span class="p">;</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">CheckState</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Unchecked</span><span class="p">,</span><span class="w"> </span><span class="n">PartiallyChecked</span><span class="p">,</span><span class="w"> </span><span class="n">Checked</span><span class="w"> </span><span class="p">};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">columns</span><span class="p">;</span><span class="w">   </span><span class="c1">// one real Label per column; col0 = node text</span>
+<span class="n">std</span><span class="o">::</span><span class="n">weak_ptr</span><span class="o">&lt;</span><span class="n">TreeNode</span><span class="o">&gt;</span><span class="w"> </span><span class="n">parent</span><span class="p">;</span><span class="w">                </span><span class="c1">// weak! use .lock()</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">TreeNode</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">children</span><span class="p">;</span>
+<span class="kt">bool</span><span class="w"> </span><span class="n">expanded</span><span class="p">;</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">depth</span><span class="p">;</span><span class="w">  </span><span class="kt">void</span><span class="o">*</span><span class="w"> </span><span class="n">userData</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">checkable</span><span class="p">;</span><span class="w">  </span><span class="n">CheckState</span><span class="w"> </span><span class="n">checkState</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">selected</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">tooltip</span><span class="p">;</span><span class="w">   </span><span class="n">Color</span><span class="w"> </span><span class="n">bgColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span><span class="w">   </span><span class="c1">// row background, v1.17.0</span>
 </pre></div>
-<pre id="code-39964f44" style="display: none;">class TrayIcon {
-    bool Add(HICON icon, const std::wstring&amp; tooltip, UINT id = 1);
-    bool Add(std::shared_ptr&lt;Image&gt; icon, const std::wstring&amp; tooltip, UINT id = 1);   // auto-converts
-    bool AddFromResource(int resId, const std::wstring&amp; tooltip, UINT id = 1);
-    bool AddFromFile(const std::wstring&amp; icoPath, const std::wstring&amp; tooltip, UINT id = 1);
-    void Remove();
-    bool IsAdded() const;
-
-    void SetIcon(HICON);   void SetIcon(std::shared_ptr&lt;Image&gt;);
-    void SetToolTip(const std::wstring&amp;);
-    void SetMenu(std::shared_ptr&lt;Menu&gt;);
-
-    void SetBadge(Color color = Color::FromArgb(255, 220, 40, 40));   // bottom-right red dot
-    void ClearBadge();
-
-    enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
-    void ShowBalloon(const std::wstring&amp; title, const std::wstring&amp; text,
-                     BalloonIcon icon = BalloonIcon::Custom,
-                     HICON customIcon = nullptr, bool realtime = false, bool noSound = false);
-
-    bool GetRect(RECT&amp; out) const;
-    HWND GetHwnd() const;
-
-    ZSignal&lt;&gt; Clicked; ZSignal&lt;&gt; DoubleClicked; ZSignal&lt;&gt; RightClicked;
-    ZSignal&lt;&gt; HoverEnter; ZSignal&lt;&gt; HoverLeave; ZSignal&lt;&gt; Selected;
-    ZSignal&lt;&gt; BalloonClicked; ZSignal&lt;&gt; BalloonDismissed; ZSignal&lt;&gt; BalloonTimeout;
-};</pre>
-</div>
-<p><strong>Notes:</strong></p>
-<ul>
-<li>v4 callbacks: right-click arrives as <code>WM_CONTEXTMENU</code>; hover as <code>NIN_POPUPOPEN/CLOSE</code>; double-click is detected in <code>NIN_SELECT</code> via <code>GetDoubleClickTime()</code>.</li>
-<li><code>Add</code> with the same id does <code>NIM_MODIFY</code>; re-added automatically after <code>explorer</code> restarts (<code>TaskbarCreated</code>).</li>
-<li><code>BalloonIcon</code>: <code>None/Info/Warning/Error</code> (system icons) / <code>Custom</code> (uses <code>customIcon</code>, default = current tray icon); <code>realtime=true</code> (<code>NIF_REALTIME</code>); <code>noSound=true</code> mutes.</li>
-<li>⚠️ When Win10/11 upgrades a balloon to a toast, the <strong>top-left "app icon" comes from the registry keyed by the AUMID</strong> (<code>hBalloonIcon</code> is ignored) → use <code>RegisterApp</code> to register the app identity so the app name and icon show.</li>
-</ul>
-<h2 id="taskbar-progress-overlay-badge-thumbnail-toolbar-jump-list">Taskbar (progress / overlay badge / thumbnail toolbar / jump list)</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-193a342c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Window</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TaskbarProgress</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Indeterminate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Normal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">Paused</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTaskbarProgress</span><span class="p">(</span><span class="n">TaskbarProgress</span><span class="w"> </span><span class="n">state</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">completed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTaskbarProgressValue</span><span class="p">(</span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">completed</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">total</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarProgress</span><span class="p">();</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">SetTaskbarOverlayIcon</span><span class="p">(</span><span class="n">HICON</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">SetTaskbarOverlayIcon</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarOverlayIcon</span><span class="p">();</span>
-
-<span class="w">    </span><span class="c1">// Thumbnail toolbar (buttons shown when hovering the taskbar thumbnail); ThumbButtonId is a command id</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">ThumbButtonId</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ThumbButtonClicked</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetThumbButtons</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ThumbButtonId</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">buttons</span><span class="p">,</span><span class="w"> </span><span class="n">HIMAGELIST</span><span class="w"> </span><span class="n">images</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetThumbButtons</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">ThumbButtonId</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">buttons</span><span class="p">,</span>
-<span class="w">                         </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">images</span><span class="p">);</span><span class="w">   </span><span class="c1">// auto-builds HIMAGELIST</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">UpdateThumbButton</span><span class="p">(</span><span class="n">ThumbButtonId</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="p">);</span>
-
-<span class="w">    </span><span class="c1">// Jump list</span>
-<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">JumpListItem</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">arguments</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">iconPath</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">iconIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetJumpList</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">JumpListItem</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">tasks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
-<span class="w">                     </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">JumpListItem</span><span class="o">&gt;&gt;&gt;&amp;</span><span class="w"> </span><span class="n">categories</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
-<span class="w">                     </span><span class="kt">bool</span><span class="w"> </span><span class="n">includeRecent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">                 </span><span class="c1">// this window's AUMID</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetProcessAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// process-level</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-193a342c" style="display: none;">class Window {
-    enum class TaskbarProgress { None = 0, Indeterminate = 1, Normal = 2, Error = 4, Paused = 8 };
-    void SetTaskbarProgress(TaskbarProgress state, ULONGLONG completed = 0, ULONGLONG total = 0);
-    void SetTaskbarProgressValue(ULONGLONG completed, ULONGLONG total);
-    void ClearTaskbarProgress();
-
-    void SetTaskbarOverlayIcon(HICON, const std::wstring&amp; description = L"");
-    void SetTaskbarOverlayIcon(std::shared_ptr&lt;Image&gt;, const std::wstring&amp; description = L"");
-    void ClearTaskbarOverlayIcon();
-
-    // Thumbnail toolbar (buttons shown when hovering the taskbar thumbnail); ThumbButtonId is a command id
-    ZSignal&lt;ThumbButtonId&gt; ThumbButtonClicked;
-    void SetThumbButtons(const std::vector&lt;std::pair&lt;ThumbButtonId, std::wstring&gt;&gt;&amp; buttons, HIMAGELIST images);
-    void SetThumbButtons(const std::vector&lt;std::pair&lt;ThumbButtonId, std::wstring&gt;&gt;&amp; buttons,
-                         const std::vector&lt;std::shared_ptr&lt;Image&gt;&gt;&amp; images);   // auto-builds HIMAGELIST
-    void UpdateThumbButton(ThumbButtonId id, bool enabled);
-
-    // Jump list
-    struct JumpListItem { std::wstring title, arguments, target, iconPath; int iconIndex = 0; };
-    void SetJumpList(const std::vector&lt;JumpListItem&gt;&amp; tasks = {},
-                     const std::vector&lt;std::pair&lt;std::wstring, std::vector&lt;JumpListItem&gt;&gt;&gt;&amp; categories = {},
-                     bool includeRecent = false);
-    void SetAppUserModelID(const std::wstring&amp;);                 // this window's AUMID
-    static void SetProcessAppUserModelID(const std::wstring&amp;);   // process-level
-};</pre>
-</div>
-<p><strong>Notes:</strong></p>
-<ul>
-<li>Taskbar features depend on the <strong>process/window AUMID</strong>; prefer <code>RegisterApp</code> to register the identity once (jump list / grouping / taskbar all belong to it).</li>
-<li>The <code>Image</code> overload of <code>SetThumbButtons</code> auto-converts <code>Image -&gt; HICON -&gt; HIMAGELIST</code>; clicks are reported via <code>ThumbButtonClicked(id)</code>.</li>
-<li><code>SetJumpList</code> supports <code>tasks</code> (user tasks) and <code>categories</code> (custom categories) + <code>includeRecent</code> (system "Recent").</li>
-</ul>
-<h2 id="window-level-hooks-overridable">Window-level hooks (overridable)</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-62e2fc7b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowKeyDown</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vk</span><span class="p">);</span><span class="w">   </span><span class="c1">// called before dispatching to the focused element; true = handled</span>
-<span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">);</span><span class="w">     </span><span class="c1">// WM_TIMER (app-defined id)</span>
-<span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">OnWindowSize</span><span class="p">();</span><span class="w">            </span><span class="c1">// WM_SIZE (final layout that depends on client width)</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetInputBlocked</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span><span class="w">          </span><span class="c1">// block mouse/keyboard input for this window</span>
-<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Timer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">intervalMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span><span class="w">   </span><span class="c1">// signal-based repeating timer (see Timer)</span>
-
-<span class="c1">// ---- Frame-rate limit (A3, optional) ----</span>
-<span class="c1">// fps&lt;=0 or unset = follow the display refresh (default); &gt;0 = cap the average animation frame rate (lowers GPU/CPU).</span>
-<span class="c1">// Per-window override of the process default; SetFrameRateLimit(0) explicitly removes the cap.</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetFrameRateLimit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fps</span><span class="p">);</span>
-<span class="kt">int</span><span class="w">  </span><span class="nf">GetFrameRateLimit</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultFrameRateLimit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fps</span><span class="p">);</span>
-<span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="nf">GetDefaultFrameRateLimit</span><span class="p">();</span>
-</pre></div>
-<pre id="code-62e2fc7b" style="display: none;">virtual bool OnWindowKeyDown(int vk);   // called before dispatching to the focused element; true = handled
-virtual bool OnWindowTimer(int id);     // WM_TIMER (app-defined id)
-virtual void OnWindowSize();            // WM_SIZE (final layout that depends on client width)
-void SetInputBlocked(bool on);          // block mouse/keyboard input for this window
-std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);   // signal-based repeating timer (see Timer)
-
-// ---- Frame-rate limit (A3, optional) ----
-// fps&lt;=0 or unset = follow the display refresh (default); &gt;0 = cap the average animation frame rate (lowers GPU/CPU).
-// Per-window override of the process default; SetFrameRateLimit(0) explicitly removes the cap.
-void SetFrameRateLimit(int fps);
-int  GetFrameRateLimit() const;
-static void SetDefaultFrameRateLimit(int fps);
-static int  GetDefaultFrameRateLimit();</pre>
-</div>
-<h2 id="timer">Timer</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-35b1a0aa', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Timer</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Tick</span><span class="p">;</span><span class="w">                    </span><span class="c1">// fires on each interval (UI thread)</span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">DefaultInterval</span><span class="p">;</span><span class="w"> </span><span class="c1">// 1000</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Attach</span><span class="p">(</span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="n">owner</span><span class="p">);</span>
-<span class="w">    </span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="nf">GetWindow</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Start</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">intervalMs</span><span class="p">);</span><span class="w">        </span><span class="c1">// set interval and start</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Start</span><span class="p">();</span><span class="w">                      </span><span class="c1">// start with the current interval</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Stop</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetInterval</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">ms</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="nf">GetInterval</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsRunning</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="c1">// Convenience entry point (recommended):</span>
-<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Timer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Window</span><span class="o">::</span><span class="n">CreateTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">intervalMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
-</pre></div>
-<pre id="code-35b1a0aa" style="display: none;">class Timer {
-    ZSignal&lt;&gt; Tick;                    // fires on each interval (UI thread)
-    inline static int DefaultInterval; // 1000
-
-    void Attach(Window* owner);
-    Window* GetWindow() const;
-    void Start(int intervalMs);        // set interval and start
-    void Start();                      // start with the current interval
-    void Stop();
-    void SetInterval(int ms);
-    int  GetInterval() const;
-    bool IsRunning() const;
-};
-
-// Convenience entry point (recommended):
-std::shared_ptr&lt;Timer&gt; Window::CreateTimer(int intervalMs = 1000);</pre>
+<pre id="code-4648c7c0" style="display: none;">enum class CheckState { Unchecked, PartiallyChecked, Checked };
+std::vector&lt;std::shared_ptr&lt;Label&gt;&gt; columns;   // one real Label per column; col0 = node text
+std::weak_ptr&lt;TreeNode&gt; parent;                // weak! use .lock()
+std::vector&lt;std::shared_ptr&lt;TreeNode&gt;&gt; children;
+bool expanded;  int depth;  void* userData;
+std::wstring icon;  bool checkable;  CheckState checkState;  bool selected;  bool enabled;
+std::wstring tooltip;   Color bgColor = Color(0,0,0,0);   // row background, v1.17.0</pre>
 </div>
 <ul>
-<li>Backed by <code>WM_TIMER</code>, but the <strong>id uses a reserved framework range (<code>0x7F00+</code>)</strong> so it never collides with the library's internal timer (id 1) or app-defined ids.</li>
-<li>Usage:
-  <code>cpp
-  auto t = window-&gt;CreateTimer(500);      // every 500 ms
-  t-&gt;Tick.connect([this]{ Refresh(); });
-  t-&gt;Stop(); t-&gt;Start(); t-&gt;SetInterval(1000);</code></li>
-<li>Holding the <code>shared_ptr</code> keeps it alive; the window <strong>auto-detaches the timer when it is destroyed</strong> (a later <code>Start()</code> becomes a no-op, no dangling pointer); destroying the timer auto-<code>Stop</code>s + unregisters it.</li>
-<li>Manual form: <code>Timer t; t.Attach(win); t.Start(ms);</code>.</li>
+<li><strong><code>Pitfall</code></strong>: <code>parent</code> is <code>weak_ptr</code>; row background is the <strong><code>node-&gt;bgColor</code></strong> field (<strong>no</strong> <code>SetNodeBackgroundColor</code>).</li>
+<li><strong><code>Version</code></strong>: <code>bgColor</code> <code>v1.17.0</code>.</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.13.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Images</span><span class="nav-desc">Image, ImageManager, ImageDeviceCache</span></a><a class="next" href="API.en.15.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">System dialogs</span><span class="nav-desc">FileDialog (file/folder) · ColorDialog (color)</span></a></nav>
+<h2 id="treeview">TreeView</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-7bc0cd3c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">CheckMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Linked</span><span class="p">,</span><span class="w"> </span><span class="n">Independent</span><span class="w"> </span><span class="p">};</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">TreeNode</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">,</span><span class="w"> </span><span class="n">NodeClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemDoubleClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemRightClicked</span><span class="p">;</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">TreeNode</span><span class="o">&gt;</span><span class="p">,</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ExpandChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">HeaderClicked</span><span class="p">;</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">TreeNode</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">TreeNode</span><span class="o">::</span><span class="n">CheckState</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemCheckStateChanged</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnCount</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetHeaderLabels</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&amp;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnWidth</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">TreeNode</span><span class="o">&gt;</span><span class="w"> </span><span class="n">AddRoot</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">TreeNode</span><span class="o">&gt;</span><span class="w"> </span><span class="n">AddChild</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">RemoveNode</span><span class="p">(</span><span class="n">node</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">RemoveChildren</span><span class="p">(</span><span class="n">node</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">MoveNode</span><span class="p">(</span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="n">newParent</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">Clear</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">BeginUpdate</span><span class="p">();</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">EndUpdate</span><span class="p">();</span><span class="w">                       </span><span class="c1">// v1.15.0: defer BuildVisibleList (avoids O(N^2))</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetNodeText</span><span class="p">(</span><span class="n">node</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetNodeTooltip</span><span class="p">(</span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetNodeIcon</span><span class="p">(</span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ExpandNode</span><span class="p">(</span><span class="n">node</span><span class="p">,</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ExpandAll</span><span class="p">();</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">CollapseAll</span><span class="p">();</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ExpandToDepth</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultExpandDepth</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">                             </span><span class="c1">// affects only future inserts</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetFilter</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">TreeNode</span><span class="o">&gt;&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">Search</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectionMode</span><span class="p">(</span><span class="n">SelectionMode</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedNode</span><span class="p">(</span><span class="n">node</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">TreeNode</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">GetSelectedNodes</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCheckable</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">enable</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">recursive</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCheckMode</span><span class="p">(</span><span class="n">CheckMode</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetNodeCheckState</span><span class="p">(</span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="n">TreeNode</span><span class="o">::</span><span class="n">CheckState</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">updateChildren</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">updateParent</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span>
+<span class="kt">float</span><span class="w"> </span><span class="nf">GetScrollOffsetY</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetScrollOffsetY</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ScrollToNode</span><span class="p">(</span><span class="n">node</span><span class="p">);</span><span class="w">   </span><span class="c1">// v1.17.0</span>
+</pre></div>
+<pre id="code-7bc0cd3c" style="display: none;">enum class SelectionMode { Single, Extended, Multi };   enum class CheckMode { Linked, Independent };
+ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;&gt; SelectionChanged, NodeClicked, ItemDoubleClicked, ItemRightClicked;
+ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;,bool&gt; ExpandChanged;   ZSignal&lt;int&gt; HeaderClicked;
+ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;, TreeNode::CheckState&gt; ItemCheckStateChanged;
+void SetColumnCount(int);  void SetHeaderLabels(const std::vector&lt;std::wstring&gt;&amp;);  void SetColumnWidth(int,float);
+std::shared_ptr&lt;TreeNode&gt; AddRoot(const std::wstring&amp;);   std::shared_ptr&lt;TreeNode&gt; AddChild(parent, const std::wstring&amp;);
+void RemoveNode(node);  void RemoveChildren(node);  void MoveNode(node, newParent, int index);  void Clear();
+void BeginUpdate();  void EndUpdate();                       // v1.15.0: defer BuildVisibleList (avoids O(N^2))
+void SetNodeText(node,int col,const std::wstring&amp;);   void SetNodeTooltip(node, ...);   void SetNodeIcon(node, ...);
+void ExpandNode(node,bool);  void ExpandAll();  void CollapseAll();  void ExpandToDepth(int);
+void SetDefaultExpandDepth(int);                             // affects only future inserts
+void SetFilter(std::function&lt;bool(const std::shared_ptr&lt;TreeNode&gt;&amp;)&gt;);   void Search(const std::wstring&amp;);
+void SetSelectionMode(SelectionMode);  void SetSelectedNode(node);  std::vector&lt;std::shared_ptr&lt;TreeNode&gt;&gt; GetSelectedNodes() const;
+void SetCheckable(bool enable, bool recursive=true);  void SetCheckMode(CheckMode);
+void SetNodeCheckState(node, TreeNode::CheckState, bool updateChildren=true, bool updateParent=true);
+float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToNode(node);   // v1.17.0</pre>
+</div>
+<ul>
+<li><strong><code>Pitfall</code></strong>: <code>Search</code> keeps a hit node <strong>plus its ancestor chain</strong>; <code>SetDefaultExpandDepth</code> affects only <strong>future</strong> inserts; <code>CheckMode::Linked</code> auto-computes <code>PartiallyChecked</code>.</li>
+<li><strong><code>Version</code></strong>: <code>BeginUpdate</code>/<code>SetNodeText</code>/tooltip + concurrency <code>v1.15.0</code>; first-column ellipsis fix <code>v1.16.0</code>; <code>Get/SetScrollOffsetY</code> + <code>ScrollToNode</code> + <code>bgColor</code> <code>v1.17.0</code>.</li>
+</ul>
+<nav class="chapter-nav"><a class="prev" href="API.en.13.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Menus &amp; Popups</span><span class="nav-desc">Menu, MenuItem, MenuWindow, MessageBox</span></a><a class="next" href="API.en.15.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Charts</span><span class="nav-desc">ChartBase, BarChart, LineChart, PieChart (v1.18.0)</span></a></nav>
         </main>
     </div>
 

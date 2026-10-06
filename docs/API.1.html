@@ -197,84 +197,96 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class="active"><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>系统对话框</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>附录</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍（UI Automation）</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>调试通道（外部调试 / 自动化）</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="命名空间与头文件"><div class="toc-row"><a href="#命名空间与头文件" data-target="命名空间与头文件">命名空间与头文件</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="单位"><div class="toc-row"><a href="#单位" data-target="单位">单位</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="对象模型与生命周期"><div class="toc-row"><a href="#对象模型与生命周期" data-target="对象模型与生命周期">对象模型与生命周期</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="信号与事件"><div class="toc-row"><a href="#信号与事件" data-target="信号与事件">信号与事件</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="默认值体系"><div class="toc-row"><a href="#默认值体系" data-target="默认值体系">默认值体系</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="禁用焦点与缓存三个通用概念贯穿所有控件"><div class="toc-row"><a href="#禁用焦点与缓存三个通用概念贯穿所有控件" data-target="禁用焦点与缓存三个通用概念贯穿所有控件">禁用、焦点与缓存三个通用概念（贯穿所有控件）</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class="active"><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>无障碍与调试通道</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>版本变化摘录</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>易错点总表</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="命名空间与头文件"><div class="toc-row"><a href="#命名空间与头文件" data-target="命名空间与头文件">命名空间与头文件</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="单位"><div class="toc-row"><a href="#单位" data-target="单位">单位</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="对象模型与生命周期"><div class="toc-row"><a href="#对象模型与生命周期" data-target="对象模型与生命周期">对象模型与生命周期</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="信号与事件"><div class="toc-row"><a href="#信号与事件" data-target="信号与事件">信号与事件</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="默认值体系"><div class="toc-row"><a href="#默认值体系" data-target="默认值体系">默认值体系</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="禁用焦点缓存三个通用概念贯穿所有控件"><div class="toc-row"><a href="#禁用焦点缓存三个通用概念贯穿所有控件" data-target="禁用焦点缓存三个通用概念贯穿所有控件">禁用、焦点、缓存三个通用概念（贯穿所有控件）</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## 命名空间与头文件
 
 - 所有内容位于 `namespace ZufyUI`。
-- 头文件分工：`ZufyUI.h`（核心：类型 / 信号槽 / 字体 / 元素 / 布局 / 菜单 / 窗口）、`ZufyUIWidgets.h`（基础控件）、`ZDataViewer.h`（数据视图）。`ZufyUIWidgets.h` 会包含 `ZufyUI.h`，`ZDataViewer.h` 依赖两者。
-- 三者都是纯头文件；`#pragma comment(lib, ...)` 会自动链接 `d2d1 / dwrite / dwmapi / imm32 / winmm`。
+- 头文件**按使用分层**：
+  - `ZufyUI.h`：核心——类型 / 信号槽 / 字体 / 元素基类 / 布局 / 菜单 / 窗口。
+  - `ZufyUIWidgets.h`：基础控件（Label/Button/TextBox/TextEdit/ComboBox/…/ScrollViewer/TabView/图标…），内部 `#include "ZufyUI.h"`。
+  - `ZDataViewer.h`：数据视图（ListView/TableView/TreeView），依赖前两者。
+  - `ZufyUICharts.h`：**图表（BarChart/LineChart/PieChart）**，依赖 `ZufyUI.h`。
+  - `ZufyUIWindowTool.h`：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）。
+- 全部是**纯头文件**；`#pragma comment(lib, ...)` 会自动链接 `d2d1 / dwrite / dwmapi / imm32 / winmm`。
 
 ## 单位
 
 - 所有坐标与尺寸都是 **DIP**（设备无关像素），不是物理像素。
-- 框架在绘制前用内部 `Snap()` 把坐标吸附到物理像素网格，避免半像素模糊；你写代码时**不需要**自己做 DPI 换算。
-- 鼠标事件的坐标也是 DIP；如需屏幕/物理像素，用 `Window` 内部已处理的转换或自行 `MulDiv`。
+- 框架在绘制前用内部 `Snap()` 吸附到物理像素网格；你写代码时**不需要**自己做 DPI 换算。
+- 鼠标事件坐标也是 DIP。屏幕坐标只在系统 API（`Create`、`ShowAt`、`FileDialog`）里出现。
+- **`易错`**：`Snap` 用的 DPI 比例是 **线程本地**（`GlobalDpiScaleRef`）。渲染线程每帧设置；UI 线程现在也在 `Window::Create`/`WM_DPICHANGED` 设置。若你自建线程调用 `Snap`，它会是 1.0 而非窗口 DPI。
 
 ## 对象模型与生命周期
 
-- 控件一律用 `std::shared_ptr&lt;T&gt;` 拥有，用 `std::make_shared&lt;T&gt;()` 创建。
-- 通过布局的 `AddChild()` 挂到父容器；父容器保存子元素的 `shared_ptr`，**父容器存活期间子元素不会被释放**。
-- 脱离布局（如 `RemoveChild` / `Clear`）后若没有其它 `shared_ptr`，元素即被回收。
-- 元素析构时会自动释放它自己的离屏缓存与已注册的连接（内部 `ConnectionGroup`）。
+- 控件一律 `std::shared_ptr&lt;T&gt;` 拥有，用 `std::make_shared&lt;T&gt;()` 创建。
+- 通过布局/容器的 `AddChild()` 挂到父容器；父容器保存子元素的 `shared_ptr`，**父容器存活期间子元素不会释放**。
+- 脱离布局后若没有其它 `shared_ptr`，元素即回收；元素析构会自动释放自身离屏缓存与已注册连接（内部 `ConnectionGroup`）。
+- **`易错`**：`UIElement::SetParent` 存的是**裸指针**（非拥有）；所有权永远在容器/`Application` 的 `shared_ptr` 上。窗口在元素里只以 **window id** 记录，避免窗口先销毁导致 UAF。
 
 ## 信号与事件
 
-- 事件用 `Connect(signal, slot)` 绑定；返回 `Connection`，默认随宿主元素析构自动断开。
+- 用 `Connect(signal, slot)` 绑定，返回 `Connection`，默认随宿主元素析构自动断开。
 - 槽可以是任意可调用对象（lambda / 函数指针 / `std::function`）。
-- **重要**：不要用“按值捕获宿主自身 `shared_ptr`”的 lambda 连接宿主自己的信号，会形成引用环导致整棵子树泄漏。详见第 4 章。
+- **`易错`**：不要用“按值捕获宿主自身 `shared_ptr`”的 lambda 连接宿主自己的信号 → 引用环，整棵子树泄漏。详见「事件与信号」章。
 
 ## 默认值体系
 
-- 每个控件都有 `inline static` 的 `Default*` 静态字段（如 `Button::DefaultSize`）。
-- 通过对应的 `static SetDefault*()` 修改后，**只影响之后新建的实例**，已存在的实例不变。
-- 实例级 setter（如 `SetColors`）只影响该实例。
+- 每个控件有 `inline static` 的 `Default*` 静态字段（如 `Button::DefaultSize`）。
+- `static SetDefault*()` 修改后**只影响之后新建的实例**；实例级 setter 只影响该实例。
+- **`易错`**：静态默认字段是**进程全局**的；多窗口若需要不同观感，请在创建前设置或逐实例 setter。
 
-## 禁用、焦点与缓存三个通用概念（贯穿所有控件）
+## 禁用、焦点、缓存三个通用概念（贯穿所有控件）
 
-- **启用/禁用**：`UIElement::SetEnabled(false)` 会让该元素及子树“不可交互”（鼠标/键盘事件被拦截），控件需自己根据 `IsEffectivelyEnabled()` 决定是否绘制为灰色。禁用不会改变布局（仍占位）。
-- **焦点**：只有 `IsFocusable()` 返回 true 的元素能获得键盘焦点。窗口按 Tab 遍历可聚焦元素；焦点环只在该元素通过 Tab 获得焦点时显示，鼠标点击获得焦点不显示。
-- **离屏缓存**：见第 6 章 `UIElement` 的“缓存机制”小节。默认开启，可用 `SetUseCache(false)` 关闭。</pre></div></div>
+- **启用/禁用**：`UIElement::SetEnabled(false)` 让该元素及子树不可交互（鼠标/键盘被拦截），控件需自己用 `IsEffectivelyEnabled()` 决定是否画灰。**禁用不改变布局**（仍占位）。`SetEnabled(false)` ≠ `SetVisible(false)`。
+- **焦点**：只有 `IsFocusable()` 为 true 的元素能拿键盘焦点。窗口按 Tab 遍历聚焦元素；焦点环只在“通过 Tab 获得焦点”时显示，鼠标点击焦点不显示。
+- **离屏缓存**：见「元素基类」的“缓存机制”。默认开启；动画频繁/实例极多的控件用 `SetUseCache(false)` 关掉以省显存。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 1 章 · 约定</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 1 章</span><h1>约定</h1><p class="chapter-summary">命名空间、单位、生命周期与默认值约定</p></header><h2 id="命名空间与头文件">命名空间与头文件</h2>
+<header class="chapter-header"><span class="chapter-eyebrow">第 1 章</span><h1>约定</h1><p class="chapter-summary">命名空间、单位、生命周期、版本与易错标注约定</p></header><h2 id="命名空间与头文件">命名空间与头文件</h2>
 <ul>
 <li>所有内容位于 <code>namespace ZufyUI</code>。</li>
-<li>头文件分工：<code>ZufyUI.h</code>（核心：类型 / 信号槽 / 字体 / 元素 / 布局 / 菜单 / 窗口）、<code>ZufyUIWidgets.h</code>（基础控件）、<code>ZDataViewer.h</code>（数据视图）。<code>ZufyUIWidgets.h</code> 会包含 <code>ZufyUI.h</code>，<code>ZDataViewer.h</code> 依赖两者。</li>
-<li>三者都是纯头文件；<code>#pragma comment(lib, ...)</code> 会自动链接 <code>d2d1 / dwrite / dwmapi / imm32 / winmm</code>。</li>
+<li>头文件<strong>按使用分层</strong>：</li>
+<li><code>ZufyUI.h</code>：核心——类型 / 信号槽 / 字体 / 元素基类 / 布局 / 菜单 / 窗口。</li>
+<li><code>ZufyUIWidgets.h</code>：基础控件（Label/Button/TextBox/TextEdit/ComboBox/…/ScrollViewer/TabView/图标…），内部 <code>#include "ZufyUI.h"</code>。</li>
+<li><code>ZDataViewer.h</code>：数据视图（ListView/TableView/TreeView），依赖前两者。</li>
+<li><code>ZufyUICharts.h</code>：<strong>图表（BarChart/LineChart/PieChart）</strong>，依赖 <code>ZufyUI.h</code>。</li>
+<li><code>ZufyUIWindowTool.h</code>：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）。</li>
+<li>全部是<strong>纯头文件</strong>；<code>#pragma comment(lib, ...)</code> 会自动链接 <code>d2d1 / dwrite / dwmapi / imm32 / winmm</code>。</li>
 </ul>
 <h2 id="单位">单位</h2>
 <ul>
 <li>所有坐标与尺寸都是 <strong>DIP</strong>（设备无关像素），不是物理像素。</li>
-<li>框架在绘制前用内部 <code>Snap()</code> 把坐标吸附到物理像素网格，避免半像素模糊；你写代码时<strong>不需要</strong>自己做 DPI 换算。</li>
-<li>鼠标事件的坐标也是 DIP；如需屏幕/物理像素，用 <code>Window</code> 内部已处理的转换或自行 <code>MulDiv</code>。</li>
+<li>框架在绘制前用内部 <code>Snap()</code> 吸附到物理像素网格；你写代码时<strong>不需要</strong>自己做 DPI 换算。</li>
+<li>鼠标事件坐标也是 DIP。屏幕坐标只在系统 API（<code>Create</code>、<code>ShowAt</code>、<code>FileDialog</code>）里出现。</li>
+<li><strong><code>易错</code></strong>：<code>Snap</code> 用的 DPI 比例是 <strong>线程本地</strong>（<code>GlobalDpiScaleRef</code>）。渲染线程每帧设置；UI 线程现在也在 <code>Window::Create</code>/<code>WM_DPICHANGED</code> 设置。若你自建线程调用 <code>Snap</code>，它会是 1.0 而非窗口 DPI。</li>
 </ul>
 <h2 id="对象模型与生命周期">对象模型与生命周期</h2>
 <ul>
-<li>控件一律用 <code>std::shared_ptr&lt;T&gt;</code> 拥有，用 <code>std::make_shared&lt;T&gt;()</code> 创建。</li>
-<li>通过布局的 <code>AddChild()</code> 挂到父容器；父容器保存子元素的 <code>shared_ptr</code>，<strong>父容器存活期间子元素不会被释放</strong>。</li>
-<li>脱离布局（如 <code>RemoveChild</code> / <code>Clear</code>）后若没有其它 <code>shared_ptr</code>，元素即被回收。</li>
-<li>元素析构时会自动释放它自己的离屏缓存与已注册的连接（内部 <code>ConnectionGroup</code>）。</li>
+<li>控件一律 <code>std::shared_ptr&lt;T&gt;</code> 拥有，用 <code>std::make_shared&lt;T&gt;()</code> 创建。</li>
+<li>通过布局/容器的 <code>AddChild()</code> 挂到父容器；父容器保存子元素的 <code>shared_ptr</code>，<strong>父容器存活期间子元素不会释放</strong>。</li>
+<li>脱离布局后若没有其它 <code>shared_ptr</code>，元素即回收；元素析构会自动释放自身离屏缓存与已注册连接（内部 <code>ConnectionGroup</code>）。</li>
+<li><strong><code>易错</code></strong>：<code>UIElement::SetParent</code> 存的是<strong>裸指针</strong>（非拥有）；所有权永远在容器/<code>Application</code> 的 <code>shared_ptr</code> 上。窗口在元素里只以 <strong>window id</strong> 记录，避免窗口先销毁导致 UAF。</li>
 </ul>
 <h2 id="信号与事件">信号与事件</h2>
 <ul>
-<li>事件用 <code>Connect(signal, slot)</code> 绑定；返回 <code>Connection</code>，默认随宿主元素析构自动断开。</li>
+<li>用 <code>Connect(signal, slot)</code> 绑定，返回 <code>Connection</code>，默认随宿主元素析构自动断开。</li>
 <li>槽可以是任意可调用对象（lambda / 函数指针 / <code>std::function</code>）。</li>
-<li><strong>重要</strong>：不要用“按值捕获宿主自身 <code>shared_ptr</code>”的 lambda 连接宿主自己的信号，会形成引用环导致整棵子树泄漏。详见第 4 章。</li>
+<li><strong><code>易错</code></strong>：不要用“按值捕获宿主自身 <code>shared_ptr</code>”的 lambda 连接宿主自己的信号 → 引用环，整棵子树泄漏。详见「事件与信号」章。</li>
 </ul>
 <h2 id="默认值体系">默认值体系</h2>
 <ul>
-<li>每个控件都有 <code>inline static</code> 的 <code>Default*</code> 静态字段（如 <code>Button::DefaultSize</code>）。</li>
-<li>通过对应的 <code>static SetDefault*()</code> 修改后，<strong>只影响之后新建的实例</strong>，已存在的实例不变。</li>
-<li>实例级 setter（如 <code>SetColors</code>）只影响该实例。</li>
+<li>每个控件有 <code>inline static</code> 的 <code>Default*</code> 静态字段（如 <code>Button::DefaultSize</code>）。</li>
+<li><code>static SetDefault*()</code> 修改后<strong>只影响之后新建的实例</strong>；实例级 setter 只影响该实例。</li>
+<li><strong><code>易错</code></strong>：静态默认字段是<strong>进程全局</strong>的；多窗口若需要不同观感，请在创建前设置或逐实例 setter。</li>
 </ul>
-<h2 id="禁用焦点与缓存三个通用概念贯穿所有控件">禁用、焦点与缓存三个通用概念（贯穿所有控件）</h2>
+<h2 id="禁用焦点缓存三个通用概念贯穿所有控件">禁用、焦点、缓存三个通用概念（贯穿所有控件）</h2>
 <ul>
-<li><strong>启用/禁用</strong>：<code>UIElement::SetEnabled(false)</code> 会让该元素及子树“不可交互”（鼠标/键盘事件被拦截），控件需自己根据 <code>IsEffectivelyEnabled()</code> 决定是否绘制为灰色。禁用不会改变布局（仍占位）。</li>
-<li><strong>焦点</strong>：只有 <code>IsFocusable()</code> 返回 true 的元素能获得键盘焦点。窗口按 Tab 遍历可聚焦元素；焦点环只在该元素通过 Tab 获得焦点时显示，鼠标点击获得焦点不显示。</li>
-<li><strong>离屏缓存</strong>：见第 6 章 <code>UIElement</code> 的“缓存机制”小节。默认开启，可用 <code>SetUseCache(false)</code> 关闭。</li>
+<li><strong>启用/禁用</strong>：<code>UIElement::SetEnabled(false)</code> 让该元素及子树不可交互（鼠标/键盘被拦截），控件需自己用 <code>IsEffectivelyEnabled()</code> 决定是否画灰。<strong>禁用不改变布局</strong>（仍占位）。<code>SetEnabled(false)</code> ≠ <code>SetVisible(false)</code>。</li>
+<li><strong>焦点</strong>：只有 <code>IsFocusable()</code> 为 true 的元素能拿键盘焦点。窗口按 Tab 遍历聚焦元素；焦点环只在“通过 Tab 获得焦点”时显示，鼠标点击焦点不显示。</li>
+<li><strong>离屏缓存</strong>：见「元素基类」的“缓存机制”。默认开启；动画频繁/实例极多的控件用 <code>SetUseCache(false)</code> 关掉以省显存。</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.html"><span class="nav-label">&#8592; 文档目录</span><span class="nav-title">返回章节目录</span></a><a class="next" href="API.2.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">基础类型</span><span class="nav-desc">Color、Rect、Thickness、Size</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.html"><span class="nav-label">&#8592; 文档目录</span><span class="nav-title">返回章节目录</span></a><a class="next" href="API.2.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">快速开始</span><span class="nav-desc">最小程序、组件结构与阅读路径</span></a></nav>
         </main>
     </div>
 

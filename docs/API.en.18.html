@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Debug channel (external debug / automation) · ZufyUI API Reference</title>
+    <title>Version digest · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,192 +197,34 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class="active"><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="enable"><div class="toc-row"><a href="#enable" data-target="enable">Enable</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="protocol"><div class="toc-row"><a href="#protocol" data-target="protocol">Protocol</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="commands"><div class="toc-row"><a href="#commands" data-target="commands">Commands</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class="active"><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Enable
-```cpp
-ZufyUI::SetDebugEnabled(true);     // off by default
-bool on = ZufyUI::IsDebugEnabled();
-```
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>&gt; Only the changes that affect your code are listed.
 
-## Protocol
-- Send `WM_COPYDATA` to the **target window**: `dwData` = command id, `lpData` = UTF-16 argument (optional). The reply is sent back via `WM_COPYDATA` to the caller's `wParam`, with `dwData = 0x5A554631`.
-- The library does **no file I/O** — it only reports the *current frame* (element tree / frame stats / errors).
-
-## Commands
-| # | Command | Arg | Notes |
-| --- | --- | --- | --- |
-| 1 | Ping | — | liveness |
-| 2 | ListWindows | — | list windows |
-| 3 | GetFrameStats | — | current frame stats (frame/dt/advance/render/elems/…) |
-| 4 | GetElementTree | — | element tree (tab-separated: type\tname\tAutomationId\trect) |
-| 5 | ForceRepaint | — | force repaint |
-| 6 | SetElementText | `id\ttext` | set text |
-| 7 | InvokeElement | `id` | invoke |
-| 8 | FocusElement | `id` | focus |
-| 9 | GetElementInfo | `id` | control details (layout/repaint/cache/timing…) |
-| 10 | GetElementAt | `x,y` (screen) | hit-test → AutomationId |
-| 11 | Highlight | `id` | in-target highlight box |
-| 12 | ClearHighlight | — | clear highlight |
-| 13 | GetErrors | — | recent errors (ring buffer, ≤200) |
-| 14 | ClearErrors | — | clear errors |
-| 15~18 | Top-N | — | repaint / layout / cache (KB) / draw hotspots |
-| 19 | ResetCounters | — | reset debug counters |
-| 20 | SetVisible | `id\t0/1` | visibility |
-| 21 | SetMargin | `id\tx\ty` | position (margin) |
-| 22 | SetHighlightColor | `RRGGBB` | highlight color (shared by pick &amp; highlight) |
-
-&gt; Locate elements by `GetAutomationIdOrAuto()` (which is `e{n}` when no AutomationId is set).</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 18 · Debug channel (external debug / automation)</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 18</span><h1>Debug channel (external debug / automation)</h1><p class="chapter-summary">WM_COPYDATA, off by default, no file I/O</p></header><h2 id="enable">Enable</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-af3e2f43', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">SetDebugEnabled</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span><span class="w">     </span><span class="c1">// off by default</span>
-<span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ZufyUI</span><span class="o">::</span><span class="n">IsDebugEnabled</span><span class="p">();</span>
-</pre></div>
-<pre id="code-af3e2f43" style="display: none;">ZufyUI::SetDebugEnabled(true);     // off by default
-bool on = ZufyUI::IsDebugEnabled();</pre>
-</div>
-<h2 id="protocol">Protocol</h2>
-<ul>
-<li>Send <code>WM_COPYDATA</code> to the <strong>target window</strong>: <code>dwData</code> = command id, <code>lpData</code> = UTF-16 argument (optional). The reply is sent back via <code>WM_COPYDATA</code> to the caller's <code>wParam</code>, with <code>dwData = 0x5A554631</code>.</li>
-<li>The library does <strong>no file I/O</strong> — it only reports the <em>current frame</em> (element tree / frame stats / errors).</li>
-</ul>
-<h2 id="commands">Commands</h2>
-<table>
-<thead>
-<tr>
-<th>#</th>
-<th>Command</th>
-<th>Arg</th>
-<th>Notes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Ping</td>
-<td>—</td>
-<td>liveness</td>
-</tr>
-<tr>
-<td>2</td>
-<td>ListWindows</td>
-<td>—</td>
-<td>list windows</td>
-</tr>
-<tr>
-<td>3</td>
-<td>GetFrameStats</td>
-<td>—</td>
-<td>current frame stats (frame/dt/advance/render/elems/…)</td>
-</tr>
-<tr>
-<td>4</td>
-<td>GetElementTree</td>
-<td>—</td>
-<td>element tree (tab-separated: type\tname\tAutomationId\trect)</td>
-</tr>
-<tr>
-<td>5</td>
-<td>ForceRepaint</td>
-<td>—</td>
-<td>force repaint</td>
-</tr>
-<tr>
-<td>6</td>
-<td>SetElementText</td>
-<td><code>id\ttext</code></td>
-<td>set text</td>
-</tr>
-<tr>
-<td>7</td>
-<td>InvokeElement</td>
-<td><code>id</code></td>
-<td>invoke</td>
-</tr>
-<tr>
-<td>8</td>
-<td>FocusElement</td>
-<td><code>id</code></td>
-<td>focus</td>
-</tr>
-<tr>
-<td>9</td>
-<td>GetElementInfo</td>
-<td><code>id</code></td>
-<td>control details (layout/repaint/cache/timing…)</td>
-</tr>
-<tr>
-<td>10</td>
-<td>GetElementAt</td>
-<td><code>x,y</code> (screen)</td>
-<td>hit-test → AutomationId</td>
-</tr>
-<tr>
-<td>11</td>
-<td>Highlight</td>
-<td><code>id</code></td>
-<td>in-target highlight box</td>
-</tr>
-<tr>
-<td>12</td>
-<td>ClearHighlight</td>
-<td>—</td>
-<td>clear highlight</td>
-</tr>
-<tr>
-<td>13</td>
-<td>GetErrors</td>
-<td>—</td>
-<td>recent errors (ring buffer, ≤200)</td>
-</tr>
-<tr>
-<td>14</td>
-<td>ClearErrors</td>
-<td>—</td>
-<td>clear errors</td>
-</tr>
-<tr>
-<td>15~18</td>
-<td>Top-N</td>
-<td>—</td>
-<td>repaint / layout / cache (KB) / draw hotspots</td>
-</tr>
-<tr>
-<td>19</td>
-<td>ResetCounters</td>
-<td>—</td>
-<td>reset debug counters</td>
-</tr>
-<tr>
-<td>20</td>
-<td>SetVisible</td>
-<td><code>id\t0/1</code></td>
-<td>visibility</td>
-</tr>
-<tr>
-<td>21</td>
-<td>SetMargin</td>
-<td><code>id\tx\ty</code></td>
-<td>position (margin)</td>
-</tr>
-<tr>
-<td>22</td>
-<td>SetHighlightColor</td>
-<td><code>RRGGBB</code></td>
-<td>highlight color (shared by pick &amp; highlight)</td>
-</tr>
-</tbody>
-</table>
-<blockquote>
-<p>Locate elements by <code>GetAutomationIdOrAuto()</code> (which is <code>e{n}</code> when no AutomationId is set).</p>
+- **v1.15.0**: data-view virtualization (`SetItemCount` etc.) + hide/filter/visible-order sort (two coordinate systems); cross-thread/locking hardening; `ComboBox` source-index API; `TreeView::BeginUpdate/SetNodeText`.
+- **v1.16.0**: system dialogs `FileDialog`/`ColorDialog`; `UIZSignals::Error`; render thread off by default + documented unstable; tray callback-message collision fix; optional `ZUFYUI_ENABLE_COMCTL_V6`.
+- **v1.17.0**: **UIA accessibility** (on by default); **external debug/automation channel** (`SetDebugEnabled`, off by default, commands 1~22); **layout stretch weights** (`ColumnBox`/`RowBox`/`GridLayout` distribute leftover by weight); **automatic ellipsis tooltips** (Label/Button); `CaptionButton::Kind::Pin`; `TreeView` node `bgColor` / `Get/SetScrollOffsetY` / `ScrollToNode`; `Window::DefaultBackdropColor` pure white.
+- **v1.18.0**:
+  - New `ZufyUICharts.h`: `ChartBase` / `BarChart` / `LineChart` / `PieChart`; `BarChart` horizontal orientation; `PieChart` wheel zoom.
+  - New `TextEdit` multi-line editor/viewer; `TextRun`; base `AcceptsTab()`.
+  - `UIElement::ReleaseDeviceResourcesRecursive()`; `PageHost` delayed hidden-page cache release (~1.2 s); `ScrollViewer::UseCache()=false`; `SetUseCache(false)` frees immediately.
+  - Library fixes: `Snap` DPI scale also set on the UI thread; `ZSignal::Fire` RAII exception safety; `TextBox` shift+click; `Slider` zero-width NaN guard; `ListView` pooled-label re-measure on width change (`poolW_`).</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 18 · Version digest</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 18</span><h1>Version digest</h1><p class="chapter-summary">v1.15.0 → v1.18.0</p></header><blockquote>
+<p>Only the changes that affect your code are listed.</p>
 </blockquote>
-<nav class="chapter-nav"><a class="prev" href="API.en.17.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Accessibility (UI Automation)</span><span class="nav-desc">On by default; roles / patterns / events / hit-test &amp; focus</span></a><a class="next" href="API.en.html"><span class="nav-label">Contents &#8594;</span><span class="nav-title">Back to the chapter list</span></a></nav>
+<ul>
+<li><strong>v1.15.0</strong>: data-view virtualization (<code>SetItemCount</code> etc.) + hide/filter/visible-order sort (two coordinate systems); cross-thread/locking hardening; <code>ComboBox</code> source-index API; <code>TreeView::BeginUpdate/SetNodeText</code>.</li>
+<li><strong>v1.16.0</strong>: system dialogs <code>FileDialog</code>/<code>ColorDialog</code>; <code>UIZSignals::Error</code>; render thread off by default + documented unstable; tray callback-message collision fix; optional <code>ZUFYUI_ENABLE_COMCTL_V6</code>.</li>
+<li><strong>v1.17.0</strong>: <strong>UIA accessibility</strong> (on by default); <strong>external debug/automation channel</strong> (<code>SetDebugEnabled</code>, off by default, commands 1~22); <strong>layout stretch weights</strong> (<code>ColumnBox</code>/<code>RowBox</code>/<code>GridLayout</code> distribute leftover by weight); <strong>automatic ellipsis tooltips</strong> (Label/Button); <code>CaptionButton::Kind::Pin</code>; <code>TreeView</code> node <code>bgColor</code> / <code>Get/SetScrollOffsetY</code> / <code>ScrollToNode</code>; <code>Window::DefaultBackdropColor</code> pure white.</li>
+<li><strong>v1.18.0</strong>:</li>
+<li>New <code>ZufyUICharts.h</code>: <code>ChartBase</code> / <code>BarChart</code> / <code>LineChart</code> / <code>PieChart</code>; <code>BarChart</code> horizontal orientation; <code>PieChart</code> wheel zoom.</li>
+<li>New <code>TextEdit</code> multi-line editor/viewer; <code>TextRun</code>; base <code>AcceptsTab()</code>.</li>
+<li><code>UIElement::ReleaseDeviceResourcesRecursive()</code>; <code>PageHost</code> delayed hidden-page cache release (~1.2 s); <code>ScrollViewer::UseCache()=false</code>; <code>SetUseCache(false)</code> frees immediately.</li>
+<li>Library fixes: <code>Snap</code> DPI scale also set on the UI thread; <code>ZSignal::Fire</code> RAII exception safety; <code>TextBox</code> shift+click; <code>Slider</code> zero-width NaN guard; <code>ListView</code> pooled-label re-measure on width change (<code>poolW_</code>).</li>
+</ul>
+<nav class="chapter-nav"><a class="prev" href="API.en.17.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Accessibility &amp; Debug Channel</span><span class="nav-desc">UIA + SetDebugEnabled (v1.17.0)</span></a><a class="next" href="API.en.19.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Pitfall index</span><span class="nav-desc">Quick lookup by topic</span></a></nav>
         </main>
     </div>
 

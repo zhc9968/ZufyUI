@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Basic types · ZufyUI API Reference</title>
+    <title>Quick start · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,157 +197,105 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class="active"><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="color"><div class="toc-row"><a href="#color" data-target="color">Color</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="rect"><div class="toc-row"><a href="#rect" data-target="rect">Rect</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="thickness"><div class="toc-row"><a href="#thickness" data-target="thickness">Thickness</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="size"><div class="toc-row"><a href="#size" data-target="size">Size</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class="active"><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="minimal-program"><div class="toc-row"><a href="#minimal-program" data-target="minimal-program">Minimal program</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="event-loop-threading"><div class="toc-row"><a href="#event-loop-threading" data-target="event-loop-threading">Event loop &amp; threading</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="structure-outer-inner"><div class="toc-row"><a href="#structure-outer-inner" data-target="structure-outer-inner">Structure (outer → inner)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="suggested-reading-path"><div class="toc-row"><a href="#suggested-reading-path" data-target="suggested-reading-path">Suggested reading path</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Color
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Minimal program
 
 ```cpp
-struct Color {
-    float r, g, b, a;
-    Color(float r = 0, float g = 0, float b = 0, float a = 1.0f);
-    static Color FromArgb(uint8_t a, uint8_t r, uint8_t g, uint8_t b);
-    D2D1_COLOR_F ToD2D() const;
-    static Color Lerp(const Color&amp; c1, const Color&amp; c2, float t);
-};
+#include "ZufyUI.h"
+#include "ZufyUIWidgets.h"
+using namespace ZufyUI;
+
+int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {   // Windows subsystem (/SUBSYSTEM:WINDOWS)
+    Application app = Application::Instance();
+    auto win = app.CreateWindow(900, 600, L"Hello ZufyUI");
+    auto root = win-&gt;GetRootColumnBox();          // default root: ColumnBox, margin(20), spacing 10
+    auto btn  = std::make_shared&lt;Button&gt;(L"Click me");
+    btn-&gt;Connect(btn-&gt;Clicked, [] { /* ... */ });
+    root-&gt;AddChild(btn);
+    win-&gt;Show();                                  // Create does NOT auto-Show (since v1.8.0)
+    return app.Run();
+}
 ```
+&gt; **`Pitfall`**: GUI apps use `wWinMain` + `/SUBSYSTEM:WINDOWS`. If you insist on `int main()`, set `/SUBSYSTEM:CONSOLE`, or add `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")` — otherwise the linker won't find an entry point.
 
-- Components are **floats in `[0,1]`**, not 0–255. Mixing this up is the most common bug: `Color(255,0,0)` does not give red but an out-of-range value with unpredictable output. Use `Color(1,0,0)` or `FromArgb(255,255,0,0)`.
-- `FromArgb` takes **`(a, r, g, b)`** — alpha first, unlike `Color(r,g,b,a)`. Watch the order.
-- `ToD2D()` converts to `D2D1_COLOR_F`. Brushes are cached internally; after changing a color call `RequestRepaint()` (the control setters do this for you).
-- `Lerp` interpolates each component; `t` is not clamped.
+## Event loop &amp; threading
 
-## Rect
+- `Application::Run()` runs the single message loop; **all windows/controls must be created and touched on the same UI thread**.
+- To touch UI from a worker: use a signal's `ConnectionThread::UIThread`, or `detail::PostToUIThread`.
+- The render thread (`ZUFYUI_RENDER_THREAD`) is **off by default** and documented as unstable / not recommended.
 
-```cpp
-struct Rect {
-    float x, y, width, height;
-    Rect(float x = 0, float y = 0, float w = 0, float h = 0);
-    bool Contains(float px, float py) const;
-    D2D1_RECT_F ToD2D() const;
-};
-```
+## Structure (outer → inner)
 
-- Position + size (not left/top/right/bottom).
-- `Contains` includes the boundary.
-- `ToD2D()` converts to `D2D1_RECT_F`.
+`Application` (process) → `Window` (top-level, optionally owned/modal) → root `Layout` (default `ColumnBox`) → containers (`Card`/`PageHost`/`TabView`/`ScrollViewer`/data views/…) → controls.
+Overlays (menus/dropdowns/tooltips/system dialogs) use separate windows or a global overlay — not the root tree.
 
-## Thickness
+## Suggested reading path
 
-```cpp
-struct Thickness {
-    float left, top, right, bottom;
-    Thickness(float l = 0, float t = 0, float r = 0, float b = 0);
-};
-```
-
-- Used for `SetMargin()` and `ScrollViewer::SetContentMargin()`.
-- There is no single-argument "all sides equal" constructor; write `Thickness(8,8,8,8)`.
-
-## Size
-
-```cpp
-struct Size {
-    float width, height;
-    Size(float w = 0, float h = 0);
-};
-```
-
-- Used as the argument to and return value of `Measure()`.</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 2 · Basic types</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 2</span><h1>Basic types</h1><p class="chapter-summary">Color, Rect, Thickness, Size</p></header><h2 id="color">Color</h2>
+1. This chapter + "Conventions" (DIP / shared_ptr / signals / defaults).
+2. UI: "Layout" + "Element base" + "Basic controls".
+3. Data UI: "Data views".
+4. Charts: "Charts".
+5. Window extras (title bar/tray/dialogs/accessibility/debug): the matching chapter.</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 2 · Quick start</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 2</span><h1>Quick start</h1><p class="chapter-summary">Minimal program, structure, reading path</p></header><h2 id="minimal-program">Minimal program</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-8f504577', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-ac510dca', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Color</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">;</span>
-<span class="w">    </span><span class="n">Color</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">g</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">);</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="nf">FromArgb</span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">b</span><span class="p">);</span>
-<span class="w">    </span><span class="n">D2D1_COLOR_F</span><span class="w"> </span><span class="nf">ToD2D</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="nf">Lerp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Color</span><span class="o">&amp;</span><span class="w"> </span><span class="n">c1</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Color</span><span class="o">&amp;</span><span class="w"> </span><span class="n">c2</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">t</span><span class="p">);</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUI.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">APIENTRY</span><span class="w"> </span><span class="nf">wWinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPWSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">   </span><span class="c1">// Windows subsystem (/SUBSYSTEM:WINDOWS)</span>
+<span class="w">    </span><span class="n">Application</span><span class="w"> </span><span class="n">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Application</span><span class="o">::</span><span class="n">Instance</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">win</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">CreateWindow</span><span class="p">(</span><span class="mi">900</span><span class="p">,</span><span class="w"> </span><span class="mi">600</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Hello ZufyUI"</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">win</span><span class="o">-&gt;</span><span class="n">GetRootColumnBox</span><span class="p">();</span><span class="w">          </span><span class="c1">// default root: ColumnBox, margin(20), spacing 10</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">btn</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Button</span><span class="o">&gt;</span><span class="p">(</span><span class="sa">L</span><span class="s">"Click me"</span><span class="p">);</span>
+<span class="w">    </span><span class="n">btn</span><span class="o">-&gt;</span><span class="n">Connect</span><span class="p">(</span><span class="n">btn</span><span class="o">-&gt;</span><span class="n">Clicked</span><span class="p">,</span><span class="w"> </span><span class="p">[]</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... */</span><span class="w"> </span><span class="p">});</span>
+<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">btn</span><span class="p">);</span>
+<span class="w">    </span><span class="n">win</span><span class="o">-&gt;</span><span class="n">Show</span><span class="p">();</span><span class="w">                                  </span><span class="c1">// Create does NOT auto-Show (since v1.8.0)</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span>
+<span class="p">}</span>
 </pre></div>
-<pre id="code-8f504577" style="display: none;">struct Color {
-    float r, g, b, a;
-    Color(float r = 0, float g = 0, float b = 0, float a = 1.0f);
-    static Color FromArgb(uint8_t a, uint8_t r, uint8_t g, uint8_t b);
-    D2D1_COLOR_F ToD2D() const;
-    static Color Lerp(const Color&amp; c1, const Color&amp; c2, float t);
-};</pre>
+<pre id="code-ac510dca" style="display: none;">#include "ZufyUI.h"
+#include "ZufyUIWidgets.h"
+using namespace ZufyUI;
+
+int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {   // Windows subsystem (/SUBSYSTEM:WINDOWS)
+    Application app = Application::Instance();
+    auto win = app.CreateWindow(900, 600, L"Hello ZufyUI");
+    auto root = win-&gt;GetRootColumnBox();          // default root: ColumnBox, margin(20), spacing 10
+    auto btn  = std::make_shared&lt;Button&gt;(L"Click me");
+    btn-&gt;Connect(btn-&gt;Clicked, [] { /* ... */ });
+    root-&gt;AddChild(btn);
+    win-&gt;Show();                                  // Create does NOT auto-Show (since v1.8.0)
+    return app.Run();
+}</pre>
 </div>
+<blockquote>
+<p><strong><code>Pitfall</code></strong>: GUI apps use <code>wWinMain</code> + <code>/SUBSYSTEM:WINDOWS</code>. If you insist on <code>int main()</code>, set <code>/SUBSYSTEM:CONSOLE</code>, or add <code>#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")</code> — otherwise the linker won't find an entry point.</p>
+</blockquote>
+<h2 id="event-loop-threading">Event loop &amp; threading</h2>
 <ul>
-<li>Components are <strong>floats in <code>[0,1]</code></strong>, not 0–255. Mixing this up is the most common bug: <code>Color(255,0,0)</code> does not give red but an out-of-range value with unpredictable output. Use <code>Color(1,0,0)</code> or <code>FromArgb(255,255,0,0)</code>.</li>
-<li><code>FromArgb</code> takes <strong><code>(a, r, g, b)</code></strong> — alpha first, unlike <code>Color(r,g,b,a)</code>. Watch the order.</li>
-<li><code>ToD2D()</code> converts to <code>D2D1_COLOR_F</code>. Brushes are cached internally; after changing a color call <code>RequestRepaint()</code> (the control setters do this for you).</li>
-<li><code>Lerp</code> interpolates each component; <code>t</code> is not clamped.</li>
+<li><code>Application::Run()</code> runs the single message loop; <strong>all windows/controls must be created and touched on the same UI thread</strong>.</li>
+<li>To touch UI from a worker: use a signal's <code>ConnectionThread::UIThread</code>, or <code>detail::PostToUIThread</code>.</li>
+<li>The render thread (<code>ZUFYUI_RENDER_THREAD</code>) is <strong>off by default</strong> and documented as unstable / not recommended.</li>
 </ul>
-<h2 id="rect">Rect</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-57cea5b4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Rect</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="n">height</span><span class="p">;</span>
-<span class="w">    </span><span class="n">Rect</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Contains</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">px</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">py</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">D2D1_RECT_F</span><span class="w"> </span><span class="nf">ToD2D</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-57cea5b4" style="display: none;">struct Rect {
-    float x, y, width, height;
-    Rect(float x = 0, float y = 0, float w = 0, float h = 0);
-    bool Contains(float px, float py) const;
-    D2D1_RECT_F ToD2D() const;
-};</pre>
-</div>
-<ul>
-<li>Position + size (not left/top/right/bottom).</li>
-<li><code>Contains</code> includes the boundary.</li>
-<li><code>ToD2D()</code> converts to <code>D2D1_RECT_F</code>.</li>
-</ul>
-<h2 id="thickness">Thickness</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-cd86d713', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Thickness</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">left</span><span class="p">,</span><span class="w"> </span><span class="n">top</span><span class="p">,</span><span class="w"> </span><span class="n">right</span><span class="p">,</span><span class="w"> </span><span class="n">bottom</span><span class="p">;</span>
-<span class="w">    </span><span class="n">Thickness</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-cd86d713" style="display: none;">struct Thickness {
-    float left, top, right, bottom;
-    Thickness(float l = 0, float t = 0, float r = 0, float b = 0);
-};</pre>
-</div>
-<ul>
-<li>Used for <code>SetMargin()</code> and <code>ScrollViewer::SetContentMargin()</code>.</li>
-<li>There is no single-argument "all sides equal" constructor; write <code>Thickness(8,8,8,8)</code>.</li>
-</ul>
-<h2 id="size">Size</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-61153d9a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Size</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="n">height</span><span class="p">;</span>
-<span class="w">    </span><span class="n">Size</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-61153d9a" style="display: none;">struct Size {
-    float width, height;
-    Size(float w = 0, float h = 0);
-};</pre>
-</div>
-<ul>
-<li>Used as the argument to and return value of <code>Measure()</code>.</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.1.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Conventions</span><span class="nav-desc">Namespace, units, lifetime, and defaults</span></a><a class="next" href="API.en.3.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Global functions and DPI</span><span class="nav-desc">clamp, DPI scale, pixel snapping</span></a></nav>
+<h2 id="structure-outer-inner">Structure (outer → inner)</h2>
+<p><code>Application</code> (process) → <code>Window</code> (top-level, optionally owned/modal) → root <code>Layout</code> (default <code>ColumnBox</code>) → containers (<code>Card</code>/<code>PageHost</code>/<code>TabView</code>/<code>ScrollViewer</code>/data views/…) → controls.
+Overlays (menus/dropdowns/tooltips/system dialogs) use separate windows or a global overlay — not the root tree.</p>
+<h2 id="suggested-reading-path">Suggested reading path</h2>
+<ol>
+<li>This chapter + "Conventions" (DIP / shared_ptr / signals / defaults).</li>
+<li>UI: "Layout" + "Element base" + "Basic controls".</li>
+<li>Data UI: "Data views".</li>
+<li>Charts: "Charts".</li>
+<li>Window extras (title bar/tray/dialogs/accessibility/debug): the matching chapter.</li>
+</ol>
+<nav class="chapter-nav"><a class="prev" href="API.en.1.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Conventions</span><span class="nav-desc">Namespaces, units, lifetime, version &amp; pitfall notation</span></a><a class="next" href="API.en.3.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Basic types</span><span class="nav-desc">Color, Rect, Thickness, Size</span></a></nav>
         </main>
     </div>
 

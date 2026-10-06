@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>无障碍（UI Automation） · ZufyUI API 参考</title>
+    <title>无障碍与调试通道 · ZufyUI API 参考</title>
     <style>
 
 :root {
@@ -197,140 +197,143 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>基础类型</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>全局函数与 DPI</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>信号与连接</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>核心元素 UIElement</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>菜单</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>窗口 Window</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>应用与多窗口</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>基础控件</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>数据视图</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>图像</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>窗口工具</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>系统对话框</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>附录</a></li><li class="active"><a href="API.17.html"><span class="chapter-index">17</span>无障碍（UI Automation）</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>调试通道（外部调试 / 自动化）</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="概述"><div class="toc-row"><a href="#概述" data-target="概述">概述</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="元素无障碍-apiuielement"><div class="toc-row"><a href="#元素无障碍-apiuielement" data-target="元素无障碍-apiuielement">元素无障碍 API（UIElement）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="角色accessiblerole"><div class="toc-row"><a href="#角色accessiblerole" data-target="角色accessiblerole">角色（AccessibleRole）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="pattern按角色分派"><div class="toc-row"><a href="#pattern按角色分派" data-target="pattern按角色分派">Pattern（按角色分派）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="事件"><div class="toc-row"><a href="#事件" data-target="事件">事件</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="window-辅助"><div class="toc-row"><a href="#window-辅助" data-target="window-辅助">Window 辅助</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class="active"><a href="API.17.html"><span class="chapter-index">17</span>无障碍与调试通道</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>版本变化摘录</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>易错点总表</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="无障碍uia"><div class="toc-row"><a href="#无障碍uia" data-target="无障碍uia">无障碍（UIA）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="调试-自动化通道"><div class="toc-row"><a href="#调试-自动化通道" data-target="调试-自动化通道">调试 / 自动化通道</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## 概述
-- **默认开启**：`Window::SetAccessibilityEnabled(bool)`；`IsAccessibilityEnabled()` 查询。
-- 元数据由 `ZufyUIWindowTool.h` 里的 provider 实现（`IRawElementProviderSimple/Fragment/FragmentRoot`）；`WM_GETOBJECT` 由 `Window` 自动处理，窗口析构自动释放。
-- 库**无历史、无文件读写**：provider 只返回「当前这一帧」的属性/树。
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## 无障碍（UIA）
 
-## 元素无障碍 API（`UIElement`）
+- 由 `ZufyUIWindowTool.h` 提供 UI Automation 提供程序；元素侧 API 见「元素基类」。
+- 窗口侧：`SetAccessibilityEnabled(bool)`（默认开）、`FocusElement`、`GetFocused/Hovered/PressedElement`。
+- **`易错`**：库**不存历史、不读写文件**，提供程序只反映当前帧。`WM_GETOBJECT` 仅在开启时处理。
+
+## 调试 / 自动化通道
+
 ```cpp
-void SetAccessibleName(const std::wstring&amp; name);
-void SetAccessibleDescription(const std::wstring&amp; desc);
-void SetAccessibleAutomationId(const std::wstring&amp; id);
-void SetAccessibleRole(AccessibleRole role);
-std::wstring  GetAccessibleName() const;
-AccessibleRole GetAccessibleRole() const;
-std::wstring  GetAutomationIdOrAuto() const;                 // 未设时返回自动生成的 e{n}
-virtual std::vector&lt;UIElement*&gt; GetAccessibleChildren();     // 默认=可见子元素
-virtual bool IsAccessibilityIgnored() const;                 // true=对 UIA 隐藏
+inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 ```
+- 默认**关闭**；开启后目标窗口处理 `WM_COPYDATA`（`dwData` = 命令号，回包 `0x5A554631`）。
+- 命令集（1..22）：
 
-## 角色（`AccessibleRole`）
-`None / Button / Text / Edit / CheckBox / RadioButton / ComboBox / Slider / ProgressBar /
-List / ListItem / Tree / TreeItem / Tab / TabItem / Menu / MenuItem / ScrollBar / Window /
-Group / Document / DataGrid / ToolTip`
+| 命令 | 作用 | 命令 | 作用 |
+|---|---|---|---|
+| 1 | Ping | 12 | ClearHighlight |
+| 2 | ListWindows | 13 | GetErrors（统一日志 E/W/I/D，≤500） |
+| 3 | GetFrameStats | 14 | ClearErrors |
+| 4 | GetElementTree | 15/16/17 | TopN 重绘/布局/缓存（`all`=全部） |
+| 5 | ForceRepaint | 18 | TopN 绘制 |
+| 6 | SetElementText("id\ttext") | 19 | ResetCounters |
+| 7 | InvokeElement | 20 | SetVisible("id\t0/1") |
+| 8 | FocusElement | 21 | SetMargin("id\tx\ty") |
+| 9 | GetElementInfo | 22 | SetHighlightColor("RRGGBB") |
+| 10 | GetElementAt("x,y" 屏幕→AutomationId) | — | — |
+| 11 | Highlight(id) | — | — |
 
-## Pattern（按角色分派）
-- `Button / CheckBox / RadioButton` → Invoke / Toggle
-- `TextBox / ComboBox` → Value
-- `Slider / ProgressBar` → RangeValue
-- `ComboBox / TreeView` → ExpandCollapse
-- 控件可覆写 Pattern 虚函数（如 `AccessibilityInvoke()` / `GetAccessibleValue()` 等）。
-
-## 事件
-```cpp
-void AccessibilityNotifyValueChanged();
-void AccessibilityNotifyToggleChanged();
-void AccessibilityNotifyRangeValueChanged();
-void AccessibilityNotifyStructureChanged();
-```
-`SetText / SetChecked / SetOn` 会自动上报对应属性变化。
-
-## Window 辅助
-```cpp
-UIElement* GetFocusedElement() const;
-UIElement* GetHoveredElement() const;
-UIElement* GetPressedElement() const;
-void       FocusElement(UIElement* e);                       // 等价无障碍 SetFocus
-UIElement* HitTestElementDIP(float x, float y);              // 命中测试（DIP）
-void       ForgetAccessibleElement(UIElement* e);            // 元素析构时清理 provider 缓存
-```</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 17 章 · 无障碍（UI Automation）</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 17 章</span><h1>无障碍（UI Automation）</h1><p class="chapter-summary">默认开启；角色 / Pattern / 事件 / 命中与焦点</p></header><h2 id="概述">概述</h2>
+- 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
+- **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 17 章 · 无障碍与调试通道</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 17 章</span><h1>无障碍与调试通道</h1><p class="chapter-summary">UIA + SetDebugEnabled（v1.17.0）</p></header><h2 id="无障碍uia">无障碍（UIA）</h2>
 <ul>
-<li><strong>默认开启</strong>：<code>Window::SetAccessibilityEnabled(bool)</code>；<code>IsAccessibilityEnabled()</code> 查询。</li>
-<li>元数据由 <code>ZufyUIWindowTool.h</code> 里的 provider 实现（<code>IRawElementProviderSimple/Fragment/FragmentRoot</code>）；<code>WM_GETOBJECT</code> 由 <code>Window</code> 自动处理，窗口析构自动释放。</li>
-<li>库<strong>无历史、无文件读写</strong>：provider 只返回「当前这一帧」的属性/树。</li>
+<li>由 <code>ZufyUIWindowTool.h</code> 提供 UI Automation 提供程序；元素侧 API 见「元素基类」。</li>
+<li>窗口侧：<code>SetAccessibilityEnabled(bool)</code>（默认开）、<code>FocusElement</code>、<code>GetFocused/Hovered/PressedElement</code>。</li>
+<li><strong><code>易错</code></strong>：库<strong>不存历史、不读写文件</strong>，提供程序只反映当前帧。<code>WM_GETOBJECT</code> 仅在开启时处理。</li>
 </ul>
-<h2 id="元素无障碍-apiuielement">元素无障碍 API（<code>UIElement</code>）</h2>
+<h2 id="调试-自动化通道">调试 / 自动化通道</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-bb0ff7b5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-f0256f86', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleName</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">name</span><span class="p">);</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleDescription</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">desc</span><span class="p">);</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleAutomationId</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleRole</span><span class="p">(</span><span class="n">AccessibleRole</span><span class="w"> </span><span class="n">role</span><span class="p">);</span>
-<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w">  </span><span class="nf">GetAccessibleName</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="n">AccessibleRole</span><span class="w"> </span><span class="nf">GetAccessibleRole</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w">  </span><span class="nf">GetAutomationIdOrAuto</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                 </span><span class="c1">// 未设时返回自动生成的 e{n}</span>
-<span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">GetAccessibleChildren</span><span class="p">();</span><span class="w">     </span><span class="c1">// 默认=可见子元素</span>
-<span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsAccessibilityIgnored</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">                 </span><span class="c1">// true=对 UIA 隐藏</span>
+<div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDebugEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kr">inline</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDebugEnabled</span><span class="p">();</span>
 </pre></div>
-<pre id="code-bb0ff7b5" style="display: none;">void SetAccessibleName(const std::wstring&amp; name);
-void SetAccessibleDescription(const std::wstring&amp; desc);
-void SetAccessibleAutomationId(const std::wstring&amp; id);
-void SetAccessibleRole(AccessibleRole role);
-std::wstring  GetAccessibleName() const;
-AccessibleRole GetAccessibleRole() const;
-std::wstring  GetAutomationIdOrAuto() const;                 // 未设时返回自动生成的 e{n}
-virtual std::vector&lt;UIElement*&gt; GetAccessibleChildren();     // 默认=可见子元素
-virtual bool IsAccessibilityIgnored() const;                 // true=对 UIA 隐藏</pre>
+<pre id="code-f0256f86" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
 </div>
-<h2 id="角色accessiblerole">角色（<code>AccessibleRole</code>）</h2>
-<p><code>None / Button / Text / Edit / CheckBox / RadioButton / ComboBox / Slider / ProgressBar /
-List / ListItem / Tree / TreeItem / Tab / TabItem / Menu / MenuItem / ScrollBar / Window /
-Group / Document / DataGrid / ToolTip</code></p>
-<h2 id="pattern按角色分派">Pattern（按角色分派）</h2>
 <ul>
-<li><code>Button / CheckBox / RadioButton</code> → Invoke / Toggle</li>
-<li><code>TextBox / ComboBox</code> → Value</li>
-<li><code>Slider / ProgressBar</code> → RangeValue</li>
-<li><code>ComboBox / TreeView</code> → ExpandCollapse</li>
-<li>控件可覆写 Pattern 虚函数（如 <code>AccessibilityInvoke()</code> / <code>GetAccessibleValue()</code> 等）。</li>
+<li>默认<strong>关闭</strong>；开启后目标窗口处理 <code>WM_COPYDATA</code>（<code>dwData</code> = 命令号，回包 <code>0x5A554631</code>）。</li>
+<li>命令集（1..22）：</li>
 </ul>
-<h2 id="事件">事件</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-fce0e627', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">AccessibilityNotifyValueChanged</span><span class="p">();</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">AccessibilityNotifyToggleChanged</span><span class="p">();</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">AccessibilityNotifyRangeValueChanged</span><span class="p">();</span>
-<span class="kt">void</span><span class="w"> </span><span class="nf">AccessibilityNotifyStructureChanged</span><span class="p">();</span>
-</pre></div>
-<pre id="code-fce0e627" style="display: none;">void AccessibilityNotifyValueChanged();
-void AccessibilityNotifyToggleChanged();
-void AccessibilityNotifyRangeValueChanged();
-void AccessibilityNotifyStructureChanged();</pre>
-</div>
-<p><code>SetText / SetChecked / SetOn</code> 会自动上报对应属性变化。</p>
-<h2 id="window-辅助">Window 辅助</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ecdb38de', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
-</div>
-<div class="highlight"><pre><span></span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">GetFocusedElement</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">GetHoveredElement</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">GetPressedElement</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="kt">void</span><span class="w">       </span><span class="nf">FocusElement</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">e</span><span class="p">);</span><span class="w">                       </span><span class="c1">// 等价无障碍 SetFocus</span>
-<span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">HitTestElementDIP</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">);</span><span class="w">              </span><span class="c1">// 命中测试（DIP）</span>
-<span class="kt">void</span><span class="w">       </span><span class="nf">ForgetAccessibleElement</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">e</span><span class="p">);</span><span class="w">            </span><span class="c1">// 元素析构时清理 provider 缓存</span>
-</pre></div>
-<pre id="code-ecdb38de" style="display: none;">UIElement* GetFocusedElement() const;
-UIElement* GetHoveredElement() const;
-UIElement* GetPressedElement() const;
-void       FocusElement(UIElement* e);                       // 等价无障碍 SetFocus
-UIElement* HitTestElementDIP(float x, float y);              // 命中测试（DIP）
-void       ForgetAccessibleElement(UIElement* e);            // 元素析构时清理 provider 缓存</pre>
-</div>
-<nav class="chapter-nav"><a class="prev" href="API.16.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">附录</span><span class="nav-desc">信号一览、默认值速查与常见坑</span></a><a class="next" href="API.18.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">调试通道（外部调试 / 自动化）</span><span class="nav-desc">WM_COPYDATA，默认关闭，库不读写文件</span></a></nav>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Ping</td>
+<td>12</td>
+<td>ClearHighlight</td>
+</tr>
+<tr>
+<td>2</td>
+<td>ListWindows</td>
+<td>13</td>
+<td>GetErrors（统一日志 E/W/I/D，≤500）</td>
+</tr>
+<tr>
+<td>3</td>
+<td>GetFrameStats</td>
+<td>14</td>
+<td>ClearErrors</td>
+</tr>
+<tr>
+<td>4</td>
+<td>GetElementTree</td>
+<td>15/16/17</td>
+<td>TopN 重绘/布局/缓存（<code>all</code>=全部）</td>
+</tr>
+<tr>
+<td>5</td>
+<td>ForceRepaint</td>
+<td>18</td>
+<td>TopN 绘制</td>
+</tr>
+<tr>
+<td>6</td>
+<td>SetElementText("id\ttext")</td>
+<td>19</td>
+<td>ResetCounters</td>
+</tr>
+<tr>
+<td>7</td>
+<td>InvokeElement</td>
+<td>20</td>
+<td>SetVisible("id\t0/1")</td>
+</tr>
+<tr>
+<td>8</td>
+<td>FocusElement</td>
+<td>21</td>
+<td>SetMargin("id\tx\ty")</td>
+</tr>
+<tr>
+<td>9</td>
+<td>GetElementInfo</td>
+<td>22</td>
+<td>SetHighlightColor("RRGGBB")</td>
+</tr>
+<tr>
+<td>10</td>
+<td>GetElementAt("x,y" 屏幕→AutomationId)</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Highlight(id)</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>统一日志：<code>detail::Log(level, tag, msg)</code>、<code>LogWarning/LogInfo/DebugLog</code>、<code>RecordError</code>（→ E 级并触发 <code>UIZSignals::Error</code>）。</li>
+<li><strong><code>易错</code></strong>：调试器侧发命令要带超时（<code>SendMessageTimeout</code>，不加 <code>SMTO_BLOCK</code>），否则目标忙时会卡死调试器。<code>ZUFYUI_DEBUG</code> 是<strong>编译期</strong>开关（日志），<code>SetDebugEnabled</code> 是<strong>运行期</strong>开关（通道/统计）——两套语义别混。</li>
+</ul>
+<nav class="chapter-nav"><a class="prev" href="API.16.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">窗口周边</span><span class="nav-desc">图像、托盘、系统对话框、应用注册</span></a><a class="next" href="API.18.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.18.0</span></a></nav>
         </main>
     </div>
 

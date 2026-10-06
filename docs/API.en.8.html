@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menus · ZufyUI API Reference</title>
+    <title>Window · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,385 +197,426 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class="active"><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="tabview-tabs"><div class="toc-row"><a href="#tabview-tabs" data-target="tabview-tabs">TabView (tabs)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menuitem"><div class="toc-row"><a href="#menuitem" data-target="menuitem">MenuItem</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menu"><div class="toc-row"><a href="#menu" data-target="menu">Menu</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="menuwindowbase-menuwindow-popup-layer-subclass-menuwindowbase-for-custom-flyouts"><div class="toc-row"><a href="#menuwindowbase-menuwindow-popup-layer-subclass-menuwindowbase-for-custom-flyouts" data-target="menuwindowbase-menuwindow-popup-layer-subclass-menuwindowbase-for-custom-flyouts">MenuWindowBase / MenuWindow (popup layer; subclass MenuWindowBase for custom flyouts)</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class="active"><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="nested-public-types"><div class="toc-row"><a href="#nested-public-types" data-target="nested-public-types">Nested public types</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="static-configuration"><div class="toc-row"><a href="#static-configuration" data-target="static-configuration">Static configuration</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="creation-lifecycle"><div class="toc-row"><a href="#creation-lifecycle" data-target="creation-lifecycle">Creation / lifecycle</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="three-ways-to-create-a-window-which-to-pick"><div class="toc-row"><a href="#three-ways-to-create-a-window-which-to-pick" data-target="three-ways-to-create-a-window-which-to-pick">Three ways to create a window (which to pick)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="ownership-multi-window-size"><div class="toc-row"><a href="#ownership-multi-window-size" data-target="ownership-multi-window-size">Ownership / multi-window / size</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="root-content-capture"><div class="toc-row"><a href="#root-content-capture" data-target="root-content-capture">Root content / capture</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="appearance-backdrop-corners"><div class="toc-row"><a href="#appearance-backdrop-corners" data-target="appearance-backdrop-corners">Appearance / backdrop / corners</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="custom-title-bar"><div class="toc-row"><a href="#custom-title-bar" data-target="custom-title-bar">Custom title bar</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="taskbar-thumbnails-jump-list"><div class="toc-row"><a href="#taskbar-thumbnails-jump-list" data-target="taskbar-thumbnails-jump-list">Taskbar / thumbnails / jump list</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="dpi"><div class="toc-row"><a href="#dpi" data-target="dpi">DPI</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="render-thread-frame-rate"><div class="toc-row"><a href="#render-thread-frame-rate" data-target="render-thread-frame-rate">Render thread / frame rate</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="accessibility-signals"><div class="toc-row"><a href="#accessibility-signals" data-target="accessibility-signals">Accessibility / signals</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## TabView (tabs)
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Nested public types
 
 ```cpp
-class TabView : public UIElement {
-    ZSignal&lt;int&gt; SelectionChanged;    // selected tab index
-    ZSignal&lt;int&gt; TabCloseRequested;   // a tab's x was clicked (application decides whether to remove)
-
-    // A tab's title IS a Label (v1.13.0); the wstring overload is a convenience (wraps a Label)
-    int  AddTab(const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
-    int  AddTab(std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
-    void InsertTab(int index, const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
-    void InsertTab(int index, std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
-    void RemoveTab(int index); void ClearTabs();
-    int  GetTabCount() const;
-    void SetTabTitle(int, const std::wstring&amp;); std::wstring GetTabTitle(int) const;
-    void SetTabLabel(int, std::shared_ptr&lt;Label&gt;); std::shared_ptr&lt;Label&gt; GetTabLabel(int) const;
-    static std::shared_ptr&lt;Label&gt; MakeTabLabel(const std::wstring&amp; title);   // centered Label
-    void SetTabContent(int, std::shared_ptr&lt;UIElement&gt;); std::shared_ptr&lt;UIElement&gt; GetTabContent(int) const;
-    void SetTabClosable(int, bool);
-
-    void SetSelectedIndex(int); int GetSelectedIndex() const;
-    std::shared_ptr&lt;UIElement&gt; GetSelectedContent() const;
-
-    void SetTabHeight(float); void SetTabMinWidth(float); void SetTabPadding(float);
-    void SetSelectedTabColor(Color);     // selected tab background (default #D6E8FB)
-    void SetIndicatorColor(Color); void SetIndicatorHeight(float);
-    void SetBorder(bool visible, Color = grey, float width = 1.0f); void SetCornerRadius(float);
-    void SetTextColor(Color normal, Color selected);
-    void SetAnimationSpeeds(float indicator, float hover);
-    void SetTabMoveSpeed(float);
-    void SetScrollWheelStep(float); void SetScrollBarThickness(float); void SetShowScrollBar(bool);
-    void SetTransitionDirection(PageHost::TransitionDirection);
-    void SetTransitionEasing(PageHost::TransitionEasing);
-    void SetAnimationDuration(float);
-    void SetAutoTransitionDirection(bool);
-};
+struct BackgroundParams { float blurAmount=30, saturation=1; D2D1_COLOR_F tint, luminosity; float noiseOpacity=0.02f; };
+enum class AcrylicPreset { Legacy, Luminosity, Base, Thin };
+struct CaptionMetrics { bool valid; float rightMargin, top, height, width; };
+enum class TaskbarProgress { None=0, Indeterminate=1, Normal=2, Error=4, Paused=8 };
+enum class ThumbButtonId : UINT { Play=0, Pause=1, Prev=2, Next=3, MaxId=4 };
+struct JumpListItem { std::wstring title, arguments, target, iconPath; int iconIndex=0; };
+enum class WindowCorner { Default, Square, Round, RoundSmall };
+enum class ActivateMode { Raise, Activate, Foreground, All };
+enum class OwnedMinimizePolicy { None, Hide, DisableMinimize };
 ```
 
-- Content is hosted by an internal **`PageHost`** (one `Page` per tab) → switching **reuses the PageHost transition animation**; pass a `Page` to use directly, any other element is wrapped in a `Page`.
-- **Keyboard**: `Left/Right` cycle, `Home`/`End`, `Delete` closes the current (if closable).
-- **Overflow**: only when too wide — **◀/▶ buttons** (shown per direction) and a **bottom horizontal scrollbar** (reuses `ScrollBar`); the wheel scrolls tabs **only over the tab strip**, content-area wheel goes to the outer scroll container.
-- Closing a tab **slides** the following tabs into place; the indicator follows exactly.
-- **A tab's title is a `Label` (v1.13.0)**, so tabs support icons etc. naturally, e.g.
-  `auto l = TabView::MakeTabLabel(L"Home"); l-&gt;SetIcon(Icon::Home); tabs-&gt;AddTab(l, content);`
-  or `tabs-&gt;GetTabLabel(i)-&gt;SetIcon(Icon::Folder);`.
-- The **tab strip &lt;-&gt; content gap** equals the shrunk thickness of the bottom scrollbar (`ScrollBar::ShrunkWidthRatio`), present only when overflowing.
-
-## MenuItem
+## Static configuration
 
 ```cpp
-class MenuItem {
-    enum class Type { Normal, Separator, Submenu };
-    std::wstring text;
-    std::function&lt;void()&gt; callback;
-    std::shared_ptr&lt;Menu&gt; submenu;
-    Type type = Type::Normal;
-    bool enabled = true;
-    std::shared_ptr&lt;Label&gt; icon;
-    // ---- enhanced fields ----
-    int id = 0;                      // command id (paired with Menu::ItemSelected)
-    bool checkable = false;          // show the check column
-    bool checked = false;            // checked state
-    bool radio = false;              // radio (mutually exclusive within a menu)
-    bool isDefault = false;          // default item: bold + Enter triggers it
-    bool danger = false;             // danger item: red text
-    std::wstring shortcut;           // right-side shortcut hint (display only)
-    std::optional&lt;Color&gt; bgColor;    // per-item custom background (rounded)
-    std::optional&lt;Color&gt; textColor;  // per-item custom text color
-    std::optional&lt;FontSpec&gt; font;    // per-item font (defaults to Menu::font)
-};
+inline static Backdrop DefaultBackdrop = Backdrop::None;
+inline static DWORD     DefaultBackdropColor = 0xFFFFFFFF;   // pure white default, v1.17.0
+static void SetDefaultBackdrop(Backdrop, DWORD tint = 0);
+static void SetBackgroundParams(Backdrop which, const BackgroundParams&amp;);
+static void SetBackgroundParams(Backdrop which, AcrylicPreset);
+static void SetDefaultFrameRateLimit(int fps);   // v1.14.2
+static void SetDefaultAppIcon(HICON big, HICON small = nullptr);
+static void SetProcessAppUserModelID(const std::wstring&amp; id);
 ```
 
-## Menu
+## Creation / lifecycle
 
 ```cpp
-class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
-    inline static FontSpec DefaultFont{};              // global default menu font
-    void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
-    void AddCheckItem(const std::wstring&amp; text, bool checked,
-                      std::function&lt;void(bool)&gt; onToggle = nullptr, int id = 0, bool radio = false);
-    void AddSeparator();
-    void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu, int id = 0);
-
-    std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; items;
-    std::function&lt;void(Menu&amp;)&gt; onOpening;   // pre-open callback (can adjust checked/enabled/text live)
-    ZSignal&lt;int&gt; ItemSelected;              // any normal item clicked (carries id; root menu receives submenu clicks)
-    FontSpec font = DefaultFont;            // menu font
-    static void SetDefaultFont(const FontSpec&amp;);
-
-    void ShowAt(int screenX, int screenY);  // standalone popup (bound to no window; typical: tray menu)
-    void ShowAtCursor();                    // pop up at the mouse cursor
-};
+bool Create(int w, int h, const std::wstring&amp; title, int x=CW_USEDEFAULT, int y=CW_USEDEFAULT);
+bool IsValid() const;  HWND GetHwnd() const;  int GetId() const;
+void Show(); void ShowNoActivate(); void Hide(); void Raise(); void Close();
+void Run();  int RunModal(Window* owner = nullptr);
+void SetInputBlocked(bool);  bool IsInputBlocked() const;
+std::unique_lock&lt;std::recursive_mutex&gt; LockRender();  void RenderNowSync();
 ```
+- **`Pitfall`**: `Create` does **not** auto-`Show` (since v1.8.0). `RunModal` disables the owner (`EnableWindow(FALSE)`) and deliberately does **not** use `IsDialogMessage`.
+- **`Version`**: multi-window `v1.6.0`; `SetInputBlocked`/modal `v1.6.2`; `LockRender`/`RenderNowSync` `v1.16.0`.
 
-- `AddItem` adds a clickable item, `AddSeparator` a separator, `AddSubmenu` a submenu, `AddCheckItem` a check/radio item.
-- Attach a menu to an element with `element-&gt;SetContextMenu(menu);` (or `SetContextMenuFactory` to build on demand), or to the window with `window.SetContextMenu(menu);`.
-- **Standalone popup**: `menu-&gt;ShowAtCursor()` pops up at the mouse without binding to a window (great for tray right-click menus); it first closes any other open menu (mutual exclusion).
-- **Signal-slot**: items may carry an `id`; collect them with `menu-&gt;ItemSelected.connect([](int id){...})`. Per-item `Clicked` / `AddItem` callbacks still work. `onOpening` runs before each popup.
-- **Appearance**: `MenuItem::bgColor` / `textColor` / `font` per item; `Menu::font` overall; the hover highlight is a translucent overlay (still visible over a custom background). Supports `isDefault` (bold + Enter), `danger` (red), `shortcut` (right hint), `enabled=false` (disabled).
+## Three ways to create a window (which to pick)
 
-## MenuWindowBase / MenuWindow (popup layer; subclass MenuWindowBase for custom flyouts)
+| Way | Code | Ownership | Message loop | Use for |
+|---|---|---|---|---|
+| Stack value | `Window w; w.Create(...); w.Show(); app.Run();` | You (scope) | shared `Run()` | single main window, simple lifetime |
+| `shared_ptr` | `auto w = app.CreateWindow(...); w-&gt;Show(); app.Run();` | `shared_ptr` refcount | shared `Run()` | multiple windows, dynamic create/destroy |
+| Modal | `int r = w-&gt;RunModal(owner);` | same as `shared_ptr` | **nested** loop, blocks until closed | dialogs / confirmations |
 
-The popup layer now **derives from `Window`** (uses DComp + the shared device, instead of creating a fresh software render device per popup).
+- **`Pitfall`**: `Window` is **non-copyable**; the stack form must **outlive `Run()`** (otherwise the loop still references a destroyed window).
+- **`Pitfall`**: the `shared_ptr` from `Application::CreateWindow` **is the ownership** — dropping it destroys the window; `Create` also does not auto-`Show`.
+
+## Ownership / multi-window / size
 
 ```cpp
-// Popup base: only the popup's system interaction; no notion of "menu items"
-class MenuWindowBase : public Window {
-    bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // content size in DIP; shadow margin added
-    void ShowAtPoint(int screenX, int screenY);   // pop up at a screen point (auto-clamped to the work area)
-    void Hide();
-    void CloseAll();                              // close the whole popup tree
-    void SetStandalone(bool on);                  // standalone (closes on outside-click / Esc)
-    MenuWindowBase* ParentPopup() const;
-    MenuWindowBase* ChildPopup() const;
-    bool IsPointInPopupTree(POINT ptScreen);      // is a screen point inside this popup (or its children)?
-
-    // Overridable:
-    virtual void RenderContent(ID2D1DeviceContext* rt) override;  // draw your content (default: element tree)
-    virtual bool OnWindowMessage(UINT, WPARAM, LPARAM, LRESULT*) override; // message interception
-    virtual bool OnMenuKeyDown(int vk) { return false; }          // keyboard (forwarded by the window)
-    virtual bool OnPopupTimer(int id) { return false; }
-};
-
-// The menu implementation: draws items + submenus (framework-internal)
-class MenuWindow : public MenuWindowBase {
-    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
-    static std::shared_ptr&lt;MenuWindow&gt;&amp; StandaloneHolder();
-};
+void SetOwner(Window*);  Window* GetOwner() const;
+std::vector&lt;Window*&gt; GetOwnedWindows() const;
+void HideOwnedWindows(); void ShowOwnedWindows();
+void SetPosition(int x, int y);  void SetSize(int w, int h);   // DIP
+void SetMinSize(int w, int h);
+void SetOwnedMinimizePolicy(OwnedMinimizePolicy);
 ```
+- **`Pitfall`**: set `SetOwner` **before** `Create`, or the window gets its own taskbar button and does not minimize with the owner.
+- **`Pitfall`**: `SetMinSize` **overrides** the content-based minimum. Without it, the minimum can be blown up by long text/charts (internally `rootElement-&gt;Measure(Size(0,0))`; with width 0 a wrapping Label reports its full single-line width). **Chart-bearing debugger windows set `SetMinSize` explicitly.**
 
-- Usually not used directly; created automatically for right-click / standalone popups.
-- **Custom flyouts / panels**: subclass `MenuWindowBase` and override `RenderContent(rt)` — you reuse the shared D3D/D2D device and the whole popup mechanism (per-pixel transparency, no focus steal, no taskbar button, topmost, outside-click close, screen-edge avoidance).
-- Popups return `WM_MOUSEACTIVATE → MA_NOACTIVATE` and `WM_NCACTIVATE → FALSE` (**refuse activation**), so clicking them never makes the owner window receive a spurious `WM_KILLFOCUS`.</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 8 · Menus</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 8</span><h1>Menus</h1><p class="chapter-summary">MenuItem, Menu, MenuWindow</p></header><h2 id="tabview-tabs">TabView (tabs)</h2>
+## Root content / capture
+
+```cpp
+void SetRootLayout(std::shared_ptr&lt;Layout&gt;);
+std::shared_ptr&lt;ColumnBox&gt; GetRootColumnBox() const;   // default root: ColumnBox margin(20) spacing 10
+void SetContextMenu(std::shared_ptr&lt;Menu&gt;);  void CloseContextMenu();
+UIElement* HitTestElement(float x, float y);
+void CollectDragRegions();  bool PointInDragRegion(float,float) const;
+void MarkRepaint(UIElement*);   // marks only; does NOT schedule a frame
+float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;
+```
+- **`Pitfall`**: `RequestRepaint()` → `MarkRepaint` does **not** schedule a frame. Frames come from the 16 ms `WM_TIMER` (when busy) or animation continuation. Historical note: forcing a frame here once caused a continuous re-render loop (severe stutter) — **reverted**.
+
+## Appearance / backdrop / corners
+
+```cpp
+void SetBackdrop(Backdrop, DWORD tint=0);  Backdrop GetBackdrop() const;
+void SetBackgroundColor(Color);
+void SetWindowCorner(WindowCorner);
+void SetContentOpacity(float opacity);
+void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
+void SetResizable(bool);   void SetTitle(const std::wstring&amp;);
+```
+- Backdrop is **hand-rolled** (Acrylic = host backdrop + effect chain; Mica = cached wallpaper layer). Change params via `SetBackgroundParams` or `UIZSignals::ReloadAcrylic`.
+- **`Version`**: four-layer params `v1.8.1`; `SetContentOpacity` `v1.9.6`.
+
+## Custom title bar
+
+```cpp
+void SetCustomTitleBar(std::shared_ptr&lt;UIElement&gt;);  std::shared_ptr&lt;UIElement&gt; GetCustomTitleBar() const;
+bool HasCustomTitleBar() const;   void SetTitleBarVisible(bool);
+CaptionMetrics QueryCaptionMetrics() const;
+void Minimize(); void Maximize(); void Restore(); void MaximizeRestore();
+bool IsMaximizedWindow() const;   void BeginSystemDrag();
+```
+- **`Pitfall`**: the custom title bar **does not participate in layout** — `Window` places it at `(0,0)` and shifts the root down by its measured height. Do not `AddChild` it manually.
+- **`Version`**: `v1.7.0`; `CaptionButton::Kind::Pin` = `v1.17.0`.
+
+## Taskbar / thumbnails / jump list
+
+```cpp
+void SetTaskbarProgress(TaskbarProgress, ULONGLONG done=0, ULONGLONG total=0);  void ClearTaskbarProgress();
+void SetTaskbarOverlayIcon(HICON, const std::wstring&amp; = L"");  void ClearTaskbarOverlayIcon();
+ZSignal&lt;ThumbButtonId&gt; ThumbButtonClicked;
+void SetThumbButtons(...);  void UpdateThumbButton(ThumbButtonId, bool enabled);
+void SetJumpList(...);  void Flash(int times=5, bool alsoTaskbar=true);  void FlashUntilForeground();
+void SetAppUserModelID(const std::wstring&amp;);
+```
+- These are COM calls; failures are **silent no-ops**. `FLASHW_CAPTION` does nothing for a custom title bar; use `FLASHW_ALL`.
+- **`Version`**: all `v1.9.6`.
+
+## DPI
+
+- Per-Monitor-v2 awareness set at static init (fallback `SetProcessDPIAware`).
+- `WM_DPICHANGED` rebuilds the whole render chain and clears all caches.
+- **`Pitfall`**: element caches clear on DPI change, but child layout needs **no** manual re-measure.
+
+## Render thread / frame rate
+
+```cpp
+void SetFrameRateLimit(int fps);   int GetFrameRateLimit() const;   // 0=follow vblank; &gt;0=cap
+```
+- **`Pitfall`**: `ZUFYUI_RENDER_THREAD` is **0 by default** and documented as unstable/not recommended (blank popups, delayed hover/tooltip, occasional crashes with large virtual lists). Single-threaded `WM_PAINT` is the supported path.
+- **`Version`**: render thread `v1.14.0`; vblank clock `v1.14.1`; frame cap `v1.14.2`; default-off documented `v1.16.0`.
+
+## Accessibility / signals
+
+```cpp
+void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // on by default, v1.17.0
+UIElement* GetFocusedElement/HoveredElement/PressedElement() const;
+void FocusElement(UIElement*);
+ZSignal&lt;&gt; Activated, Deactivated;   ZSignal&lt;bool*&gt; Closing;   ZSignal&lt;&gt; Closed;
+ZSignal&lt;&gt; BackdropUnsupported, DeviceLost;   ZSignal&lt;HRESULT&gt; RenderingError;
+std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);
+```
+- **`Pitfall`**: in `Closing`, set `*cancel = true` to veto the close. The parameter is `bool*` (not a reference).</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 8 · Window</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 8</span><h1>Window</h1><p class="chapter-summary">Window (create, show, backdrop, title bar, taskbar, DPI, render thread)</p></header><h2 id="nested-public-types">Nested public types</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-12d6c0fb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-03ad06e9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TabView</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">    </span><span class="c1">// selected tab index</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">TabCloseRequested</span><span class="p">;</span><span class="w">   </span><span class="c1">// a tab's x was clicked (application decides whether to remove)</span>
-
-<span class="w">    </span><span class="c1">// A tab's title IS a Label (v1.13.0); the wstring overload is a convenience (wraps a Label)</span>
-<span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="nf">AddTab</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="nf">AddTab</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">InsertTab</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">InsertTab</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">RemoveTab</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTabs</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">int</span><span class="w">  </span><span class="nf">GetTabCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabTitle</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetTabTitle</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabLabel</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetTabLabel</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">MakeTabLabel</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">);</span><span class="w">   </span><span class="c1">// centered Label</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabContent</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetTabContent</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabClosable</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedIndex</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetSelectedIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetSelectedContent</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabHeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabMinWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabPadding</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedTabColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w">     </span><span class="c1">// selected tab background (default #D6E8FB)</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndicatorColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndicatorHeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBorder</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">visible</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">grey</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCornerRadius</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTextColor</span><span class="p">(</span><span class="n">Color</span><span class="w"> </span><span class="n">normal</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">selected</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationSpeeds</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">indicator</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">hover</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTabMoveSpeed</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetScrollWheelStep</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetScrollBarThickness</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShowScrollBar</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionDirection</span><span class="p">(</span><span class="n">PageHost</span><span class="o">::</span><span class="n">TransitionDirection</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionEasing</span><span class="p">(</span><span class="n">PageHost</span><span class="o">::</span><span class="n">TransitionEasing</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationDuration</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoTransitionDirection</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">BackgroundParams</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">blurAmount</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span><span class="w"> </span><span class="n">saturation</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">D2D1_COLOR_F</span><span class="w"> </span><span class="n">tint</span><span class="p">,</span><span class="w"> </span><span class="n">luminosity</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">noiseOpacity</span><span class="o">=</span><span class="mf">0.02f</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AcrylicPreset</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Legacy</span><span class="p">,</span><span class="w"> </span><span class="n">Luminosity</span><span class="p">,</span><span class="w"> </span><span class="n">Base</span><span class="p">,</span><span class="w"> </span><span class="n">Thin</span><span class="w"> </span><span class="p">};</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">CaptionMetrics</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">valid</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">rightMargin</span><span class="p">,</span><span class="w"> </span><span class="n">top</span><span class="p">,</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="n">width</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TaskbarProgress</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Indeterminate</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Normal</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">Paused</span><span class="o">=</span><span class="mi">8</span><span class="w"> </span><span class="p">};</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ThumbButtonId</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Play</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Pause</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Prev</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">Next</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">MaxId</span><span class="o">=</span><span class="mi">4</span><span class="w"> </span><span class="p">};</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">JumpListItem</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">arguments</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">iconPath</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">iconIndex</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">WindowCorner</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Default</span><span class="p">,</span><span class="w"> </span><span class="n">Square</span><span class="p">,</span><span class="w"> </span><span class="n">Round</span><span class="p">,</span><span class="w"> </span><span class="n">RoundSmall</span><span class="w"> </span><span class="p">};</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ActivateMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Raise</span><span class="p">,</span><span class="w"> </span><span class="n">Activate</span><span class="p">,</span><span class="w"> </span><span class="n">Foreground</span><span class="p">,</span><span class="w"> </span><span class="n">All</span><span class="w"> </span><span class="p">};</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">OwnedMinimizePolicy</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Hide</span><span class="p">,</span><span class="w"> </span><span class="n">DisableMinimize</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-12d6c0fb" style="display: none;">class TabView : public UIElement {
-    ZSignal&lt;int&gt; SelectionChanged;    // selected tab index
-    ZSignal&lt;int&gt; TabCloseRequested;   // a tab's x was clicked (application decides whether to remove)
-
-    // A tab's title IS a Label (v1.13.0); the wstring overload is a convenience (wraps a Label)
-    int  AddTab(const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
-    int  AddTab(std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
-    void InsertTab(int index, const std::wstring&amp; title, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
-    void InsertTab(int index, std::shared_ptr&lt;Label&gt; label, std::shared_ptr&lt;UIElement&gt; content = nullptr, bool closable = false);
-    void RemoveTab(int index); void ClearTabs();
-    int  GetTabCount() const;
-    void SetTabTitle(int, const std::wstring&amp;); std::wstring GetTabTitle(int) const;
-    void SetTabLabel(int, std::shared_ptr&lt;Label&gt;); std::shared_ptr&lt;Label&gt; GetTabLabel(int) const;
-    static std::shared_ptr&lt;Label&gt; MakeTabLabel(const std::wstring&amp; title);   // centered Label
-    void SetTabContent(int, std::shared_ptr&lt;UIElement&gt;); std::shared_ptr&lt;UIElement&gt; GetTabContent(int) const;
-    void SetTabClosable(int, bool);
-
-    void SetSelectedIndex(int); int GetSelectedIndex() const;
-    std::shared_ptr&lt;UIElement&gt; GetSelectedContent() const;
-
-    void SetTabHeight(float); void SetTabMinWidth(float); void SetTabPadding(float);
-    void SetSelectedTabColor(Color);     // selected tab background (default #D6E8FB)
-    void SetIndicatorColor(Color); void SetIndicatorHeight(float);
-    void SetBorder(bool visible, Color = grey, float width = 1.0f); void SetCornerRadius(float);
-    void SetTextColor(Color normal, Color selected);
-    void SetAnimationSpeeds(float indicator, float hover);
-    void SetTabMoveSpeed(float);
-    void SetScrollWheelStep(float); void SetScrollBarThickness(float); void SetShowScrollBar(bool);
-    void SetTransitionDirection(PageHost::TransitionDirection);
-    void SetTransitionEasing(PageHost::TransitionEasing);
-    void SetAnimationDuration(float);
-    void SetAutoTransitionDirection(bool);
-};</pre>
+<pre id="code-03ad06e9" style="display: none;">struct BackgroundParams { float blurAmount=30, saturation=1; D2D1_COLOR_F tint, luminosity; float noiseOpacity=0.02f; };
+enum class AcrylicPreset { Legacy, Luminosity, Base, Thin };
+struct CaptionMetrics { bool valid; float rightMargin, top, height, width; };
+enum class TaskbarProgress { None=0, Indeterminate=1, Normal=2, Error=4, Paused=8 };
+enum class ThumbButtonId : UINT { Play=0, Pause=1, Prev=2, Next=3, MaxId=4 };
+struct JumpListItem { std::wstring title, arguments, target, iconPath; int iconIndex=0; };
+enum class WindowCorner { Default, Square, Round, RoundSmall };
+enum class ActivateMode { Raise, Activate, Foreground, All };
+enum class OwnedMinimizePolicy { None, Hide, DisableMinimize };</pre>
+</div>
+<h2 id="static-configuration">Static configuration</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-c838818b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">Backdrop</span><span class="w"> </span><span class="n">DefaultBackdrop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Backdrop</span><span class="o">::</span><span class="n">None</span><span class="p">;</span>
+<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">DWORD</span><span class="w">     </span><span class="n">DefaultBackdropColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xFFFFFFFF</span><span class="p">;</span><span class="w">   </span><span class="c1">// pure white default, v1.17.0</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">tint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundParams</span><span class="p">(</span><span class="n">Backdrop</span><span class="w"> </span><span class="n">which</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">BackgroundParams</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundParams</span><span class="p">(</span><span class="n">Backdrop</span><span class="w"> </span><span class="n">which</span><span class="p">,</span><span class="w"> </span><span class="n">AcrylicPreset</span><span class="p">);</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultFrameRateLimit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fps</span><span class="p">);</span><span class="w">   </span><span class="c1">// v1.14.2</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultAppIcon</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">big</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="n">small</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span>
+<span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetProcessAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
+</pre></div>
+<pre id="code-c838818b" style="display: none;">inline static Backdrop DefaultBackdrop = Backdrop::None;
+inline static DWORD     DefaultBackdropColor = 0xFFFFFFFF;   // pure white default, v1.17.0
+static void SetDefaultBackdrop(Backdrop, DWORD tint = 0);
+static void SetBackgroundParams(Backdrop which, const BackgroundParams&amp;);
+static void SetBackgroundParams(Backdrop which, AcrylicPreset);
+static void SetDefaultFrameRateLimit(int fps);   // v1.14.2
+static void SetDefaultAppIcon(HICON big, HICON small = nullptr);
+static void SetProcessAppUserModelID(const std::wstring&amp; id);</pre>
+</div>
+<h2 id="creation-lifecycle">Creation / lifecycle</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-d823ba39', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">Create</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="o">=</span><span class="n">CW_USEDEFAULT</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="o">=</span><span class="n">CW_USEDEFAULT</span><span class="p">);</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">IsValid</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="n">HWND</span><span class="w"> </span><span class="nf">GetHwnd</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetId</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Show</span><span class="p">();</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowNoActivate</span><span class="p">();</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">Hide</span><span class="p">();</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">Raise</span><span class="p">();</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">Close</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Run</span><span class="p">();</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="nf">RunModal</span><span class="p">(</span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="n">owner</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetInputBlocked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsInputBlocked</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">recursive_mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">LockRender</span><span class="p">();</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">RenderNowSync</span><span class="p">();</span>
+</pre></div>
+<pre id="code-d823ba39" style="display: none;">bool Create(int w, int h, const std::wstring&amp; title, int x=CW_USEDEFAULT, int y=CW_USEDEFAULT);
+bool IsValid() const;  HWND GetHwnd() const;  int GetId() const;
+void Show(); void ShowNoActivate(); void Hide(); void Raise(); void Close();
+void Run();  int RunModal(Window* owner = nullptr);
+void SetInputBlocked(bool);  bool IsInputBlocked() const;
+std::unique_lock&lt;std::recursive_mutex&gt; LockRender();  void RenderNowSync();</pre>
 </div>
 <ul>
-<li>Content is hosted by an internal <strong><code>PageHost</code></strong> (one <code>Page</code> per tab) → switching <strong>reuses the PageHost transition animation</strong>; pass a <code>Page</code> to use directly, any other element is wrapped in a <code>Page</code>.</li>
-<li><strong>Keyboard</strong>: <code>Left/Right</code> cycle, <code>Home</code>/<code>End</code>, <code>Delete</code> closes the current (if closable).</li>
-<li><strong>Overflow</strong>: only when too wide — <strong>◀/▶ buttons</strong> (shown per direction) and a <strong>bottom horizontal scrollbar</strong> (reuses <code>ScrollBar</code>); the wheel scrolls tabs <strong>only over the tab strip</strong>, content-area wheel goes to the outer scroll container.</li>
-<li>Closing a tab <strong>slides</strong> the following tabs into place; the indicator follows exactly.</li>
-<li><strong>A tab's title is a <code>Label</code> (v1.13.0)</strong>, so tabs support icons etc. naturally, e.g.
-  <code>auto l = TabView::MakeTabLabel(L"Home"); l-&gt;SetIcon(Icon::Home); tabs-&gt;AddTab(l, content);</code>
-  or <code>tabs-&gt;GetTabLabel(i)-&gt;SetIcon(Icon::Folder);</code>.</li>
-<li>The <strong>tab strip &lt;-&gt; content gap</strong> equals the shrunk thickness of the bottom scrollbar (<code>ScrollBar::ShrunkWidthRatio</code>), present only when overflowing.</li>
+<li><strong><code>Pitfall</code></strong>: <code>Create</code> does <strong>not</strong> auto-<code>Show</code> (since v1.8.0). <code>RunModal</code> disables the owner (<code>EnableWindow(FALSE)</code>) and deliberately does <strong>not</strong> use <code>IsDialogMessage</code>.</li>
+<li><strong><code>Version</code></strong>: multi-window <code>v1.6.0</code>; <code>SetInputBlocked</code>/modal <code>v1.6.2</code>; <code>LockRender</code>/<code>RenderNowSync</code> <code>v1.16.0</code>.</li>
 </ul>
-<h2 id="menuitem">MenuItem</h2>
+<h2 id="three-ways-to-create-a-window-which-to-pick">Three ways to create a window (which to pick)</h2>
+<table>
+<thead>
+<tr>
+<th>Way</th>
+<th>Code</th>
+<th>Ownership</th>
+<th>Message loop</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stack value</td>
+<td><code>Window w; w.Create(...); w.Show(); app.Run();</code></td>
+<td>You (scope)</td>
+<td>shared <code>Run()</code></td>
+<td>single main window, simple lifetime</td>
+</tr>
+<tr>
+<td><code>shared_ptr</code></td>
+<td><code>auto w = app.CreateWindow(...); w-&gt;Show(); app.Run();</code></td>
+<td><code>shared_ptr</code> refcount</td>
+<td>shared <code>Run()</code></td>
+<td>multiple windows, dynamic create/destroy</td>
+</tr>
+<tr>
+<td>Modal</td>
+<td><code>int r = w-&gt;RunModal(owner);</code></td>
+<td>same as <code>shared_ptr</code></td>
+<td><strong>nested</strong> loop, blocks until closed</td>
+<td>dialogs / confirmations</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong><code>Pitfall</code></strong>: <code>Window</code> is <strong>non-copyable</strong>; the stack form must <strong>outlive <code>Run()</code></strong> (otherwise the loop still references a destroyed window).</li>
+<li><strong><code>Pitfall</code></strong>: the <code>shared_ptr</code> from <code>Application::CreateWindow</code> <strong>is the ownership</strong> — dropping it destroys the window; <code>Create</code> also does not auto-<code>Show</code>.</li>
+</ul>
+<h2 id="ownership-multi-window-size">Ownership / multi-window / size</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-bc94e588', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-806704d6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuItem</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">text</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">callback</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">submenu</span><span class="p">;</span>
-<span class="w">    </span><span class="n">Type</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Type</span><span class="o">::</span><span class="n">Normal</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span>
-<span class="w">    </span><span class="c1">// ---- enhanced fields ----</span>
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                      </span><span class="c1">// command id (paired with Menu::ItemSelected)</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">checkable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">          </span><span class="c1">// show the check column</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">checked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">            </span><span class="c1">// checked state</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">radio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">              </span><span class="c1">// radio (mutually exclusive within a menu)</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">isDefault</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">          </span><span class="c1">// default item: bold + Enter triggers it</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">danger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w">             </span><span class="c1">// danger item: red text</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">shortcut</span><span class="p">;</span><span class="w">           </span><span class="c1">// right-side shortcut hint (display only)</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bgColor</span><span class="p">;</span><span class="w">    </span><span class="c1">// per-item custom background (rounded)</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">textColor</span><span class="p">;</span><span class="w">  </span><span class="c1">// per-item custom text color</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span><span class="w">    </span><span class="c1">// per-item font (defaults to Menu::font)</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetOwner</span><span class="p">(</span><span class="n">Window</span><span class="o">*</span><span class="p">);</span><span class="w">  </span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="nf">GetOwner</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">GetOwnedWindows</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">HideOwnedWindows</span><span class="p">();</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowOwnedWindows</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetPosition</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSize</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">);</span><span class="w">   </span><span class="c1">// DIP</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetMinSize</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetOwnedMinimizePolicy</span><span class="p">(</span><span class="n">OwnedMinimizePolicy</span><span class="p">);</span>
 </pre></div>
-<pre id="code-bc94e588" style="display: none;">class MenuItem {
-    enum class Type { Normal, Separator, Submenu };
-    std::wstring text;
-    std::function&lt;void()&gt; callback;
-    std::shared_ptr&lt;Menu&gt; submenu;
-    Type type = Type::Normal;
-    bool enabled = true;
-    std::shared_ptr&lt;Label&gt; icon;
-    // ---- enhanced fields ----
-    int id = 0;                      // command id (paired with Menu::ItemSelected)
-    bool checkable = false;          // show the check column
-    bool checked = false;            // checked state
-    bool radio = false;              // radio (mutually exclusive within a menu)
-    bool isDefault = false;          // default item: bold + Enter triggers it
-    bool danger = false;             // danger item: red text
-    std::wstring shortcut;           // right-side shortcut hint (display only)
-    std::optional&lt;Color&gt; bgColor;    // per-item custom background (rounded)
-    std::optional&lt;Color&gt; textColor;  // per-item custom text color
-    std::optional&lt;FontSpec&gt; font;    // per-item font (defaults to Menu::font)
-};</pre>
-</div>
-<h2 id="menu">Menu</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7ff2f943', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Menu</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">{};</span><span class="w">              </span><span class="c1">// global default menu font</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddCheckItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">checked</span><span class="p">,</span>
-<span class="w">                      </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onToggle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">radio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddSeparator</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddSubmenu</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">submenu</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuItem</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">items</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">Menu</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onOpening</span><span class="p">;</span><span class="w">   </span><span class="c1">// pre-open callback (can adjust checked/enabled/text live)</span>
-<span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemSelected</span><span class="p">;</span><span class="w">              </span><span class="c1">// any normal item clicked (carries id; root menu receives submenu clicks)</span>
-<span class="w">    </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">font</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DefaultFont</span><span class="p">;</span><span class="w">            </span><span class="c1">// menu font</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
-
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAt</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w">  </span><span class="c1">// standalone popup (bound to no window; typical: tray menu)</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">                    </span><span class="c1">// pop up at the mouse cursor</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-7ff2f943" style="display: none;">class Menu : public std::enable_shared_from_this&lt;Menu&gt; {
-    inline static FontSpec DefaultFont{};              // global default menu font
-    void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; callback = nullptr, int id = 0);
-    void AddCheckItem(const std::wstring&amp; text, bool checked,
-                      std::function&lt;void(bool)&gt; onToggle = nullptr, int id = 0, bool radio = false);
-    void AddSeparator();
-    void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu, int id = 0);
-
-    std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; items;
-    std::function&lt;void(Menu&amp;)&gt; onOpening;   // pre-open callback (can adjust checked/enabled/text live)
-    ZSignal&lt;int&gt; ItemSelected;              // any normal item clicked (carries id; root menu receives submenu clicks)
-    FontSpec font = DefaultFont;            // menu font
-    static void SetDefaultFont(const FontSpec&amp;);
-
-    void ShowAt(int screenX, int screenY);  // standalone popup (bound to no window; typical: tray menu)
-    void ShowAtCursor();                    // pop up at the mouse cursor
-};</pre>
+<pre id="code-806704d6" style="display: none;">void SetOwner(Window*);  Window* GetOwner() const;
+std::vector&lt;Window*&gt; GetOwnedWindows() const;
+void HideOwnedWindows(); void ShowOwnedWindows();
+void SetPosition(int x, int y);  void SetSize(int w, int h);   // DIP
+void SetMinSize(int w, int h);
+void SetOwnedMinimizePolicy(OwnedMinimizePolicy);</pre>
 </div>
 <ul>
-<li><code>AddItem</code> adds a clickable item, <code>AddSeparator</code> a separator, <code>AddSubmenu</code> a submenu, <code>AddCheckItem</code> a check/radio item.</li>
-<li>Attach a menu to an element with <code>element-&gt;SetContextMenu(menu);</code> (or <code>SetContextMenuFactory</code> to build on demand), or to the window with <code>window.SetContextMenu(menu);</code>.</li>
-<li><strong>Standalone popup</strong>: <code>menu-&gt;ShowAtCursor()</code> pops up at the mouse without binding to a window (great for tray right-click menus); it first closes any other open menu (mutual exclusion).</li>
-<li><strong>Signal-slot</strong>: items may carry an <code>id</code>; collect them with <code>menu-&gt;ItemSelected.connect([](int id){...})</code>. Per-item <code>Clicked</code> / <code>AddItem</code> callbacks still work. <code>onOpening</code> runs before each popup.</li>
-<li><strong>Appearance</strong>: <code>MenuItem::bgColor</code> / <code>textColor</code> / <code>font</code> per item; <code>Menu::font</code> overall; the hover highlight is a translucent overlay (still visible over a custom background). Supports <code>isDefault</code> (bold + Enter), <code>danger</code> (red), <code>shortcut</code> (right hint), <code>enabled=false</code> (disabled).</li>
+<li><strong><code>Pitfall</code></strong>: set <code>SetOwner</code> <strong>before</strong> <code>Create</code>, or the window gets its own taskbar button and does not minimize with the owner.</li>
+<li><strong><code>Pitfall</code></strong>: <code>SetMinSize</code> <strong>overrides</strong> the content-based minimum. Without it, the minimum can be blown up by long text/charts (internally <code>rootElement-&gt;Measure(Size(0,0))</code>; with width 0 a wrapping Label reports its full single-line width). <strong>Chart-bearing debugger windows set <code>SetMinSize</code> explicitly.</strong></li>
 </ul>
-<h2 id="menuwindowbase-menuwindow-popup-layer-subclass-menuwindowbase-for-custom-flyouts">MenuWindowBase / MenuWindow (popup layer; subclass MenuWindowBase for custom flyouts)</h2>
-<p>The popup layer now <strong>derives from <code>Window</code></strong> (uses DComp + the shared device, instead of creating a fresh software render device per popup).</p>
+<h2 id="root-content-capture">Root content / capture</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-178d4169', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-44f4c374', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="c1">// Popup base: only the popup's system interaction; no notion of "menu items"</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">MenuWindowBase</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">CreatePopup</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">widthDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">heightDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w"> </span><span class="c1">// content size in DIP; shadow margin added</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtPoint</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w">   </span><span class="c1">// pop up at a screen point (auto-clamped to the work area)</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Hide</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseAll</span><span class="p">();</span><span class="w">                              </span><span class="c1">// close the whole popup tree</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStandalone</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span><span class="w">                  </span><span class="c1">// standalone (closes on outside-click / Esc)</span>
-<span class="w">    </span><span class="n">MenuWindowBase</span><span class="o">*</span><span class="w"> </span><span class="nf">ParentPopup</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="n">MenuWindowBase</span><span class="o">*</span><span class="w"> </span><span class="nf">ChildPopup</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsPointInPopupTree</span><span class="p">(</span><span class="n">POINT</span><span class="w"> </span><span class="n">ptScreen</span><span class="p">);</span><span class="w">      </span><span class="c1">// is a screen point inside this popup (or its children)?</span>
-
-<span class="w">    </span><span class="c1">// Overridable:</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">RenderContent</span><span class="p">(</span><span class="n">ID2D1DeviceContext</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">  </span><span class="c1">// draw your content (default: element tree)</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnWindowMessage</span><span class="p">(</span><span class="n">UINT</span><span class="p">,</span><span class="w"> </span><span class="n">WPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LPARAM</span><span class="p">,</span><span class="w"> </span><span class="n">LRESULT</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w"> </span><span class="c1">// message interception</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnMenuKeyDown</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">vk</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">          </span><span class="c1">// keyboard (forwarded by the window)</span>
-<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnPopupTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="p">};</span>
-
-<span class="c1">// The menu implementation: draws items + submenus (framework-internal)</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">MenuWindow</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">MenuWindowBase</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">MenuWindow</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="p">,</span><span class="w"> </span><span class="n">HWND</span><span class="w"> </span><span class="n">owner</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuWindow</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">StandaloneHolder</span><span class="p">();</span>
-<span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRootLayout</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Layout</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ColumnBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetRootColumnBox</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default root: ColumnBox margin(20) spacing 10</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetContextMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">CloseContextMenu</span><span class="p">();</span>
+<span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">HitTestElement</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">CollectDragRegions</span><span class="p">();</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">PointInDragRegion</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">MarkRepaint</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="p">);</span><span class="w">   </span><span class="c1">// marks only; does NOT schedule a frame</span>
+<span class="kt">float</span><span class="w"> </span><span class="nf">GetDpiScale</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">GetClientWidthDip</span><span class="o">/</span><span class="n">HeightDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-178d4169" style="display: none;">// Popup base: only the popup's system interaction; no notion of "menu items"
-class MenuWindowBase : public Window {
-    bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY); // content size in DIP; shadow margin added
-    void ShowAtPoint(int screenX, int screenY);   // pop up at a screen point (auto-clamped to the work area)
-    void Hide();
-    void CloseAll();                              // close the whole popup tree
-    void SetStandalone(bool on);                  // standalone (closes on outside-click / Esc)
-    MenuWindowBase* ParentPopup() const;
-    MenuWindowBase* ChildPopup() const;
-    bool IsPointInPopupTree(POINT ptScreen);      // is a screen point inside this popup (or its children)?
-
-    // Overridable:
-    virtual void RenderContent(ID2D1DeviceContext* rt) override;  // draw your content (default: element tree)
-    virtual bool OnWindowMessage(UINT, WPARAM, LPARAM, LRESULT*) override; // message interception
-    virtual bool OnMenuKeyDown(int vk) { return false; }          // keyboard (forwarded by the window)
-    virtual bool OnPopupTimer(int id) { return false; }
-};
-
-// The menu implementation: draws items + submenus (framework-internal)
-class MenuWindow : public MenuWindowBase {
-    MenuWindow(std::shared_ptr&lt;Menu&gt; menu, HWND owner, int x, int y);
-    static std::shared_ptr&lt;MenuWindow&gt;&amp; StandaloneHolder();
-};</pre>
+<pre id="code-44f4c374" style="display: none;">void SetRootLayout(std::shared_ptr&lt;Layout&gt;);
+std::shared_ptr&lt;ColumnBox&gt; GetRootColumnBox() const;   // default root: ColumnBox margin(20) spacing 10
+void SetContextMenu(std::shared_ptr&lt;Menu&gt;);  void CloseContextMenu();
+UIElement* HitTestElement(float x, float y);
+void CollectDragRegions();  bool PointInDragRegion(float,float) const;
+void MarkRepaint(UIElement*);   // marks only; does NOT schedule a frame
+float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;</pre>
 </div>
 <ul>
-<li>Usually not used directly; created automatically for right-click / standalone popups.</li>
-<li><strong>Custom flyouts / panels</strong>: subclass <code>MenuWindowBase</code> and override <code>RenderContent(rt)</code> — you reuse the shared D3D/D2D device and the whole popup mechanism (per-pixel transparency, no focus steal, no taskbar button, topmost, outside-click close, screen-edge avoidance).</li>
-<li>Popups return <code>WM_MOUSEACTIVATE → MA_NOACTIVATE</code> and <code>WM_NCACTIVATE → FALSE</code> (<strong>refuse activation</strong>), so clicking them never makes the owner window receive a spurious <code>WM_KILLFOCUS</code>.</li>
+<li><strong><code>Pitfall</code></strong>: <code>RequestRepaint()</code> → <code>MarkRepaint</code> does <strong>not</strong> schedule a frame. Frames come from the 16 ms <code>WM_TIMER</code> (when busy) or animation continuation. Historical note: forcing a frame here once caused a continuous re-render loop (severe stutter) — <strong>reverted</strong>.</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.7.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Layout</span><span class="nav-desc">Layout, ColumnBox, RowBox, GridLayout, LayoutHost, Card, Page, PageHost</span></a><a class="next" href="API.en.9.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Window</span><span class="nav-desc">Creation, backdrop, title bar, and root layout</span></a></nav>
+<h2 id="appearance-backdrop-corners">Appearance / backdrop / corners</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-f803b903', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">tint</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w">  </span><span class="n">Backdrop</span><span class="w"> </span><span class="nf">GetBackdrop</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetWindowCorner</span><span class="p">(</span><span class="n">WindowCorner</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetContentOpacity</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">opacity</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetTitleBarColors</span><span class="p">(</span><span class="n">COLORREF</span><span class="w"> </span><span class="n">caption</span><span class="p">,</span><span class="w"> </span><span class="n">COLORREF</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">COLORREF</span><span class="w"> </span><span class="n">border</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetResizable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+</pre></div>
+<pre id="code-f803b903" style="display: none;">void SetBackdrop(Backdrop, DWORD tint=0);  Backdrop GetBackdrop() const;
+void SetBackgroundColor(Color);
+void SetWindowCorner(WindowCorner);
+void SetContentOpacity(float opacity);
+void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
+void SetResizable(bool);   void SetTitle(const std::wstring&amp;);</pre>
+</div>
+<ul>
+<li>Backdrop is <strong>hand-rolled</strong> (Acrylic = host backdrop + effect chain; Mica = cached wallpaper layer). Change params via <code>SetBackgroundParams</code> or <code>UIZSignals::ReloadAcrylic</code>.</li>
+<li><strong><code>Version</code></strong>: four-layer params <code>v1.8.1</code>; <code>SetContentOpacity</code> <code>v1.9.6</code>.</li>
+</ul>
+<h2 id="custom-title-bar">Custom title bar</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-4fe38f7e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCustomTitleBar</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCustomTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">HasCustomTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitleBarVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="n">CaptionMetrics</span><span class="w"> </span><span class="nf">QueryCaptionMetrics</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Minimize</span><span class="p">();</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">Maximize</span><span class="p">();</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">Restore</span><span class="p">();</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">MaximizeRestore</span><span class="p">();</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">IsMaximizedWindow</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">BeginSystemDrag</span><span class="p">();</span>
+</pre></div>
+<pre id="code-4fe38f7e" style="display: none;">void SetCustomTitleBar(std::shared_ptr&lt;UIElement&gt;);  std::shared_ptr&lt;UIElement&gt; GetCustomTitleBar() const;
+bool HasCustomTitleBar() const;   void SetTitleBarVisible(bool);
+CaptionMetrics QueryCaptionMetrics() const;
+void Minimize(); void Maximize(); void Restore(); void MaximizeRestore();
+bool IsMaximizedWindow() const;   void BeginSystemDrag();</pre>
+</div>
+<ul>
+<li><strong><code>Pitfall</code></strong>: the custom title bar <strong>does not participate in layout</strong> — <code>Window</code> places it at <code>(0,0)</code> and shifts the root down by its measured height. Do not <code>AddChild</code> it manually.</li>
+<li><strong><code>Version</code></strong>: <code>v1.7.0</code>; <code>CaptionButton::Kind::Pin</code> = <code>v1.17.0</code>.</li>
+</ul>
+<h2 id="taskbar-thumbnails-jump-list">Taskbar / thumbnails / jump list</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-5a47a345', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTaskbarProgress</span><span class="p">(</span><span class="n">TaskbarProgress</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">done</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">total</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarProgress</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">SetTaskbarOverlayIcon</span><span class="p">(</span><span class="n">HICON</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarOverlayIcon</span><span class="p">();</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">ThumbButtonId</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ThumbButtonClicked</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetThumbButtons</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">UpdateThumbButton</span><span class="p">(</span><span class="n">ThumbButtonId</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetJumpList</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">Flash</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">times</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">alsoTaskbar</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">FlashUntilForeground</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+</pre></div>
+<pre id="code-5a47a345" style="display: none;">void SetTaskbarProgress(TaskbarProgress, ULONGLONG done=0, ULONGLONG total=0);  void ClearTaskbarProgress();
+void SetTaskbarOverlayIcon(HICON, const std::wstring&amp; = L"");  void ClearTaskbarOverlayIcon();
+ZSignal&lt;ThumbButtonId&gt; ThumbButtonClicked;
+void SetThumbButtons(...);  void UpdateThumbButton(ThumbButtonId, bool enabled);
+void SetJumpList(...);  void Flash(int times=5, bool alsoTaskbar=true);  void FlashUntilForeground();
+void SetAppUserModelID(const std::wstring&amp;);</pre>
+</div>
+<ul>
+<li>These are COM calls; failures are <strong>silent no-ops</strong>. <code>FLASHW_CAPTION</code> does nothing for a custom title bar; use <code>FLASHW_ALL</code>.</li>
+<li><strong><code>Version</code></strong>: all <code>v1.9.6</code>.</li>
+</ul>
+<h2 id="dpi">DPI</h2>
+<ul>
+<li>Per-Monitor-v2 awareness set at static init (fallback <code>SetProcessDPIAware</code>).</li>
+<li><code>WM_DPICHANGED</code> rebuilds the whole render chain and clears all caches.</li>
+<li><strong><code>Pitfall</code></strong>: element caches clear on DPI change, but child layout needs <strong>no</strong> manual re-measure.</li>
+</ul>
+<h2 id="render-thread-frame-rate">Render thread / frame rate</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-c3cc907c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFrameRateLimit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fps</span><span class="p">);</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetFrameRateLimit</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 0=follow vblank; &gt;0=cap</span>
+</pre></div>
+<pre id="code-c3cc907c" style="display: none;">void SetFrameRateLimit(int fps);   int GetFrameRateLimit() const;   // 0=follow vblank; &gt;0=cap</pre>
+</div>
+<ul>
+<li><strong><code>Pitfall</code></strong>: <code>ZUFYUI_RENDER_THREAD</code> is <strong>0 by default</strong> and documented as unstable/not recommended (blank popups, delayed hover/tooltip, occasional crashes with large virtual lists). Single-threaded <code>WM_PAINT</code> is the supported path.</li>
+<li><strong><code>Version</code></strong>: render thread <code>v1.14.0</code>; vblank clock <code>v1.14.1</code>; frame cap <code>v1.14.2</code>; default-off documented <code>v1.16.0</code>.</li>
+</ul>
+<h2 id="accessibility-signals">Accessibility / signals</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-c7c2d00e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibilityEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsAccessibilityEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// on by default, v1.17.0</span>
+<span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">GetFocusedElement</span><span class="o">/</span><span class="n">HoveredElement</span><span class="o">/</span><span class="n">PressedElement</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">FocusElement</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="p">);</span>
+<span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Activated</span><span class="p">,</span><span class="w"> </span><span class="n">Deactivated</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">Closing</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Closed</span><span class="p">;</span>
+<span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BackdropUnsupported</span><span class="p">,</span><span class="w"> </span><span class="n">DeviceLost</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">HRESULT</span><span class="o">&gt;</span><span class="w"> </span><span class="n">RenderingError</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Timer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">intervalMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
+</pre></div>
+<pre id="code-c7c2d00e" style="display: none;">void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // on by default, v1.17.0
+UIElement* GetFocusedElement/HoveredElement/PressedElement() const;
+void FocusElement(UIElement*);
+ZSignal&lt;&gt; Activated, Deactivated;   ZSignal&lt;bool*&gt; Closing;   ZSignal&lt;&gt; Closed;
+ZSignal&lt;&gt; BackdropUnsupported, DeviceLost;   ZSignal&lt;HRESULT&gt; RenderingError;
+std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);</pre>
+</div>
+<ul>
+<li><strong><code>Pitfall</code></strong>: in <code>Closing</code>, set <code>*cancel = true</code> to veto the close. The parameter is <code>bool*</code> (not a reference).</li>
+</ul>
+<nav class="chapter-nav"><a class="prev" href="API.en.7.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Layout system</span><span class="nav-desc">Layout, ColumnBox, RowBox, GridLayout, Card, Page, PageHost</span></a><a class="next" href="API.en.9.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Basic controls</span><span class="nav-desc">Label, Button, TextBox, TextEdit, ComboBox</span></a></nav>
         </main>
     </div>
 

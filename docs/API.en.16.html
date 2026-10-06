@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Appendix · ZufyUI API Reference</title>
+    <title>Window extras · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,408 +197,130 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Basic types</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Global functions and DPI</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Signals and connections</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Core element UIElement</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Menus</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Window</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Application and multiple windows</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Basic controls</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Data views</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Images</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Window tools</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>System dialogs</a></li><li class="active"><a href="API.en.16.html"><span class="chapter-index">16</span>Appendix</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility (UI Automation)</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Debug channel (external debug / automation)</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="signal-list-updated"><div class="toc-row"><a href="#signal-list-updated" data-target="signal-list-updated">Signal list (updated)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="default-values"><div class="toc-row"><a href="#default-values" data-target="default-values">Default values</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="common-pitfalls"><div class="toc-row"><a href="#common-pitfalls" data-target="common-pitfalls">Common pitfalls</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="complete-example"><div class="toc-row"><a href="#complete-example" data-target="complete-example">Complete example</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class="active"><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Version digest</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Pitfall index</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="image-imagemanager-imagedevicecache"><div class="toc-row"><a href="#image-imagemanager-imagedevicecache" data-target="image-imagemanager-imagedevicecache">Image / ImageManager / ImageDeviceCache</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="trayicon"><div class="toc-row"><a href="#trayicon" data-target="trayicon">TrayIcon</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="system-dialogs-filedialog-colordialog-v1160"><div class="toc-row"><a href="#system-dialogs-filedialog-colordialog-v1160" data-target="system-dialogs-filedialog-colordialog-v1160">System dialogs — FileDialog / ColorDialog (v1.16.0)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="app-registration-appinfo-registerapp"><div class="toc-row"><a href="#app-registration-appinfo-registerapp" data-target="app-registration-appinfo-registerapp">App registration — AppInfo / RegisterApp</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Signal list (updated)
-
-| Class | Signals | Args |
-| --- | --- | --- |
-| `Button` | `Clicked` / `Toggled` | — / `bool` |
-| `CheckBox` | `Toggled` / `StateChanged` | `bool` / `State` |
-| `TextBox` | `TextChanged` / `ReturnPressed` | `const std::wstring&amp;` / — |
-| `ComboBox` | `SelectionChanged` / `DropDownOpened` / `DropDownClosed` | `int` / — / — |
-| `ToggleSwitch` | `Toggled` | `bool` |
-| `ProgressBar` | `ValueChanged` | `float` |
-| `Slider` | `ValueChanged` / `SliderReleased` | `float` / — |
-| `ScrollViewer` | `ScrollChanged` | `float, float` |
-| `ListView` | `SelectionChanged` / `ItemClicked` / `ItemDoubleClicked` / `SelectionChangedMulti` / `ItemCheckStateChanged` / `ItemRightClicked` | `int` / `int` / `int` / `std::vector&lt;int&gt;` / `int,bool` / `int` |
-| `TableView` | `CellClicked` / `CellDoubleClicked` / `HeaderClicked` / `CurrentCellChanged` / `SelectionChangedCells` / `ItemCheckStateChanged` / `CellRightClicked` | `int,int` / `int,int` / `int` / `int,int` / `vector&lt;pair&lt;int,int&gt;&gt;` / `int,bool` / `int,int` |
-| `TrayIcon` | `Clicked` / `DoubleClicked` / `RightClicked` / `HoverEnter` / `HoverLeave` / `Selected` / `BalloonClicked` / `BalloonDismissed` / `BalloonTimeout` | — |
-| `Menu` | `ItemSelected` | `int` |
-| `TreeView` | `SelectionChanged` / `NodeClicked` / `ItemDoubleClicked` / `ItemRightClicked` / `HeaderClicked` / `SelectionChangedMulti` / `ExpandChanged` / `ItemCheckStateChanged` | see above |
-| `FontManager` | `GlobalFontChanged` | — |
-| `UIZSignals` | `DrawOverlay` / `GlobalMouseDown` / `WindowDeactivated` / `ElementCaptureRequest` / `ElementCaptureRelease` / `RepaintRequest` / `LayoutInvalidated` / `DeviceReset` | see Chapter 4 |
-
-## Default values
-
-| Item | Value |
-| --- | --- |
-| Global font | `Segoe UI` / `14.0f` |
-| Default window backdrop | `Backdrop::None` / tint `0` |
-| Root layout margin / spacing | `20` / `10` |
-| `deltaTime` cap | `0.033s` |
-| Window timer | `16ms`, `timeBeginPeriod(1)` |
-| Shadow defaults | color `(0,0,0.02,0.42)`, `blur 10`, `offset (0,3)` |
-| ToolTip hover delay | `0.5s` |
-| Label | size `16`, `Ellipsis`, vertically centered |
-| Button | `120×36`, radius `4`, blue/white |
-| TextBox | `160×30`, size `14`, caret blink `0.5s` |
-| ComboBox | `160×30`, item height `24` |
-| ToggleSwitch | `50×24` |
-| CheckBox | size `16`, radius `4` |
-| ScrollViewer | bar width `8`, min length `20`, wheel step `30` |
-| ProgressBar | `200×20` |
-| Slider | `160×24`, range `[0,100]`, track `4`, thumb `14` |
-| ListView | `200×200`, row height `28` |
-| TableView | `400×300`, header `26`, default row `24`, min column `40` |
-| TreeView | `400×300`, row height `24`, indent `16` |
-
-## Common pitfalls
-
-1. **Color components are `[0,1]`**: `Color(255,0,0)` is wrong; use `Color(1,0,0)` or `FromArgb(255,255,0,0)`.
-2. **Capturing the host's `shared_ptr` in a signal slot** creates a reference cycle that leaks the whole subtree. Capture a raw pointer or `weak_ptr` (Chapter 4).
-3. **Forgetting to repaint after changing state**: framework setters call `RequestRepaint()` for you; if you mutate internal data directly, call it yourself.
-4. **Invisible elements**: `SetVisible(false)` releases the cache but keeps layout; the cache is rebuilt when shown again.
-5. **Disabled ≠ hidden**: `SetEnabled(false)` keeps layout and draws grey; use `SetVisible(false)` to hide.
-6. **Focus ring only on Tab**: mouse-click focus deliberately does not draw the ring.
-7. **`deltaTime` is already clamped**: compute animations in seconds; you do not need to guard against huge `dt`.
-8. **Data-view metadata after sorting**: this version binds metadata to items / remaps it, so it survives sorting; if you **reorder internal containers yourself**, maintain it manually.
-9. **`PageHost::NavigateTo` is asynchronous**: `GetCurrentIndex()` changes only after the transition.
-10. **`GetChildren()` returns a reference**: do not hold it while mutating the element's child list; calling it during traversal is safe.
-
-## Complete example
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Image / ImageManager / ImageDeviceCache
 
 ```cpp
-#include "ZDataViewer.h"
-using namespace ZufyUI;
+class Image { int Width() const; int Height() const; bool IsNull() const; ... };
+class ImageDeviceCache { /* device bitmaps keyed by render target */ };
+```
+- **`Pitfall`**: `ImageDeviceCache::Get` does "GPU upload outside the lock + `emplace` inside". Only with `ZUFYUI_RENDER_THREAD=1` is there a tiny dangling window vs. `DeviceReset`; single-threaded is safe.
 
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-    Window win;
-    if (!win.Create(900, 600, L"ZufyUI Example")) return 1;
+## TrayIcon
 
-    auto root = win.GetRootColumnBox();
-    root-&gt;SetSpacing(10);
+```cpp
+bool Add(HICON icon, const std::wstring&amp; tooltip, UINT id=1);
+void SetIcon(HICON);  void SetToolTip(const std::wstring&amp;);  void SetMenu(std::shared_ptr&lt;Menu&gt;);
+void SetBadge(Color = ...);   void ClearBadge();
+enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
+void ShowBalloon(const std::wstring&amp; title, const std::wstring&amp; text, BalloonIcon = BalloonIcon::Custom, HICON = nullptr, ...);
+ZSignal&lt;&gt; Clicked, DoubleClicked, RightClicked, HoverEnter, HoverLeave, BalloonClicked, ...;
+```
+- Same `id` re-`Add` becomes `NIM_MODIFY`; auto re-adds after Explorer restart.
+- **`Pitfall`**: with NOTIFYICON_VERSION_4 the right-click arrives as `WM_CONTEXTMENU` inside the callback and **double-click must be timed manually**. The custom callback message is `WM_APP+0x400`.
+- **`Version`**: `v1.16.0` fixed callback-message collision.
 
-    auto row = std::make_shared&lt;RowBox&gt;();
-    row-&gt;SetSpacing(10);
+## System dialogs — FileDialog / ColorDialog (v1.16.0)
 
-    auto toggle = std::make_shared&lt;ToggleSwitch&gt;(false);
-    auto slider = std::make_shared&lt;Slider&gt;();
-    slider-&gt;SetRange(0.0f, 1.0f);
-    slider-&gt;SetStep(0.1f);
-    slider-&gt;SetSnapToStep(true);
-    auto bar = std::make_shared&lt;ProgressBar&gt;();
-    bar-&gt;SetShowText(true);
+```cpp
+struct FileFilter { std::wstring label; std::vector&lt;std::wstring&gt; patterns; };
+struct FileDialogOptions {
+    std::wstring title, initialDir, defaultFileName, defaultExtension;
+    std::vector&lt;FileFilter&gt; filters; int filterIndex = 1;
+    bool addAllFiles = true, pickFolders = false, multiSelect = false, save = false, forceFilesystem = true;
+};
+```
+- Based on `IFileDialog`/`ChooseColor`; `forceFilesystem=true` forces a filesystem path.
 
-    toggle-&gt;Connect(toggle-&gt;Toggled, [bar](bool on) { bar-&gt;SetIndeterminate(on); });
-    slider-&gt;Connect(slider-&gt;ValueChanged, [bar](float v) { bar-&gt;SetValue(v); });
+## App registration — AppInfo / RegisterApp
 
-    row-&gt;AddChild(toggle);
-    row-&gt;AddChild(slider);
-    row-&gt;AddChild(bar);
-    root-&gt;AddChild(row);
-
-    auto list = std::make_shared&lt;ListView&gt;();
-    list-&gt;SetFillHeight(true);
-    list-&gt;SetSelectionMode(ListView::SelectionMode::Extended);
-    list-&gt;SetCheckable(true);
-    for (int i = 1; i &lt;= 20; ++i)
-        list-&gt;AddItem(L"Item " + std::to_wstring(i));
-    list-&gt;SetItemDisabled(2, true);
-    list-&gt;SetItemTextColor(3, Color::FromArgb(255, 200, 60, 60));
-    list-&gt;SetItemToolTip(1, L"Tooltip for item 2");
-    list-&gt;SetSortComparator([](const std::wstring&amp; a, const std::wstring&amp; b) { return a &lt; b; });
-    list-&gt;SetShowSortIndicator(true);
-    list-&gt;SetSelectedIndex(0);
-    root-&gt;AddChild(list);
-
-    win.Show();          // since 1.8.0 Create no longer auto-shows; call Show()
-    win.Run();
-    return 0;
-}
-```</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 16 · Appendix</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 16</span><h1>Appendix</h1><p class="chapter-summary">Signal list, default values, and common pitfalls</p></header><h2 id="signal-list-updated">Signal list (updated)</h2>
-<table>
-<thead>
-<tr>
-<th>Class</th>
-<th>Signals</th>
-<th>Args</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>Button</code></td>
-<td><code>Clicked</code> / <code>Toggled</code></td>
-<td>— / <code>bool</code></td>
-</tr>
-<tr>
-<td><code>CheckBox</code></td>
-<td><code>Toggled</code> / <code>StateChanged</code></td>
-<td><code>bool</code> / <code>State</code></td>
-</tr>
-<tr>
-<td><code>TextBox</code></td>
-<td><code>TextChanged</code> / <code>ReturnPressed</code></td>
-<td><code>const std::wstring&amp;</code> / —</td>
-</tr>
-<tr>
-<td><code>ComboBox</code></td>
-<td><code>SelectionChanged</code> / <code>DropDownOpened</code> / <code>DropDownClosed</code></td>
-<td><code>int</code> / — / —</td>
-</tr>
-<tr>
-<td><code>ToggleSwitch</code></td>
-<td><code>Toggled</code></td>
-<td><code>bool</code></td>
-</tr>
-<tr>
-<td><code>ProgressBar</code></td>
-<td><code>ValueChanged</code></td>
-<td><code>float</code></td>
-</tr>
-<tr>
-<td><code>Slider</code></td>
-<td><code>ValueChanged</code> / <code>SliderReleased</code></td>
-<td><code>float</code> / —</td>
-</tr>
-<tr>
-<td><code>ScrollViewer</code></td>
-<td><code>ScrollChanged</code></td>
-<td><code>float, float</code></td>
-</tr>
-<tr>
-<td><code>ListView</code></td>
-<td><code>SelectionChanged</code> / <code>ItemClicked</code> / <code>ItemDoubleClicked</code> / <code>SelectionChangedMulti</code> / <code>ItemCheckStateChanged</code> / <code>ItemRightClicked</code></td>
-<td><code>int</code> / <code>int</code> / <code>int</code> / <code>std::vector&lt;int&gt;</code> / <code>int,bool</code> / <code>int</code></td>
-</tr>
-<tr>
-<td><code>TableView</code></td>
-<td><code>CellClicked</code> / <code>CellDoubleClicked</code> / <code>HeaderClicked</code> / <code>CurrentCellChanged</code> / <code>SelectionChangedCells</code> / <code>ItemCheckStateChanged</code> / <code>CellRightClicked</code></td>
-<td><code>int,int</code> / <code>int,int</code> / <code>int</code> / <code>int,int</code> / <code>vector&lt;pair&lt;int,int&gt;&gt;</code> / <code>int,bool</code> / <code>int,int</code></td>
-</tr>
-<tr>
-<td><code>TrayIcon</code></td>
-<td><code>Clicked</code> / <code>DoubleClicked</code> / <code>RightClicked</code> / <code>HoverEnter</code> / <code>HoverLeave</code> / <code>Selected</code> / <code>BalloonClicked</code> / <code>BalloonDismissed</code> / <code>BalloonTimeout</code></td>
-<td>—</td>
-</tr>
-<tr>
-<td><code>Menu</code></td>
-<td><code>ItemSelected</code></td>
-<td><code>int</code></td>
-</tr>
-<tr>
-<td><code>TreeView</code></td>
-<td><code>SelectionChanged</code> / <code>NodeClicked</code> / <code>ItemDoubleClicked</code> / <code>ItemRightClicked</code> / <code>HeaderClicked</code> / <code>SelectionChangedMulti</code> / <code>ExpandChanged</code> / <code>ItemCheckStateChanged</code></td>
-<td>see above</td>
-</tr>
-<tr>
-<td><code>FontManager</code></td>
-<td><code>GlobalFontChanged</code></td>
-<td>—</td>
-</tr>
-<tr>
-<td><code>UIZSignals</code></td>
-<td><code>DrawOverlay</code> / <code>GlobalMouseDown</code> / <code>WindowDeactivated</code> / <code>ElementCaptureRequest</code> / <code>ElementCaptureRelease</code> / <code>RepaintRequest</code> / <code>LayoutInvalidated</code> / <code>DeviceReset</code></td>
-<td>see Chapter 4</td>
-</tr>
-</tbody>
-</table>
-<h2 id="default-values">Default values</h2>
-<table>
-<thead>
-<tr>
-<th>Item</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Global font</td>
-<td><code>Segoe UI</code> / <code>14.0f</code></td>
-</tr>
-<tr>
-<td>Default window backdrop</td>
-<td><code>Backdrop::None</code> / tint <code>0</code></td>
-</tr>
-<tr>
-<td>Root layout margin / spacing</td>
-<td><code>20</code> / <code>10</code></td>
-</tr>
-<tr>
-<td><code>deltaTime</code> cap</td>
-<td><code>0.033s</code></td>
-</tr>
-<tr>
-<td>Window timer</td>
-<td><code>16ms</code>, <code>timeBeginPeriod(1)</code></td>
-</tr>
-<tr>
-<td>Shadow defaults</td>
-<td>color <code>(0,0,0.02,0.42)</code>, <code>blur 10</code>, <code>offset (0,3)</code></td>
-</tr>
-<tr>
-<td>ToolTip hover delay</td>
-<td><code>0.5s</code></td>
-</tr>
-<tr>
-<td>Label</td>
-<td>size <code>16</code>, <code>Ellipsis</code>, vertically centered</td>
-</tr>
-<tr>
-<td>Button</td>
-<td><code>120×36</code>, radius <code>4</code>, blue/white</td>
-</tr>
-<tr>
-<td>TextBox</td>
-<td><code>160×30</code>, size <code>14</code>, caret blink <code>0.5s</code></td>
-</tr>
-<tr>
-<td>ComboBox</td>
-<td><code>160×30</code>, item height <code>24</code></td>
-</tr>
-<tr>
-<td>ToggleSwitch</td>
-<td><code>50×24</code></td>
-</tr>
-<tr>
-<td>CheckBox</td>
-<td>size <code>16</code>, radius <code>4</code></td>
-</tr>
-<tr>
-<td>ScrollViewer</td>
-<td>bar width <code>8</code>, min length <code>20</code>, wheel step <code>30</code></td>
-</tr>
-<tr>
-<td>ProgressBar</td>
-<td><code>200×20</code></td>
-</tr>
-<tr>
-<td>Slider</td>
-<td><code>160×24</code>, range <code>[0,100]</code>, track <code>4</code>, thumb <code>14</code></td>
-</tr>
-<tr>
-<td>ListView</td>
-<td><code>200×200</code>, row height <code>28</code></td>
-</tr>
-<tr>
-<td>TableView</td>
-<td><code>400×300</code>, header <code>26</code>, default row <code>24</code>, min column <code>40</code></td>
-</tr>
-<tr>
-<td>TreeView</td>
-<td><code>400×300</code>, row height <code>24</code>, indent <code>16</code></td>
-</tr>
-</tbody>
-</table>
-<h2 id="common-pitfalls">Common pitfalls</h2>
-<ol>
-<li><strong>Color components are <code>[0,1]</code></strong>: <code>Color(255,0,0)</code> is wrong; use <code>Color(1,0,0)</code> or <code>FromArgb(255,255,0,0)</code>.</li>
-<li><strong>Capturing the host's <code>shared_ptr</code> in a signal slot</strong> creates a reference cycle that leaks the whole subtree. Capture a raw pointer or <code>weak_ptr</code> (Chapter 4).</li>
-<li><strong>Forgetting to repaint after changing state</strong>: framework setters call <code>RequestRepaint()</code> for you; if you mutate internal data directly, call it yourself.</li>
-<li><strong>Invisible elements</strong>: <code>SetVisible(false)</code> releases the cache but keeps layout; the cache is rebuilt when shown again.</li>
-<li><strong>Disabled ≠ hidden</strong>: <code>SetEnabled(false)</code> keeps layout and draws grey; use <code>SetVisible(false)</code> to hide.</li>
-<li><strong>Focus ring only on Tab</strong>: mouse-click focus deliberately does not draw the ring.</li>
-<li><strong><code>deltaTime</code> is already clamped</strong>: compute animations in seconds; you do not need to guard against huge <code>dt</code>.</li>
-<li><strong>Data-view metadata after sorting</strong>: this version binds metadata to items / remaps it, so it survives sorting; if you <strong>reorder internal containers yourself</strong>, maintain it manually.</li>
-<li><strong><code>PageHost::NavigateTo</code> is asynchronous</strong>: <code>GetCurrentIndex()</code> changes only after the transition.</li>
-<li><strong><code>GetChildren()</code> returns a reference</strong>: do not hold it while mutating the element's child list; calling it during traversal is safe.</li>
-</ol>
-<h2 id="complete-example">Complete example</h2>
+```cpp
+struct AppInfo { std::wstring displayName, aumid; std::shared_ptr&lt;Image&gt; icon; };
+bool RegisterApp(const AppInfo&amp;);    // or Application::Instance().RegisterApp(info)
+```
+- By default only sets the AUMID (zero file/registry side effects); defining `ZUFYUI_ALLOW_APP_REGISTRATION` writes `%LOCALAPPDATA%\ZufyUI\AppReg\...` and `HKCU\...\AppUserModelId` (so Win10/11 toasts show the app name/icon); auto-cleans on exit.</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 16 · Window extras</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 16</span><h1>Window extras</h1><p class="chapter-summary">Images, tray, system dialogs, app registration</p></header><h2 id="image-imagemanager-imagedevicecache">Image / ImageManager / ImageDeviceCache</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7681f46d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-e7fca0d0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZDataViewer.h"</span>
-<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
-
-<span class="kt">int</span><span class="w"> </span><span class="n">WINAPI</span><span class="w"> </span><span class="nf">WinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">Window</span><span class="w"> </span><span class="n">win</span><span class="p">;</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">win</span><span class="p">.</span><span class="n">Create</span><span class="p">(</span><span class="mi">900</span><span class="p">,</span><span class="w"> </span><span class="mi">600</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"ZufyUI Example"</span><span class="p">))</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
-
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">win</span><span class="p">.</span><span class="n">GetRootColumnBox</span><span class="p">();</span>
-<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">SetSpacing</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
-
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">row</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">RowBox</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">SetSpacing</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
-
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">toggle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">ToggleSwitch</span><span class="o">&gt;</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">slider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Slider</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">SetRange</span><span class="p">(</span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">);</span>
-<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">SetStep</span><span class="p">(</span><span class="mf">0.1f</span><span class="p">);</span>
-<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">SetSnapToStep</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">bar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">ProgressBar</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetShowText</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
-
-<span class="w">    </span><span class="n">toggle</span><span class="o">-&gt;</span><span class="n">Connect</span><span class="p">(</span><span class="n">toggle</span><span class="o">-&gt;</span><span class="n">Toggled</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="n">bar</span><span class="p">](</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetIndeterminate</span><span class="p">(</span><span class="n">on</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
-<span class="w">    </span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">Connect</span><span class="p">(</span><span class="n">slider</span><span class="o">-&gt;</span><span class="n">ValueChanged</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="n">bar</span><span class="p">](</span><span class="kt">float</span><span class="w"> </span><span class="n">v</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">bar</span><span class="o">-&gt;</span><span class="n">SetValue</span><span class="p">(</span><span class="n">v</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
-
-<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">toggle</span><span class="p">);</span>
-<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">slider</span><span class="p">);</span>
-<span class="w">    </span><span class="n">row</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
-<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">row</span><span class="p">);</span>
-
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">list</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">ListView</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetFillHeight</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetSelectionMode</span><span class="p">(</span><span class="n">ListView</span><span class="o">::</span><span class="n">SelectionMode</span><span class="o">::</span><span class="n">Extended</span><span class="p">);</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetCheckable</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
-<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">20</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span>
-<span class="w">        </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">AddItem</span><span class="p">(</span><span class="sa">L</span><span class="s">"Item "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">to_wstring</span><span class="p">(</span><span class="n">i</span><span class="p">));</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetItemDisabled</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetItemTextColor</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="o">::</span><span class="n">FromArgb</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span><span class="w"> </span><span class="mi">60</span><span class="p">));</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetItemToolTip</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="sa">L</span><span class="s">"Tooltip for item 2"</span><span class="p">);</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetSortComparator</span><span class="p">([](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">b</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetShowSortIndicator</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
-<span class="w">    </span><span class="n">list</span><span class="o">-&gt;</span><span class="n">SetSelectedIndex</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-<span class="w">    </span><span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">list</span><span class="p">);</span>
-
-<span class="w">    </span><span class="n">win</span><span class="p">.</span><span class="n">Show</span><span class="p">();</span><span class="w">          </span><span class="c1">// since 1.8.0 Create no longer auto-shows; call Show()</span>
-<span class="w">    </span><span class="n">win</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Image</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">Width</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">Height</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsNull</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ImageDeviceCache</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* device bitmaps keyed by render target */</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-7681f46d" style="display: none;">#include "ZDataViewer.h"
-using namespace ZufyUI;
-
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-    Window win;
-    if (!win.Create(900, 600, L"ZufyUI Example")) return 1;
-
-    auto root = win.GetRootColumnBox();
-    root-&gt;SetSpacing(10);
-
-    auto row = std::make_shared&lt;RowBox&gt;();
-    row-&gt;SetSpacing(10);
-
-    auto toggle = std::make_shared&lt;ToggleSwitch&gt;(false);
-    auto slider = std::make_shared&lt;Slider&gt;();
-    slider-&gt;SetRange(0.0f, 1.0f);
-    slider-&gt;SetStep(0.1f);
-    slider-&gt;SetSnapToStep(true);
-    auto bar = std::make_shared&lt;ProgressBar&gt;();
-    bar-&gt;SetShowText(true);
-
-    toggle-&gt;Connect(toggle-&gt;Toggled, [bar](bool on) { bar-&gt;SetIndeterminate(on); });
-    slider-&gt;Connect(slider-&gt;ValueChanged, [bar](float v) { bar-&gt;SetValue(v); });
-
-    row-&gt;AddChild(toggle);
-    row-&gt;AddChild(slider);
-    row-&gt;AddChild(bar);
-    root-&gt;AddChild(row);
-
-    auto list = std::make_shared&lt;ListView&gt;();
-    list-&gt;SetFillHeight(true);
-    list-&gt;SetSelectionMode(ListView::SelectionMode::Extended);
-    list-&gt;SetCheckable(true);
-    for (int i = 1; i &lt;= 20; ++i)
-        list-&gt;AddItem(L"Item " + std::to_wstring(i));
-    list-&gt;SetItemDisabled(2, true);
-    list-&gt;SetItemTextColor(3, Color::FromArgb(255, 200, 60, 60));
-    list-&gt;SetItemToolTip(1, L"Tooltip for item 2");
-    list-&gt;SetSortComparator([](const std::wstring&amp; a, const std::wstring&amp; b) { return a &lt; b; });
-    list-&gt;SetShowSortIndicator(true);
-    list-&gt;SetSelectedIndex(0);
-    root-&gt;AddChild(list);
-
-    win.Show();          // since 1.8.0 Create no longer auto-shows; call Show()
-    win.Run();
-    return 0;
-}</pre>
+<pre id="code-e7fca0d0" style="display: none;">class Image { int Width() const; int Height() const; bool IsNull() const; ... };
+class ImageDeviceCache { /* device bitmaps keyed by render target */ };</pre>
 </div>
-<nav class="chapter-nav"><a class="prev" href="API.en.15.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">System dialogs</span><span class="nav-desc">FileDialog (file/folder) · ColorDialog (color)</span></a><a class="next" href="API.en.17.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Accessibility (UI Automation)</span><span class="nav-desc">On by default; roles / patterns / events / hit-test &amp; focus</span></a></nav>
+<ul>
+<li><strong><code>Pitfall</code></strong>: <code>ImageDeviceCache::Get</code> does "GPU upload outside the lock + <code>emplace</code> inside". Only with <code>ZUFYUI_RENDER_THREAD=1</code> is there a tiny dangling window vs. <code>DeviceReset</code>; single-threaded is safe.</li>
+</ul>
+<h2 id="trayicon">TrayIcon</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-365f2c22', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">Add</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">icon</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="o">=</span><span class="mi">1</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">HICON</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetToolTip</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetBadge</span><span class="p">(</span><span class="n">Color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">...);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearBadge</span><span class="p">();</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">BalloonIcon</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="n">Warning</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="p">,</span><span class="w"> </span><span class="n">Custom</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ShowBalloon</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">BalloonIcon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BalloonIcon</span><span class="o">::</span><span class="n">Custom</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span>
+<span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">,</span><span class="w"> </span><span class="n">DoubleClicked</span><span class="p">,</span><span class="w"> </span><span class="n">RightClicked</span><span class="p">,</span><span class="w"> </span><span class="n">HoverEnter</span><span class="p">,</span><span class="w"> </span><span class="n">HoverLeave</span><span class="p">,</span><span class="w"> </span><span class="n">BalloonClicked</span><span class="p">,</span><span class="w"> </span><span class="p">...;</span>
+</pre></div>
+<pre id="code-365f2c22" style="display: none;">bool Add(HICON icon, const std::wstring&amp; tooltip, UINT id=1);
+void SetIcon(HICON);  void SetToolTip(const std::wstring&amp;);  void SetMenu(std::shared_ptr&lt;Menu&gt;);
+void SetBadge(Color = ...);   void ClearBadge();
+enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
+void ShowBalloon(const std::wstring&amp; title, const std::wstring&amp; text, BalloonIcon = BalloonIcon::Custom, HICON = nullptr, ...);
+ZSignal&lt;&gt; Clicked, DoubleClicked, RightClicked, HoverEnter, HoverLeave, BalloonClicked, ...;</pre>
+</div>
+<ul>
+<li>Same <code>id</code> re-<code>Add</code> becomes <code>NIM_MODIFY</code>; auto re-adds after Explorer restart.</li>
+<li><strong><code>Pitfall</code></strong>: with NOTIFYICON_VERSION_4 the right-click arrives as <code>WM_CONTEXTMENU</code> inside the callback and <strong>double-click must be timed manually</strong>. The custom callback message is <code>WM_APP+0x400</code>.</li>
+<li><strong><code>Version</code></strong>: <code>v1.16.0</code> fixed callback-message collision.</li>
+</ul>
+<h2 id="system-dialogs-filedialog-colordialog-v1160">System dialogs — FileDialog / ColorDialog (v1.16.0)</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-c320beb6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FileFilter</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">label</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">patterns</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">FileDialogOptions</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">initialDir</span><span class="p">,</span><span class="w"> </span><span class="n">defaultFileName</span><span class="p">,</span><span class="w"> </span><span class="n">defaultExtension</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FileFilter</span><span class="o">&gt;</span><span class="w"> </span><span class="n">filters</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">filterIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">addAllFiles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="n">pickFolders</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">multiSelect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">save</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">forceFilesystem</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+<pre id="code-c320beb6" style="display: none;">struct FileFilter { std::wstring label; std::vector&lt;std::wstring&gt; patterns; };
+struct FileDialogOptions {
+    std::wstring title, initialDir, defaultFileName, defaultExtension;
+    std::vector&lt;FileFilter&gt; filters; int filterIndex = 1;
+    bool addAllFiles = true, pickFolders = false, multiSelect = false, save = false, forceFilesystem = true;
+};</pre>
+</div>
+<ul>
+<li>Based on <code>IFileDialog</code>/<code>ChooseColor</code>; <code>forceFilesystem=true</code> forces a filesystem path.</li>
+</ul>
+<h2 id="app-registration-appinfo-registerapp">App registration — AppInfo / RegisterApp</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-45a69bba', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">AppInfo</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">displayName</span><span class="p">,</span><span class="w"> </span><span class="n">aumid</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="p">);</span><span class="w">    </span><span class="c1">// or Application::Instance().RegisterApp(info)</span>
+</pre></div>
+<pre id="code-45a69bba" style="display: none;">struct AppInfo { std::wstring displayName, aumid; std::shared_ptr&lt;Image&gt; icon; };
+bool RegisterApp(const AppInfo&amp;);    // or Application::Instance().RegisterApp(info)</pre>
+</div>
+<ul>
+<li>By default only sets the AUMID (zero file/registry side effects); defining <code>ZUFYUI_ALLOW_APP_REGISTRATION</code> writes <code>%LOCALAPPDATA%\ZufyUI\AppReg\...</code> and <code>HKCU\...\AppUserModelId</code> (so Win10/11 toasts show the app name/icon); auto-cleans on exit.</li>
+</ul>
+<nav class="chapter-nav"><a class="prev" href="API.en.15.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Charts</span><span class="nav-desc">ChartBase, BarChart, LineChart, PieChart (v1.18.0)</span></a><a class="next" href="API.en.17.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Accessibility &amp; Debug Channel</span><span class="nav-desc">UIA + SetDebugEnabled (v1.17.0)</span></a></nav>
         </main>
     </div>
 
