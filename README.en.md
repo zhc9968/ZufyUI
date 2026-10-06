@@ -21,6 +21,9 @@ ZufyUI is a **header-only** Windows desktop UI framework built directly on Direc
 - **Complete layout system**: `ColumnBox` / `RowBox` / `GridLayout`, supporting spacing, stretch weight, fill, alignment, and row/column spanning.
 - **Signals and slots**: built-in `ZSignal` / `Connection`, supporting `Connect` with automatic lifetime management, plus three dispatch strategies: current thread / new thread / UI thread.
 - **Rich controls**: labels, buttons, text boxes, combo boxes, toggle switches, scroll containers, progress bars, sliders, and three data views: list / table / tree.
+- **Charts**: `BarChart` / `LineChart` / `PieChart` (horizontal orientation, area fill, wheel zoom, live refresh) from `ZufyUICharts.h`.
+- **Drag & drop**: built-in OLE drag & drop (`ZufyUIDragDrop.h`) — drop text / files / custom formats in, and drag text / images / files out to Explorer; text boxes, combo boxes, images, buttons, and labels are all wired up.
+- **Card components**: collapsible card `Expander` (easing + rotating arrow), settings row list `SettingsList`, image display `ImageView`.
 - **Complete animation and transitions**: hover, expand, indicator bar, and page switching (`PageHost`) all have built-in animations, and scrolling supports smooth scrolling.
 - **High-DPI adaptation**: automatically aware of DPI; `Snap()` snaps drawing to physical pixels to avoid blurriness.
 - **IME compatibility**: text boxes support Chinese IME composition input and candidate window positioning.
@@ -60,6 +63,9 @@ ZufyUI/
 ├── ZufyUI.h              # Core: types / signals & slots / fonts / elements / layout / menus / window
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # Data views: ListView / TableView / TreeView
+├── ZufyUICharts.h        # Charts: ChartBase / BarChart / LineChart / PieChart
+├── ZufyUIWindowTool.h    # Tray / custom title bar / accessibility (UIA) / debug channel
+├── ZufyUIDragDrop.h      # Drag & drop: DragData / DragDataBuilder / Window::BeginDrag / element hooks
 ├── ZufyUI.cpp            # Demo program entry point (WinMain)
 ├── ZufyUI.slnx           # Solution
 ├── ZufyUI.vcxproj        # Project file
@@ -73,7 +79,7 @@ ZufyUI/
 > Goal: **get your first window on screen within 10 minutes** and know which chapter to read next. Follow the steps below.
 
 **Step 0: setup (header-only, zero build config)**
-- Add the directory containing `ZufyUI.h`, `ZufyUIWidgets.h`, `ZDataViewer.h`, `ZufyUICharts.h`, `ZufyUIWindowTool.h` to your **include path**; **nothing to compile**, no third-party deps.
+- Add the directory containing `ZufyUI.h`, `ZufyUIWidgets.h`, `ZDataViewer.h`, `ZufyUICharts.h`, `ZufyUIWindowTool.h`, `ZufyUIDragDrop.h` to your **include path**; **nothing to compile**, no third-party deps.
 - Required system libs are auto-linked via `#pragma comment(lib, ...)`: `d2d1 / dwrite / dwmapi / imm32 / winmm`.
 - GUI entry point: **`wWinMain` + `/SUBSYSTEM:WINDOWS`**.
 - **⚠ Entry point pitfall**: if you insist on `int main()`, set `/SUBSYSTEM:CONSOLE`, or add `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")`, otherwise the linker won't find an entry point.

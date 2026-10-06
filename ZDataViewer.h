@@ -4522,6 +4522,7 @@ namespace ZufyUI {
         void UpdateParentCheckState(std::shared_ptr<TreeNode> node) {
             std::shared_ptr<TreeNode> parent = node ? node->parent.lock() : nullptr;
             if (!parent) return;
+            if (parent->children.empty()) return;   // 空父节点不应被判为 Checked
             bool allChecked = true, allUnchecked = true;
             for (auto& c : parent->children) {
                 if (c->checkState != TreeNode::CheckState::Checked) allChecked = false;

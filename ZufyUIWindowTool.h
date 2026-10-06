@@ -886,6 +886,8 @@ namespace ZufyUI {
             return Add(h, tooltip, id);
         }
         void Remove() {
+            if (hwnd_) KillTimer(hwnd_, kTrayClickTimer);
+            pendingClick_ = false;
             if (added_) { Shell_NotifyIconW(NIM_DELETE, &nid_); added_ = false; }
             if (badgeIcon_) { DestroyIcon(badgeIcon_); badgeIcon_ = nullptr; }
             if (ownedIcon_) { DestroyIcon(ownedIcon_); ownedIcon_ = nullptr; }
@@ -1113,21 +1115,27 @@ namespace ZufyUI {
                 }
                 return 0;
             }
+            if (msg == WM_TIMER && w == kTrayClickTimer) {   // 单击延迟到双击窗口结束
+                KillTimer(h, kTrayClickTimer);
+                pendingClick_ = false;
+                Clicked.Fire();
+                return 0;
+            }
             if (msg == kCallbackMsg) {
                 UINT ev = LOWORD(l);
 #ifdef ZufyUI_DEBUG
                 { wchar_t b[64]; swprintf(b, 64, L"[ZufyUI] Tray callback ev=0x%04X\n", (unsigned)ev); ZufyUI_DEBUG_LOG_W(b); }
 #endif
                 switch (ev) {
-                case NIN_SELECT: {   // v4：左键单击；双击系统不再单发 WM_LBUTTONDBLCLK，需要自己按时间判定
-                    DWORD now = GetTickCount();
-                    if (lastClickTick_ != 0 && now - lastClickTick_ < GetDoubleClickTime()) {
-                        lastClickTick_ = 0;
+                case NIN_SELECT: {   // v4：单击延迟一个双击时间再发；期内再来一次则只发 DoubleClicked（避免"单击 toggle + 双击又 toggle"）
+                    if (pendingClick_) {
+                        KillTimer(h, kTrayClickTimer);
+                        pendingClick_ = false;
                         DoubleClicked.Fire();
                     }
                     else {
-                        lastClickTick_ = now;
-                        Clicked.Fire();
+                        pendingClick_ = true;
+                        SetTimer(h, kTrayClickTimer, GetDoubleClickTime(), nullptr);
                     }
                     break;
                 }
@@ -1172,7 +1180,8 @@ namespace ZufyUI {
         HICON ownedIcon_ = nullptr;      // AddFromFile 加载的图标
         bool badgeOn_ = false;
         bool iconDirty_ = false;         // badge 图标懒重建标志
-        DWORD lastClickTick_ = 0;        // v4 双击判定（v4 不再发 WM_LBUTTONDBLCLK）
+        bool pendingClick_ = false;      // 单击待发（延迟到双击窗口结束）
+        static constexpr UINT_PTR kTrayClickTimer = 0x7F91;
         Color badgeColor_ = Color::FromArgb(255, 220, 40, 40);
         std::wstring currentTip_;
         std::shared_ptr<Menu> menu_;

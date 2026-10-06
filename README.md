@@ -21,6 +21,9 @@ ZufyUI 是一个**纯头文件**的 Windows 桌面 UI 框架，直接建立在 D
 - **完整布局系统**：`ColumnBox` / `RowBox` / `GridLayout`，支持间距、拉伸权重、填充、对齐与跨行跨列。
 - **信号槽**：内置 `ZSignal` / `Connection`，支持 `Connect` 自动管理生命周期，以及当前线程 / 新线程 / UI 线程三种分发策略。
 - **丰富控件**：标签、按钮、文本框、下拉框、开关、滚动容器、进度条、滑块，以及列表 / 表格 / 树三种数据视图。
+- **图表**：`BarChart` / `LineChart` / `PieChart`（横向方向、面积填充、滚轮缩放、实时刷新），来自 `ZufyUICharts.h`。
+- **拖放**：内置 OLE 拖放（`ZufyUIDragDrop.h`），支持拖入文本 / 文件 / 自定义格式，并可把文本 / 图片 / 文件拖出到资源管理器；文本框、下拉框、图片、按钮、标签均已接入。
+- **卡片组件**：可折叠卡片 `Expander`（缓动 + 旋转箭头）、设置行列表 `SettingsList`、图片显示 `ImageView`。
 - **完整动画与转场**：悬停、展开、指示条、页面切换（`PageHost`）都有内置动画，滚动支持平滑滚动。
 - **高 DPI 适配**：自动感知 DPI，`Snap()` 把绘制吸附到物理像素，避免模糊。
 - **IME 兼容**：文本框支持中文输入法组合输入与候选框定位。
@@ -60,6 +63,9 @@ ZufyUI/
 ├── ZufyUI.h              # 核心：类型 / 信号槽 / 字体 / 元素 / 布局 / 菜单 / 窗口
 ├── ZufyUIWidgets.h       # 基础控件：Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
 ├── ZDataViewer.h      # 数据视图：ListView / TableView / TreeView
+├── ZufyUICharts.h        # 图表：ChartBase / BarChart / LineChart / PieChart
+├── ZufyUIWindowTool.h    # 托盘 / 自定义标题栏 / 无障碍(UIA) / 调试通道
+├── ZufyUIDragDrop.h      # 拖放：DragData / DragDataBuilder / Window::BeginDrag / 元素拖放钩子
 ├── ZufyUI.cpp            # 综合演示程序入口（WinMain）
 ├── ZufyUI.slnx           # 解决方案
 ├── ZufyUI.vcxproj        # 工程文件
@@ -73,7 +79,7 @@ ZufyUI/
 > 目标：**10 分钟内跑出第一个窗口**，并清楚接下来该看哪一章。按下面的步骤走即可。
 
 **第 0 步：准备（纯头文件，零构建配置）**
-- 把 `ZufyUI.h`、`ZufyUIWidgets.h`、`ZDataViewer.h`、`ZufyUICharts.h`、`ZufyUIWindowTool.h` 所在目录加入**包含路径**即可；**不需要编译任何 .cpp**，也不依赖第三方库。
+- 把 `ZufyUI.h`、`ZufyUIWidgets.h`、`ZDataViewer.h`、`ZufyUICharts.h`、`ZufyUIWindowTool.h`、`ZufyUIDragDrop.h` 所在目录加入**包含路径**即可；**不需要编译任何 .cpp**，也不依赖第三方库。
 - 依赖的系统库由库内 `#pragma comment(lib, ...)` 自动链接：`d2d1 / dwrite / dwmapi / imm32 / winmm`。
 - GUI 程序入口用 **`wWinMain` + `/SUBSYSTEM:WINDOWS`**。
 - **⚠ 入口易错**：若坚持写 `int main()`，必须把子系统设成 `/SUBSYSTEM:CONSOLE`，或加 `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")`，否则链接器找不到入口。

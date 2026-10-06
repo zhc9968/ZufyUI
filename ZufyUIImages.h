@@ -340,8 +340,14 @@ namespace ZufyUI {
     inline std::shared_ptr<Image> Image::FromResource(HMODULE mod, const wchar_t* name, const wchar_t* type) {
         if (!mod) mod = GetModuleHandle(nullptr);
         // ICON / GROUP_ICON 资源：走 LoadImage(IMAGE_ICON) → HICON → 位图（WIC 不能直接解码“图标组”）
-        if (type == RT_GROUP_ICON ||
-            (type && (_wcsicmp(type, L"ICON") == 0 || _wcsicmp(type, L"GROUP_ICON") == 0))) {
+        // 资源类型既可能是 MAKEINTRESOURCE 伪指针（RT_ICON/RT_GROUP_ICON/RT_BITMAP/RT_RCDATA…），
+        // 也可能是真字符串（如 L"PNG"）。用 IS_INTRESOURCE 区分：任一是伪指针就只按指针值比较，
+        // 绝不当字符串解引用（否则读到地址 2/10/14 → 访问违例）。
+        auto isType = [](const wchar_t* t, const wchar_t* s) -> bool {
+            if (IS_INTRESOURCE(t) || IS_INTRESOURCE(s)) return t == s;
+            return _wcsicmp(t, s) == 0;
+        };
+        if (type && (isType(type, RT_GROUP_ICON) || isType(type, L"ICON") || isType(type, L"GROUP_ICON"))) {
             HICON ic = (HICON)LoadImageW(mod, name, IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
             if (!ic) return nullptr;
             auto img = FromHICON(ic);
@@ -356,7 +362,7 @@ namespace ZufyUI {
         DWORD size = SizeofResource(mod, res);
         if (!data || size == 0) return nullptr;
         // RT_BITMAP 是 DIB，需要合成 BMP 文件头
-        if (type == RT_BITMAP || (type && wcscmp(type, RT_BITMAP) == 0)) {
+        if (type && isType(type, RT_BITMAP)) {
             auto bmp = detail_img::DibResourceToBmp(data, size);
             if (bmp.empty()) return nullptr;
             return detail_img::DecodeFromMemory(bmp.data(), bmp.size());
@@ -475,7 +481,8 @@ namespace ZufyUI {
         auto img = std::make_shared<Image>(*this);
         img->xf_.rot = std::fmod(xf_.rot + degrees, 360.0f);
         if (img->xf_.rot < 0) img->xf_.rot += 360.0f;
-        // 90/270 度交换逻辑尺寸
+        // 语义：逻辑尺寸只在 90/270 度时交换宽高；其它角度（180/45…）尺寸不变，绘制时绕中心旋转
+        //（与 Qt QImage::transformed 的"包围盒"语义不同）。
         float r = std::fmod(img->xf_.rot, 180.0f);
         if (fabs(r - 90.0f) < 0.01f) { int t = img->width_; img->width_ = img->height_; img->height_ = t; }
         return img;

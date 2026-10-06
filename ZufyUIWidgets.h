@@ -215,14 +215,33 @@ namespace ZufyUI {
         Label(const std::wstring& text = L"Label") : text_(text), textColor_(DefaultTextColor),
             overflow_(DefaultOverflow), hAlign_(DefaultHAlign), vAlign_(DefaultVAlign) {}
 
+        ZSignal<const std::wstring&> TextChanged;   // SetText / SetTextFast 内容变化时触发
         void SetText(const std::wstring& text) {
+            bool changed = (text_ != text);
             text_ = text;
             InvalidateLayout();
             RequestRepaint();
+            if (changed) TextChanged(text_);
         }
         // 虚拟列表 / 元素池"重绑"专用：只置自身布局脏（不冒泡到根），且不 RequestRepaint（重绘由容器驱动）。
-        void SetTextFast(const std::wstring& text) { text_ = text; InvalidateLayoutSelf(); }
+        void SetTextFast(const std::wstring& text) { bool changed = (text_ != text); text_ = text; InvalidateLayoutSelf(); if (changed) TextChanged(text_); }
         std::wstring GetText() const { return text_; }
+        // 拖源模式：按住并拖动 → 发起 OLE 拖出（用于把图片标签 / 任意标签拖出去）
+        void SetDragSource(std::function<void(DragDataBuilder&)> fn, DWORD allowed = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK) { dragSource_ = std::move(fn); dragAllowed_ = allowed; }
+        void OnMouseDown(float x, float y) override { if (dragSource_) { dragArm_ = true; dragMoved_ = false; dragStartX_ = x; dragStartY_ = y; } }
+        void OnMouseMove(float x, float y) override {
+            if (dragArm_ && !dragMoved_ && (fabs(x - dragStartX_) + fabs(y - dragStartY_) > 4.0f)) {
+                dragMoved_ = true;
+                DragDataBuilder b; dragSource_(b);
+                Window* w = GetWindow(); if (w) w->BeginDrag(b, dragAllowed_);
+                dragArm_ = false; RequestRepaint();
+            }
+        }
+        void OnMouseUp(float, float) override { dragArm_ = false; }
+        std::function<void(DragDataBuilder&)> dragSource_;
+        DWORD dragAllowed_ = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK;
+        bool dragArm_ = false, dragMoved_ = false;
+        float dragStartX_ = 0, dragStartY_ = 0;
         void SetTextColor(Color color) {
             if (textColor_.r == color.r && textColor_.g == color.g &&
                 textColor_.b == color.b && textColor_.a == color.a) return;   // 颜色未变短路（池化每帧调用不重建刷子）
@@ -768,17 +787,37 @@ namespace ZufyUI {
 
         void OnMouseEnter() override { if (!IsEffectivelyEnabled()) return; hovered_ = true; RequestRepaint(); MouseEnter.Fire(); }
         void OnMouseLeave() override { hovered_ = false; isPressed_ = false; RequestRepaint(); MouseLeave.Fire(); }
-        void OnMouseDown(float x, float y) override { if (!IsEffectivelyEnabled()) return; isPressed_ = true; lastRepeatTick_ = GetTickCount(); RequestRepaint(); MouseDown.Fire(x, y); }
-        void OnMouseUp(float x, float y) override {
+        void OnMouseDown(float x, float y) override {
             if (!IsEffectivelyEnabled()) return;
-            if (isPressed_) {
+            isPressed_ = true; lastRepeatTick_ = GetTickCount();
+            if (dragSource_) { dragArm_ = true; dragMoved_ = false; dragStartX_ = x; dragStartY_ = y; }
+            RequestRepaint(); MouseDown.Fire(x, y);
+        }
+        void OnMouseMove(float x, float y) override {
+            if (dragArm_ && !dragMoved_ && (fabs(x - dragStartX_) + fabs(y - dragStartY_) > 4.0f)) {
+                dragMoved_ = true;
+                DragDataBuilder b; dragSource_(b);
+                Window* w = GetWindow();
+                if (w) w->BeginDrag(b, dragAllowed_);
+                isPressed_ = false; hovered_ = false; dragArm_ = false; RequestRepaint();   // 拖完重置按下/悬停
+            }
+        }
+        void OnMouseUp(float x, float y) override {
+            if (!IsEffectivelyEnabled()) { dragArm_ = false; return; }
+            if (isPressed_ && !dragMoved_) {   // 拖动过就不再触发点击
                 if (checkable_) SetChecked(!checked_);
                 Clicked();
             }
-            isPressed_ = false;
+            isPressed_ = false; dragArm_ = false;
             RequestRepaint();
             MouseUp.Fire(x, y);
         }
+        // 拖源模式：按住并拖动 → 用 builder 组装数据发起 OLE 拖出（替代点击）
+        void SetDragSource(std::function<void(DragDataBuilder&)> fn, DWORD allowed = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK) { dragSource_ = std::move(fn); dragAllowed_ = allowed; }
+        std::function<void(DragDataBuilder&)> dragSource_;
+        DWORD dragAllowed_ = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK;
+        bool dragArm_ = false, dragMoved_ = false;
+        float dragStartX_ = 0, dragStartY_ = 0;
         bool IsFocusable() const override { return true; }
         void OnKeyDown(WPARAM key, LPARAM lParam) override {
             if (!IsEffectivelyEnabled()) return;
@@ -980,6 +1019,34 @@ namespace ZufyUI {
         }
         bool IsFocusable() const override { return true; }
         bool IsTextInput() const override { return imeEnabled_; }
+        // 拖入文本：插入到光标处（阶段3）
+        bool IsDropTargetEnabled() const override { return true; }
+        void OnDragOver(DragEventArgs& e) override {
+            if (e.data.HasText()) {
+                int pos = GetCharIndexFromX(e.x - 5.0f + scrollX_);   // 显示插入光标（e.x 为元素相对 DIP）
+                cursorPos_ = pos; selectionAnchor_ = pos; selectionStart_ = selectionEnd_ = pos;
+                ResetCursorBlink(); EnsureCursorVisible(); RequestRepaint();
+                e.effect = (e.allowed & DROPEFFECT_MOVE) ? DROPEFFECT_MOVE : DROPEFFECT_COPY;   // 应用内默认移动
+                UIElement* src = nullptr; std::vector<BYTE> raw;
+                if (e.data.GetFormatData(L"ZufyUI.TextSource", raw) && raw.size() >= sizeof(src)) { memcpy(&src, raw.data(), sizeof(src)); if (src == this) { selfDrag_ = true; dropPos_ = pos; } }
+            }
+        }
+        DWORD OnDrop(DragEventArgs& e) override {
+            if (e.data.HasText()) {
+                UIElement* src = nullptr; std::vector<BYTE> raw;
+                bool fromSelf = e.data.GetFormatData(L"ZufyUI.TextSource", raw) && raw.size() >= sizeof(src) && (memcpy(&src, raw.data(), sizeof(src)), src == this);
+                if (!fromSelf) {   // 同控件由源端"剪切+粘贴"，这里不重复插
+                    std::wstring t = e.data.GetText();
+                    std::wstring s = GetText(); int p = GetCursorPosition(); if (p < 0 || p > (int)s.size()) p = (int)s.size();
+                    SetText(s.substr(0, p) + t + s.substr(p));
+                    SetSelection(p + (int)t.size(), p + (int)t.size());
+                }
+                e.effect = (e.allowed & DROPEFFECT_MOVE) ? DROPEFFECT_MOVE : DROPEFFECT_COPY;
+            }
+            return e.effect;
+        }
+        int dragSrcA_ = 0, dragSrcB_ = 0, dropPos_ = -1;
+        bool selfDrag_ = false;
 
         Rect GetImeCandidateRect() const override {
             float cursorX = GetTextPositionX(cursorPos_ + (hasComposition_ ? max(0, min(compositionCursorPos_, (int)compositionText_.size())) : 0));
@@ -1112,14 +1179,16 @@ namespace ZufyUI {
         void OnMouseDown(float x, float y) override {
             int pos = GetCharIndexFromX(x - arrangedRect_.x - 5 + scrollX_);
             bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-            cursorPos_ = pos;
-            if (shift) {   // shift 点击一律从锚点扩展到新位置（即使当前无选区，也扩展自上一次光标/锚点），与 Windows 一致
-                selectionStart_ = min(selectionAnchor_, pos);
-                selectionEnd_ = max(selectionAnchor_, pos);
-            }
-            else {
-                selectionAnchor_ = pos;
-                selectionStart_ = selectionEnd_ = pos;
+            // 点在已有选区内 + 非 shift → 可能是"拖出选中文本"的手势（先不折叠选区）
+            dragArm_ = (!shift && selectionStart_ != selectionEnd_ && pos >= selectionStart_ && pos < selectionEnd_);
+            dragMoved_ = false; dragStartX_ = x; dragStartY_ = y; dragClickPos_ = pos;
+            if (!dragArm_) {
+                cursorPos_ = pos;
+                if (shift) {   // shift 点击一律从锚点扩展到新位置，与 Windows 一致
+                    selectionStart_ = min(selectionAnchor_, pos);
+                    selectionEnd_ = max(selectionAnchor_, pos);
+                }
+                else { selectionAnchor_ = pos; selectionStart_ = selectionEnd_ = pos; }
             }
             ResetCursorBlink();
             EnsureCursorVisible();
@@ -1127,6 +1196,41 @@ namespace ZufyUI {
             MouseDown.Fire(x, y);
         }
         void OnMouseMove(float x, float y) override {
+            if (dragArm_) {   // 已装备"拖出选中文本"：按住期间不改变选区
+                if (!dragMoved_ && (fabs(x - dragStartX_) + fabs(y - dragStartY_) > 4.0f)) {
+                    dragMoved_ = true;
+                    int srcA = selectionStart_, srcB = selectionEnd_;
+                    dragSrcA_ = srcA; dragSrcB_ = srcB; selfDrag_ = false; dropPos_ = -1;
+                    std::wstring s = GetText();
+                    std::wstring sel = (srcA < srcB) ? s.substr(srcA, srcB - srcA) : std::wstring();
+                    Window* w = GetWindow();
+                    if (w && !sel.empty()) {
+                        DragDataBuilder b; b.AddText(sel);
+                        UIElement* self = this; b.AddCustom(L"ZufyUI.TextSource", &self, sizeof(self));
+                        DWORD eff = w->BeginDrag(b, DROPEFFECT_COPY | DROPEFFECT_MOVE);
+                        if ((eff & DROPEFFECT_MOVE) && !readOnly_) {
+                            if (selfDrag_ && dropPos_ >= 0) {   // 同控件：先删原选区，再把内容插到落点
+                                std::wstring t = s;
+                                std::wstring moved = t.substr(srcA, srcB - srcA);
+                                t.erase(srcA, srcB - srcA);
+                                int dst = dropPos_; if (dst > srcB) dst -= (srcB - srcA);
+                                if (dst < 0) dst = 0; if (dst > (int)t.size()) dst = (int)t.size();
+                                t.insert(dst, moved);
+                                SetText(t);
+                                SetSelection(dst, dst + (int)moved.size());
+                            } else {   // 拖到别的控件：只删原选中
+                                SetText(s.substr(0, srcA) + s.substr(srcB));
+                                cursorPos_ = srcA; selectionAnchor_ = srcA;
+                                selectionStart_ = selectionEnd_ = srcA;
+                            }
+                        }
+                    }
+                    dragArm_ = false;
+                    RequestRepaint();
+                }
+                MouseMove.Fire(x, y);
+                return;
+            }
             if (focused_ && (GetKeyState(VK_LBUTTON) & 0x8000)) {
                 int pos = GetCharIndexFromX(x - arrangedRect_.x - 5 + scrollX_);
                 cursorPos_ = pos;
@@ -1138,6 +1242,17 @@ namespace ZufyUI {
             }
             MouseMove.Fire(x, y);
         }
+        void OnMouseUp(float, float) override {
+            if (dragArm_ && !dragMoved_) {   // 点了选区内但没拖动 → 折叠到点击处（与 Windows 一致）
+                cursorPos_ = dragClickPos_; selectionAnchor_ = dragClickPos_;
+                selectionStart_ = selectionEnd_ = dragClickPos_;
+                RequestRepaint();
+            }
+            dragArm_ = false;
+        }
+        bool dragArm_ = false, dragMoved_ = false;
+        float dragStartX_ = 0, dragStartY_ = 0;
+        int dragClickPos_ = 0;
         void OnKeyDown(WPARAM key, LPARAM lParam) override {
             if (!focused_) return;
             bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -1713,23 +1828,22 @@ namespace ZufyUI {
             auto _rg = RenderGuard();
             allItems_ = items;
             disabledItems_.clear();   // 新数据集：禁用状态一并重置
-            editText_.clear();
-            caretPos_ = 0;
-            ApplyFilter();
+            ApplyFilter();            // 不清 editText_：不打断用户正在输入的内容（QComboBox 语义）
         }
         void SetSelectedIndex(int index) {
             auto _rg = RenderGuard();
-            if (index >= 0 && index < (int)items_.size()) {
-                if (selectedIndex_ != index) {
-                    selectedIndex_ = index;
-                    UpdateIndicatorPosition();
-                    SelectionChanged(selectedIndex_);
-                    RequestRepaint();
-                }
-                if (editable_) { editText_ = items_[index]; caretPos_ = (int)editText_.size(); }
-                if (expanded_) CollapseInternal();
-                UpdateToolTip();
+            if (index < -1 || index >= (int)items_.size()) return;
+            noAutoSelect_ = (index < 0);   // 显式清空选择 → 之后不再自动选中第一项
+            if (selectedIndex_ != index) {
+                selectedIndex_ = index;
+                UpdateIndicatorPosition();
+                SelectionChanged(selectedIndex_);
+                RequestRepaint();
             }
+            if (index >= 0) { if (editable_) { editText_ = items_[index]; caretPos_ = (int)editText_.size(); } }
+            else if (editable_) { editText_.clear(); caretPos_ = 0; }
+            if (expanded_) CollapseInternal();
+            UpdateToolTip();
         }
         int GetSelectedIndex() const { return selectedIndex_; }
         std::wstring GetSelectedText() const { return selectedIndex_ >= 0 ? items_[selectedIndex_] : L""; }
@@ -1769,6 +1883,18 @@ namespace ZufyUI {
         }
         std::wstring GetEditText() const { return editText_; }
         bool IsFocusable() const override { return editable_; }
+        // 拖入文本：可编辑则填入编辑框；否则精确匹配并选中（阶段3）
+        bool IsDropTargetEnabled() const override { return true; }
+        void OnDragOver(DragEventArgs& e) override { if (e.data.HasText()) e.effect = DROPEFFECT_COPY; }
+        DWORD OnDrop(DragEventArgs& e) override {
+            if (e.data.HasText()) {
+                std::wstring t = e.data.GetText();
+                if (editable_) SetEditText(t);
+                else { for (int i = 0; i < (int)items_.size(); ++i) if (items_[i] == t) { SetSelectedIndex(i); break; } }
+                e.effect = DROPEFFECT_COPY;
+            }
+            return e.effect;
+        }
         static std::wstring ToLower(std::wstring s) { for (auto& c : s) if (c >= L'A' && c <= L'Z') c = (wchar_t)(c + 32); return s; }
         void ApplyFilter() {
             auto _rg = RenderGuard();
@@ -1794,7 +1920,7 @@ namespace ZufyUI {
             selectedIndex_ = -1;
             for (int i = 0; i < (int)items_.size(); ++i)
                 if ((prevSrc >= 0 && filteredToSource_[i] == prevSrc) || (!prevSel.empty() && items_[i] == prevSel)) { selectedIndex_ = i; break; }
-            if (selectedIndex_ < 0 && !items_.empty()) selectedIndex_ = 0;
+            if (selectedIndex_ < 0 && !items_.empty() && !noAutoSelect_) selectedIndex_ = 0;
             itemWidthsDirty_ = true;
             UpdateIndicatorPosition();
             UpdateToolTip();
@@ -1989,13 +2115,18 @@ namespace ZufyUI {
                 }
             }
 
-            std::wstring arrow = expanded_ ^ expandUp_ ? L"\u25B2" : L"\u25BC";
             if (!arrowBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0.3f, 0.3f, 0.3f, 1), arrowBrush_.GetAddressOf());
             else arrowBrush_->SetColor(D2D1::ColorF(0.3f, 0.3f, 0.3f, 1));
             if (arrowBrush_) {
-                D2D1_RECT_F arrowRect = D2D1::RectF(arrangedRect_.x + arrangedRect_.width - 24, arrangedRect_.y,
-                    arrangedRect_.x + arrangedRect_.width, arrangedRect_.y + arrangedRect_.height);
-                rt->DrawText(arrow.c_str(), (UINT32)arrow.length(), fmt, arrowRect, arrowBrush_.Get());
+                float acx = arrangedRect_.x + arrangedRect_.width - 12.0f, acy = arrangedRect_.y + arrangedRect_.height * 0.5f;
+                float baseAng = expandUp_ ? 180.0f : 0.0f;   // 收起时方向（expandUp_ 决定）
+                float pe = expandProgress_ * expandProgress_ * (3.0f - 2.0f * expandProgress_);   // smoothstep 缓动（同页面切换）
+                FontSpec ai; ai.familyName = IconFontFamily(); ai.size = 12.0f;
+                D2D1_MATRIX_3X2_F old; rt->GetTransform(&old);
+                // 展开进度 → 箭头旋转（收起→展开转 180°，随展开动画缓动）
+                rt->SetTransform(D2D1::Matrix3x2F::Rotation(baseAng + 180.0f * pe, D2D1::Point2F(acx, acy)) * old);
+                DrawTextWithEllipsis(rt, IconGlyph(Icon::ChevronDown), D2D1::RectF(acx - 9.0f, acy - 9.0f, acx + 9.0f, acy + 9.0f), D2D1::ColorF(0.3f, 0.3f, 0.3f, 1), ai, arrowBrush_, nullptr, true, TextHAlign::Center);
+                rt->SetTransform(old);
             }
         }
 
@@ -2486,6 +2617,7 @@ namespace ZufyUI {
         float cursorBlinkInterval_ = 0.5f;
         ComPtr<ID2D1SolidColorBrush> caretBrush_;
         int selectedIndex_;
+        bool noAutoSelect_ = false;   // 显式 SetSelectedIndex(-1) 后不再自动选中第一项
         bool expanded_;
         float expandProgress_;
         Connection overlayConn_;   // 懒连接的 DrawOverlay 句柄
@@ -4477,6 +4609,8 @@ namespace ZufyUI {
             if (tabs_.empty()) selectedIndex_ = -1;
             else if (selectedIndex_ > index) selectedIndex_--;
             else if (selectedIndex_ == index) selectedIndex_ = min(index, (int)tabs_.size() - 1);
+            // 与内容页同步：RemovePage 内部会自行调整 currentIndex_，这里强制对齐到新选中的页签
+            if (contentHost_ && selectedIndex_ >= 0) contentHost_->SetCurrentIndexInstant(selectedIndex_);
             stripDirty_ = true; InvalidateLayout(); RequestRepaint();
             // 选定页被删或索引变化 → 通知（索引值相同但指向了不同页签也要通知）
             if (selectedIndex_ != oldSel || oldSel == index) SelectionChanged(selectedIndex_);
@@ -4746,6 +4880,9 @@ namespace ZufyUI {
             childrenView_.clear();
             if (contentHost_) childrenView_.push_back(contentHost_.get());
             if (hBar_) childrenView_.push_back(hBar_.get());
+            // 注意：页签 Label 在 Draw 里内联绘制（`tabs_[i].label->Draw`），不走合成通道，
+            // 因此给页签 Label 用 Label::AddChild 挂的子元素不会被合成/递归绘制（页签 Label 只画它自己）。
+            // 需要复杂页签内容时：用 SetTabLabel 传入自定义 Label，在其 Draw/OnPaint 里自绘。
         }
         const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
 
@@ -5217,8 +5354,9 @@ namespace ZufyUI {
             void Draw(ID2D1RenderTarget* rt) override { if (owner) owner->DrawSpinButton(rt, arrangedRect_, kind, hoverProg_); }
             UIElement* HitTest(float x, float y) override { return (visible_ && arrangedRect_.Contains(x, y)) ? this : nullptr; }
             void OnMouseEnter() override { hover_ = true; RequestRepaint(); }
-            void OnMouseLeave() override { hover_ = false; RequestRepaint(); }
-            void OnMouseDown(float, float) override { if (owner) owner->OnSpinButton(kind); }
+            void OnMouseLeave() override { hover_ = false; pressed_ = false; RequestRepaint(); }
+            void OnMouseDown(float, float) override { pressed_ = true; }
+            void OnMouseUp(float x, float y) override { if (pressed_ && arrangedRect_.Contains(x, y) && owner) owner->OnSpinButton(kind); pressed_ = false; }
             void UpdateAnimation(float dt) override {
                 float t = hover_ ? 1.0f : 0.0f;
                 if (fabs(t - hoverProg_) > 0.001f) {
@@ -5230,6 +5368,7 @@ namespace ZufyUI {
             bool HasActiveAnimation() const override { return hover_ ? hoverProg_ < 0.999f : hoverProg_ > 0.001f; }
         private:
             bool hover_ = false;
+            bool pressed_ = false;
             float hoverProg_ = 0.0f;
         };
 
@@ -5430,6 +5569,8 @@ namespace ZufyUI {
         bool OnMouseWheel(float deltaX, float deltaY) override {
             (void)deltaX;
             if (!IsEffectivelyEnabled()) return false;
+            Window* w = GetWindow();
+            if (!w || w->GetFocusedElement() != this) return false;   // 未聚焦不消费滚轮（让外层 ScrollViewer 能滚）
             if (deltaY > 0.0f) { StepUp(); return true; }
             if (deltaY < 0.0f) { StepDown(); return true; }
             return false;
@@ -5878,6 +6019,32 @@ namespace ZufyUI {
         std::optional<FontSpec> GetTypeDefaultFont() const override { return baseFont_; }
         bool IsFocusable() const override { return true; }
         bool IsTextInput() const override { return !readOnly_; }
+        // 拖入文本：插入到光标处（阶段3）
+        bool IsDropTargetEnabled() const override { return !readOnly_; }
+        void OnDragOver(DragEventArgs& e) override {
+            if (!readOnly_ && e.data.HasText()) {
+                int pos = PosFromPoint(arrangedRect_.x + e.x, arrangedRect_.y + e.y);
+                cursorPos_ = pos; selAnchor_ = pos; selStart_ = selEnd_ = pos;
+                showCursor_ = true; dropCaret_ = true; ResetBlink(); RequestRepaint();   // 拖动时实时显示插入光标
+                e.effect = (e.allowed & DROPEFFECT_MOVE) ? DROPEFFECT_MOVE : DROPEFFECT_COPY;
+                UIElement* src = nullptr; std::vector<BYTE> raw;
+                if (e.data.GetFormatData(L"ZufyUI.TextSource", raw) && raw.size() >= sizeof(src)) { memcpy(&src, raw.data(), sizeof(src)); if (src == this) { selfDrag_ = true; dropPos_ = pos; } }
+            }
+        }
+        void OnDragLeave(DragEventArgs&) override { if (dropCaret_) { dropCaret_ = false; RequestRepaint(); } }
+        DWORD OnDrop(DragEventArgs& e) override {
+            dropCaret_ = false;
+            if (!readOnly_ && e.data.HasText()) {
+                UIElement* src = nullptr; std::vector<BYTE> raw;
+                bool fromSelf = e.data.GetFormatData(L"ZufyUI.TextSource", raw) && raw.size() >= sizeof(src) && (memcpy(&src, raw.data(), sizeof(src)), src == this);
+                if (!fromSelf) InsertPlainText(e.data.GetText());   // 同控件由源端"剪切+粘贴"，这里不重复插
+                e.effect = (e.allowed & DROPEFFECT_MOVE) ? DROPEFFECT_MOVE : DROPEFFECT_COPY;
+            }
+            return e.effect;
+        }
+        bool dropCaret_ = false;
+        int dragSrcA_ = 0, dragSrcB_ = 0, dropPos_ = -1;
+        bool selfDrag_ = false;
         bool AcceptsTab() const override { return !readOnly_; }   // Tab 用来缩进，不切换焦点
         bool UseCache() const override { return false; }   // 内容随时变 + 要读 DWrite layout：不走元素缓存（同 Label/ScrollViewer）
         float CompositionPrefixW() {
@@ -6053,7 +6220,7 @@ namespace ZufyUI {
             }
 
             // 光标
-            if (focused_ && showCursor_ && !readOnly_ && selStart_ == selEnd_) {   // 一律用主光标；组合中也一样
+            if ((focused_ || dropCaret_) && showCursor_ && !readOnly_ && selStart_ == selEnd_) {   // 拖动落点/聚焦时都显示光标（选区时右边界）   // 一律用主光标；组合中也一样
                 Rect c = CaretRect();
                 int l = LineOfPos(cursorPos_);
                 float lh = (l < (int)lineCache_.size() && lineCache_[l].rowH > 0 ? lineCache_[l].rowH : LineH());   // 单视觉行高，别用整段高
@@ -6111,13 +6278,47 @@ namespace ZufyUI {
             if (GetWindow()) GetWindow()->FocusElement(this);
             int pos = PosFromPoint(x, y);
             bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-            if (shift) { selStart_ = min(selAnchor_, pos); selEnd_ = max(selAnchor_, pos); cursorPos_ = pos; }
-            else { selAnchor_ = pos; selStart_ = selEnd_ = pos; cursorPos_ = pos; }
+            dragArm_ = (!shift && selStart_ != selEnd_ && pos >= selStart_ && pos < selEnd_);
+            dragMoved_ = false; dragStartX_ = x; dragStartY_ = y; dragClickPos_ = pos;
+            if (!dragArm_) {
+                if (shift) { selStart_ = min(selAnchor_, pos); selEnd_ = max(selAnchor_, pos); cursorPos_ = pos; }
+                else { selAnchor_ = pos; selStart_ = selEnd_ = pos; cursorPos_ = pos; }
+            }
             dragging_ = true; dragX_ = x; dragY_ = y;
             ResetBlink(); SelectionChanged(); NotifyCursor(); RequestRepaint();
         }
         void OnMouseMove(float x, float y) override {
             if (GetWindow()) SetCursor(LoadCursor(nullptr, IDC_IBEAM));   // 只读也显示文本光标
+            if (dragArm_) {   // 已装备"拖出选中文本"：按住期间不改变选区，仅越过阈值时发起拖出
+                if (!dragMoved_ && (fabs(x - dragStartX_) + fabs(y - dragStartY_) > 4.0f)) {
+                    dragMoved_ = true;
+                    int srcA = selStart_, srcB = selEnd_;
+                    dragSrcA_ = srcA; dragSrcB_ = srcB; selfDrag_ = false; dropPos_ = -1;
+                    std::wstring sel = GetSelectedText();
+                    Window* w = GetWindow();
+                    if (w && !sel.empty()) {
+                        DragDataBuilder b; b.AddText(sel);
+                        UIElement* self = this; b.AddCustom(L"ZufyUI.TextSource", &self, sizeof(self));
+                        DWORD eff = w->BeginDrag(b, DROPEFFECT_COPY | DROPEFFECT_MOVE);   // 默认 MOVE（应用内）/ 跨应用 COPY
+                        if ((eff & DROPEFFECT_MOVE) && !readOnly_) {
+                            if (selfDrag_ && dropPos_ >= 0) {   // 同一控件：先删原选区，再把内容插到落点（位置按删除左移修正）
+                                std::wstring t = text_;
+                                std::wstring moved = t.substr(srcA, srcB - srcA);
+                                t.erase(srcA, srcB - srcA);
+                                int dst = dropPos_; if (dst > srcB) dst -= (srcB - srcA);
+                                if (dst < 0) dst = 0; if (dst > (int)t.size()) dst = (int)t.size();
+                                t.insert(dst, moved);
+                                SetPlainText(t);
+                                SetSelection(dst, dst + (int)moved.size());
+                            } else {   // 拖到别的控件：只删原选区（对方已插入）
+                                selStart_ = srcA; selEnd_ = srcB; DeleteSelection();
+                            }
+                        }
+                    }
+                    dragArm_ = false; dragging_ = false; RequestRepaint();
+                }
+                return;
+            }
             if (!dragging_) return;
             dragX_ = x; dragY_ = y;
             float top = arrangedRect_.y, bot = arrangedRect_.y + ViewH();
@@ -6141,7 +6342,16 @@ namespace ZufyUI {
             selStart_ = min(selAnchor_, pos); selEnd_ = max(selAnchor_, pos); cursorPos_ = pos;
             NotifyCursor(); RequestRepaint();
         }
-        void OnMouseUp(float, float) override { dragging_ = false; }
+        void OnMouseUp(float, float) override {
+            if (dragArm_ && !dragMoved_) {   // 点选区内没拖 → 折叠到点击处
+                cursorPos_ = dragClickPos_; selAnchor_ = dragClickPos_; selStart_ = selEnd_ = dragClickPos_;
+                SelectionChanged(); NotifyCursor(); RequestRepaint();
+            }
+            dragArm_ = false; dragging_ = false;
+        }
+        bool dragArm_ = false, dragMoved_ = false;
+        float dragStartX_ = 0, dragStartY_ = 0;
+        int dragClickPos_ = 0;
         void OnMouseEnter() override { hovered_ = true; if (GetWindow()) SetCursor(LoadCursor(nullptr, IDC_IBEAM)); }
         void OnMouseLeave() override { hovered_ = false; }
         bool OnMouseWheel(float deltaX, float deltaY) override {
@@ -6548,6 +6758,228 @@ namespace ZufyUI {
         std::vector<Snap> undoStack_; int undoIndex_ = -1;
         std::unordered_map<uint32_t, ComPtr<ID2D1SolidColorBrush>> brushCache_;
         ComPtr<ID2D1SolidColorBrush> bgBrush_, gutterBrush_, selectionBrush_, curLineBrush_, textBrush_, gutterTextBrush_, cursorBrush_, borderBrush_, newlineBrush_;
+    };
+
+    // ===================== 图片视图（把 Image 拉伸铺满自身；不缓存 → 换图立即更新）=====================
+    class ImageView : public UIElement {
+    public:
+        ImageView() { width_ = 200.0f; height_ = 150.0f; }
+        explicit ImageView(std::shared_ptr<Image> img) : image_(std::move(img)) { width_ = 200.0f; height_ = 150.0f; }
+        void SetImage(std::shared_ptr<Image> img) { image_ = std::move(img); InvalidateLayout(); RequestRepaint(); }
+        std::shared_ptr<Image> GetImage() const { return image_; }
+        // 可拖出（如把图片作为文件拖到资源管理器）
+        void SetDragSource(std::function<void(DragDataBuilder&)> fn, DWORD allowed = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK) { dragSource_ = std::move(fn); dragAllowed_ = allowed; }
+        void OnMouseDown(float x, float y) override { if (dragSource_) { dragArm_ = true; dragMoved_ = false; dragStartX_ = x; dragStartY_ = y; } }
+        void OnMouseMove(float x, float y) override {
+            if (dragArm_ && !dragMoved_ && (fabs(x - dragStartX_) + fabs(y - dragStartY_) > 4.0f)) {
+                dragMoved_ = true; DragDataBuilder b; dragSource_(b);
+                Window* w = GetWindow(); if (w) w->BeginDrag(b, dragAllowed_);
+                dragArm_ = false; RequestRepaint();
+            }
+        }
+        void OnMouseUp(float, float) override { dragArm_ = false; }
+        bool UseCache() const override { return false; }        // 换图/尺寸变化频繁 → 每次直画
+        Size MeasureOverride(const Size& avail) override {
+            float w = (avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width : width_;
+            float h = (GetHeight() > 0.0f) ? height_ : ((image_ && !image_->IsNull()) ? (float)image_->Height() : height_);
+            return Size(w, h);
+        }
+        void Draw(ID2D1RenderTarget* rt) override {
+            if (!visible_) return;
+            if (image_ && !image_->IsNull() && arrangedRect_.width > 0.0f && arrangedRect_.height > 0.0f)
+                image_->Draw(rt, arrangedRect_);                // 拉伸到 arrangedRect_
+        }
+    private:
+        std::shared_ptr<Image> image_;
+        std::function<void(DragDataBuilder&)> dragSource_;
+        DWORD dragAllowed_ = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK;
+        bool dragArm_ = false, dragMoved_ = false;
+        float dragStartX_ = 0, dragStartY_ = 0;
+    };
+
+    // ===================== 设置列表（自绘行：图标 / 文本 / 副标题 / 箭头 / 分隔线，可点）=====================
+    struct SettingsRowData {
+        Icon icon = Icon::None;
+        std::wstring text, subtitle, id;
+        std::function<void()> onClick;
+    };
+    class SettingsList : public UIElement {
+    public:
+        ZSignal<int> RowClicked;
+        inline static float RowHeight = 56.0f;
+        inline static Color TextCol = Color::FromArgb(255, 40, 40, 40), SubCol = Color::FromArgb(255, 140, 140, 140),
+                             HoverCol = Color::FromArgb(255, 246, 246, 246), DivCol = Color::FromArgb(255, 236, 236, 236);
+        int AddRow(Icon icon, const std::wstring& text, const std::wstring& subtitle = L"", std::function<void()> onClick = nullptr, const std::wstring& id = L"") {
+            rows_.push_back({ icon, text, subtitle, id, std::move(onClick) });
+            InvalidateLayout(); RequestRepaint(); return (int)rows_.size() - 1;
+        }
+        void ClearRows() { rows_.clear(); hover_ = -1; InvalidateLayout(); RequestRepaint(); }
+        int RowCount() const { return (int)rows_.size(); }
+        Size MeasureOverride(const Size& avail) override {
+            float w = (avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width : width_;
+            return Size(w, (float)rows_.size() * RowHeight);
+        }
+        void Draw(ID2D1RenderTarget* rt) override {
+            const Rect& r = arrangedRect_;
+            for (int i = 0; i < (int)rows_.size(); ++i) {
+                float y = r.y + i * RowHeight;
+                if (i == hover_) { if (!hoverB_) rt->CreateSolidColorBrush(HoverCol.ToD2D(), hoverB_.GetAddressOf()); else hoverB_->SetColor(HoverCol.ToD2D()); if (hoverB_) rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(r.x + 4, y + 2, r.x + r.width - 4, y + RowHeight - 2), 5.0f, 5.0f), hoverB_.Get()); }
+                if (i > 0) { if (!dB_) rt->CreateSolidColorBrush(DivCol.ToD2D(), dB_.GetAddressOf()); else dB_->SetColor(DivCol.ToD2D()); if (dB_) rt->DrawLine(D2D1::Point2F(r.x + 52, y), D2D1::Point2F(r.x + r.width - 18, y), dB_.Get(), 1.0f); }
+                FontSpec fi; fi.familyName = IconFontFamily(); fi.size = 20.0f;
+                if (rows_[i].icon != Icon::None) { float iy = y + RowHeight * 0.5f - 12.0f; DrawTextWithEllipsis(rt, IconGlyph(rows_[i].icon), D2D1::RectF(r.x + 16, iy, r.x + 16 + 24, iy + 24), TextCol.ToD2D(), fi, iB_, nullptr, true, TextHAlign::Center); }
+                FontSpec ft; ft.size = 15.0f;
+                bool hasSub = !rows_[i].subtitle.empty();
+                { float ty = y + (hasSub ? 10.0f : RowHeight * 0.5f - 11.0f); DrawTextWithEllipsis(rt, rows_[i].text, D2D1::RectF(r.x + 52, ty, r.x + r.width - 18 - 24, ty + 22), TextCol.ToD2D(), ft, tB_, nullptr, false, TextHAlign::Left); }
+                if (hasSub) { FontSpec fs; fs.size = 12.0f; DrawTextWithEllipsis(rt, rows_[i].subtitle, D2D1::RectF(r.x + 52, y + 32, r.x + r.width - 18 - 24, y + 32 + 16), SubCol.ToD2D(), fs, sB_, nullptr, false, TextHAlign::Left); }
+                FontSpec fc; fc.familyName = IconFontFamily(); fc.size = 12.0f;
+                { float cy = y + RowHeight * 0.5f - 9.0f; DrawTextWithEllipsis(rt, IconGlyph(Icon::ChevronRight), D2D1::RectF(r.x + r.width - 18 - 20, cy, r.x + r.width - 18, cy + 18), SubCol.ToD2D(), fc, sB_, nullptr, true, TextHAlign::Center); }
+            }
+        }
+        UIElement* HitTest(float x, float y) override { return (visible_ && arrangedRect_.Contains(x, y)) ? this : nullptr; }
+        void OnMouseMove(float x, float y) override { int i = IndexAt(y); if (i != hover_) { hover_ = i; RequestRepaint(); } }
+        void OnMouseLeave() override { if (hover_ != -1) { hover_ = -1; RequestRepaint(); } }
+        void OnMouseDown(float x, float y) override { int i = IndexAt(y); if (i >= 0) { if (rows_[i].onClick) rows_[i].onClick(); RowClicked(i); } }
+        void ReleaseDeviceResources() override { hoverB_.Reset(); dB_.Reset(); iB_.Reset(); tB_.Reset(); sB_.Reset(); UIElement::ReleaseDeviceResources(); }
+    private:
+        int IndexAt(float y) const {
+            if (rows_.empty() || !arrangedRect_.Contains(arrangedRect_.x, y)) return -1;
+            int i = (int)((y - arrangedRect_.y) / RowHeight);
+            return (i >= 0 && i < (int)rows_.size()) ? i : -1;
+        }
+        std::vector<SettingsRowData> rows_;
+        int hover_ = -1;
+        ComPtr<ID2D1SolidColorBrush> hoverB_, dB_, iB_, tB_, sB_;
+    };
+
+    // 折叠卡片标题（子元素：可带阴影 + 圆角）
+    struct ExpanderHeader : public UIElement {
+        std::wstring title, subtitle;
+        bool expanded = true;
+        std::function<void()> onToggle;
+        Color bg = Color::FromArgb(255, 252, 252, 252), titleCol = Color::FromArgb(255, 32, 32, 32), subCol = Color::FromArgb(255, 120, 120, 120);
+        Color hoverBg = Color::FromArgb(255, 238, 238, 238);   // 悬停高亮（同列表头）
+        float cornerRadius = 8.0f;
+        float rotProg = 1.0f;   // 展开进度(缓动后) → 箭头旋转角
+        bool hovered_ = false;
+        ComPtr<ID2D1SolidColorBrush> bgB, tB, sB;
+        Size MeasureOverride(const Size&) override { return Size(width_, height_); }
+        void OnMouseEnter() override { hovered_ = true; RequestRepaint(); }
+        void OnMouseLeave() override { hovered_ = false; RequestRepaint(); }
+        void Draw(ID2D1RenderTarget* rt) override {
+            const Rect& r = arrangedRect_;
+            Color effBg = hovered_ ? hoverBg : bg;
+            if (effBg.a > 0.0f) { if (!bgB) rt->CreateSolidColorBrush(effBg.ToD2D(), bgB.GetAddressOf()); else bgB->SetColor(effBg.ToD2D()); if (bgB) rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(r.x, r.y, r.x + r.width, r.y + r.height + cornerRadius), cornerRadius, cornerRadius), bgB.Get()); }
+            FontSpec ft; ft.size = 20.0f; ft.weight = DWRITE_FONT_WEIGHT_SEMI_BOLD;
+            DrawTextWithEllipsis(rt, title, D2D1::RectF(r.x + 18, r.y + 12, r.x + r.width - 18 - 28, r.y + 12 + 26), titleCol.ToD2D(), ft, tB, nullptr, false, TextHAlign::Left);
+            if (!subtitle.empty()) { FontSpec fs; fs.size = 13.0f; DrawTextWithEllipsis(rt, subtitle, D2D1::RectF(r.x + 18, r.y + 40, r.x + r.width - 18 - 28, r.y + 40 + 16), subCol.ToD2D(), fs, sB, nullptr, false, TextHAlign::Left); }
+            FontSpec fi; fi.familyName = IconFontFamily(); fi.size = 14.0f;
+            float cx = r.x + r.width - 18 - 14.0f, cy = r.y + r.height * 0.5f;
+            D2D1_MATRIX_3X2_F old; rt->GetTransform(&old);
+            // 折叠(0)=向下；展开(1)=向上；动画期间从左顺时针转到目标位（与折叠同缓动）
+            rt->SetTransform(D2D1::Matrix3x2F::Rotation(180.0f * rotProg, D2D1::Point2F(cx, cy)) * old);
+            DrawTextWithEllipsis(rt, IconGlyph(Icon::ChevronDown), D2D1::RectF(cx - 10.0f, cy - 10.0f, cx + 10.0f, cy + 10.0f), subCol.ToD2D(), fi, sB, nullptr, true, TextHAlign::Center);
+            rt->SetTransform(old);
+        }
+        void OnMouseDown(float, float) override { if (onToggle) onToggle(); }
+        void ReleaseDeviceResources() override { bgB.Reset(); tB.Reset(); sB.Reset(); UIElement::ReleaseDeviceResources(); }
+    };
+
+    // ===================== 可折叠卡片（标题 + 副标题 + 箭头；内容可为任意控件）=====================
+    class Expander : public UIElement {
+    public:
+        ZSignal<bool> ExpandedChanged;
+        inline static float HeaderHeight = 66.0f, Pad = 8.0f, CornerRadius = 8.0f;
+        inline static Color Bg = Color::FromArgb(255, 252, 252, 252), Border = Color::FromArgb(255, 224, 224, 224),
+                             TitleCol = Color::FromArgb(255, 32, 32, 32), SubCol = Color::FromArgb(255, 120, 120, 120);
+        Expander(const std::wstring& title = L"", const std::wstring& subtitle = L"") : title_(title), subtitle_(subtitle) {
+            header_ = std::make_shared<ExpanderHeader>();
+            header_->SetParent(this); header_->SetHeight(HeaderHeight);
+            header_->title = title_; header_->subtitle = subtitle_;
+            header_->bg = Bg; header_->titleCol = TitleCol; header_->subCol = SubCol; header_->cornerRadius = CornerRadius;
+            header_->onToggle = [this] { Toggle(); };
+            header_->expanded = expanded_;
+            header_->rotProg = expandProg_;
+        }
+        void SetTitle(const std::wstring& t) { title_ = t; if (header_) header_->title = t; RequestRepaint(); }
+        void SetSubtitle(const std::wstring& t) { subtitle_ = t; if (header_) header_->subtitle = t; RequestRepaint(); }
+        void SetContent(std::shared_ptr<UIElement> c) {
+            if (content_) content_->SetParent(nullptr);
+            content_ = std::move(c);
+            if (content_) { content_->SetParent(this); content_->SetVisible(expanded_); }
+            InvalidateLayout(); RequestRepaint();
+        }
+        std::shared_ptr<UIElement> GetContent() const { return content_; }
+        bool IsExpanded() const { return expanded_; }
+        void SetExpanded(bool on) {
+            if (expanded_ == on) return;
+            expanded_ = on;
+            if (header_) { header_->expanded = on; header_->RequestRepaint(); }
+            if (content_ && on) content_->SetVisible(true);
+            InvalidateLayout(); RequestRepaint(); ExpandedChanged(on);
+        }
+        void Toggle() { SetExpanded(!expanded_); }
+        Size MeasureOverride(const Size& avail) override {
+            float w = (avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width : width_;
+            if (header_) header_->Measure(Size(w, HeaderHeight));
+            contentH_ = 0.0f;
+            if (content_) { Size cs = content_->Measure(Size(max(1.0f, w - Pad * 2), FLT_MAX)); contentH_ = cs.height; }
+            float h = HeaderHeight + expandProg_ * (contentH_ > 0.0f ? contentH_ + Pad * 2 : 0.0f);
+            return Size(w, h);
+        }
+        void ArrangeOverride(const Rect& r) override {
+            UIElement::ArrangeOverride(r);
+            if (header_) header_->Arrange(Rect(r.x, r.y, r.width, HeaderHeight));
+            if (!content_) return;
+            // 内容始终按“完全展开高度”布置，只把可见区裁到 expandProg_（→ 高度动画是揭示，不是压扁）
+            content_->Arrange(Rect(r.x + Pad, r.y + HeaderHeight + Pad, max(1.0f, r.width - Pad * 2), max(1.0f, contentH_)));
+            content_->SetClipRect(Rect(r.x + Pad, r.y + HeaderHeight + Pad, max(1.0f, r.width - Pad * 2), max(0.0f, expandProg_ * contentH_)));
+        }
+        void RefreshChildren() override {
+            if (!childrenDirty_) return; childrenDirty_ = false; childrenView_.clear();
+            if (content_ && expandProg_ > 0.001f) childrenView_.push_back(content_.get());
+            if (header_) childrenView_.push_back(header_.get());   // 标题最后 → 阴影盖在内容之上
+        }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
+        UIElement* HitTest(float x, float y) override {
+            if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
+            if (header_ && y < arrangedRect_.y + HeaderHeight) return header_->HitTest(x, y);   // 顶部标题区 → 折叠/展开
+            if (content_ && expandProg_ > 0.999f) { if (UIElement* h = content_->HitTest(x, y)) return h; }
+            return this;
+        }
+        void OnMouseDown(float, float) override { Toggle(); }
+        void AttachWindowRecursive(Window* w) override { windowId_ = WindowIdOf(w); if (header_) header_->AttachWindowRecursive(w); if (content_) content_->AttachWindowRecursive(w); }
+        void UpdateAnimation(float dt) override {
+            float target = expanded_ ? 1.0f : 0.0f;
+            if (fabs(animT_ - target) > 0.001f) {
+                animT_ += (target > animT_ ? 1.0f : -1.0f) * dt / max(0.05f, animSeconds_);
+                if (animT_ < 0.0f) animT_ = 0.0f; if (animT_ > 1.0f) animT_ = 1.0f;
+                expandProg_ = animT_ * animT_ * (3.0f - 2.0f * animT_);   // smoothstep 缓入缓出（与页面切换一致）
+                if (header_) { header_->rotProg = expandProg_; header_->RequestRepaint(); }   // 箭头随折叠缓动旋转（子元素缓存在动画帧要主动失效）
+                SetHeight(HeaderHeight + expandProg_ * (contentH_ + Pad * 2));   // 显式高度 → 父布局必然收拢/推开后续元素
+                InvalidateLayout(); RequestRepaint();
+            } else if (!expanded_ && content_ && content_->IsVisible()) {
+                content_->SetVisible(false);   // 收拢完成 → 隐藏内容
+            }
+            if (header_) header_->UpdateAnimation(dt);
+            if (content_) content_->UpdateAnimation(dt);
+        }
+        bool HasActiveAnimation() const override { return fabs(animT_ - (expanded_ ? 1.0f : 0.0f)) > 0.001f || (content_ ? content_->HasActiveAnimation() : false); }
+        void Draw(ID2D1RenderTarget* rt) override {
+            const Rect& r = arrangedRect_;
+            if (r.width <= 0 || r.height <= 0) return;
+            if (!bgB_) rt->CreateSolidColorBrush(Bg.ToD2D(), bgB_.GetAddressOf()); else bgB_->SetColor(Bg.ToD2D());
+            if (!bdB_) rt->CreateSolidColorBrush(Border.ToD2D(), bdB_.GetAddressOf()); else bdB_->SetColor(Border.ToD2D());
+            if (bgB_) rt->FillRoundedRectangle(D2D1::RoundedRect(r.ToD2D(), CornerRadius, CornerRadius), bgB_.Get());
+            if (bdB_) rt->DrawRoundedRectangle(D2D1::RoundedRect(r.ToD2D(), CornerRadius, CornerRadius), bdB_.Get(), 1.0f);
+        }
+        void ReleaseDeviceResources() override { bgB_.Reset(); bdB_.Reset(); tB_.Reset(); sB_.Reset(); if (header_) header_->ReleaseDeviceResources(); UIElement::ReleaseDeviceResources(); }
+    private:
+        std::wstring title_, subtitle_;
+        std::shared_ptr<ExpanderHeader> header_;
+        std::shared_ptr<UIElement> content_;
+        bool expanded_ = true;
+        float animT_ = 1.0f, expandProg_ = 1.0f, contentH_ = 0.0f, animSeconds_ = 0.18f;
+        ComPtr<ID2D1SolidColorBrush> bgB_, bdB_, tB_, sB_;
     };
 
 } // namespace ZufyUI

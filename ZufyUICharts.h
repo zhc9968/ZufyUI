@@ -33,6 +33,8 @@ namespace ZufyUI {
 
         ZSignal<int, int> PointClicked;    // (series, category)
         ZSignal<int> CategoryClicked;      // (category)
+        ZSignal<int, int> PointRightClicked;   // (series, category) 右键命中数据点
+        ZSignal<int> CategoryRightClicked;     // (category)
 
         // ---------- 数据 ----------
         void AddCategory(const std::wstring& name) { categories_.push_back(name); for (auto& s : series_) s.values.resize(categories_.size(), 0.0); OnDataChanged(); }
@@ -78,7 +80,11 @@ namespace ZufyUI {
 
         float GetDefaultHorizontalStretchWeight() const override { return 0.0f; }
         float GetDefaultVerticalStretchWeight() const override { return 0.0f; }
-        Size MeasureOverride(const Size&) override { return Size(width_, height_); }
+        Size MeasureOverride(const Size& avail) override {
+            float w = (GetFillWidth()  && avail.width  != FLT_MAX && avail.width  > 0.0f) ? avail.width  : width_;
+            float h = (GetFillHeight() && avail.height != FLT_MAX && avail.height > 0.0f) ? avail.height : height_;
+            return Size(w, h);
+        }
 
         void ArrangeOverride(const Rect& finalRect) override { UIElement::ArrangeOverride(finalRect); ComputeContent(); SyncBars(); }
 
@@ -137,10 +143,20 @@ namespace ZufyUI {
             pressed_ = false; panning_ = false;
         }
         bool OnMouseWheel(float dx, float dy) override {
+            (void)dx;
             if (GetKeyState(VK_CONTROL) & 0x8000) { zoom_ = clamp(zoom_ * (1.0f + dy * 0.12f), 0.4f, 3.0f); InvalidateLayout(); RequestRepaint(); return true; }
-            if ((GetKeyState(VK_SHIFT) & 0x8000) && maxScrollX_ > 0) scrollX_ = clamp(scrollX_ - dy * 40.0f, 0.0f, maxScrollX_);
-            else scrollY_ = clamp(scrollY_ - dy * 40.0f, 0.0f, maxScrollY_);
+            // 只有内容真的可滚时才消费，否则返回 false 冒泡给外层（否则外层滚动会“卡住”）
+            if (GetKeyState(VK_SHIFT) & 0x8000) { if (maxScrollX_ <= 0.0f) return false; scrollX_ = clamp(scrollX_ - dy * 40.0f, 0.0f, maxScrollX_); }
+            else { if (maxScrollY_ <= 0.0f) return false; scrollY_ = clamp(scrollY_ - dy * 40.0f, 0.0f, maxScrollY_); }
             PushScrollToBars(); RequestRepaint(); return true;
+        }
+        bool OnContextMenu(float x, float y) override {
+            UpdateHover(x, y);   // 命中最近的数据点（子类实现）
+            if (hoveredC_ >= 0) {
+                CategoryRightClicked(hoveredC_);
+                if (hoveredS_ >= 0) PointRightClicked(hoveredS_, hoveredC_);
+            }
+            return false;        // false：若元素也设了 SetContextMenu，仍会显示（信号已先发）
         }
         void UpdateAnimation(float dt) override {
             if (animProg_ < 1.0f) { animProg_ = min(1.0f, animProg_ + dt / max(0.05f, animSeconds_)); RequestRepaint(); }
@@ -714,7 +730,11 @@ namespace ZufyUI {
 
         float GetDefaultHorizontalStretchWeight() const override { return 0.0f; }
         float GetDefaultVerticalStretchWeight() const override { return 0.0f; }
-        Size MeasureOverride(const Size&) override { return Size(width_, height_); }
+        Size MeasureOverride(const Size& avail) override {
+            float w = (GetFillWidth()  && avail.width  != FLT_MAX && avail.width  > 0.0f) ? avail.width  : width_;
+            float h = (GetFillHeight() && avail.height != FLT_MAX && avail.height > 0.0f) ? avail.height : height_;
+            return Size(w, h);
+        }
         void ArrangeOverride(const Rect& finalRect) override { UIElement::ArrangeOverride(finalRect); }
 
         void Draw(ID2D1RenderTarget* rt) override {

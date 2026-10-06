@@ -84,6 +84,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     navList->AddItem(L"条形图");
     navList->AddItem(L"折线图");
     navList->AddItem(L"饼图");
+    navList->AddItem(L"拖放");
+    navList->AddItem(L"设置卡片");
     navList->SetSelectedIndex(0);
     mainRow->AddChild(navList);
 
@@ -703,7 +705,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         addLB(btnFilter);
         auto btnSortV = std::make_shared<Button>(L"按文本排序");
         btnSortV->Connect(btnSortV->Clicked, [listView]() {
-            listView->SetViewComparator([listView](int a, int b) { return listView->GetItemText(a) < listView->GetItemText(b); });
+            // 注意：GetItemText 每次比较走 SourceText（虚拟模式下是哈希查找）；大表建议先快照文本再比较
+        listView->SetViewComparator([listView](int a, int b) { return listView->GetItemText(a) < listView->GetItemText(b); });
             listView->SortView(true);
             });
         addLB(btnSortV);
@@ -1924,6 +1927,106 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     mainHost->AddPage(pageChart);
     mainHost->AddPage(pageLine);
     mainHost->AddPage(pagePie);
+
+    // ---------- 拖放（阶段 1：接收拖入）----------
+    auto pageDrag = std::make_shared<ColumnBox>(); pageDrag->SetSpacing(10); pageDrag->SetMargin(Thickness(6, 6, 6, 6));
+    {
+        auto tip = std::make_shared<Label>(L"把「文件」（从资源管理器）或「文本」拖到下面的卡片上：");
+        tip->SetHeight(26);
+        auto zone = std::make_shared<Label>(L"拖放目标（拖到这里）");
+        zone->SetAlignment(Label::HAlign::Center, Label::VAlign::Center);
+        zone->SetBackgroundColor(Color::FromArgb(255, 240, 245, 250));
+        zone->SetBackgroundCornerRadius(10.0f);
+        zone->SetHeight(220);
+        zone->SetDropTargetEnabled(true);
+        auto status = std::make_shared<Label>(L"状态：等待拖入…");
+        status->SetFillWidth(true);
+        status->SetTextOverflow(Label::TextOverflow::Wrap);       // 结果（含长路径）换行显示，不省略
+        status->SetAlignment(Label::HAlign::Left, Label::VAlign::Top);
+        status->SetHeight(64);
+        auto imgView = std::make_shared<ImageView>(); imgView->SetFillWidth(true); imgView->SetHeight(220);
+        auto lastImgPath = std::make_shared<std::wstring>();
+        imgView->SetDragSource([lastImgPath](DragDataBuilder& b) { if (!lastImgPath->empty()) b.AddFile(*lastImgPath); }, DROPEFFECT_COPY | DROPEFFECT_MOVE);
+        zone->Connect(zone->DragEnter, [zone](DragEventArgs&) {
+            zone->SetBackgroundColor(Color::FromArgb(255, 205, 228, 250));
+        });
+        zone->Connect(zone->DragLeave, [zone](DragEventArgs&) {
+            zone->SetBackgroundColor(Color::FromArgb(255, 240, 245, 250));
+        });
+        zone->Connect(zone->Drop, [zone, status, imgView, lastImgPath](DragEventArgs& e) {
+            if (e.data.HasFiles()) {
+                auto fs = e.data.GetFiles();
+                status->SetText(L"状态：收到 " + std::to_wstring(fs.size()) + L" 个文件，第一个：" + (fs.empty() ? std::wstring() : fs[0]));
+                if (!fs.empty()) {   // 若是图片文件 → 加载显示
+                    std::wstring ext; size_t d = fs[0].find_last_of(L'.'); if (d != std::wstring::npos) ext = fs[0].substr(d);
+                    for (auto& c : ext) if (c >= L'A' && c <= L'Z') c = (wchar_t)(c + 32);
+                    if (ext == L".png" || ext == L".jpg" || ext == L".jpeg" || ext == L".bmp" || ext == L".gif" || ext == L".ico" || ext == L".webp") {
+                        auto img = Image::FromFile(fs[0]);
+                        if (img && !img->IsNull()) { imgView->SetImage(img); *lastImgPath = fs[0]; }   // 记住路径 → 可再拖出去
+                    }
+                }
+            }
+            else if (e.data.HasText()) {
+                status->SetText(L"状态：收到文本：" + e.data.GetText());
+            }
+            else {
+                status->SetText(L"状态：收到未知数据");
+            }
+            zone->SetBackgroundColor(Color::FromArgb(255, 240, 245, 250));
+            e.effect = DROPEFFECT_COPY;
+        });
+        pageDrag->AddChild(tip);
+        pageDrag->AddChild(zone);
+        pageDrag->AddChild(imgView);
+        pageDrag->AddChild(status);
+        auto tb = std::make_shared<TextBox>(); tb->SetPlaceholder(L"把文本拖到这里（插入到光标处）");
+        pageDrag->AddChild(tb);
+        auto dragOut = std::make_shared<Button>(L"按住并拖动：拖出文本（拖到别处 / 记事本）");
+        dragOut->SetDragSource([](DragDataBuilder& b) { b.AddText(L"ZufyUI 拖放示例文本"); }, DROPEFFECT_COPY | DROPEFFECT_MOVE);
+        pageDrag->AddChild(dragOut);
+        auto dragFile = std::make_shared<Button>(L"按住并拖动：把本程序拖成文件（拖到资源管理器 / 桌面）");
+        dragFile->SetDragSource([](DragDataBuilder& b) {
+            wchar_t exe[MAX_PATH] = {}; GetModuleFileNameW(nullptr, exe, MAX_PATH);
+            b.AddFile(exe); b.SetPreferredEffect(DROPEFFECT_COPY);
+        });
+        pageDrag->AddChild(dragFile);
+    }
+    auto svDrag = std::make_shared<ScrollViewer>(); svDrag->SetFillWidth(true); svDrag->SetFillHeight(true); svDrag->SetContent(pageDrag);
+    auto pageDragPage = std::make_shared<Page>(); pageDragPage->SetLayout(svDrag);
+    mainHost->AddPage(pageDragPage);
+
+    // ---------- 设置卡片（折叠 / 展开）----------
+    auto pageCard = std::make_shared<ColumnBox>(); pageCard->SetSpacing(12); pageCard->SetMargin(Thickness(6, 6, 6, 6));
+    {
+        auto tip = std::make_shared<Label>(L"点击卡片顶部（或右侧箭头）折叠 / 展开：");
+        tip->SetHeight(24);
+        auto list1 = std::make_shared<SettingsList>();
+        list1->AddRow(Icon::View, L"屏幕", L"亮度、颜色、夜间模式", [] {});
+        list1->AddRow(Icon::Settings, L"电源和电池", L"睡眠、节电模式、电池使用情况", [] {});
+        list1->AddRow(Icon::Folder, L"安装的应用", L"卸载、默认应用、可选功能", [] {});
+        auto card1 = std::make_shared<Expander>(L"推荐设置", L"最近使用的和常用的设置");
+        card1->SetFillWidth(true); card1->SetContent(list1);
+        auto list2 = std::make_shared<SettingsList>();
+        list2->AddRow(Icon::View, L"显示", L"监视器、亮度、缩放", [] {});
+        list2->AddRow(Icon::Volume, L"声音", L"音量、输出、输入", [] {});
+        list2->AddRow(Icon::Settings, L"通知", L"来自应用和系统的通知", [] {});
+        auto card2 = std::make_shared<Expander>(L"系统", L"显示、声音、通知、电源");
+        card2->SetFillWidth(true); card2->SetContent(list2);
+        pageCard->AddChild(tip);
+        pageCard->AddChild(card1);
+        pageCard->AddChild(card2);
+        auto contentCol = std::make_shared<ColumnBox>(); contentCol->SetSpacing(8);
+        contentCol->AddChild(std::make_shared<Label>(L"这是一个可放任意内容的折叠卡片："));
+        contentCol->AddChild(std::make_shared<Button>(L"按钮 A"));
+        contentCol->AddChild(std::make_shared<Button>(L"按钮 B"));
+        contentCol->AddChild(std::make_shared<ToggleSwitch>(false));
+        auto card3 = std::make_shared<Expander>(L"任意内容", L"里面放按钮 / 开关等真实控件");
+        card3->SetFillWidth(true); card3->SetContent(contentCol);
+        pageCard->AddChild(card3);
+    }
+    auto svCard = std::make_shared<ScrollViewer>(); svCard->SetFillWidth(true); svCard->SetFillHeight(true); svCard->SetContent(pageCard);
+    auto pageCardPage = std::make_shared<Page>(); pageCardPage->SetLayout(svCard);
+    mainHost->AddPage(pageCardPage);
 
     // 主页面导航：记录当前索引，根据相对位置设置上下方向
     auto currentMainIndex = std::make_shared<int>(0);

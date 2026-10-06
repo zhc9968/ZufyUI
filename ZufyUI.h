@@ -25,6 +25,8 @@
 #include <dwmapi.h>
 #include <shellapi.h>
 #include <shobjidl.h>
+#include <ole2.h>
+#include <oleidl.h>
 #include <commctrl.h>
 #include <propkey.h>
 #include <propvarutil.h>
@@ -86,9 +88,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 18
-#define ZufyUI_VERSION_PATCH 1
-#define ZufyUI_VERSION_STRING L"1.18.1"
+#define ZufyUI_VERSION_MINOR 19
+#define ZufyUI_VERSION_PATCH 0
+#define ZufyUI_VERSION_STRING L"1.19.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -282,7 +284,8 @@ namespace ZufyUI {
     class MenuWindow;
 class MenuWindowBase;
     class ComboBox;
-    class Window;
+class Window;
+class DragDataBuilder;
     namespace detail { class RenderHost; }   // 独立渲染线程（架构 B）
 namespace detail { LRESULT HandleDebugCopyData(HWND, WPARAM, LPARAM); }   // 调试/自动化通道（定义在 ZufyUIWindowTool.h）
 namespace detail { inline bool DebugEnabled(); }                          // 前向声明（定义在本文件后部，供调度窗口使用）
@@ -546,14 +549,14 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 case ConnectionThread::NewThread: {
                     auto tupleArgs = std::make_tuple(targs...);
                     std::thread([slot = data->slot, tupleArgs = std::move(tupleArgs)]() mutable {
-                        std::apply(slot, std::move(tupleArgs));
+                        std::apply(slot, tupleArgs);
                         }).detach();
                     break;
                 }
                 case ConnectionThread::UIThread: {
                     auto tupleArgs = std::make_tuple(targs...);
                     detail::PostToUIThread([slot = data->slot, tupleArgs = std::move(tupleArgs)]() mutable {
-                        std::apply(slot, std::move(tupleArgs));
+                        std::apply(slot, tupleArgs);
                         });
                     break;
                 }
@@ -937,6 +940,33 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         Group, Document, DataGrid, ToolTip
     };
 
+    // ---------- 拖放（阶段 1：接收拖入）----------
+    // 拖入数据包装（只读）。在 OnDrag*/OnDrop 里用它读取内容。
+    class DragData {
+    public:
+        DragData() = default;
+        explicit DragData(IDataObject* obj) : obj_(obj) {}
+        bool Valid() const { return obj_ != nullptr; }
+        IDataObject* Object() const { return obj_.Get(); }
+        bool HasText() const;
+        std::wstring GetText() const;
+        bool HasFiles() const;
+        std::vector<std::wstring> GetFiles() const;
+        bool HasFormat(const wchar_t* formatName) const;                        // 注册的自定义格式名
+        bool GetFormatData(const wchar_t* formatName, std::vector<BYTE>& out) const;
+    private:
+        ComPtr<IDataObject> obj_;
+    };
+
+    // 拖放事件参数（x,y 为相对该元素的 DIP 坐标；目标可改 effect 做反馈）
+    struct DragEventArgs {
+        const DragData& data;
+        float x = 0.0f, y = 0.0f;
+        DWORD allowed  = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK;   // 源允许的落点效果
+        DWORD effect   = DROPEFFECT_NONE;                                        // 目标可改
+        DWORD keyState = 0;                                                      // MK_*
+    };
+
     // ---------- 基础元素 ----------
     class UIElement {
     public:
@@ -1122,6 +1152,18 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         virtual bool IsTextInput() const { return false; }
         // 是否要自己消费 Tab 键（多行编辑器：Tab 缩进而非切换焦点）
         virtual bool AcceptsTab() const { return false; }
+
+        // ---------- 拖放（阶段 1：接收拖入）----------
+        void SetDropTargetEnabled(bool on) { dropTargetEnabled_ = on; }
+        virtual bool IsDropTargetEnabled() const { return dropTargetEnabled_; }
+        virtual DWORD GetAllowedDropEffects() const { return DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK; }
+        // 拖放虚函数：不重写则触发同名信号（也可直接连 DragEnter/DragOver/DragLeave/Drop）
+        virtual void  OnDragEnter(DragEventArgs& e) { DragEnter(e); }
+        virtual void  OnDragOver (DragEventArgs& e) { DragOver(e); }
+        virtual void  OnDragLeave(DragEventArgs& e) { DragLeave(e); }
+        virtual DWORD OnDrop     (DragEventArgs& e) { Drop(e); return e.effect; }
+        ZSignal<DragEventArgs&> DragEnter, DragOver, DragLeave, Drop;
+        bool dropTargetEnabled_ = false;
 
         virtual D2D1::Matrix3x2F GetChildRenderTransform(UIElement* child) const {
             return D2D1::Matrix3x2F::Identity();
@@ -2941,6 +2983,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             ClearFrameworkTimers();   // 通知框架定时器：窗口将亡（让 Timer 与窗口解绑）
             if (rootElement_) rootElement_->AttachWindowRecursive(nullptr);
             if (customTitleBar_) customTitleBar_->AttachWindowRecursive(nullptr);   // 析构路径同样清归属
+            UnregisterDropTarget();
             if (hwnd_) { DestroyWindow(hwnd_); hwnd_ = nullptr; }
             DiscardDeviceResources();
             // d2dFactory_ 由 AppCore 共享，不在此释放
@@ -3017,6 +3060,17 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float GetClientWidthDip()  const { return clientWidthDip_; }
         float GetClientHeightDip() const { return clientHeightDip_; }
         float GetDpiScale() const { return (float)dpi_; }
+        // 屏幕物理像素 → DIP（供拖放坐标转换；dpi_ 为窗口 DPI）
+        float ScreenPxToDipX(int px) const { return px * 96.0f / (dpi_ ? (float)dpi_ : 96.0f); }
+        float ScreenPxToDipY(int py) const { return py * 96.0f / (dpi_ ? (float)dpi_ : 96.0f); }
+        // 拖放：命中并向上冒泡到“启用落点”的元素（定义在 ZufyUIDragDrop.h）
+        UIElement* DropTargetAt(float dipX, float dipY);
+        void RegisterDropTarget();     // OLE RegisterDragDrop（阶段1）
+        void UnregisterDropTarget();
+        // 发起 OLE 拖出（阶段2，定义在 ZufyUIDragDrop.h）；返回最终落点效果
+        DWORD BeginDrag(DragDataBuilder& data,
+                        DWORD allowed = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK,
+                        UIElement* source = nullptr);
 
         // ---- 消息拦截（万能入口）----
         // 在框架默认处理之前调用；返回 true = 已处理/拦截，框架不再处理（result 作为返回值）
@@ -3085,6 +3139,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     int x = CW_USEDEFAULT, int y = CW_USEDEFAULT) {
             // 兜底：正常情况下 DPI 感知已在静态初始化阶段设置（早于任何窗口）；此处重复调用是幂等的。
             detail::EnsureProcessDpiAwareness();
+            OleInitialize(nullptr);   // OLE 拖放（阶段1：接收拖入）；同线程幂等（已在 Compositor 处同栈 STA）
 
             UINT sysDpi = GetDpiForSystem();
             if (sysDpi == 0) sysDpi = 96;
@@ -3116,6 +3171,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
             dpi_ = GetDpiForWindow(hwnd_);
             if (dpi_ == 0) dpi_ = 96;
+            RegisterDropTarget();   // OLE 接收拖入（阶段1）
             SetGlobalDpiScale(dpi_ / 96.0f);   // UI 线程也用同一 DPI 上下文：否则 UI 侧 Snap 命中测试与渲染吸附不一致
             { RECT rc0; GetClientRect(hwnd_, &rc0);   // WM_SIZE 守卫的初始尺寸（必须在窗口创建后取）
               lastClientW_ = (UINT)(rc0.right - rc0.left); lastClientH_ = (UINT)(rc0.bottom - rc0.top); }
@@ -3266,8 +3322,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 并把根布局整体下移其高度；绘制时机由控件自身声明（默认 DrawAfterLayout）。
         void SetCustomTitleBar(std::shared_ptr<UIElement> bar) {
             if (customTitleBar_ && customTitleBar_ != bar) {
-                customTitleBar_->SetParent(nullptr);
-                customTitleBar_->AttachWindowRecursive(nullptr);
+                customTitleBar_->SetParent(nullptr);   // 内部已 AttachWindowRecursive(nullptr)，无需再调
             }
             customTitleBar_ = std::move(bar);
             if (customTitleBar_) {
@@ -3512,6 +3567,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             resizable_ = on;
             if (hwnd_) {
                 SetWindowStyleFlag(WS_THICKFRAME, on);
+                SetWindowStyleFlag(WS_MAXIMIZEBOX, on);   // 不可缩放时同时禁用最大化
                 layoutNeeded_ = true;
                 InvalidateRect(hwnd_, nullptr, FALSE);
             }
@@ -3704,6 +3760,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             // DWM 丢掉圆角阴影（实测只有显式 ROUND 稳定）。这里统一用 ROUND，并在设置后强制重算
             // 非客户区，确保边框/阴影/圆角不被丢。
             int pref = DWMWCP_ROUND;
+            switch (corner_) {
+            case WindowCorner::Square:     pref = DWMWCP_DONOTROUND; break;
+            case WindowCorner::RoundSmall: pref = DWMWCP_ROUNDSMALL; break;
+            case WindowCorner::Round:
+            case WindowCorner::Default:
+            default:                       pref = DWMWCP_ROUND; break;   // 默认仍用 ROUND（NRB+DComp 下稳定）
+            }
             DwmSetWindowAttribute(hwnd_, DWMWA_WINDOW_CORNER_PREFERENCE, &pref, sizeof(pref));
             SetWindowPos(hwnd_, nullptr, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
@@ -4244,9 +4307,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 ImmAssociateContext(hwnd_, NULL);
                 return 0;
             case WM_KEYDOWN:
-                if (OnWindowKeyDown((int)wParam)) return 0;
-                // 菜单打开时：先把按键转发给菜单（导航 / 回车 / Esc / 菜单项快捷键）
+                // 菜单打开时：菜单是"临时顶层交互"，键盘优先级高于窗口
                 if (detail::ForwardKeyToActiveMenu((int)wParam)) return 0;
+                if (OnWindowKeyDown((int)wParam)) return 0;
                 // 键盘弹出右键菜单：菜单键 / Shift+F10
                 if (wParam == VK_APPS || (wParam == VK_F10 && (GetKeyState(VK_SHIFT) & 0x8000))) {
                     UIElement* t = focusedElement_ ? focusedElement_ : currentHovered_;
@@ -4297,6 +4360,14 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                         mmi->ptMinTrackSize.x = rect.right - rect.left;
                         mmi->ptMinTrackSize.y = rect.bottom - rect.top;
                     }
+                }
+                if (!resizable_) {   // 不可缩放：禁止最大化（双击标题栏 / SW_MAXIMIZE 也不生效）
+                    RECT rc{}; GetWindowRect(hwnd_, &rc);
+                    LONG w = rc.right - rc.left, h = rc.bottom - rc.top;
+                    if (w > 0) mmi->ptMaxTrackSize.x = w;
+                    if (h > 0) mmi->ptMaxTrackSize.y = h;
+                    mmi->ptMaxSize.x = mmi->ptMaxTrackSize.x;
+                    mmi->ptMaxSize.y = mmi->ptMaxTrackSize.y;
                 }
                 // 自定义边框：最大化时用显示器工作区，避免盖住任务栏
                 if (customFrame_) {
@@ -5115,20 +5186,20 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     DiscardDeviceResources();
                     DeviceLost.Fire();
                     detail::RecordError(L"DeviceLost", L"device removed/reset");
-                if (FAILED(CreateDeviceResources()) || FAILED(CreateCompositionBackend())) {
-                    // 库不替应用决定如何善后：只发信号，由应用决定提示/关闭/重建
-                RenderingError.Fire(hr);
-                detail::RecordError(L"RenderingError", L"EndDraw hr=0x" + std::to_wstring((unsigned)hr));
-                EndPaint(hwnd_, &ps);
-                    return;
+                    if (FAILED(CreateDeviceResources()) || FAILED(CreateCompositionBackend())) {
+                        // 库不替应用决定如何善后：只发信号，由应用决定提示/关闭/重建
+                        RenderingError.Fire(hr);
+                        detail::RecordError(L"RenderingError", L"EndDraw hr=0x" + std::to_wstring((unsigned)hr));
+                        EndPaint(hwnd_, &ps);
+                        return;
+                    }
+                    // 设备重建后，清空缓存，但布局不需要重做
+                    ClearAllCaches();
+                    pendingRepaint_.clear();
+                    if (rootElement_) {
+                        CollectVisibleCachedElements(rootElement_.get(), pendingRepaint_);
+                    }
                 }
-                // 设备重建后，清空缓存，但布局不需要重做
-                ClearAllCaches();
-                pendingRepaint_.clear();
-                if (rootElement_) {
-                    CollectVisibleCachedElements(rootElement_.get(), pendingRepaint_);
-                }
-            }
             else {
                 // 本帧所有可见元素都已重新绘制，清空待重绘集合，避免空闲时残留 pending
                 pendingRepaint_.clear();
@@ -5856,6 +5927,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool focusDirty_ = false;
         bool showFocusRing_ = false;
         UINT dpi_;
+        IDropTarget* dropTarget_ = nullptr;   // OLE 接收拖入（阶段1）
         COLORREF captionColor_, textColor_, borderColor_;
         bool hasCustomMinSize_;
         int customMinWidth_, customMinHeight_;
@@ -6288,6 +6360,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 #endif
         }
 
+        // 注意：函数内 static 的析构顺序取决于首次进入点；若在 AppCore 析构之后才清空最后一个 standalone 菜单会有顺序风险。
         static std::shared_ptr<MenuWindow>& StandaloneHolder() {
             static std::shared_ptr<MenuWindow> s;
             return s;
@@ -6915,3 +6988,5 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     }
 
 } // namespace ZufyUI
+
+#include "ZufyUIDragDrop.h"
