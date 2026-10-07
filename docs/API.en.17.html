@@ -230,12 +230,17 @@ void  UIElement::OnDragLeave(DragEventArgs&amp;);   DWORD UIElement::OnDrop(Drag
 void UIElement::SetDragSource(std::function&lt;void(DragDataBuilder&amp;)&gt;, DWORD allowed = COPY|MOVE|LINK);
 ZSignal&lt;DragEventArgs&amp;&gt; DragEnter, DragOver, DragLeave, Drop;
 
+// ---- drag &amp; drop: whole-window (when no drop-enabled element is under the cursor) ----
+void Window::SetDropTargetEnabled(bool);   bool Window::IsDropTargetEnabled() const;
+ZSignal&lt;DragEventArgs&amp;&gt; Window::DragEnter, DragOver, DragLeave, Drop;   // x/y = client-area DIP
+
 // ---- Expander: collapsible card ----
 class Expander : public UIElement {
     Expander(const std::wstring&amp; title = L"", const std::wstring&amp; subtitle = L"");
     void SetTitle/SetSubtitle(const std::wstring&amp;);   void SetContent(std::shared_ptr&lt;UIElement&gt;);
     std::shared_ptr&lt;UIElement&gt; GetContent() const;
     void SetExpanded(bool);   bool IsExpanded() const;   void Toggle();
+    void SetIcon(Icon, float size = 22.0f);   // leading icon (None = none)
     ZSignal&lt;bool&gt; ExpandedChanged;
 };
 
@@ -244,27 +249,23 @@ class SettingsList : public UIElement {
     void AddRow(Icon, const std::wstring&amp; text, const std::wstring&amp; subtitle, std::function&lt;void()&gt; onClick, const std::wstring&amp; id = {});
     ZSignal&lt;int&gt; RowClicked;
 };
-
-// ---- ImageView: image display (stretched, uncached, drag-out) ----
-class ImageView : public UIElement {
-    void SetImage(std::shared_ptr&lt;Image&gt;);   std::shared_ptr&lt;Image&gt; GetImage() const;
-    void SetDragSource(std::function&lt;void(DragDataBuilder&amp;)&gt;, DWORD allowed = COPY|MOVE|LINK);
-    bool UseCache() const override { return false; }
-};
 ```
 - **`Pitfall`**: `DragEventArgs.x/y` are **element-relative DIP** (not screen pixels).
 - Same-control text drag: the source deletes the original selection first, then inserts at the drop point (with left-shift fix); the target detects the private `ZufyUI.TextSource` format and skips the duplicate insert.
 - **`Version`**: collapse/expand uses the same **smoothstep easing** as page transitions; the arrow **rotates** with that easing (collapsed points down → expanded points up).
 - **`Version`**: the header **highlights** on hover (rounded); the `ComboBox` dropdown arrow is likewise a chevron that **rotates** with expansion.
-- **`Pitfall`**: `Expander` collapses via an explicit `SetHeight`, so the parent layout actually shrinks with it.</pre></div></div>
+- **`Pitfall`**: `Expander` collapses via an explicit `SetHeight`, so the parent layout actually shrinks with it.
+- Image display uses `Label`: `SetImage` + `SetImageFit(true)` (scale to fully visible) + `SetDragSource` (drag-out).
+- **`Version`**: whole-window receive — `Window::SetDropTargetEnabled(true)` + window-level `DragEnter/DragOver/DragLeave/Drop` (`x/y` = client-area DIP).
+- **`Version`**: `Expander::SetIcon(Icon, size)` adds a leading icon; `TextEdit` undo/redo uses the standard scheme (both restore the selection and cursor of that point).</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 17 · Drag &amp; Drop, cards</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 17</span><h1>Drag &amp; Drop, cards</h1><p class="chapter-summary">Drag &amp; Drop, Expander, SettingsList, ImageView (v1.19.0)</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 17</span><h1>Drag &amp; Drop, cards</h1><p class="chapter-summary">Drag &amp; Drop, Expander, SettingsList (v1.19.0)</p></header><blockquote>
 <p>Drag &amp; drop comes from <code>ZufyUIDragDrop.h</code> (already included at the end of <code>ZufyUI.h</code>). In-app default is MOVE, cross-app is COPY.</p>
 </blockquote>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e099e2eb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-5c11680d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// ---- drag &amp; drop: payload / events ----</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DragData</span><span class="w"> </span><span class="p">{</span><span class="w">                                   </span><span class="c1">// read-only for the drop target</span>
@@ -293,12 +294,17 @@ class ImageView : public UIElement {
 <span class="kt">void</span><span class="w"> </span><span class="nf">UIElement::SetDragSource</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">DragDataBuilder</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">allowed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">COPY</span><span class="o">|</span><span class="n">MOVE</span><span class="o">|</span><span class="n">LINK</span><span class="p">);</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">DragEventArgs</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">DragEnter</span><span class="p">,</span><span class="w"> </span><span class="n">DragOver</span><span class="p">,</span><span class="w"> </span><span class="n">DragLeave</span><span class="p">,</span><span class="w"> </span><span class="n">Drop</span><span class="p">;</span>
 
+<span class="c1">// ---- drag &amp; drop: whole-window (when no drop-enabled element is under the cursor) ----</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Window::SetDropTargetEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Window::IsDropTargetEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">DragEventArgs</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">Window</span><span class="o">::</span><span class="n">DragEnter</span><span class="p">,</span><span class="w"> </span><span class="n">DragOver</span><span class="p">,</span><span class="w"> </span><span class="n">DragLeave</span><span class="p">,</span><span class="w"> </span><span class="n">Drop</span><span class="p">;</span><span class="w">   </span><span class="c1">// x/y = client-area DIP</span>
+
 <span class="c1">// ---- Expander: collapsible card ----</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Expander</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">Expander</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">subtitle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">SetTitle</span><span class="o">/</span><span class="n">SetSubtitle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetContent</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetContent</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetExpanded</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsExpanded</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">Toggle</span><span class="p">();</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">Icon</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">22.0f</span><span class="p">);</span><span class="w">   </span><span class="c1">// leading icon (None = none)</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ExpandedChanged</span><span class="p">;</span>
 <span class="p">};</span>
 
@@ -307,15 +313,8 @@ class ImageView : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddRow</span><span class="p">(</span><span class="n">Icon</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">subtitle</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onClick</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">RowClicked</span><span class="p">;</span>
 <span class="p">};</span>
-
-<span class="c1">// ---- ImageView: image display (stretched, uncached, drag-out) ----</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">ImageView</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetImage</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">);</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetImage</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDragSource</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">DragDataBuilder</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">allowed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">COPY</span><span class="o">|</span><span class="n">MOVE</span><span class="o">|</span><span class="n">LINK</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
-<span class="p">};</span>
 </pre></div>
-<pre id="code-e099e2eb" style="display: none;">// ---- drag &amp; drop: payload / events ----
+<pre id="code-5c11680d" style="display: none;">// ---- drag &amp; drop: payload / events ----
 class DragData {                                   // read-only for the drop target
     bool HasText() const;   std::wstring GetText() const;
     bool HasFiles() const;  std::vector&lt;std::wstring&gt; GetFiles() const;
@@ -342,12 +341,17 @@ void  UIElement::OnDragLeave(DragEventArgs&amp;);   DWORD UIElement::OnDrop(Drag
 void UIElement::SetDragSource(std::function&lt;void(DragDataBuilder&amp;)&gt;, DWORD allowed = COPY|MOVE|LINK);
 ZSignal&lt;DragEventArgs&amp;&gt; DragEnter, DragOver, DragLeave, Drop;
 
+// ---- drag &amp; drop: whole-window (when no drop-enabled element is under the cursor) ----
+void Window::SetDropTargetEnabled(bool);   bool Window::IsDropTargetEnabled() const;
+ZSignal&lt;DragEventArgs&amp;&gt; Window::DragEnter, DragOver, DragLeave, Drop;   // x/y = client-area DIP
+
 // ---- Expander: collapsible card ----
 class Expander : public UIElement {
     Expander(const std::wstring&amp; title = L"", const std::wstring&amp; subtitle = L"");
     void SetTitle/SetSubtitle(const std::wstring&amp;);   void SetContent(std::shared_ptr&lt;UIElement&gt;);
     std::shared_ptr&lt;UIElement&gt; GetContent() const;
     void SetExpanded(bool);   bool IsExpanded() const;   void Toggle();
+    void SetIcon(Icon, float size = 22.0f);   // leading icon (None = none)
     ZSignal&lt;bool&gt; ExpandedChanged;
 };
 
@@ -355,13 +359,6 @@ class Expander : public UIElement {
 class SettingsList : public UIElement {
     void AddRow(Icon, const std::wstring&amp; text, const std::wstring&amp; subtitle, std::function&lt;void()&gt; onClick, const std::wstring&amp; id = {});
     ZSignal&lt;int&gt; RowClicked;
-};
-
-// ---- ImageView: image display (stretched, uncached, drag-out) ----
-class ImageView : public UIElement {
-    void SetImage(std::shared_ptr&lt;Image&gt;);   std::shared_ptr&lt;Image&gt; GetImage() const;
-    void SetDragSource(std::function&lt;void(DragDataBuilder&amp;)&gt;, DWORD allowed = COPY|MOVE|LINK);
-    bool UseCache() const override { return false; }
 };</pre>
 </div>
 <ul>
@@ -370,6 +367,9 @@ class ImageView : public UIElement {
 <li><strong><code>Version</code></strong>: collapse/expand uses the same <strong>smoothstep easing</strong> as page transitions; the arrow <strong>rotates</strong> with that easing (collapsed points down → expanded points up).</li>
 <li><strong><code>Version</code></strong>: the header <strong>highlights</strong> on hover (rounded); the <code>ComboBox</code> dropdown arrow is likewise a chevron that <strong>rotates</strong> with expansion.</li>
 <li><strong><code>Pitfall</code></strong>: <code>Expander</code> collapses via an explicit <code>SetHeight</code>, so the parent layout actually shrinks with it.</li>
+<li>Image display uses <code>Label</code>: <code>SetImage</code> + <code>SetImageFit(true)</code> (scale to fully visible) + <code>SetDragSource</code> (drag-out).</li>
+<li><strong><code>Version</code></strong>: whole-window receive — <code>Window::SetDropTargetEnabled(true)</code> + window-level <code>DragEnter/DragOver/DragLeave/Drop</code> (<code>x/y</code> = client-area DIP).</li>
+<li><strong><code>Version</code></strong>: <code>Expander::SetIcon(Icon, size)</code> adds a leading icon; <code>TextEdit</code> undo/redo uses the standard scheme (both restore the selection and cursor of that point).</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.en.16.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Window extras</span><span class="nav-desc">Images, tray, system dialogs, app registration</span></a><a class="next" href="API.en.18.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Accessibility &amp; Debug Channel</span><span class="nav-desc">UIA + SetDebugEnabled (v1.17.0)</span></a></nav>
         </main>

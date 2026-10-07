@@ -345,7 +345,7 @@ std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-707955fd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-e94a2608', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">BackgroundParams</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">blurAmount</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span><span class="w"> </span><span class="n">saturation</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">D2D1_COLOR_F</span><span class="w"> </span><span class="n">tint</span><span class="p">,</span><span class="w"> </span><span class="n">luminosity</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">noiseOpacity</span><span class="o">=</span><span class="mf">0.02f</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AcrylicPreset</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Legacy</span><span class="p">,</span><span class="w"> </span><span class="n">Luminosity</span><span class="p">,</span><span class="w"> </span><span class="n">Base</span><span class="p">,</span><span class="w"> </span><span class="n">Thin</span><span class="w"> </span><span class="p">};</span>
@@ -357,7 +357,7 @@ std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ActivateMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Raise</span><span class="p">,</span><span class="w"> </span><span class="n">Activate</span><span class="p">,</span><span class="w"> </span><span class="n">Foreground</span><span class="p">,</span><span class="w"> </span><span class="n">All</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">OwnedMinimizePolicy</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Hide</span><span class="p">,</span><span class="w"> </span><span class="n">DisableMinimize</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-707955fd" style="display: none;">struct BackgroundParams { float blurAmount=30, saturation=1; D2D1_COLOR_F tint, luminosity; float noiseOpacity=0.02f; };
+<pre id="code-e94a2608" style="display: none;">struct BackgroundParams { float blurAmount=30, saturation=1; D2D1_COLOR_F tint, luminosity; float noiseOpacity=0.02f; };
 enum class AcrylicPreset { Legacy, Luminosity, Base, Thin };
 struct CaptionMetrics { bool valid; float rightMargin, top, height, width; };
 enum class TaskbarProgress { None=0, Indeterminate=1, Normal=2, Error=4, Paused=8 };
@@ -371,7 +371,7 @@ enum class OwnedMinimizePolicy { None, Hide, DisableMinimize };</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d784c345', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-96ac32b5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">Backdrop</span><span class="w"> </span><span class="n">DefaultBackdrop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Backdrop</span><span class="o">::</span><span class="n">None</span><span class="p">;</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">DWORD</span><span class="w">     </span><span class="n">DefaultBackdropColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xFFFFFFFF</span><span class="p">;</span><span class="w">   </span><span class="c1">// pure white default, v1.17.0</span>
@@ -382,7 +382,7 @@ enum class OwnedMinimizePolicy { None, Hide, DisableMinimize };</pre>
 <span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultAppIcon</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">big</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="n">small</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span>
 <span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetProcessAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
 </pre></div>
-<pre id="code-d784c345" style="display: none;">inline static Backdrop DefaultBackdrop = Backdrop::None;
+<pre id="code-96ac32b5" style="display: none;">inline static Backdrop DefaultBackdrop = Backdrop::None;
 inline static DWORD     DefaultBackdropColor = 0xFFFFFFFF;   // pure white default, v1.17.0
 static void SetDefaultBackdrop(Backdrop, DWORD tint = 0);
 static void SetBackgroundParams(Backdrop which, const BackgroundParams&amp;);
@@ -395,7 +395,7 @@ static void SetProcessAppUserModelID(const std::wstring&amp; id);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-8acd8bb5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-4ce84d4c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">Create</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="o">=</span><span class="n">CW_USEDEFAULT</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="o">=</span><span class="n">CW_USEDEFAULT</span><span class="p">);</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">IsValid</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="n">HWND</span><span class="w"> </span><span class="nf">GetHwnd</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetId</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -404,7 +404,7 @@ static void SetProcessAppUserModelID(const std::wstring&amp; id);</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetInputBlocked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsInputBlocked</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">recursive_mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">LockRender</span><span class="p">();</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">RenderNowSync</span><span class="p">();</span>
 </pre></div>
-<pre id="code-8acd8bb5" style="display: none;">bool Create(int w, int h, const std::wstring&amp; title, int x=CW_USEDEFAULT, int y=CW_USEDEFAULT);
+<pre id="code-4ce84d4c" style="display: none;">bool Create(int w, int h, const std::wstring&amp; title, int x=CW_USEDEFAULT, int y=CW_USEDEFAULT);
 bool IsValid() const;  HWND GetHwnd() const;  int GetId() const;
 void Show(); void ShowNoActivate(); void Hide(); void Raise(); void Close();
 void Run();  int RunModal(Window* owner = nullptr);
@@ -458,7 +458,7 @@ std::unique_lock&lt;std::recursive_mutex&gt; LockRender();  void RenderNowSync()
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d6a89042', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-74390050', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetOwner</span><span class="p">(</span><span class="n">Window</span><span class="o">*</span><span class="p">);</span><span class="w">  </span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="nf">GetOwner</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">GetOwnedWindows</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -467,7 +467,7 @@ std::unique_lock&lt;std::recursive_mutex&gt; LockRender();  void RenderNowSync()
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetMinSize</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetOwnedMinimizePolicy</span><span class="p">(</span><span class="n">OwnedMinimizePolicy</span><span class="p">);</span>
 </pre></div>
-<pre id="code-d6a89042" style="display: none;">void SetOwner(Window*);  Window* GetOwner() const;
+<pre id="code-74390050" style="display: none;">void SetOwner(Window*);  Window* GetOwner() const;
 std::vector&lt;Window*&gt; GetOwnedWindows() const;
 void HideOwnedWindows(); void ShowOwnedWindows();
 void SetPosition(int x, int y);  void SetSize(int w, int h);   // DIP
@@ -482,7 +482,7 @@ void SetOwnedMinimizePolicy(OwnedMinimizePolicy);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2251728e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-207fd41a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRootLayout</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Layout</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ColumnBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetRootColumnBox</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// default root: ColumnBox margin(20) spacing 10</span>
@@ -492,7 +492,7 @@ void SetOwnedMinimizePolicy(OwnedMinimizePolicy);</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">MarkRepaint</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="p">);</span><span class="w">   </span><span class="c1">// marks only; does NOT schedule a frame</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">GetDpiScale</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">GetClientWidthDip</span><span class="o">/</span><span class="n">HeightDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-2251728e" style="display: none;">void SetRootLayout(std::shared_ptr&lt;Layout&gt;);
+<pre id="code-207fd41a" style="display: none;">void SetRootLayout(std::shared_ptr&lt;Layout&gt;);
 std::shared_ptr&lt;ColumnBox&gt; GetRootColumnBox() const;   // default root: ColumnBox margin(20) spacing 10
 void SetContextMenu(std::shared_ptr&lt;Menu&gt;);  void CloseContextMenu();
 UIElement* HitTestElement(float x, float y);
@@ -507,7 +507,7 @@ float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-dd7728e2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-8e1d892b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">tint</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w">  </span><span class="n">Backdrop</span><span class="w"> </span><span class="nf">GetBackdrop</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
@@ -516,7 +516,7 @@ float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetTitleBarColors</span><span class="p">(</span><span class="n">COLORREF</span><span class="w"> </span><span class="n">caption</span><span class="p">,</span><span class="w"> </span><span class="n">COLORREF</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">COLORREF</span><span class="w"> </span><span class="n">border</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetResizable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 </pre></div>
-<pre id="code-dd7728e2" style="display: none;">void SetBackdrop(Backdrop, DWORD tint=0);  Backdrop GetBackdrop() const;
+<pre id="code-8e1d892b" style="display: none;">void SetBackdrop(Backdrop, DWORD tint=0);  Backdrop GetBackdrop() const;
 void SetBackgroundColor(Color);
 void SetWindowCorner(WindowCorner);
 void SetContentOpacity(float opacity);
@@ -531,7 +531,7 @@ void SetResizable(bool);   void SetTitle(const std::wstring&amp;);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ba26fbee', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-2ab7cdee', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCustomTitleBar</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCustomTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">HasCustomTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitleBarVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
@@ -539,7 +539,7 @@ void SetResizable(bool);   void SetTitle(const std::wstring&amp;);</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">Minimize</span><span class="p">();</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">Maximize</span><span class="p">();</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">Restore</span><span class="p">();</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">MaximizeRestore</span><span class="p">();</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">IsMaximizedWindow</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">BeginSystemDrag</span><span class="p">();</span>
 </pre></div>
-<pre id="code-ba26fbee" style="display: none;">void SetCustomTitleBar(std::shared_ptr&lt;UIElement&gt;);  std::shared_ptr&lt;UIElement&gt; GetCustomTitleBar() const;
+<pre id="code-2ab7cdee" style="display: none;">void SetCustomTitleBar(std::shared_ptr&lt;UIElement&gt;);  std::shared_ptr&lt;UIElement&gt; GetCustomTitleBar() const;
 bool HasCustomTitleBar() const;   void SetTitleBarVisible(bool);
 CaptionMetrics QueryCaptionMetrics() const;
 void Minimize(); void Maximize(); void Restore(); void MaximizeRestore();
@@ -553,7 +553,7 @@ bool IsMaximizedWindow() const;   void BeginSystemDrag();</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-47840e0a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-151c2a72', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTaskbarProgress</span><span class="p">(</span><span class="n">TaskbarProgress</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">done</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">total</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarProgress</span><span class="p">();</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">SetTaskbarOverlayIcon</span><span class="p">(</span><span class="n">HICON</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarOverlayIcon</span><span class="p">();</span>
@@ -562,7 +562,7 @@ bool IsMaximizedWindow() const;   void BeginSystemDrag();</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetJumpList</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">Flash</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">times</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">alsoTaskbar</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">FlashUntilForeground</span><span class="p">();</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 </pre></div>
-<pre id="code-47840e0a" style="display: none;">void SetTaskbarProgress(TaskbarProgress, ULONGLONG done=0, ULONGLONG total=0);  void ClearTaskbarProgress();
+<pre id="code-151c2a72" style="display: none;">void SetTaskbarProgress(TaskbarProgress, ULONGLONG done=0, ULONGLONG total=0);  void ClearTaskbarProgress();
 void SetTaskbarOverlayIcon(HICON, const std::wstring&amp; = L"");  void ClearTaskbarOverlayIcon();
 ZSignal&lt;ThumbButtonId&gt; ThumbButtonClicked;
 void SetThumbButtons(...);  void UpdateThumbButton(ThumbButtonId, bool enabled);
@@ -583,11 +583,11 @@ void SetAppUserModelID(const std::wstring&amp;);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-eac27702', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-5ebc1824', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFrameRateLimit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fps</span><span class="p">);</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetFrameRateLimit</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 0=follow vblank; &gt;0=cap</span>
 </pre></div>
-<pre id="code-eac27702" style="display: none;">void SetFrameRateLimit(int fps);   int GetFrameRateLimit() const;   // 0=follow vblank; &gt;0=cap</pre>
+<pre id="code-5ebc1824" style="display: none;">void SetFrameRateLimit(int fps);   int GetFrameRateLimit() const;   // 0=follow vblank; &gt;0=cap</pre>
 </div>
 <ul>
 <li><strong><code>Pitfall</code></strong>: <code>ZUFYUI_RENDER_THREAD</code> is <strong>0 by default</strong> and documented as unstable/not recommended (blank popups, delayed hover/tooltip, occasional crashes with large virtual lists). Single-threaded <code>WM_PAINT</code> is the supported path.</li>
@@ -597,7 +597,7 @@ void SetAppUserModelID(const std::wstring&amp;);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-48967814', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-9df3d662', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibilityEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsAccessibilityEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// on by default, v1.17.0</span>
 <span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">GetFocusedElement</span><span class="o">/</span><span class="n">HoveredElement</span><span class="o">/</span><span class="n">PressedElement</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -606,7 +606,7 @@ void SetAppUserModelID(const std::wstring&amp;);</pre>
 <span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BackdropUnsupported</span><span class="p">,</span><span class="w"> </span><span class="n">DeviceLost</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">HRESULT</span><span class="o">&gt;</span><span class="w"> </span><span class="n">RenderingError</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Timer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">intervalMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
 </pre></div>
-<pre id="code-48967814" style="display: none;">void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // on by default, v1.17.0
+<pre id="code-9df3d662" style="display: none;">void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // on by default, v1.17.0
 UIElement* GetFocusedElement/HoveredElement/PressedElement() const;
 void FocusElement(UIElement*);
 ZSignal&lt;&gt; Activated, Deactivated;   ZSignal&lt;bool*&gt; Closing;   ZSignal&lt;&gt; Closed;

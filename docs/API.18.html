@@ -241,11 +241,11 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-231a4e5c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-44371f2c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDebugEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kr">inline</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDebugEnabled</span><span class="p">();</span>
 </pre></div>
-<pre id="code-231a4e5c" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
+<pre id="code-44371f2c" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
 </div>
 <ul>
 <li>默认<strong>关闭</strong>；开启后目标窗口处理 <code>WM_COPYDATA</code>（<code>dwData</code> = 命令号，回包 <code>0x5A554631</code>）。</li>
@@ -333,7 +333,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 <li>统一日志：<code>detail::Log(level, tag, msg)</code>、<code>LogWarning/LogInfo/DebugLog</code>、<code>RecordError</code>（→ E 级并触发 <code>UIZSignals::Error</code>）。</li>
 <li><strong><code>易错</code></strong>：调试器侧发命令要带超时（<code>SendMessageTimeout</code>，不加 <code>SMTO_BLOCK</code>），否则目标忙时会卡死调试器。<code>ZUFYUI_DEBUG</code> 是<strong>编译期</strong>开关（日志），<code>SetDebugEnabled</code> 是<strong>运行期</strong>开关（通道/统计）——两套语义别混。</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.17.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">拖放与卡片组件</span><span class="nav-desc">Drag &amp; Drop、Expander、SettingsList、ImageView（v1.19.0）</span></a><a class="next" href="API.19.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.19.0</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.17.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">拖放与卡片组件</span><span class="nav-desc">Drag &amp; Drop、Expander、SettingsList（v1.19.0）</span></a><a class="next" href="API.19.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.19.1</span></a></nav>
         </main>
     </div>
 

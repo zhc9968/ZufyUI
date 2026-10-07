@@ -211,12 +211,19 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
   - `UIElement::ReleaseDeviceResourcesRecursive()`; `PageHost` delayed hidden-page cache release (~1.2 s); `ScrollViewer::UseCache()=false`; `SetUseCache(false)` frees immediately.
   - Library fixes: `Snap` DPI scale also set on the UI thread; `ZSignal::Fire` RAII exception safety; `TextBox` shift+click; `Slider` zero-width NaN guard; `ListView` pooled-label re-measure on width change (`poolW_`).
 - **v1.19.0**:
-  - New **drag &amp; drop** (`ZufyUIDragDrop.h`): `Window::BeginDrag` + `DragDataBuilder`; element `SetDropTargetEnabled` / `OnDragEnter/Over/Leave/Drop` + signals; `Label`/`Button`/`ImageView`/`TextBox`/`TextEdit`/`ComboBox` accept and start drags; drag files out to Explorer.
-  - New `Expander` (collapsible card: smoothstep easing + rotating arrow + header hover highlight), `SettingsList` (settings rows), `ImageView` (stretched, uncached, drag-out).
+  - New **drag &amp; drop** (`ZufyUIDragDrop.h`): `Window::BeginDrag` + `DragDataBuilder`; element `SetDropTargetEnabled` / `OnDragEnter/Over/Leave/Drop` + signals; `Label`/`Button`/`TextBox`/`TextEdit`/`ComboBox` accept and start drags; drag files out to Explorer.
+  - New `Expander` (collapsible card: smoothstep easing + rotating arrow + header hover highlight), `SettingsList` (settings rows); image display uses `Label::SetImage` + `SetImageFit` (scale to fully visible).
   - `ComboBox` dropdown arrow is now a chevron that rotates with expansion.
-  - Text drag now has **move** semantics: the source deletes the original selection first, then inserts at the drop point (private format dedups same-control drags).</pre></div></div>
+  - Text drag now has **move** semantics: the source deletes the original selection first, then inserts at the drop point (private format dedups same-control drags).
+- **v1.19.1**:
+  - `TextEdit` undo/redo switched to the **standard scheme** (stack top = current state): both undo and redo **restore the selection and cursor** of that point; Backspace/Delete/typing/paste are one step each; drop insert/move are undoable and redoable.
+  - `ScrollViewer`: content is measured at the **viewport width** (fixes "clipped cards" and wrong scroll range from an infinite desired width for FillWidth/wrapping content); content is measured **twice** (re-measured at the narrower width once a vertical bar appears); the content element's own **`margin` is honored**; the clip gets a **1px bleed** so edge borders are not cut in half.
+  - The drop caret now shows even when the target is **unfocused**; during a drag the **source selection is preserved** and a preview caret shows at the drop point; dropping inside the original selection is a no-op.
+  - `Expander`: header hover highlight (no longer covering the card border), arrow rotates with the collapse easing, `SetIcon` leading icon.
+  - Whole-window drag &amp; drop: `Window::SetDropTargetEnabled` + window-level `DragEnter/DragOver/DragLeave/Drop`.
+  - Image display merged into `Label` (new `SetImageFit`); the standalone `ImageView` is removed.</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 19 · Version digest</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 19</span><h1>Version digest</h1><p class="chapter-summary">v1.15.0 → v1.19.0</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 19</span><h1>Version digest</h1><p class="chapter-summary">v1.15.0 → v1.19.1</p></header><blockquote>
 <p>Only the changes that affect your code are listed.</p>
 </blockquote>
 <ul>
@@ -229,10 +236,17 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 <li><code>UIElement::ReleaseDeviceResourcesRecursive()</code>; <code>PageHost</code> delayed hidden-page cache release (~1.2 s); <code>ScrollViewer::UseCache()=false</code>; <code>SetUseCache(false)</code> frees immediately.</li>
 <li>Library fixes: <code>Snap</code> DPI scale also set on the UI thread; <code>ZSignal::Fire</code> RAII exception safety; <code>TextBox</code> shift+click; <code>Slider</code> zero-width NaN guard; <code>ListView</code> pooled-label re-measure on width change (<code>poolW_</code>).</li>
 <li><strong>v1.19.0</strong>:</li>
-<li>New <strong>drag &amp; drop</strong> (<code>ZufyUIDragDrop.h</code>): <code>Window::BeginDrag</code> + <code>DragDataBuilder</code>; element <code>SetDropTargetEnabled</code> / <code>OnDragEnter/Over/Leave/Drop</code> + signals; <code>Label</code>/<code>Button</code>/<code>ImageView</code>/<code>TextBox</code>/<code>TextEdit</code>/<code>ComboBox</code> accept and start drags; drag files out to Explorer.</li>
-<li>New <code>Expander</code> (collapsible card: smoothstep easing + rotating arrow + header hover highlight), <code>SettingsList</code> (settings rows), <code>ImageView</code> (stretched, uncached, drag-out).</li>
+<li>New <strong>drag &amp; drop</strong> (<code>ZufyUIDragDrop.h</code>): <code>Window::BeginDrag</code> + <code>DragDataBuilder</code>; element <code>SetDropTargetEnabled</code> / <code>OnDragEnter/Over/Leave/Drop</code> + signals; <code>Label</code>/<code>Button</code>/<code>TextBox</code>/<code>TextEdit</code>/<code>ComboBox</code> accept and start drags; drag files out to Explorer.</li>
+<li>New <code>Expander</code> (collapsible card: smoothstep easing + rotating arrow + header hover highlight), <code>SettingsList</code> (settings rows); image display uses <code>Label::SetImage</code> + <code>SetImageFit</code> (scale to fully visible).</li>
 <li><code>ComboBox</code> dropdown arrow is now a chevron that rotates with expansion.</li>
 <li>Text drag now has <strong>move</strong> semantics: the source deletes the original selection first, then inserts at the drop point (private format dedups same-control drags).</li>
+<li><strong>v1.19.1</strong>:</li>
+<li><code>TextEdit</code> undo/redo switched to the <strong>standard scheme</strong> (stack top = current state): both undo and redo <strong>restore the selection and cursor</strong> of that point; Backspace/Delete/typing/paste are one step each; drop insert/move are undoable and redoable.</li>
+<li><code>ScrollViewer</code>: content is measured at the <strong>viewport width</strong> (fixes "clipped cards" and wrong scroll range from an infinite desired width for FillWidth/wrapping content); content is measured <strong>twice</strong> (re-measured at the narrower width once a vertical bar appears); the content element's own <strong><code>margin</code> is honored</strong>; the clip gets a <strong>1px bleed</strong> so edge borders are not cut in half.</li>
+<li>The drop caret now shows even when the target is <strong>unfocused</strong>; during a drag the <strong>source selection is preserved</strong> and a preview caret shows at the drop point; dropping inside the original selection is a no-op.</li>
+<li><code>Expander</code>: header hover highlight (no longer covering the card border), arrow rotates with the collapse easing, <code>SetIcon</code> leading icon.</li>
+<li>Whole-window drag &amp; drop: <code>Window::SetDropTargetEnabled</code> + window-level <code>DragEnter/DragOver/DragLeave/Drop</code>.</li>
+<li>Image display merged into <code>Label</code> (new <code>SetImageFit</code>); the standalone <code>ImageView</code> is removed.</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.en.18.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Accessibility &amp; Debug Channel</span><span class="nav-desc">UIA + SetDebugEnabled (v1.17.0)</span></a><a class="next" href="API.en.20.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Pitfall index</span><span class="nav-desc">Quick lookup by topic</span></a></nav>
         </main>
