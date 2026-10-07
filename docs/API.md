@@ -552,8 +552,14 @@ bool HasCustomTitleBar() const;   void SetTitleBarVisible(bool);
 CaptionMetrics QueryCaptionMetrics() const;
 void Minimize(); void Maximize(); void Restore(); void MaximizeRestore();
 bool IsMaximizedWindow() const;   void BeginSystemDrag();
+// 顶部菜单栏 / 底部状态栏（窗口级 chrome，v1.19.2）
+void SetMenuBar(std::shared_ptr<UIElement>);    std::shared_ptr<UIElement> GetMenuBar() const;
+void SetStatusBar(std::shared_ptr<UIElement>);  std::shared_ptr<UIElement> GetStatusBar() const;
+void SetMenuBarInTitleBar(bool on = true);      bool IsMenuBarInTitleBar() const;
+void SetShowTitleText(bool on);                 bool IsShowTitleText() const;
 ```
 - **`易错`**：自定义标题栏**不参与布局**——`Window` 把它放 `(0,0)`，并把根内容下移它测量出的高度。别手动 `AddChild`。
+- 菜单栏默认**叠在自定义标题栏上**（让开左侧图标、右侧系统按钮）；此时标题文字**默认隐藏**（与菜单互斥，避免重叠）。`SetShowTitleText(true)` → 显示标题、菜单栏**自动移到标题栏下方的客户区顶部**；`SetMenuBarInTitleBar(false)` 强制放到客户区顶部。状态栏固定贴底，根内容高度相应收缩。
 - **`版本`**：`v1.7.0` 起；`CaptionButton::Kind::Pin` = `v1.17.0`。
 
 ## 任务栏 / 缩略图 / 跳转列表
@@ -869,6 +875,24 @@ class MenuWindow : public MenuWindowBase {
 ```
 - 弹出窗口用 `WS_EX_NOACTIVATE|TOOLWINDOW|TOPMOST`、无 DWM 边框，`WM_MOUSEACTIVATE` 返回 `MA_NOACTIVATE` 不抢焦点。
 - **`易错`**：`CloseAll()` 只销毁 HWND；对象的 `shared_ptr`/`unique_ptr` 在消息处理器**之外**析构。
+
+## MenuBar / StatusBar（v1.19.2）
+
+```cpp
+class MenuBar : public UIElement {
+    int AddMenu(const std::wstring& title, std::shared_ptr<Menu> menu = nullptr);   // menu 省略自动建
+    std::shared_ptr<Menu> GetMenu(int i) const;   int MenuCount() const;   void CloseMenu();
+    void SetFont(const FontSpec&);   void SetTextColor(Color);   void SetHoverColor(Color);   void SetOpenColor(Color);
+};
+class StatusBar : public UIElement {
+    int AddPanel(const std::wstring& text, bool rightAlign = false);
+    int AddPanel(Icon, const std::wstring& text, bool rightAlign = false);
+    void SetPanelText(int i, const std::wstring&);   void SetPanelIcon(int i, Icon);   int PanelCount() const;
+    void SetFont(const FontSpec&);   void SetColors(Color bg, Color border, Color text);
+};
+```
+- `MenuBar` 点击条目弹出该 `Menu`（复用菜单弹层）；**悬停只高亮、不自动展开**；菜单打开期间条目保持“按下”，关闭后复原。
+- 用 `Window::SetMenuBar` / `SetStatusBar` 挂到窗口（见「自定义标题栏」）。
 
 ## MessageBox / FastButton
 
@@ -1215,7 +1239,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.19.1
+###chapter: 版本变化摘录 | v1.15.0 → v1.19.2
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1239,6 +1263,11 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - `Expander`：标题条悬停高亮（不再遮挡卡片边框）、箭头随折叠缓动旋转、`SetIcon` 标题图标。
   - 整窗拖放：`Window::SetDropTargetEnabled` + 窗口级 `DragEnter/DragOver/DragLeave/Drop`。
   - 图片展示并入 `Label`（新增 `SetImageFit`），移除独立的 `ImageView`。
+- **v1.19.2**：
+  - 新增顶部**菜单栏** `MenuBar`（VS 风格：点击弹 `Menu`；悬停仅高亮**不自动展开**；菜单打开期间条目**保持按下**、关闭复原；默认叠在自定义标题栏上、空白处放行以便拖动标题栏）。
+  - 新增底部**状态栏** `StatusBar`（左右面板：可选图标 + 文本）。
+  - `Window`：`SetMenuBar` / `SetStatusBar` / `SetMenuBarInTitleBar` / `SetShowTitleText`（标题文字与标题栏上的菜单**互斥**）。
+  - `Menu` 新增 `onClosed` 回调；`MenuWindow::OnPopupClosed`。
 
 ###chapter: 易错点总表 | 按主题速查
 

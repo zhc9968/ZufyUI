@@ -240,11 +240,11 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-cd92181e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-c247e03a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDebugEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kr">inline</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDebugEnabled</span><span class="p">();</span>
 </pre></div>
-<pre id="code-cd92181e" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
+<pre id="code-c247e03a" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
 </div>
 <ul>
 <li>Off by default. When on, the target window handles <code>WM_COPYDATA</code> (<code>dwData</code> = command id; reply <code>0x5A554631</code>) and returns current-frame info only (no file I/O).</li>
@@ -331,7 +331,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 <li>Unified log: <code>detail::Log(level, tag, msg)</code> / <code>LogWarning/LogInfo/DebugLog</code> / <code>RecordError</code> (→ E level + fires <code>UIZSignals::Error</code>).</li>
 <li><strong><code>Pitfall</code></strong>: send commands with a timeout (<code>SendMessageTimeout</code> without <code>SMTO_BLOCK</code>), or the debugger hangs when the target is busy. <code>ZUFYUI_DEBUG</code> is a <strong>compile-time</strong> switch (logging); <code>SetDebugEnabled</code> is a <strong>runtime</strong> switch (channel/stats) — do not conflate.</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.17.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Drag &amp; Drop, cards</span><span class="nav-desc">Drag &amp; Drop, Expander, SettingsList (v1.19.0)</span></a><a class="next" href="API.en.19.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Version digest</span><span class="nav-desc">v1.15.0 → v1.19.1</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.en.17.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Drag &amp; Drop, cards</span><span class="nav-desc">Drag &amp; Drop, Expander, SettingsList (v1.19.0)</span></a><a class="next" href="API.en.19.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Version digest</span><span class="nav-desc">v1.15.0 → v1.19.2</span></a></nav>
         </main>
     </div>
 

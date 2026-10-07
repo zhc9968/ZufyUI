@@ -544,8 +544,14 @@ bool HasCustomTitleBar() const;   void SetTitleBarVisible(bool);
 CaptionMetrics QueryCaptionMetrics() const;
 void Minimize(); void Maximize(); void Restore(); void MaximizeRestore();
 bool IsMaximizedWindow() const;   void BeginSystemDrag();
+// top menu bar / bottom status bar (window chrome, v1.19.2)
+void SetMenuBar(std::shared_ptr<UIElement>);    std::shared_ptr<UIElement> GetMenuBar() const;
+void SetStatusBar(std::shared_ptr<UIElement>);  std::shared_ptr<UIElement> GetStatusBar() const;
+void SetMenuBarInTitleBar(bool on = true);      bool IsMenuBarInTitleBar() const;
+void SetShowTitleText(bool on);                 bool IsShowTitleText() const;
 ```
 - **`Pitfall`**: the custom title bar **does not participate in layout** — `Window` places it at `(0,0)` and shifts the root down by its measured height. Do not `AddChild` it manually.
+- The menu bar is **overlaid on the custom title bar by default** (leaving room for the left icon and the right caption buttons); the title text is then **hidden by default** (they are mutually exclusive, to avoid overlap). `SetShowTitleText(true)` shows the title and moves the menu bar to the **top of the client area below the bar**; `SetMenuBarInTitleBar(false)` forces it to the client-area top. The status bar is pinned to the bottom and shrinks the root content height.
 - **`Version`**: `v1.7.0`; `CaptionButton::Kind::Pin` = `v1.17.0`.
 
 ## Taskbar / thumbnails / jump list
@@ -855,6 +861,24 @@ class MenuWindow : public MenuWindowBase {
 ```
 - Popups use `WS_EX_NOACTIVATE|TOOLWINDOW|TOPMOST`, no DWM frame, return `MA_NOACTIVATE` so they never steal focus.
 - **`Pitfall`**: `CloseAll()` destroys HWNDs only; the object `shared_ptr`/`unique_ptr` destructs outside the message handler.
+
+## MenuBar / StatusBar (v1.19.2)
+
+```cpp
+class MenuBar : public UIElement {
+    int AddMenu(const std::wstring& title, std::shared_ptr<Menu> menu = nullptr);   // auto-created if omitted
+    std::shared_ptr<Menu> GetMenu(int i) const;   int MenuCount() const;   void CloseMenu();
+    void SetFont(const FontSpec&);   void SetTextColor(Color);   void SetHoverColor(Color);   void SetOpenColor(Color);
+};
+class StatusBar : public UIElement {
+    int AddPanel(const std::wstring& text, bool rightAlign = false);
+    int AddPanel(Icon, const std::wstring& text, bool rightAlign = false);
+    void SetPanelText(int i, const std::wstring&);   void SetPanelIcon(int i, Icon);   int PanelCount() const;
+    void SetFont(const FontSpec&);   void SetColors(Color bg, Color border, Color text);
+};
+```
+- `MenuBar` opens the entry's `Menu` on click (reusing the menu popup); hovering only highlights, it does **not** auto-expand; the open entry stays "pressed" until the menu closes.
+- Attach to a window with `Window::SetMenuBar` / `SetStatusBar` (see "Custom title bar").
 
 ## MessageBox / FastButton
 
@@ -1193,7 +1217,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.19.1
+###chapter: Version digest | v1.15.0 → v1.19.2
 
 > Only the changes that affect your code are listed.
 
@@ -1217,6 +1241,11 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - `Expander`: header hover highlight (no longer covering the card border), arrow rotates with the collapse easing, `SetIcon` leading icon.
   - Whole-window drag & drop: `Window::SetDropTargetEnabled` + window-level `DragEnter/DragOver/DragLeave/Drop`.
   - Image display merged into `Label` (new `SetImageFit`); the standalone `ImageView` is removed.
+- **v1.19.2**:
+  - New top **menu bar** `MenuBar` (VS-style: click opens the `Menu`; hovering only highlights, **no auto-expand**; the open entry stays **pressed** until the menu closes; overlaid on the custom title bar by default, empty areas pass through so the title bar stays draggable).
+  - New bottom **status bar** `StatusBar` (left/right panels: optional icon + text).
+  - `Window`: `SetMenuBar` / `SetStatusBar` / `SetMenuBarInTitleBar` / `SetShowTitleText` (title text and an on-title-bar menu are **mutually exclusive**).
+  - `Menu` gains an `onClosed` callback; `MenuWindow::OnPopupClosed`.
 
 ###chapter: Pitfall index | Quick lookup by topic
 

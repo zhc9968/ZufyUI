@@ -247,7 +247,7 @@ inline std::wstring IconGlyph(Icon);           // 码点 → 单字宽字符串
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-558e5c70', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-a4e53af7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FontSpec</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">familyName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"Segoe UI"</span><span class="p">;</span>
@@ -259,7 +259,7 @@ inline std::wstring IconGlyph(Icon);           // 码点 → 单字宽字符串
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="k">operator</span><span class="o">==/!=</span><span class="p">(...)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-558e5c70" style="display: none;">struct FontSpec {
+<pre id="code-a4e53af7" style="display: none;">struct FontSpec {
     std::wstring familyName = L"Segoe UI";
     float size = 14.0f;
     DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
@@ -273,7 +273,7 @@ inline std::wstring IconGlyph(Icon);           // 码点 → 单字宽字符串
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-46ec84dc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-6ba98625', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">FontManager</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
 <span class="n">IDWriteFactory</span><span class="o">*</span><span class="w"> </span><span class="nf">GetFactory</span><span class="p">();</span>
@@ -286,7 +286,7 @@ inline std::wstring IconGlyph(Icon);           // 码点 → 单字宽字符串
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetGlobalFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
 <span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">GlobalFontChanged</span><span class="p">;</span>
 </pre></div>
-<pre id="code-46ec84dc" style="display: none;">static FontManager&amp; Instance();
+<pre id="code-6ba98625" style="display: none;">static FontManager&amp; Instance();
 IDWriteFactory* GetFactory();
 IDWriteTextFormat* GetFormat(const FontSpec&amp;);        // 格式缓存，永不淘汰
 ComPtr&lt;IDWriteTextLayout&gt; GetRawLayout(text, fmt, maxW, maxH, noWrap);
@@ -307,13 +307,13 @@ ZSignal&lt;&gt; GlobalFontChanged;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3cc62766', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-fa202110', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Icon</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">short</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="o">=</span><span class="mh">0x0000</span><span class="p">,</span><span class="w"> </span><span class="n">Add</span><span class="o">=</span><span class="mh">0xE710</span><span class="p">,</span><span class="w"> </span><span class="n">Remove</span><span class="o">=</span><span class="mh">0xE738</span><span class="p">,</span><span class="w"> </span><span class="p">...,</span><span class="w"> </span><span class="n">Pin</span><span class="o">=</span><span class="mh">0xE718</span><span class="p">,</span><span class="w"> </span><span class="n">View</span><span class="o">=</span><span class="mh">0xE890</span><span class="p">,</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">IconFontFamily</span><span class="p">();</span><span class="w">   </span><span class="c1">// Segoe Fluent Icons → 回退 Segoe MDL2 Assets</span>
 <span class="kr">inline</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">IconGlyph</span><span class="p">(</span><span class="n">Icon</span><span class="p">);</span><span class="w">           </span><span class="c1">// 码点 → 单字宽字符串</span>
 </pre></div>
-<pre id="code-3cc62766" style="display: none;">enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., Pin=0xE718, View=0xE890, ... };
+<pre id="code-fa202110" style="display: none;">enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., Pin=0xE718, View=0xE890, ... };
 inline const std::wstring&amp; IconFontFamily();   // Segoe Fluent Icons → 回退 Segoe MDL2 Assets
 inline std::wstring IconGlyph(Icon);           // 码点 → 单字宽字符串</pre>
 </div>

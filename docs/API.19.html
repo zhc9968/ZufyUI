@@ -221,9 +221,14 @@ pre { line-height: 125%; }
   - 拖放落点光标在目标**未聚焦**时也显示；拖动期间**保留源选区**并在落点显示预览光标；落点落在原选区内 → 不变更。
   - `Expander`：标题条悬停高亮（不再遮挡卡片边框）、箭头随折叠缓动旋转、`SetIcon` 标题图标。
   - 整窗拖放：`Window::SetDropTargetEnabled` + 窗口级 `DragEnter/DragOver/DragLeave/Drop`。
-  - 图片展示并入 `Label`（新增 `SetImageFit`），移除独立的 `ImageView`。</pre></div></div>
+  - 图片展示并入 `Label`（新增 `SetImageFit`），移除独立的 `ImageView`。
+- **v1.19.2**：
+  - 新增顶部**菜单栏** `MenuBar`（VS 风格：点击弹 `Menu`；悬停仅高亮**不自动展开**；菜单打开期间条目**保持按下**、关闭复原；默认叠在自定义标题栏上、空白处放行以便拖动标题栏）。
+  - 新增底部**状态栏** `StatusBar`（左右面板：可选图标 + 文本）。
+  - `Window`：`SetMenuBar` / `SetStatusBar` / `SetMenuBarInTitleBar` / `SetShowTitleText`（标题文字与标题栏上的菜单**互斥**）。
+  - `Menu` 新增 `onClosed` 回调；`MenuWindow::OnPopupClosed`。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 19 章 · 版本变化摘录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 19 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.19.1</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">第 19 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.19.2</p></header><blockquote>
 <p>只列<strong>对你写代码有影响</strong>的显著变化。</p>
 </blockquote>
 <ul>
@@ -247,6 +252,11 @@ pre { line-height: 125%; }
 <li><code>Expander</code>：标题条悬停高亮（不再遮挡卡片边框）、箭头随折叠缓动旋转、<code>SetIcon</code> 标题图标。</li>
 <li>整窗拖放：<code>Window::SetDropTargetEnabled</code> + 窗口级 <code>DragEnter/DragOver/DragLeave/Drop</code>。</li>
 <li>图片展示并入 <code>Label</code>（新增 <code>SetImageFit</code>），移除独立的 <code>ImageView</code>。</li>
+<li><strong>v1.19.2</strong>：</li>
+<li>新增顶部<strong>菜单栏</strong> <code>MenuBar</code>（VS 风格：点击弹 <code>Menu</code>；悬停仅高亮<strong>不自动展开</strong>；菜单打开期间条目<strong>保持按下</strong>、关闭复原；默认叠在自定义标题栏上、空白处放行以便拖动标题栏）。</li>
+<li>新增底部<strong>状态栏</strong> <code>StatusBar</code>（左右面板：可选图标 + 文本）。</li>
+<li><code>Window</code>：<code>SetMenuBar</code> / <code>SetStatusBar</code> / <code>SetMenuBarInTitleBar</code> / <code>SetShowTitleText</code>（标题文字与标题栏上的菜单<strong>互斥</strong>）。</li>
+<li><code>Menu</code> 新增 <code>onClosed</code> 回调；<code>MenuWindow::OnPopupClosed</code>。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.18.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a><a class="next" href="API.20.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">易错点总表</span><span class="nav-desc">按主题速查</span></a></nav>
         </main>
