@@ -89,8 +89,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 19
-#define ZufyUI_VERSION_PATCH 1
-#define ZufyUI_VERSION_STRING L"1.19.1"
+#define ZufyUI_VERSION_PATCH 2
+#define ZufyUI_VERSION_STRING L"1.19.2"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -1204,6 +1204,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         virtual void SetWindowTitle(const std::wstring&) {}
         // 窗口图标下发给“非参与布局”的窗口级控件（如 TitleBar 显示的应用图标）
         virtual void SetWindowIconFromHICON(HICON) {}
+        virtual void SetTitleTextVisible(bool) {}   // 自定义标题栏是否显示标题文字（默认无操作；TitleBar 覆盖）
 
         // ---------- 父子关系 ----------
         void SetParent(UIElement* parent) {
@@ -2684,6 +2685,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
         std::vector<std::shared_ptr<MenuItem>> items;
         std::function<void(Menu&)> onOpening;   // 弹出前回调：可现场改勾选/启用/文字
+        std::function<void()> onClosed;         // 弹出层关闭后回调（如 MenuBar 复位“展开”态）
         ZSignal<int> ItemSelected;              // 任一普通项被点（带 id；回调之外的另一条路）
         FontSpec font = DefaultFont;            // 菜单字体（默认与框架一致，可设）
         static void SetDefaultFont(const FontSpec& f) { DefaultFont = f; }
@@ -2982,7 +2984,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             acrylicReloadConn_.disconnect();
             ClearFrameworkTimers();   // 通知框架定时器：窗口将亡（让 Timer 与窗口解绑）
             if (rootElement_) rootElement_->AttachWindowRecursive(nullptr);
-            if (customTitleBar_) customTitleBar_->AttachWindowRecursive(nullptr);   // 析构路径同样清归属
+            if (customTitleBar_) customTitleBar_->AttachWindowRecursive(nullptr); if (menuBar_) menuBar_->AttachWindowRecursive(nullptr); if (statusBar_) statusBar_->AttachWindowRecursive(nullptr);   // 析构路径同样清归属
             UnregisterDropTarget();
             if (hwnd_) { DestroyWindow(hwnd_); hwnd_ = nullptr; }
             DiscardDeviceResources();
@@ -3050,7 +3052,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             D2D1_SIZE_F rsz = rt->GetSize();
             if (rsz.width <= 0.0f || rsz.height <= 0.0f)
                 rsz = D2D1::SizeF(clientWidthDip_, clientHeightDip_);
-            if (rootElement_ || customTitleBar_) {
+            if (rootElement_ || customTitleBar_ || menuBar_ || statusBar_) {
                 D2D1_RECT_F full = D2D1::RectF(0, 0, rsz.width, rsz.height);
                 for (auto* e : npBefore_) ComposeImpl(e, rt, full, true);
                 if (rootElement_) ComposeImpl(rootElement_.get(), rt, full, true);
@@ -3362,6 +3364,42 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         std::shared_ptr<UIElement> GetCustomTitleBar() const { return customTitleBar_; }
         bool HasCustomTitleBar() const { return customTitleBar_ != nullptr; }
         float GetCustomTitleBarHeight() const { return customTitleBarHeight_; }
+
+        // ---- 顶部菜单栏 / 底部状态栏（窗口级 chrome，不参与根布局）----
+        void SetMenuBar(std::shared_ptr<UIElement> mb) {
+            if (menuBar_ && menuBar_ != mb) menuBar_->SetParent(nullptr);
+            menuBar_ = std::move(mb);
+            if (menuBar_) {
+                menuBar_->SetParent(nullptr);
+                menuBar_->AttachWindowRecursive(this);
+                if (menuBar_->GetLayoutParticipation() == UIElement::LayoutParticipation::Normal)
+                    menuBar_->SetLayoutParticipation(UIElement::LayoutParticipation::DrawAfterLayout);
+            }
+            layoutNeeded_ = true; layoutInvalidated_ = true;
+            if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE);
+        }
+        std::shared_ptr<UIElement> GetMenuBar() const { return menuBar_; }
+        // 有自定义标题栏时，菜单栏默认直接叠在标题栏上（可关掉，改为放在客户区顶部、根内容下移）
+        void SetMenuBarInTitleBar(bool on) { if (menuBarInTitleBar_ != on) { menuBarInTitleBar_ = on; layoutNeeded_ = true; layoutInvalidated_ = true; if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE); } }
+        bool IsMenuBarInTitleBar() const { return menuBarInTitleBar_; }
+        // 自定义标题栏是否显示标题文字。默认关：菜单栏叠在标题栏上（两者互斥，避免重叠）。
+        // 打开它 → 标题文字显示，菜单栏自动改为放到客户区顶部（标题栏下方）。
+        void SetShowTitleText(bool on) { if (showTitleText_ != on) { showTitleText_ = on; layoutNeeded_ = true; layoutInvalidated_ = true; if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE); } }
+        bool IsShowTitleText() const { return showTitleText_; }
+
+        void SetStatusBar(std::shared_ptr<UIElement> sb) {
+            if (statusBar_ && statusBar_ != sb) statusBar_->SetParent(nullptr);
+            statusBar_ = std::move(sb);
+            if (statusBar_) {
+                statusBar_->SetParent(nullptr);
+                statusBar_->AttachWindowRecursive(this);
+                if (statusBar_->GetLayoutParticipation() == UIElement::LayoutParticipation::Normal)
+                    statusBar_->SetLayoutParticipation(UIElement::LayoutParticipation::DrawAfterLayout);
+            }
+            layoutNeeded_ = true; layoutInvalidated_ = true;
+            if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE);
+        }
+        std::shared_ptr<UIElement> GetStatusBar() const { return statusBar_; }
 
         // 查询系统标题栏按钮的度量（DWM）。只把“右边距”当可靠锚点，
         // 按钮宽/高/垂直位置作为默认参考（用户可覆盖）。返回 valid=false 表示查询失败。
@@ -3795,6 +3833,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 统一的命中测试：先自定义标题栏，再根布局树（标题栏不参与布局、不在根树下，
         // 必须单独纳入，否则它收不到任何鼠标事件）。
         UIElement* HitTestElement(float x, float y) {
+            if (menuBar_) { if (UIElement* h = menuBar_->HitTest(x, y)) return h; }
+            if (statusBar_) { if (UIElement* h = statusBar_->HitTest(x, y)) return h; }
             if (customTitleBar_) { if (UIElement* h = customTitleBar_->HitTest(x, y)) return h; }
             return rootElement_ ? rootElement_->HitTest(x, y) : nullptr;
         }
@@ -4460,7 +4500,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     }
                 }
                 if (rootElement_) rootElement_->AttachWindowRecursive(nullptr);  // 清除整棵树的窗口指针，避免外部持有元素时悬垂
-                if (customTitleBar_) customTitleBar_->AttachWindowRecursive(nullptr);  // 标题栏同样清归属
+                if (customTitleBar_) customTitleBar_->AttachWindowRecursive(nullptr); if (menuBar_) menuBar_->AttachWindowRecursive(nullptr); if (statusBar_) statusBar_->AttachWindowRecursive(nullptr);  // 标题栏同样清归属
                 hwnd_ = nullptr;
                 Closed();
                 if (core_ && id_) { core_->UnregisterWindow(id_, this); id_ = 0; }
@@ -4855,6 +4895,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 };
             clearRecursive(rootElement_.get());
             clearRecursive(customTitleBar_.get());
+            clearRecursive(menuBar_.get());
+            clearRecursive(statusBar_.get());
         }
 
         void CollectVisibleCachedElements(UIElement* elem, std::unordered_set<UIElement*>& set) {
@@ -5059,6 +5101,34 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 customTitleBarHeight_ = 0.0f;
             }
 
+            // 状态栏（底部）：占满宽度，压缩内容高度
+            statusBarHeight_ = 0.0f;
+            if (statusBar_) {
+                Size s = statusBar_->Measure(Size(clientWidthDip, FLT_MAX));
+                statusBarHeight_ = max(0.0f, s.height);
+                statusBar_->Arrange(Rect(0.0f, clientHeightDip - statusBarHeight_, clientWidthDip, statusBarHeight_));
+                availHeight -= statusBarHeight_;
+                if (availHeight < 0.0f) availHeight = 0.0f;
+            }
+            // 菜单栏：有自定义标题栏且“隐藏标题文字”时叠在标题栏上；否则放客户区顶部、根内容下移
+            menuBarHeight_ = 0.0f;
+            bool menuOnTitleBar = menuBar_ && customTitleBar_ && titleBarVisible_ && menuBarInTitleBar_ && !showTitleText_;
+            if (menuBar_) {
+                Size m = menuBar_->Measure(Size(clientWidthDip, FLT_MAX));
+                menuBarHeight_ = max(0.0f, m.height);
+                if (menuOnTitleBar) {
+                    float mh = (customTitleBarHeight_ > 0.0f) ? min(menuBarHeight_, customTitleBarHeight_) : menuBarHeight_;
+                    menuBar_->Arrange(Rect(36.0f, max(0.0f, (customTitleBarHeight_ - mh) * 0.5f), max(1.0f, clientWidthDip - 36.0f - 150.0f), mh));   // 让开图标 + 右侧系统按钮
+                } else {
+                    menuBar_->Arrange(Rect(left, top, availWidth, menuBarHeight_));
+                    top += menuBarHeight_;
+                    availHeight -= menuBarHeight_;
+                    if (availHeight < 0.0f) availHeight = 0.0f;
+                }
+            }
+            // 自定义标题栏标题文字：由设置控制（菜单叠在标题栏上时它必须隐藏，二者互斥）
+            if (customTitleBar_) customTitleBar_->SetTitleTextVisible(showTitleText_);
+
             // 1. 帧开始，计算时间差
             auto now = std::chrono::steady_clock::now();
             float deltaTime = std::chrono::duration<float>(now - lastTime_).count();
@@ -5082,6 +5152,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 //   CollectDragRegions/CollectNonParticipating 全树遍历之前刷新，否则会遍历悬垂指针（崩溃）。
                 RefreshChildrenRecursive(rootElement_.get());
                 if (customTitleBar_) RefreshChildrenRecursive(customTitleBar_.get());
+                if (menuBar_) RefreshChildrenRecursive(menuBar_.get());
+                if (statusBar_) RefreshChildrenRecursive(statusBar_.get());
                 // 第 2 期：不再 ClearAllCaches()——Arrange 包装器已把真正重排元素的 cacheValid_ 置 false，
                 // 未变化的子树缓存保持有效（这正是省内存的关键）。
                 CollectDragRegions();   // 拖动区依赖布局：只在重排后重建（原来每帧全树收集）
@@ -5094,6 +5166,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     if (customTitleBar_->GetLayoutParticipation() == UIElement::LayoutParticipation::DrawBeforeLayout) npBefore_.push_back(customTitleBar_.get());
                     else npAfter_.push_back(customTitleBar_.get());
                 }
+                if (menuBar_) npAfter_.push_back(menuBar_.get());
+                if (statusBar_) npAfter_.push_back(statusBar_.get());
             }
 
             // 3. 动画更新
@@ -5103,6 +5177,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (customTitleBar_) {
                 customTitleBar_->UpdateAnimation(deltaTime);
             }
+            if (menuBar_) menuBar_->UpdateAnimation(deltaTime);
+            if (statusBar_) statusBar_->UpdateAnimation(deltaTime);
 
             // 3.5 更新阶段重建容器"可见子元素列表"（把池化/rebind 从 render 的 Compose 热路径挪到这里）
             RefreshChildrenRecursive(rootElement_.get());
@@ -5113,6 +5189,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             activeAnimScratch_.clear();
             CollectActiveAnimations(rootElement_.get(), activeAnimScratch_);
             if (customTitleBar_) CollectActiveAnimations(customTitleBar_.get(), activeAnimScratch_);
+            if (menuBar_) CollectActiveAnimations(menuBar_.get(), activeAnimScratch_);
+            if (statusBar_) CollectActiveAnimations(statusBar_.get(), activeAnimScratch_);
             // 注意：**不要**把整个 activeAnimScratch_ 塞进 pendingRepaint_。
             // 那样做会让"含了正在动画子元素的祖先容器"每帧都重绘/重建缓存（一个转圈圈能带出十几个祖先），
             // 造成整窗每帧重合成（实测 10% GPU）。真正需要重绘的元素自己在 UpdateAnimation 里调了 RequestRepaint；
@@ -5225,7 +5303,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 hoverStartTick_ = GetTickCount();
                 if (tooltipTarget_ || tooltipProgress_ > 0.0f) { tooltipTarget_ = nullptr; tooltipProgress_ = 0.0f; }
             }
-            if (!rootElement_ && !customTitleBar_) return;
+            if (!rootElement_ && !customTitleBar_ && !menuBar_ && !statusBar_) return;
             if (mouseCaptureElement_) {
                 mouseCaptureElement_->OnMouseMove(x, y);
                 return;
@@ -5314,7 +5392,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void OnContextMenu(float x, float y);   // 定义在文件后部（需要 MenuWindow 完整类型）
 
         void UpdateHover(float x, float y) {
-            if (!rootElement_ && !customTitleBar_) return;
+            if (!rootElement_ && !customTitleBar_ && !menuBar_ && !statusBar_) return;
             // 有菜单打开 / 输入被模态屏蔽时：本窗口元素不再悬停（防"悬停穿透"到菜单/模态之下）
             if (detail::g_activeMenu || inputBlocked_) {
                 if (currentHovered_) { currentHovered_->OnMouseLeave(); currentHovered_ = nullptr; }
@@ -5336,7 +5414,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         void OnMouseWheel(float x, float y, float deltaX, float deltaY) {
             tooltipTarget_ = nullptr; tooltipProgress_ = 0.0f;
-            if (!rootElement_ && !customTitleBar_) return;
+            if (!rootElement_ && !customTitleBar_ && !menuBar_ && !statusBar_) return;
             UIElement* elem = currentHovered_;
             if (!elem) elem = HitTestElement(x, y);
             while (elem) {
@@ -5993,6 +6071,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         std::vector<int> hiddenOwnedIds_;   // 父窗口最小化时被隐藏的 owned 窗口 id（还原时恢复）
         // 自定义标题栏 / 窗口外观
         std::shared_ptr<UIElement> customTitleBar_;
+        std::shared_ptr<UIElement> menuBar_, statusBar_;
+        bool  menuBarInTitleBar_ = true;
+        bool  showTitleText_ = false;   // 默认隐藏标题文字（菜单栏叠在标题栏上）；true → 显示标题、菜单栏下移
+        float menuBarHeight_ = 0.0f, statusBarHeight_ = 0.0f;
         float customTitleBarHeight_ = 0.0f;
         bool titleBarVisible_ = true;
         bool resizable_ = true;
@@ -6236,6 +6318,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
         void CloseAll() {
             if (!parent_ && detail::g_activeMenu == this) detail::g_activeMenu = nullptr;
+            OnPopupClosed();
             StopFade();
             HWND h = GetHwnd();
             if (h) { KillTimer(h, kPollTimerId); DestroyWindow(h); }   // 只销毁 HWND
@@ -6250,6 +6333,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         // 键盘转发（Base 默认不处理；MenuWindow 覆盖）
         virtual bool OnMenuKeyDown(int vk) { (void)vk; return false; }
+        virtual void OnPopupClosed() {}   // 弹出层关闭（派生类覆盖，用于回调持有者）
 
         // 屏幕点是否在“本弹出层 + 其子弹出层”的窗口矩形内（供主窗口判断“只有点菜单外才关菜单”）
         bool IsPointInPopupTree(POINT ptScreen) {
@@ -6350,6 +6434,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     // ============================================================================
     class MenuWindow : public MenuWindowBase {
     public:
+        void OnPopupClosed() override { if (menu_ && menu_->onClosed) menu_->onClosed(); }   // 关闭时通知持有者（如 MenuBar）
         MenuWindow(std::shared_ptr<Menu> menu, HWND ownerHwnd, int x, int y) : menu_(menu) {
             ownerHwnd_ = ownerHwnd;
             EnsureTextFormats();          // 先建文本格式，量宽才准确（否则窗口过窄、文字被裁）

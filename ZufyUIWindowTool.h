@@ -238,6 +238,7 @@ namespace ZufyUI {
         void SetIconSize(float w, float h) { iconW_ = w; iconH_ = h; InvalidateLayout(); RequestRepaint(); }
         void SetShowIcon(bool on) { showIcon_ = on; InvalidateLayout(); RequestRepaint(); }
         void SetShowTitle(bool on) { showTitle_ = on; InvalidateLayout(); RequestRepaint(); }
+        void SetTitleTextVisible(bool on) override { if (showTitle_ != on) SetShowTitle(on); }   // Window 每帧可能调；未变不重排
         void SetContentPadding(float left, float right = 8.0f) { padLeft_ = left; padRight_ = right; InvalidateLayout(); RequestRepaint(); }
         void SetBackgroundColor(Color c) { bgColor_ = c; RequestRepaint(); }
         void SetActiveBackgroundColor(Color c) { activeBgColor_ = c; RequestRepaint(); }

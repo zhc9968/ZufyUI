@@ -6910,6 +6910,180 @@ namespace ZufyUI {
         ComPtr<ID2D1SolidColorBrush> hoverB_, dB_, iB_, tB_, sB_;
     };
 
+    // ===================== 顶部菜单栏（VS 风格：点击条目弹 Menu；打开时移到别的条目即切换）=====================
+    class MenuBar : public UIElement {
+    public:
+        inline static float DefaultHeight = 30.0f;
+        inline static FontSpec DefaultFont = []() { FontSpec s; s.size = 13.0f; return s; }();
+        inline static Color DefaultTextColor = Color::FromArgb(255, 32, 32, 32);
+        inline static Color DefaultHoverBg = Color::FromArgb(28, 0, 0, 0);
+        inline static Color DefaultOpenBg = Color::FromArgb(46, 0, 0, 0);
+        MenuBar() { height_ = DefaultHeight; }
+        ~MenuBar() { for (auto& e : entries_) if (e.menu) e.menu->onClosed = nullptr; }   // 防悬垂回调
+
+        void SetFont(const FontSpec& f) { font_ = f; InvalidateLayout(); RequestRepaint(); }
+        FontSpec GetFont() const { return font_; }
+        void SetTextColor(Color c) { textColor_ = c; RequestRepaint(); }
+        void SetHoverColor(Color c) { hoverBg_ = c; RequestRepaint(); }
+        void SetOpenColor(Color c) { openBg_ = c; RequestRepaint(); }
+        void SetBackgroundColor(Color c) { bgColor_ = c; RequestRepaint(); }
+
+        // 添加一个顶级菜单；menu 为空则自动建一个。返回索引。
+        int AddMenu(const std::wstring& title, std::shared_ptr<Menu> menu = nullptr) {
+            Entry e; e.title = title; e.menu = menu ? menu : std::make_shared<Menu>();
+            entries_.push_back(e); InvalidateLayout(); RequestRepaint();
+            return (int)entries_.size() - 1;
+        }
+        std::shared_ptr<Menu> GetMenu(int i) const { return (i >= 0 && i < (int)entries_.size()) ? entries_[i].menu : nullptr; }
+        int MenuCount() const { return (int)entries_.size(); }
+        void CloseMenu() { if (openIndex_ != -1) { openIndex_ = -1; RequestRepaint(); } }
+        int OpenIndex() const { return openIndex_; }
+
+        Size MeasureOverride(const Size& avail) override {
+            float w = (width_ > 0.0f) ? width_ : ((avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width : 0.0f);
+            return Size(w, height_);
+        }
+        void ArrangeOverride(const Rect& r) override { UIElement::ArrangeOverride(r); UpdateEntryRects(); }
+        void Draw(ID2D1RenderTarget* rt) override {
+            const Rect& r = arrangedRect_;
+            if (r.width <= 0 || r.height <= 0) return;
+            if (bgColor_.a > 0.0f) { if (!bgBrush_) rt->CreateSolidColorBrush(bgColor_.ToD2D(), bgBrush_.GetAddressOf()); else bgBrush_->SetColor(bgColor_.ToD2D()); if (bgBrush_) rt->FillRectangle(r.ToD2D(), bgBrush_.Get()); }
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(font_);
+            if (!fmt) return;
+            if (!textBrush_) rt->CreateSolidColorBrush(textColor_.ToD2D(), textBrush_.GetAddressOf()); else textBrush_->SetColor(textColor_.ToD2D());
+            for (size_t i = 0; i < entries_.size(); ++i) {
+                const Entry& e = entries_[i];
+                float x = r.x + e.x;
+                bool pressed = ((int)i == openIndex_);                 // 菜单打开期间保持“按下”
+                bool hovered = ((int)i == hoverIndex_) && !pressed;    // 按下优先，避免叠加
+                if (pressed || hovered) {
+                    D2D1_COLOR_F c = pressed ? openBg_.ToD2D() : hoverBg_.ToD2D();
+                    ComPtr<ID2D1SolidColorBrush> b; rt->CreateSolidColorBrush(c, b.GetAddressOf());
+                    if (b) rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(x + 1, r.y + 3, x + e.w - 1, r.y + r.height - 3), 4, 4), b.Get());
+                }
+                DrawTextWithEllipsis(rt, e.title, D2D1::RectF(x + 8, r.y, x + e.w - 8, r.y + r.height), textColor_.ToD2D(), font_, textBrush_, fmt, true, TextHAlign::Center);
+            }
+        }
+        void UpdateAnimation(float) override {   // 菜单被关掉后（g_activeMenu 清空）复位“按下”
+            if (openIndex_ >= 0 && detail::g_activeMenu == nullptr) { openIndex_ = -1; RequestRepaint(); }
+        }
+        UIElement* HitTest(float x, float y) override {
+            if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
+            return (EntryAt(x) >= 0) ? this : nullptr;   // 只在条目上捕获；空白处放行 → 标题栏可拖动
+        }
+        void OnMouseMove(float x, float) override {
+            int idx = EntryAt(x);
+            if (idx != hoverIndex_) { hoverIndex_ = idx; RequestRepaint(); }   // 仅悬停高亮，不自动展开
+        }
+        void OnMouseLeave() override { if (hoverIndex_ != -1) { hoverIndex_ = -1; RequestRepaint(); } }
+        void OnMouseDown(float x, float) override {
+            int idx = EntryAt(x); if (idx < 0) return;
+            if (openIndex_ == idx) { openIndex_ = -1; RequestRepaint(); detail::CloseAllOpenMenus(); }   // 再点同一项 → 收起
+            else OpenIndex(idx);
+        }
+        void ReleaseDeviceResources() override { bgBrush_.Reset(); textBrush_.Reset(); UIElement::ReleaseDeviceResources(); }
+
+    private:
+        struct Entry { std::wstring title; std::shared_ptr<Menu> menu; float x = 0, w = 0; };
+        int EntryAt(float x) {
+            float lx = x - arrangedRect_.x;
+            for (size_t i = 0; i < entries_.size(); ++i) if (lx >= entries_[i].x && lx < entries_[i].x + entries_[i].w) return (int)i;
+            return -1;
+        }
+        float TextW(const std::wstring& s) {
+            IDWriteFactory* f = FontManager::Instance().GetFactory();
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(font_);
+            if (f && fmt && !s.empty()) { ComPtr<IDWriteTextLayout> lay; if (SUCCEEDED(f->CreateTextLayout(s.c_str(), (UINT32)s.size(), fmt, 1e5f, 1e5f, &lay)) && lay) { DWRITE_TEXT_METRICS m{}; lay->GetMetrics(&m); return m.width; } }
+            return 40.0f;
+        }
+        void UpdateEntryRects() {
+            float cx = 0.0f;
+            for (auto& e : entries_) { e.x = cx; e.w = TextW(e.title) + 16.0f; cx += e.w; }
+        }
+        void OpenIndex(int idx) {
+            hoverIndex_ = idx;
+            Window* w = GetWindow(); if (!w || !w->GetHwnd()) { openIndex_ = -1; RequestRepaint(); return; }
+            auto& e = entries_[idx]; if (!e.menu) { openIndex_ = -1; RequestRepaint(); return; }
+            e.menu->onClosed = [this, idx]() { if (openIndex_ == idx) { openIndex_ = -1; RequestRepaint(); } };   // 关闭 → 复位“按下”
+            POINT origin{ 0, 0 }; ::ClientToScreen(w->GetHwnd(), &origin);
+            float scale = w->GetDpiScale() / 96.0f;   // DIP → 物理像素
+            int sx = origin.x + (int)lround((arrangedRect_.x + e.x) * scale);
+            int sy = origin.y + (int)lround((arrangedRect_.y + arrangedRect_.height) * scale);
+            openIndex_ = idx;   // 打开成功后才标记“按下”
+            e.menu->ShowAt(sx, sy);   // ShowAt 会先关掉上一个菜单 → 切换生效
+            if (detail::g_activeMenu == nullptr) openIndex_ = -1;   // 打开失败 → 不留按下态
+            RequestRepaint();
+        }
+        std::vector<Entry> entries_;
+        FontSpec font_ = DefaultFont;
+        Color textColor_ = DefaultTextColor, hoverBg_ = DefaultHoverBg, openBg_ = DefaultOpenBg, bgColor_ = Color::FromArgb(0, 0, 0, 0);
+        int hoverIndex_ = -1, openIndex_ = -1;
+        ComPtr<ID2D1SolidColorBrush> bgBrush_, textBrush_;
+    };
+
+    // ===================== 底部状态栏（左右两侧面板：可选图标 + 文本）=====================
+    class StatusBar : public UIElement {
+    public:
+        inline static float DefaultHeight = 26.0f;
+        inline static FontSpec DefaultFont = []() { FontSpec s; s.size = 12.0f; return s; }();
+        inline static Color DefaultBg = Color::FromArgb(255, 245, 245, 245);
+        inline static Color DefaultBorder = Color::FromArgb(255, 222, 222, 222);
+        inline static Color DefaultTextColor = Color::FromArgb(255, 70, 70, 70);
+        StatusBar() { height_ = DefaultHeight; }
+
+        void SetFont(const FontSpec& f) { font_ = f; InvalidateLayout(); RequestRepaint(); }
+        void SetColors(Color bg, Color border, Color text) { bgColor_ = bg; borderColor_ = border; textColor_ = text; RequestRepaint(); }
+        void SetBackgroundColor(Color c) { bgColor_ = c; RequestRepaint(); }
+        int AddPanel(const std::wstring& text, bool rightAlign = false) { Panel p; p.text = text; p.right = rightAlign; panels_.push_back(p); RequestRepaint(); return (int)panels_.size() - 1; }
+        int AddPanel(Icon icon, const std::wstring& text, bool rightAlign = false) { Panel p; p.icon = icon; p.text = text; p.right = rightAlign; panels_.push_back(p); RequestRepaint(); return (int)panels_.size() - 1; }
+        int PanelCount() const { return (int)panels_.size(); }
+        void SetPanelText(int i, const std::wstring& text) { if (i >= 0 && i < (int)panels_.size()) { panels_[i].text = text; RequestRepaint(); } }
+        void SetPanelIcon(int i, Icon ic) { if (i >= 0 && i < (int)panels_.size()) { panels_[i].icon = ic; RequestRepaint(); } }
+
+        Size MeasureOverride(const Size& avail) override {
+            float w = (width_ > 0.0f) ? width_ : ((avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width : 0.0f);
+            return Size(w, height_);
+        }
+        void Draw(ID2D1RenderTarget* rt) override {
+            const Rect& r = arrangedRect_;
+            if (r.width <= 0 || r.height <= 0) return;
+            if (bgColor_.a > 0.0f) { if (!bgBrush_) rt->CreateSolidColorBrush(bgColor_.ToD2D(), bgBrush_.GetAddressOf()); else bgBrush_->SetColor(bgColor_.ToD2D()); if (bgBrush_) rt->FillRectangle(r.ToD2D(), bgBrush_.Get()); }
+            if (borderColor_.a > 0.0f) { if (!borderBrush_) rt->CreateSolidColorBrush(borderColor_.ToD2D(), borderBrush_.GetAddressOf()); else borderBrush_->SetColor(borderColor_.ToD2D()); if (borderBrush_) rt->FillRectangle(D2D1::RectF(r.x, r.y, r.x + r.width, r.y + 1.0f), borderBrush_.Get()); }
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(font_);
+            if (!textBrush_) rt->CreateSolidColorBrush(textColor_.ToD2D(), textBrush_.GetAddressOf()); else textBrush_->SetColor(textColor_.ToD2D());
+            float leftX = r.x + 10.0f, rightX = r.x + r.width - 10.0f;
+            FontSpec fi; fi.familyName = IconFontFamily(); fi.size = font_.size;
+            for (auto& p : panels_) {
+                float tw = PanelTextW(p.text);
+                float iw = (p.icon != Icon::None) ? (font_.size + 6.0f) : 0.0f;
+                if (!p.right) {
+                    if (p.icon != Icon::None) { DrawTextWithEllipsis(rt, IconGlyph(p.icon), D2D1::RectF(leftX, r.y, leftX + iw, r.y + r.height), textColor_.ToD2D(), fi, textBrush_, nullptr, true, TextHAlign::Left); leftX += iw; }
+                    if (fmt) DrawTextWithEllipsis(rt, p.text, D2D1::RectF(leftX, r.y, leftX + tw + 2, r.y + r.height), textColor_.ToD2D(), font_, textBrush_, fmt, true, TextHAlign::Left);
+                    leftX += tw + 18.0f;
+                } else {
+                    rightX -= tw;
+                    if (fmt) DrawTextWithEllipsis(rt, p.text, D2D1::RectF(rightX, r.y, rightX + tw + 2, r.y + r.height), textColor_.ToD2D(), font_, textBrush_, fmt, true, TextHAlign::Left);
+                    if (p.icon != Icon::None) { rightX -= (iw + 2); DrawTextWithEllipsis(rt, IconGlyph(p.icon), D2D1::RectF(rightX, r.y, rightX + iw, r.y + r.height), textColor_.ToD2D(), fi, textBrush_, nullptr, true, TextHAlign::Left); }
+                    rightX -= 18.0f;
+                }
+            }
+        }
+        void ReleaseDeviceResources() override { bgBrush_.Reset(); borderBrush_.Reset(); textBrush_.Reset(); UIElement::ReleaseDeviceResources(); }
+
+    private:
+        struct Panel { std::wstring text; Icon icon = Icon::None; bool right = false; };
+        float PanelTextW(const std::wstring& s) {
+            IDWriteFactory* f = FontManager::Instance().GetFactory();
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(font_);
+            if (f && fmt && !s.empty()) { ComPtr<IDWriteTextLayout> lay; if (SUCCEEDED(f->CreateTextLayout(s.c_str(), (UINT32)s.size(), fmt, 1e5f, 1e5f, &lay)) && lay) { DWRITE_TEXT_METRICS m{}; lay->GetMetrics(&m); return m.width; } }
+            return 50.0f;
+        }
+        std::vector<Panel> panels_;
+        FontSpec font_ = DefaultFont;
+        Color bgColor_ = DefaultBg, borderColor_ = DefaultBorder, textColor_ = DefaultTextColor;
+        ComPtr<ID2D1SolidColorBrush> bgBrush_, borderBrush_, textBrush_;
+    };
+
     // 折叠卡片标题（子元素：可带阴影 + 圆角）
     struct ExpanderHeader : public UIElement {
         std::wstring title, subtitle;

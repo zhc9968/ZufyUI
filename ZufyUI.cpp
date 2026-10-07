@@ -49,6 +49,34 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         });
     win.SetContextMenu(globalMenu);
 
+    // 顶部菜单栏（默认直接叠在自定义标题栏上）+ 底部状态栏
+    auto menuBar = std::make_shared<MenuBar>();
+    {
+        auto mFile = std::make_shared<Menu>();
+        mFile->AddItem(L"新建", []() { MessageBoxW(nullptr, L"新建", L"文件", MB_OK); });
+        mFile->AddItem(L"打开", []() { MessageBoxW(nullptr, L"打开", L"文件", MB_OK); });
+        mFile->AddSeparator();
+        mFile->AddItem(L"退出", [&win]() { if (win.GetHwnd()) PostMessageW(win.GetHwnd(), WM_CLOSE, 0, 0); });
+        menuBar->AddMenu(L"文件(F)", mFile);
+        auto mEdit = std::make_shared<Menu>();
+        mEdit->AddItem(L"撤销", []() {});
+        mEdit->AddItem(L"重做", []() {});
+        menuBar->AddMenu(L"编辑(E)", mEdit);
+        auto mView = std::make_shared<Menu>();
+        mView->AddCheckItem(L"显示状态栏", true, [&win](bool on) { if (auto sb = win.GetStatusBar()) sb->SetVisible(on); });
+        menuBar->AddMenu(L"视图(V)", mView);
+        auto mHelp = std::make_shared<Menu>();
+        mHelp->AddItem(L"关于", []() { MessageBoxW(nullptr, L"ZufyUI", L"关于", MB_OK); });
+        menuBar->AddMenu(L"帮助(H)", mHelp);
+    }
+    win.SetMenuBar(menuBar);
+
+    auto statusBar = std::make_shared<StatusBar>();
+    statusBar->AddPanel(L"就绪");
+    statusBar->AddPanel(L"行 1, 列 1");
+    statusBar->AddPanel(Icon::Home, L"ZufyUI", true);
+    win.SetStatusBar(statusBar);
+
     // 获取默认根布局（ColumnBox）
     auto root = win.GetRootColumnBox();
     if (!root) return 1;
