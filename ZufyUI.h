@@ -89,8 +89,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 19
-#define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.19.0"
+#define ZufyUI_VERSION_PATCH 1
+#define ZufyUI_VERSION_STRING L"1.19.1"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -3065,6 +3065,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float ScreenPxToDipY(int py) const { return py * 96.0f / (dpi_ ? (float)dpi_ : 96.0f); }
         // 拖放：命中并向上冒泡到“启用落点”的元素（定义在 ZufyUIDragDrop.h）
         UIElement* DropTargetAt(float dipX, float dipY);
+        // 整窗拖放：启用后，光标未命中任何“启用落点”的元素时，由窗口本身接收
+        // （x/y 为窗口客户区 DIP；在 DragEnter/Over/Drop 里设置 e.effect）
+        void SetDropTargetEnabled(bool on) { windowDropEnabled_ = on; }
+        bool IsDropTargetEnabled() const { return windowDropEnabled_; }
+        ZSignal<DragEventArgs&> DragEnter, DragOver, DragLeave, Drop;   // 窗口级拖放信号
+        bool windowDropEnabled_ = false;
         void RegisterDropTarget();     // OLE RegisterDragDrop（阶段1）
         void UnregisterDropTarget();
         // 发起 OLE 拖出（阶段2，定义在 ZufyUIDragDrop.h）；返回最终落点效果

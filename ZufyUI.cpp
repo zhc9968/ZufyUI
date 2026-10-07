@@ -1944,7 +1944,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         status->SetTextOverflow(Label::TextOverflow::Wrap);       // 结果（含长路径）换行显示，不省略
         status->SetAlignment(Label::HAlign::Left, Label::VAlign::Top);
         status->SetHeight(64);
-        auto imgView = std::make_shared<ImageView>(); imgView->SetFillWidth(true); imgView->SetHeight(220);
+        auto imgView = std::make_shared<Label>(); imgView->SetFillWidth(true); imgView->SetHeight(220);
+        imgView->SetImageFit(true);   // 图片等比缩放至完整可见（Label 自带 + 可拖出）
         auto lastImgPath = std::make_shared<std::wstring>();
         imgView->SetDragSource([lastImgPath](DragDataBuilder& b) { if (!lastImgPath->empty()) b.AddFile(*lastImgPath); }, DROPEFFECT_COPY | DROPEFFECT_MOVE);
         zone->Connect(zone->DragEnter, [zone](DragEventArgs&) {
@@ -1996,7 +1997,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     mainHost->AddPage(pageDragPage);
 
     // ---------- 设置卡片（折叠 / 展开）----------
-    auto pageCard = std::make_shared<ColumnBox>(); pageCard->SetSpacing(12); pageCard->SetMargin(Thickness(6, 6, 6, 6));
+    auto pageCard = std::make_shared<ColumnBox>(); pageCard->SetSpacing(12); pageCard->SetMargin(Thickness(10, 10, 10, 10));
     {
         auto tip = std::make_shared<Label>(L"点击卡片顶部（或右侧箭头）折叠 / 展开：");
         tip->SetHeight(24);

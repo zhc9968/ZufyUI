@@ -1100,7 +1100,7 @@ bool RegisterApp(const AppInfo&);    // or Application::Instance().RegisterApp(i
 ```
 - By default only sets the AUMID (zero file/registry side effects); defining `ZUFYUI_ALLOW_APP_REGISTRATION` writes `%LOCALAPPDATA%\ZufyUI\AppReg\...` and `HKCU\...\AppUserModelId` (so Win10/11 toasts show the app name/icon); auto-cleans on exit.
 
-###chapter: Drag & Drop, cards | Drag & Drop, Expander, SettingsList, ImageView (v1.19.0)
+###chapter: Drag & Drop, cards | Drag & Drop, Expander, SettingsList (v1.19.0)
 
 > Drag & drop comes from `ZufyUIDragDrop.h` (already included at the end of `ZufyUI.h`). In-app default is MOVE, cross-app is COPY.
 
@@ -1132,12 +1132,17 @@ void  UIElement::OnDragLeave(DragEventArgs&);   DWORD UIElement::OnDrop(DragEven
 void UIElement::SetDragSource(std::function<void(DragDataBuilder&)>, DWORD allowed = COPY|MOVE|LINK);
 ZSignal<DragEventArgs&> DragEnter, DragOver, DragLeave, Drop;
 
+// ---- drag & drop: whole-window (when no drop-enabled element is under the cursor) ----
+void Window::SetDropTargetEnabled(bool);   bool Window::IsDropTargetEnabled() const;
+ZSignal<DragEventArgs&> Window::DragEnter, DragOver, DragLeave, Drop;   // x/y = client-area DIP
+
 // ---- Expander: collapsible card ----
 class Expander : public UIElement {
     Expander(const std::wstring& title = L"", const std::wstring& subtitle = L"");
     void SetTitle/SetSubtitle(const std::wstring&);   void SetContent(std::shared_ptr<UIElement>);
     std::shared_ptr<UIElement> GetContent() const;
     void SetExpanded(bool);   bool IsExpanded() const;   void Toggle();
+    void SetIcon(Icon, float size = 22.0f);   // leading icon (None = none)
     ZSignal<bool> ExpandedChanged;
 };
 
@@ -1146,19 +1151,15 @@ class SettingsList : public UIElement {
     void AddRow(Icon, const std::wstring& text, const std::wstring& subtitle, std::function<void()> onClick, const std::wstring& id = {});
     ZSignal<int> RowClicked;
 };
-
-// ---- ImageView: image display (stretched, uncached, drag-out) ----
-class ImageView : public UIElement {
-    void SetImage(std::shared_ptr<Image>);   std::shared_ptr<Image> GetImage() const;
-    void SetDragSource(std::function<void(DragDataBuilder&)>, DWORD allowed = COPY|MOVE|LINK);
-    bool UseCache() const override { return false; }
-};
 ```
 - **`Pitfall`**: `DragEventArgs.x/y` are **element-relative DIP** (not screen pixels).
 - Same-control text drag: the source deletes the original selection first, then inserts at the drop point (with left-shift fix); the target detects the private `ZufyUI.TextSource` format and skips the duplicate insert.
 - **`Version`**: collapse/expand uses the same **smoothstep easing** as page transitions; the arrow **rotates** with that easing (collapsed points down → expanded points up).
 - **`Version`**: the header **highlights** on hover (rounded); the `ComboBox` dropdown arrow is likewise a chevron that **rotates** with expansion.
 - **`Pitfall`**: `Expander` collapses via an explicit `SetHeight`, so the parent layout actually shrinks with it.
+- Image display uses `Label`: `SetImage` + `SetImageFit(true)` (scale to fully visible) + `SetDragSource` (drag-out).
+- **`Version`**: whole-window receive — `Window::SetDropTargetEnabled(true)` + window-level `DragEnter/DragOver/DragLeave/Drop` (`x/y` = client-area DIP).
+- **`Version`**: `Expander::SetIcon(Icon, size)` adds a leading icon; `TextEdit` undo/redo uses the standard scheme (both restore the selection and cursor of that point).
 
 ###chapter: Accessibility & Debug Channel | UIA + SetDebugEnabled (v1.17.0)
 
@@ -1192,7 +1193,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.19.0
+###chapter: Version digest | v1.15.0 → v1.19.1
 
 > Only the changes that affect your code are listed.
 
@@ -1205,10 +1206,17 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - `UIElement::ReleaseDeviceResourcesRecursive()`; `PageHost` delayed hidden-page cache release (~1.2 s); `ScrollViewer::UseCache()=false`; `SetUseCache(false)` frees immediately.
   - Library fixes: `Snap` DPI scale also set on the UI thread; `ZSignal::Fire` RAII exception safety; `TextBox` shift+click; `Slider` zero-width NaN guard; `ListView` pooled-label re-measure on width change (`poolW_`).
 - **v1.19.0**:
-  - New **drag & drop** (`ZufyUIDragDrop.h`): `Window::BeginDrag` + `DragDataBuilder`; element `SetDropTargetEnabled` / `OnDragEnter/Over/Leave/Drop` + signals; `Label`/`Button`/`ImageView`/`TextBox`/`TextEdit`/`ComboBox` accept and start drags; drag files out to Explorer.
-  - New `Expander` (collapsible card: smoothstep easing + rotating arrow + header hover highlight), `SettingsList` (settings rows), `ImageView` (stretched, uncached, drag-out).
+  - New **drag & drop** (`ZufyUIDragDrop.h`): `Window::BeginDrag` + `DragDataBuilder`; element `SetDropTargetEnabled` / `OnDragEnter/Over/Leave/Drop` + signals; `Label`/`Button`/`TextBox`/`TextEdit`/`ComboBox` accept and start drags; drag files out to Explorer.
+  - New `Expander` (collapsible card: smoothstep easing + rotating arrow + header hover highlight), `SettingsList` (settings rows); image display uses `Label::SetImage` + `SetImageFit` (scale to fully visible).
   - `ComboBox` dropdown arrow is now a chevron that rotates with expansion.
   - Text drag now has **move** semantics: the source deletes the original selection first, then inserts at the drop point (private format dedups same-control drags).
+- **v1.19.1**:
+  - `TextEdit` undo/redo switched to the **standard scheme** (stack top = current state): both undo and redo **restore the selection and cursor** of that point; Backspace/Delete/typing/paste are one step each; drop insert/move are undoable and redoable.
+  - `ScrollViewer`: content is measured at the **viewport width** (fixes "clipped cards" and wrong scroll range from an infinite desired width for FillWidth/wrapping content); content is measured **twice** (re-measured at the narrower width once a vertical bar appears); the content element's own **`margin` is honored**; the clip gets a **1px bleed** so edge borders are not cut in half.
+  - The drop caret now shows even when the target is **unfocused**; during a drag the **source selection is preserved** and a preview caret shows at the drop point; dropping inside the original selection is a no-op.
+  - `Expander`: header hover highlight (no longer covering the card border), arrow rotates with the collapse easing, `SetIcon` leading icon.
+  - Whole-window drag & drop: `Window::SetDropTargetEnabled` + window-level `DragEnter/DragOver/DragLeave/Drop`.
+  - Image display merged into `Label` (new `SetImageFit`); the standalone `ImageView` is removed.
 
 ###chapter: Pitfall index | Quick lookup by topic
 
@@ -1254,6 +1262,6 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - ScrollViewer: `ScrollChanged`; SplitView: `SplitChanged`; TabView: `SelectionChanged/TabCloseRequested`
 - ListView/TableView/TreeView: `SelectionChanged/ItemClicked(CellClicked)/ItemDoubleClicked/ItemRightClicked/…CheckStateChanged`
 - Chart: `PointClicked/CategoryClicked`; PieChart: `SliceClicked`
-- Drag & drop: element `DragEnter/DragOver/DragLeave/Drop`; Expander: `ExpandedChanged`; SettingsList: `RowClicked`
+- Drag & drop: element `DragEnter/DragOver/DragLeave/Drop`; window-level `Window::DragEnter/DragOver/DragLeave/Drop`; Expander: `ExpandedChanged`; SettingsList: `RowClicked`
 - Window: `Activated/Deactivated/Closing/Closed/DeviceLost/RenderingError`
 - Global: `UIZSignals::DrawOverlay/GlobalMouseDown/WindowActivated/WindowDeactivated/DeviceReset/ReloadAcrylic/Error`

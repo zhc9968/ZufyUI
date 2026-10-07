@@ -22,8 +22,8 @@ ZufyUI is a **header-only** Windows desktop UI framework built directly on Direc
 - **Signals and slots**: built-in `ZSignal` / `Connection`, supporting `Connect` with automatic lifetime management, plus three dispatch strategies: current thread / new thread / UI thread.
 - **Rich controls**: labels, buttons, text boxes, combo boxes, toggle switches, scroll containers, progress bars, sliders, and three data views: list / table / tree.
 - **Charts**: `BarChart` / `LineChart` / `PieChart` (horizontal orientation, area fill, wheel zoom, live refresh) from `ZufyUICharts.h`.
-- **Drag & drop**: built-in OLE drag & drop (`ZufyUIDragDrop.h`) — drop text / files / custom formats in, and drag text / images / files out to Explorer; text boxes, combo boxes, images, buttons, and labels are all wired up.
-- **Card components**: collapsible card `Expander` (easing + rotating arrow), settings row list `SettingsList`, image display `ImageView`.
+- **Drag & drop**: built-in OLE drag & drop (`ZufyUIDragDrop.h`) — drop text / files / custom formats in, and drag text / images / files out to Explorer; text boxes, combo boxes, images, buttons, and labels are all wired up; supports element-level and **whole-window** reception (`Window::SetDropTargetEnabled`).
+- **Card components**: collapsible card `Expander` (easing + rotating arrow + header hover highlight + `SetIcon`), settings row list `SettingsList`; image display via `Label::SetImage` + `SetImageFit` (fit to fully visible, drag-out).
 - **Complete animation and transitions**: hover, expand, indicator bar, and page switching (`PageHost`) all have built-in animations, and scrolling supports smooth scrolling.
 - **High-DPI adaptation**: automatically aware of DPI; `Snap()` snaps drawing to physical pixels to avoid blurriness.
 - **IME compatibility**: text boxes support Chinese IME composition input and candidate window positioning.

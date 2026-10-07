@@ -1121,7 +1121,7 @@ bool RegisterApp(const AppInfo&);     // 或 Application::Instance().RegisterApp
 ```
 - 默认只设 AUMID（零文件/注册表副作用）；定义 `ZUFYUI_ALLOW_APP_REGISTRATION` 才会写 `%LOCALAPPDATA%\ZufyUI\AppReg\...` 与 `HKCU\...\AppUserModelId`（让 Win10/11 toast 显示应用名/图标），退出自动清理。
 
-###chapter: 拖放与卡片组件 | Drag & Drop、Expander、SettingsList、ImageView（v1.19.0）
+###chapter: 拖放与卡片组件 | Drag & Drop、Expander、SettingsList（v1.19.0）
 
 > 拖放由 `ZufyUIDragDrop.h` 提供（`ZufyUI.h` 末尾已包含）。应用内默认 MOVE，跨应用 COPY。
 
@@ -1153,12 +1153,17 @@ void  UIElement::OnDragLeave(DragEventArgs&);   DWORD UIElement::OnDrop(DragEven
 void UIElement::SetDragSource(std::function<void(DragDataBuilder&)>, DWORD allowed = COPY|MOVE|LINK);
 ZSignal<DragEventArgs&> DragEnter, DragOver, DragLeave, Drop;
 
+// ---- 拖放：整窗接收（光标未命中任何“启用落点”的元素时由窗口接收）----
+void Window::SetDropTargetEnabled(bool);   bool Window::IsDropTargetEnabled() const;
+ZSignal<DragEventArgs&> Window::DragEnter, DragOver, DragLeave, Drop;   // x/y = 客户区 DIP
+
 // ---- Expander：可折叠卡片 ----
 class Expander : public UIElement {
     Expander(const std::wstring& title = L"", const std::wstring& subtitle = L"");
     void SetTitle/SetSubtitle(const std::wstring&);   void SetContent(std::shared_ptr<UIElement>);
     std::shared_ptr<UIElement> GetContent() const;
     void SetExpanded(bool);   bool IsExpanded() const;   void Toggle();
+    void SetIcon(Icon, float size = 22.0f);   // 标题前图标（None = 无）
     ZSignal<bool> ExpandedChanged;
 };
 
@@ -1167,19 +1172,15 @@ class SettingsList : public UIElement {
     void AddRow(Icon, const std::wstring& text, const std::wstring& subtitle, std::function<void()> onClick, const std::wstring& id = {});
     ZSignal<int> RowClicked;
 };
-
-// ---- ImageView：图片显示（拉伸铺满、不缓存、可拖出）----
-class ImageView : public UIElement {
-    void SetImage(std::shared_ptr<Image>);   std::shared_ptr<Image> GetImage() const;
-    void SetDragSource(std::function<void(DragDataBuilder&)>, DWORD allowed = COPY|MOVE|LINK);
-    bool UseCache() const override { return false; }
-};
 ```
 - **`易错`**：`DragEventArgs.x/y` 是**元素相对 DIP**（不是屏幕像素）。
 - 同控件内文本拖动：源端先删原选区、再按落点插入并左移修正；目标端检测私有格式 `ZufyUI.TextSource` 跳过重复插入。
 - **`版本`**：折叠/展开用与页面切换相同的 **smoothstep 缓动**；箭头随同一缓动**旋转**（收起向下 → 展开向上）。
 - **`版本`**：标题条悬停**高亮**（圆角）；`ComboBox` 下拉箭头同样改为随展开**旋转**的 chevron。
 - **`易错`**：`Expander` 折叠时用显式 `SetHeight` 收拢，父布局才会跟随收缩。
+- 图片展示用 `Label`：`SetImage` + `SetImageFit(true)`（等比缩放至完整可见）+ `SetDragSource`（拖出）。
+- **`版本`**：整窗接收——`Window::SetDropTargetEnabled(true)` + 窗口级 `DragEnter/DragOver/DragLeave/Drop`（`x/y` 为客户区 DIP）。
+- **`版本`**：`Expander::SetIcon(Icon, size)` 在标题前加图标；`TextEdit` 撤销/重做改为标准方案（撤销/重做都还原当时的选区与光标）。
 
 ###chapter: 无障碍与调试通道 | UIA + SetDebugEnabled（v1.17.0）
 
@@ -1214,7 +1215,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.19.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.19.1
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1227,10 +1228,17 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - `UIElement::ReleaseDeviceResourcesRecursive()`；`PageHost` 隐藏页缓存**延迟释放**（约 1.2s）；`ScrollViewer::UseCache()=false`；`SetUseCache(false)` 立即释放位图。
   - 库层修复：`Snap` 的 DPI 上下文在 UI 线程也设置；`ZSignal::Fire` RAII 异常安全；`TextBox` shift+点击语义；`Slider` 0 宽 NaN 守卫；`ListView` 池宽度变化重测（`poolW_`）。
 - **v1.19.0**：
-  - 新增**拖放**（`ZufyUIDragDrop.h`）：`Window::BeginDrag` + `DragDataBuilder`；元素 `SetDropTargetEnabled`/`OnDragEnter/Over/Leave/Drop` + 信号；`Label`/`Button`/`ImageView`/`TextBox`/`TextEdit`/`ComboBox` 支持拖入/拖出；跨应用文件拖出。
-  - 新增 `Expander`（可折叠卡片：smoothstep 缓动 + 箭头旋转 + 标题悬停高亮）、`SettingsList`（设置行列表）、`ImageView`（拉伸铺满、不缓存、可拖出）。
+  - 新增**拖放**（`ZufyUIDragDrop.h`）：`Window::BeginDrag` + `DragDataBuilder`；元素 `SetDropTargetEnabled`/`OnDragEnter/Over/Leave/Drop` + 信号；`Label`/`Button`/`TextBox`/`TextEdit`/`ComboBox` 支持拖入/拖出；跨应用文件拖出。
+  - 新增 `Expander`（可折叠卡片：smoothstep 缓动 + 箭头旋转 + 标题悬停高亮）、`SettingsList`（设置行列表）；图片展示用 `Label::SetImage` + `SetImageFit`（等比缩放至完整可见）。
   - `ComboBox` 下拉箭头改为随展开旋转的 chevron。
   - 文本拖动为**移动**语义：源端先删原选区再按落点插入（同控件用私有格式去重）。
+- **v1.19.1**：
+  - `TextEdit` 撤销/重做改为**标准方案**（栈顶=当前态）：撤销/重做都**还原当时的选区与光标**；Backspace/Delete/输入/粘贴各一步；拖放插入/移动均可撤销、可重做。
+  - `ScrollViewer`：内容改按**视口宽度**测量（修复 FillWidth/换行内容期望宽度无穷大导致的“卡片被裁剪”与滚动范围错乱）；内容**两遍测量**（出现竖滚动条后按变窄宽度重量）；**尊重内容元素自身的 `margin`**；裁剪四周留 **1px 出血**，避免内容边缘边框被切掉一半。
+  - 拖放落点光标在目标**未聚焦**时也显示；拖动期间**保留源选区**并在落点显示预览光标；落点落在原选区内 → 不变更。
+  - `Expander`：标题条悬停高亮（不再遮挡卡片边框）、箭头随折叠缓动旋转、`SetIcon` 标题图标。
+  - 整窗拖放：`Window::SetDropTargetEnabled` + 窗口级 `DragEnter/DragOver/DragLeave/Drop`。
+  - 图片展示并入 `Label`（新增 `SetImageFit`），移除独立的 `ImageView`。
 
 ###chapter: 易错点总表 | 按主题速查
 
@@ -1277,6 +1285,6 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - ScrollViewer：`ScrollChanged`；SplitView：`SplitChanged`；TabView：`SelectionChanged/TabCloseRequested`
 - ListView/TableView/TreeView：`SelectionChanged/ItemClicked(CellClicked)/ItemDoubleClicked/ItemRightClicked/…CheckStateChanged`
 - Chart：`PointClicked/CategoryClicked`；PieChart：`SliceClicked`
-- 拖放：元素 `DragEnter/DragOver/DragLeave/Drop`；Expander：`ExpandedChanged`；SettingsList：`RowClicked`
+- 拖放：元素 `DragEnter/DragOver/DragLeave/Drop`；窗口级 `Window::DragEnter/DragOver/DragLeave/Drop`；Expander：`ExpandedChanged`；SettingsList：`RowClicked`
 - Window：`Activated/Deactivated/Closing/Closed/DeviceLost/RenderingError`
 - 全局：`UIZSignals::DrawOverlay/GlobalMouseDown/WindowActivated/WindowDeactivated/DeviceReset/ReloadAcrylic/Error`

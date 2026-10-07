@@ -116,39 +116,56 @@ public:
 private:
     enum class Mode { Over, Drop };
 
-    UIElement* TargetAt(POINTL pt, float& lx, float& ly) {
+    UIElement* TargetAt(POINTL pt, float& lx, float& ly, float& wdx, float& wdy) {
         POINT p{ pt.x, pt.y };
         ScreenToClient(window_->GetHwnd(), &p);
-        const float dx = window_->ScreenPxToDipX(p.x), dy = window_->ScreenPxToDipY(p.y);
-        UIElement* e = window_->DropTargetAt(dx, dy);
-        if (e) { Rect r = e->GetArrangedRect(); lx = dx - r.x; ly = dy - r.y; }
+        wdx = window_->ScreenPxToDipX(p.x); wdy = window_->ScreenPxToDipY(p.y);
+        UIElement* e = window_->DropTargetAt(wdx, wdy);
+        if (e) { Rect r = e->GetArrangedRect(); lx = wdx - r.x; ly = wdy - r.y; }
         return e;
     }
     void SendLeave() {
-        if (!hover_) return;
-        DragEventArgs e{ data_, 0.0f, 0.0f, DROPEFFECT_NONE, DROPEFFECT_NONE, 0 };
-        hover_->OnDragLeave(e);
-        hover_ = nullptr;
+        if (hover_) {
+            DragEventArgs e{ data_, 0.0f, 0.0f, DROPEFFECT_NONE, DROPEFFECT_NONE, 0 };
+            hover_->OnDragLeave(e);
+            hover_ = nullptr;
+        }
+        if (hoverWindow_) {
+            DragEventArgs e{ data_, 0.0f, 0.0f, DROPEFFECT_NONE, DROPEFFECT_NONE, 0 };
+            window_->DragLeave.Fire(e);
+            hoverWindow_ = false;
+        }
     }
     void Dispatch(DWORD keyState, POINTL pt, DWORD allowed, DWORD* effect, Mode mode) {
-        float lx = 0.0f, ly = 0.0f;
-        UIElement* target = TargetAt(pt, lx, ly);
-        if (target != hover_) {
+        float lx = 0.0f, ly = 0.0f, wdx = 0.0f, wdy = 0.0f;
+        UIElement* target = TargetAt(pt, lx, ly, wdx, wdy);
+        bool useWindow = (!target && window_->IsDropTargetEnabled());   // 未命中元素 → 整窗接收
+        if (target != hover_ || useWindow != hoverWindow_) {
             SendLeave();
-            hover_ = target;
+            hover_ = target; hoverWindow_ = useWindow;
             if (hover_) { DragEventArgs e{ data_, lx, ly, allowed, DROPEFFECT_NONE, keyState }; hover_->OnDragEnter(e); }
+            else if (hoverWindow_) { DragEventArgs e{ data_, wdx, wdy, allowed, DROPEFFECT_NONE, keyState }; window_->DragEnter.Fire(e); }
         }
-        if (!hover_) { if (effect) *effect = DROPEFFECT_NONE; return; }
-        DWORD eff = allowed & hover_->GetAllowedDropEffects();
-        DragEventArgs e{ data_, lx, ly, allowed, eff, keyState };
-        if (mode == Mode::Drop) { eff = hover_->OnDrop(e); }
-        else { hover_->OnDragOver(e); eff = e.effect & allowed & hover_->GetAllowedDropEffects(); }
-        if (effect) *effect = eff;
+        if (hover_) {
+            DWORD eff = allowed & hover_->GetAllowedDropEffects();
+            DragEventArgs e{ data_, lx, ly, allowed, eff, keyState };
+            if (mode == Mode::Drop) { eff = hover_->OnDrop(e); }
+            else { hover_->OnDragOver(e); eff = e.effect & allowed & hover_->GetAllowedDropEffects(); }
+            if (effect) *effect = eff;
+        } else if (hoverWindow_) {
+            DragEventArgs e{ data_, wdx, wdy, allowed, allowed, keyState };
+            if (mode == Mode::Drop) { window_->Drop.Fire(e); }
+            else { window_->DragOver.Fire(e); }
+            if (effect) *effect = (e.effect & allowed);
+        } else {
+            if (effect) *effect = DROPEFFECT_NONE;
+        }
     }
 
     LONG ref_ = 1;                       // 我们持有的引用；RegisterDragDrop 会再 +1
     Window* window_ = nullptr;
     UIElement* hover_ = nullptr;
+    bool hoverWindow_ = false;
     DragData data_;
 };
 } // namespace detail
