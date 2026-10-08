@@ -7,6 +7,41 @@
 
 using namespace ZufyUI;
 
+namespace {
+    // 主题色卡：按 ThemeRole 顺序画出当前应用主题的每个角色（色块 + 名称 + 十六进制），随主题变化刷新
+    struct ThemeSwatch : public UIElement {
+        Size MeasureOverride(const Size& avail) override {
+            float w = (avail.width != FLT_MAX && avail.width > 0) ? avail.width : (width_ > 0 ? width_ : 600.0f);
+            int per = max(1, (int)((w + 6.0f) / (118.0f + 6.0f)));
+            int rows = ((int)ThemeRole::Count + per - 1) / per;
+            return Size(w, rows * (44.0f + 6.0f));
+        }
+        void Draw(ID2D1RenderTarget* rt) override {
+            const Theme& t = ThemeManager::AppTheme();
+            static const wchar_t* names[] = { L"Text",L"TextSecondary",L"TextDisabled",L"TextOnAccent",L"Surface",L"SurfaceAlt",L"SurfaceRaised",L"Backdrop",L"Overlay",L"Control",L"ControlHover",L"ControlPressed",L"ControlDisabled",L"Accent",L"AccentHover",L"AccentPressed",L"Border",L"Divider",L"FocusRing",L"Selection",L"ScrollTrack",L"ScrollThumb",L"ScrollThumbHover",L"Danger",L"Warning",L"Success",L"Info" };
+            const float cw = 118.0f, ch = 44.0f, gap = 6.0f;
+            int per = max(1, (int)((arrangedRect_.width + gap) / (cw + gap)));
+            FontSpec fs; fs.size = 11.0f;
+            IDWriteTextFormat* fmt = FontManager::Instance().GetFormat(fs);
+            for (int i = 0; i < (int)ThemeRole::Count; ++i) {
+                int r = i / per, c = i % per;
+                float x = arrangedRect_.x + c * (cw + gap), y = arrangedRect_.y + r * (ch + gap);
+                Color col = t.Get((ThemeRole)i);
+                ComPtr<ID2D1SolidColorBrush> b; rt->CreateSolidColorBrush(col.ToD2D(), b.GetAddressOf());
+                if (b) rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(x, y, x + cw, y + ch), 4, 4), b.Get());
+                float lum = 0.299f * col.r + 0.587f * col.g + 0.114f * col.b;
+                Color fg = (lum > 0.55f) ? Color::FromArgb(255, 0, 0, 0) : Color::FromArgb(255, 255, 255, 255);
+                wchar_t hex[24]; swprintf(hex, 24, L"#%02X%02X%02X", (int)(col.r * 255 + 0.5f), (int)(col.g * 255 + 0.5f), (int)(col.b * 255 + 0.5f));
+                ComPtr<ID2D1SolidColorBrush> tb; rt->CreateSolidColorBrush(fg.ToD2D(), tb.GetAddressOf());
+                if (tb && fmt) {
+                    DrawTextWithEllipsis(rt, names[i], D2D1::RectF(x + 5, y + 4, x + cw - 4, y + ch * 0.5f), fg.ToD2D(), fs, tb, fmt, true, TextHAlign::Left);
+                    DrawTextWithEllipsis(rt, hex, D2D1::RectF(x + 5, y + ch * 0.5f, x + cw - 4, y + ch - 3), fg.ToD2D(), fs, tb, fmt, true, TextHAlign::Left);
+                }
+            }
+        }
+    };
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     // 应用身份（名称 + 图标）统一在开头设置一次：
     //   图标打进 exe（资源 IDI_APPICON，见 ZufyUI.rc），运行时 Image::FromResource 从资源加载，不依赖外部 .ico 文件。
@@ -16,6 +51,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // 演示程序自己的默认背景：亚克力 + 半透明白色着色。
     // 库的默认是 Backdrop::None（不替应用决定），所以不透明/着色都由应用这里指定。
     Window::SetDefaultBackdrop(Backdrop::Acrylic, 0x80FFFFFF);
+    ThemeManager::SetFollowSystem(true);   // 默认跟随系统深/浅色 + 系统强调色（启动时读一次 + 监听系统消息）
     const wchar_t* kTitle = L"ZufyUI 自动化布局综合测试 " ZufyUI_VERSION_STRING;
     Window win;
     if (!win.Create(1000, 700, kTitle)) {
@@ -64,6 +100,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         menuBar->AddMenu(L"编辑(E)", mEdit);
         auto mView = std::make_shared<Menu>();
         mView->AddCheckItem(L"显示状态栏", true, [&win](bool on) { if (auto sb = win.GetStatusBar()) sb->SetVisible(on); });
+        mView->AddCheckItem(L"跟随系统主题", true, [](bool on) { ThemeManager::SetFollowSystem(on); });
+        auto darkOn = std::make_shared<bool>(false);
+        mView->AddItem(L"切换深色 / 浅色", [darkOn]() { ThemeManager::SetFollowSystem(false); *darkOn = !*darkOn; if (*darkOn) ThemeManager::SetDarkAppTheme(); else ThemeManager::SetLightAppTheme(); });
         menuBar->AddMenu(L"视图(V)", mView);
         auto mHelp = std::make_shared<Menu>();
         mHelp->AddItem(L"关于", []() { MessageBoxW(nullptr, L"ZufyUI", L"关于", MB_OK); });
@@ -114,6 +153,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     navList->AddItem(L"饼图");
     navList->AddItem(L"拖放");
     navList->AddItem(L"设置卡片");
+    navList->AddItem(L"主题");
     navList->SetSelectedIndex(0);
     mainRow->AddChild(navList);
 
@@ -2056,6 +2096,37 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     auto svCard = std::make_shared<ScrollViewer>(); svCard->SetFillWidth(true); svCard->SetFillHeight(true); svCard->SetContent(pageCard);
     auto pageCardPage = std::make_shared<Page>(); pageCardPage->SetLayout(svCard);
     mainHost->AddPage(pageCardPage);
+
+    // ---------- 主题测试页 ----------
+    auto pageTheme = std::make_shared<Page>();
+    {
+        auto col = std::make_shared<ColumnBox>(); col->SetSpacing(10); col->SetMargin(Thickness(16, 16, 16, 16));
+        col->AddChild(std::make_shared<Label>(L"主题系统：切换浅色 / 深色 / 高对比度；下方色卡展示每个 ThemeRole 的当前值"));
+        auto row = std::make_shared<RowBox>(); row->SetSpacing(8);
+        auto bL = std::make_shared<Button>(L"浅色"); bL->Connect(bL->Clicked, []() { ThemeManager::SetLightAppTheme(); });
+        auto bD = std::make_shared<Button>(L"深色"); bD->Connect(bD->Clicked, []() { ThemeManager::SetDarkAppTheme(); });
+        auto bH = std::make_shared<Button>(L"高对比度"); bH->Connect(bH->Clicked, []() { ThemeManager::SetAppTheme(Theme::HighContrast()); });
+        auto bF = std::make_shared<Button>(L"模拟系统:深色"); bF->Connect(bF->Clicked, []() { ThemeManager::DebugForceSystemTheme(true, true, false); });
+        auto bF2 = std::make_shared<Button>(L"模拟系统:高对比度"); bF2->Connect(bF2->Clicked, []() { ThemeManager::DebugForceSystemTheme(true, false, true); });
+        auto bF3 = std::make_shared<Button>(L"关闭模拟"); bF3->Connect(bF3->Clicked, []() { ThemeManager::DebugForceSystemTheme(false, false, false); });
+        row->AddChild(bL); row->AddChild(bD); row->AddChild(bH); row->AddChild(bF); row->AddChild(bF2); row->AddChild(bF3);
+        col->AddChild(row);
+        auto swatch = std::make_shared<ThemeSwatch>(); swatch->SetFillWidth(true);
+        col->AddChild(swatch);
+        auto ctrl = std::make_shared<RowBox>(); ctrl->SetSpacing(8); ctrl->SetHeight(34);
+        auto tb = std::make_shared<TextBox>(); tb->SetText(L"文本框"); tb->SetWidth(140);
+        auto cb = std::make_shared<ComboBox>(); cb->AddItem(L"选项 A"); cb->AddItem(L"选项 B"); cb->SetSelectedIndex(0);
+        auto sw = std::make_shared<ToggleSwitch>(true);
+        auto pb = std::make_shared<ProgressBar>(); pb->SetValue(0.6f); pb->SetWidth(120);
+        ctrl->AddChild(tb); ctrl->AddChild(cb); ctrl->AddChild(sw); ctrl->AddChild(pb);
+        col->AddChild(ctrl);
+        auto lv = std::make_shared<ListView>(); lv->SetHeight(120); lv->SetFillWidth(true);
+        for (int i = 0; i < 6; ++i) lv->AddItem(L"列表项 " + std::to_wstring(i + 1));
+        col->AddChild(lv);
+        auto sv = std::make_shared<ScrollViewer>(); sv->SetFillWidth(true); sv->SetFillHeight(true); sv->SetContent(col);
+        pageTheme->SetLayout(sv);
+    }
+    mainHost->AddPage(pageTheme);
 
     // 主页面导航：记录当前索引，根据相对位置设置上下方向
     auto currentMainIndex = std::make_shared<int>(0);

@@ -2182,6 +2182,7 @@ namespace ZufyUI {
                 reply = DebugSetElementMargin(id, (float)x, (float)y) ? L"OK\n" : L"ERR not found\n";
                 break;
             }
+            case 23: reply = ThemeManager::Dump(); break;   // GetTheme：主题名 + 各 Role 的 AARRGGBB
             default: reply = L"ERR unknown cmd\n"; break;
             }
 
@@ -2196,5 +2197,37 @@ namespace ZufyUI {
             return 0;
         }
     } // namespace detail
+
+    // ============================ 主题桥接（窗口周边 = 系统外观） ============================
+    // 标题栏三件套/标题栏是“系统周边”，跟随“系统”主题，而不是当前窗口主题。
+    inline void ApplySystemThemeToChromeStatics(const Theme& /*winTheme*/) {
+        const Theme& st = ThemeManager::SystemThemeCached();
+        CaptionButton::DefaultHoverColor   = st.isDark ? Color::FromArgb(255, 60, 60, 60) : Color::FromArgb(255, 229, 229, 229);
+        CaptionButton::DefaultPressedColor = st.isDark ? Color::FromArgb(255, 74, 74, 74) : Color::FromArgb(255, 214, 214, 214);
+        CaptionButton::DefaultCloseHoverColor   = st.Get(ThemeRole::Danger);
+        CaptionButton::DefaultClosePressedColor = Color::Lerp(st.Get(ThemeRole::Danger), Color::FromArgb(255, 0, 0, 0), 0.15f);
+        CaptionButton::DefaultGlyphColor   = st.Get(ThemeRole::Text);
+    }
+    inline void ApplyThemeToChromeTree(UIElement* e, const Theme& winTheme) {
+        if (!e) return;
+        const Theme& st = ThemeManager::SystemThemeCached();
+        if (auto* cb = dynamic_cast<CaptionButton*>(e)) {
+            cb->SetHoverColor(st.isDark ? Color::FromArgb(255, 60, 60, 60) : Color::FromArgb(255, 229, 229, 229));
+            cb->SetPressedColor(st.isDark ? Color::FromArgb(255, 74, 74, 74) : Color::FromArgb(255, 214, 214, 214));
+            cb->SetCloseHoverColor(st.Get(ThemeRole::Danger));
+            cb->SetClosePressedColor(Color::Lerp(st.Get(ThemeRole::Danger), Color::FromArgb(255, 0, 0, 0), 0.15f));
+            cb->SetGlyphColor(st.Get(ThemeRole::Text));
+        }
+        else if (auto* tb = dynamic_cast<TitleBar*>(e)) {
+            tb->SetTitleColor(st.Get(ThemeRole::Text));
+        }
+        const auto& kids = e->GetChildren();
+        for (UIElement* c : kids) ApplyThemeToChromeTree(c, winTheme);
+    }
+    inline bool _themeChromeHook = []() {
+        ThemeManager::RegisterHook(ApplySystemThemeToChromeStatics);
+        ThemeManager::RegisterSubtreeApplier(ApplyThemeToChromeTree);
+        return true;
+    }();
 
 } // namespace ZufyUI

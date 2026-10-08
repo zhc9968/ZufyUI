@@ -1185,6 +1185,45 @@ class SettingsList : public UIElement {
 - **`Version`**: whole-window receive — `Window::SetDropTargetEnabled(true)` + window-level `DragEnter/DragOver/DragLeave/Drop` (`x/y` = client-area DIP).
 - **`Version`**: `Expander::SetIcon(Icon, size)` adds a leading icon; `TextEdit` undo/redo uses the standard scheme (both restore the selection and cursor of that point).
 
+###chapter: Theme system | Theme (v1.19.0+)
+
+```cpp
+// semantic color roles (look colors up by ROLE, not by control)
+enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
+    Surface, SurfaceAlt, SurfaceRaised, Backdrop, Overlay,
+    Control, ControlHover, ControlPressed, ControlDisabled,
+    Accent, AccentHover, AccentPressed,
+    Border, Divider, FocusRing, Selection,
+    ScrollTrack, ScrollThumb, ScrollThumbHover,
+    Danger, Warning, Success, Info, Count };
+struct Theme { Color colors[(int)ThemeRole::Count]; FontSpec font, fontCaption, fontMono;
+    float cornerRadius; bool isDark; std::wstring name;
+    Color Get(ThemeRole) const;   void Set(ThemeRole, Color);
+    static Theme Light();   static Theme Dark();   static Theme HighContrast(); };
+
+// app level
+void ThemeManager::SetAppTheme(const Theme&);   void ThemeManager::SetLight/DarkAppTheme();
+Theme& ThemeManager::AppTheme();   bool ThemeManager::IsDark();
+// follow system (registry AppsUseLightTheme + DWM AccentColor; auto re-resolve on WM_SETTINGCHANGE etc.)
+void ThemeManager::SetFollowSystem(bool);   bool ThemeManager::IsFollowingSystem();
+bool ThemeManager::SystemPrefersDark();   Color ThemeManager::SystemAccent();   Theme ThemeManager::SystemTheme();
+// test hook: emulate the system theme (bypass the registry)
+void ThemeManager::DebugForceSystemTheme(bool enable, bool dark, bool highContrast);
+// color remap: any hard-coded color → theme color (exact table; passthrough + keeps alpha on miss)
+void ThemeManager::SetColorMap(std::unordered_map<uint32_t, Color>);   Color ThemeManager::Map(Color);
+// debug: theme name + each Role as AARRGGBB (debug channel cmd 23 GetTheme)
+std::wstring ThemeManager::Dump();
+
+// window level
+void Window::SetTheme(const Theme&);   const Theme& Window::GetTheme();
+void Window::SetUseAppTheme(bool = true);   bool Window::IsUsingAppTheme();   void Window::RefreshTheme();
+ZSignal<Window*> UIZSignals::ThemeChanged;   // nullptr = app-wide
+ZSignal<Window*> UIZSignals::ThemeReapply;   // re-apply to visible subtree after page/tab switch
+```
+- Color priority: **explicit instance color > window theme > app theme**. Once a control's `Set*Color` is called explicitly it is flagged "user-colored" and the theme **no longer overrides it**; all other controls follow the theme.
+- **`Pitfall`**: `Backdrop` is the **window/background base color** (white in light, black in dark); after an explicit `SetBackdrop/SetBackgroundColor` tint, the theme no longer changes it.
+- **`Version`**: introduced in `v1.19.0`; window periphery (caption buttons) follows the **system** theme, not the window theme; `WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE` auto re-resolve.
+
 ###chapter: Accessibility & Debug Channel | UIA + SetDebugEnabled (v1.17.0)
 
 ## Accessibility (UIA)
@@ -1217,7 +1256,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.19.2
+###chapter: Version digest | v1.15.0 → v1.19.3
 
 > Only the changes that affect your code are listed.
 
@@ -1246,6 +1285,12 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - New bottom **status bar** `StatusBar` (left/right panels: optional icon + text).
   - `Window`: `SetMenuBar` / `SetStatusBar` / `SetMenuBarInTitleBar` / `SetShowTitleText` (title text and an on-title-bar menu are **mutually exclusive**).
   - `Menu` gains an `onClosed` callback; `MenuWindow::OnPopupClosed`.
+- **v1.19.3**:
+  - New **theme system** (`ThemeRole` / `Theme` / `ThemeManager`; `Light/Dark/HighContrast`; window-level `SetTheme`; `UIZSignals::ThemeChanged/ThemeReapply`) — one palette by role; re-applied to the visible subtree on page/tab switch.
+  - **Follow system**: reads the registry light/dark + system accent, handles `WM_SETTINGCHANGE` / `WM_THEMECHANGED` / `WM_DWMCOLORIZATIONCOLORCHANGED` / `WM_SYSCOLORCHANGE`; `ThemeManager::SetFollowSystem(bool)`.
+  - **Explicit instance color wins**: once a control's `Set*Color` is called it is flagged "user-colored" and the theme no longer overrides it; ListView items / TableView cells+rich cells / TreeView cells / headers / alternating rows / Tab selected+hover / radio / NumberBox hover / CheckBox hover all themed.
+  - `Backdrop` token (window base white/black); window periphery (caption buttons) follows the **system** theme; `ThemeManager::Map` color remap.
+  - Fixes: `ThemeReapply` connection leak (UAF); `SyncThemeBackdrop` swallowing user tint; ListView/TableView/TreeView theme overriding per-item colors.
 
 ###chapter: Pitfall index | Quick lookup by topic
 

@@ -320,7 +320,7 @@ namespace ZufyUI {
         std::wstring GetEmptyText() const { return emptyText_; }
         void SetAlternatingRowColors(bool enable) { alternatingRowColors_ = enable; RequestRepaint(); }
         bool GetAlternatingRowColors() const { return alternatingRowColors_; }
-        void SetAlternatingRowColor(Color color) { alternateRowColor_ = color.ToD2D(); alternateBrush_.Reset(); RequestRepaint(); }
+        void SetAlternatingRowColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; alternateRowColor_ = color.ToD2D(); alternateBrush_.Reset(); RequestRepaint(); }
 
         // 框选开关 / 框选与勾选同步
         void SetMarqueeEnabled(bool e) { marqueeEnabled_ = e; if (!e) { marqueeActive_ = false; pressActive_ = false; } RequestRepaint(); }
@@ -460,22 +460,22 @@ namespace ZufyUI {
         float GetItemHeight() const { return itemHeight_; }
         void SetIndicatorWidth(float width) { indicatorWidth_ = width; RequestRepaint(); }
         void SetIndicatorHeightRatio(float ratio) { indicatorHeightRatio_ = clamp(ratio, 0.1f, 1.0f); RequestRepaint(); }
-        void SetIndicatorColor(Color color) { indicatorColor_ = color.ToD2D(); indicatorBrush_.Reset(); RequestRepaint(); }
+        void SetIndicatorColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; indicatorColor_ = color.ToD2D(); indicatorBrush_.Reset(); RequestRepaint(); }
         void SetIndicatorAnimationSpeed(float speed) { indicatorAnimSpeed_ = speed; }
 
-        void SetBackgroundColor(Color color) { backgroundColor_ = color.ToD2D(); bgBrush_.Reset(); RequestRepaint(); }
-        void SetTextColor(Color color) {
+        void SetBackgroundColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; backgroundColor_ = color.ToD2D(); bgBrush_.Reset(); RequestRepaint(); }
+        void SetTextColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false;
             textColor_ = color.ToD2D();
             for (auto& label : items_) {
-                if (label) label->SetTextColor(color);
+                if (label && itemTextColors_.find(label.get()) == itemTextColors_.end()) label->SetTextColor(color);   // 单项已显式设色 → 不覆盖
             }
             textBrush_.Reset();
             RequestRepaint();
         }
-        void SetSelectedColor(Color color) { selectedColor_ = color.ToD2D(); selectedBrush_.Reset(); RequestRepaint(); }
-        void SetHoverColor(Color color) { hoverColor_ = color.ToD2D(); hoverBrush_.Reset(); RequestRepaint(); }
-        void SetBorderColor(Color color) { borderColor_ = color.ToD2D(); borderBrush_.Reset(); RequestRepaint(); }
-        void SetScrollBarColors(Color track, Color thumb, Color hoverThumb) {
+        void SetSelectedColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; selectedColor_ = color.ToD2D(); selectedBrush_.Reset(); RequestRepaint(); }
+        void SetHoverColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; hoverColor_ = color.ToD2D(); hoverBrush_.Reset(); RequestRepaint(); }
+        void SetBorderColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; borderColor_ = color.ToD2D(); borderBrush_.Reset(); RequestRepaint(); }
+        void SetScrollBarColors(Color track, Color thumb, Color hoverThumb) { if (!ThemeManager::IsApplying()) themeManaged_ = false;
             scrollTrackColor_ = track.ToD2D();
             scrollThumbColor_ = thumb.ToD2D();
             scrollHoverThumbColor_ = hoverThumb.ToD2D();
@@ -631,6 +631,12 @@ namespace ZufyUI {
 
             D2D1_RECT_F clipRect = D2D1::RectF(arrangedRect_.x, arrangedRect_.y,
                 arrangedRect_.x + viewportWidth, arrangedRect_.y + arrangedRect_.height);
+            ComPtr<ID2D1Factory> _rf; rt->GetFactory(&_rf);
+            ComPtr<ID2D1RoundedRectangleGeometry> _rgeo; bool _rl = false;
+            if (_rf && SUCCEEDED(_rf->CreateRoundedRectangleGeometry(D2D1::RoundedRect(arrangedRect_.ToD2D(), 4, 4), _rgeo.GetAddressOf())) && _rgeo) {
+                D2D1_LAYER_PARAMETERS _lp = D2D1::LayerParameters(D2D1::InfiniteRect(), _rgeo.Get(), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+                rt->PushLayer(&_lp, nullptr); _rl = true;
+            }
             rt->PushAxisAlignedClip(clipRect, D2D1_ANTIALIAS_MODE_ALIASED);
 
             float snapped = Snap(scrollOffsetY_);
@@ -735,6 +741,7 @@ namespace ZufyUI {
             }
 
             rt->PopAxisAlignedClip();
+            if (_rl) rt->PopLayer();
 
             if (showScrollBar_) DrawScrollBar(rt, viewportWidth);
 
@@ -1636,7 +1643,7 @@ namespace ZufyUI {
         bool IsGridVisible() const { return showGrid_; }
         void SetAlternatingRowColors(bool enable) { alternatingRowColors_ = enable; RequestRepaint(); }
         bool GetAlternatingRowColors() const { return alternatingRowColors_; }
-        void SetAlternatingRowColor(Color color) { alternateRowColor_ = color.ToD2D(); alternateBrush_.Reset(); RequestRepaint(); }
+        void SetAlternatingRowColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; alternateRowColor_ = color.ToD2D(); alternateBrush_.Reset(); RequestRepaint(); }
 
         // ---------- 行禁用 ----------
         void SetRowDisabled(int row, bool disabled = true) {
@@ -1786,7 +1793,7 @@ namespace ZufyUI {
         void SetHeaderHeight(float height) { auto _rg = RenderGuard(); headerHeight_ = height; InvalidateLayout(); RequestRepaint(); }
         void SetIndicatorWidth(float width) { auto _rg = RenderGuard(); indicatorWidth_ = width; RequestRepaint(); }
         void SetIndicatorHeightRatio(float ratio) { auto _rg = RenderGuard(); indicatorHeightRatio_ = clamp(ratio, 0.1f, 1.0f); RequestRepaint(); }
-        void SetIndicatorColor(Color color) { auto _rg = RenderGuard(); indicatorColor_ = color.ToD2D(); indicatorBrush_.Reset(); RequestRepaint(); }
+        void SetIndicatorColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; auto _rg = RenderGuard(); indicatorColor_ = color.ToD2D(); indicatorBrush_.Reset(); RequestRepaint(); }
         void SetIndicatorAnimationSpeed(float speed) { auto _rg = RenderGuard(); indicatorAnimSpeed_ = speed; }
 
         // 选择
@@ -1869,20 +1876,20 @@ namespace ZufyUI {
         int GetCurrentColumn() const { return selectedCol_; }
 
         // 样式
-        void SetBackgroundColor(Color color) { backgroundColor_ = color.ToD2D(); bgBrush_.Reset(); RequestRepaint(); }
-        void SetHeaderBackgroundColor(Color color) { headerBackgroundColor_ = color.ToD2D(); headerBgBrush_.Reset(); RequestRepaint(); }
-        void SetTextColor(Color color) {
+        void SetBackgroundColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; backgroundColor_ = color.ToD2D(); bgBrush_.Reset(); RequestRepaint(); }
+        void SetHeaderBackgroundColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; headerBackgroundColor_ = color.ToD2D(); headerBgBrush_.Reset(); RequestRepaint(); }
+        void SetTextColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false;
             textColor_ = color.ToD2D();
-            for (auto& kv : richCells_) if (kv.second) kv.second->SetTextColor(color);
+            for (auto& kv : richCells_) if (kv.second && cellTextColors_.find(kv.first) == cellTextColors_.end()) kv.second->SetTextColor(color);   // 单元格已显式设色 → 不覆盖
             textBrush_.Reset();
             RequestRepaint();
         }
-        void SetHeaderTextColor(Color color) { headerTextColor_ = color.ToD2D(); headerTextBrush_.Reset(); RequestRepaint(); }
-        void SetSelectedColor(Color color) { selectedColor_ = color.ToD2D(); selectedBrush_.Reset(); RequestRepaint(); }
-        void SetHoverColor(Color color) { hoverColor_ = color.ToD2D(); hoverBrush_.Reset(); RequestRepaint(); }
+        void SetHeaderTextColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; headerTextColor_ = color.ToD2D(); headerTextBrush_.Reset(); RequestRepaint(); }
+        void SetSelectedColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; selectedColor_ = color.ToD2D(); selectedBrush_.Reset(); RequestRepaint(); }
+        void SetHoverColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; hoverColor_ = color.ToD2D(); hoverBrush_.Reset(); RequestRepaint(); }
         void SetGridLineColor(Color color) { gridLineColor_ = color.ToD2D(); gridLineBrush_.Reset(); RequestRepaint(); }
-        void SetBorderColor(Color color) { borderColor_ = color.ToD2D(); borderBrush_.Reset(); RequestRepaint(); }
-        void SetScrollBarColors(Color track, Color thumb, Color hoverThumb) {
+        void SetBorderColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; borderColor_ = color.ToD2D(); borderBrush_.Reset(); RequestRepaint(); }
+        void SetScrollBarColors(Color track, Color thumb, Color hoverThumb) { if (!ThemeManager::IsApplying()) themeManaged_ = false;
             scrollTrackColor_ = track.ToD2D();
             scrollThumbColor_ = thumb.ToD2D();
             scrollHoverThumbColor_ = hoverThumb.ToD2D();
@@ -2070,6 +2077,12 @@ namespace ZufyUI {
 
             D2D1_RECT_F contentClipRect = D2D1::RectF(arrangedRect_.x, arrangedRect_.y + headerOffset,
                 arrangedRect_.x + viewportWidth, arrangedRect_.y + viewportHeight);
+            ComPtr<ID2D1Factory> _rf; rt->GetFactory(&_rf);
+            ComPtr<ID2D1RoundedRectangleGeometry> _rgeo; bool _rl = false;
+            if (_rf && SUCCEEDED(_rf->CreateRoundedRectangleGeometry(D2D1::RoundedRect(arrangedRect_.ToD2D(), 4, 4), _rgeo.GetAddressOf())) && _rgeo) {
+                D2D1_LAYER_PARAMETERS _lp = D2D1::LayerParameters(D2D1::InfiniteRect(), _rgeo.Get(), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+                rt->PushLayer(&_lp, nullptr); _rl = true;
+            }
             rt->PushAxisAlignedClip(contentClipRect, D2D1_ANTIALIAS_MODE_ALIASED);
 
             int firstRow = RowAtY(scrollOffsetY_);
@@ -2196,6 +2209,7 @@ namespace ZufyUI {
             rt->PopAxisAlignedClip();
 
             if (headerVisible_) DrawHeader(rt, viewportWidth);
+            if (_rl) rt->PopLayer();
 
             if (showVerticalScrollBar_) DrawVerticalScrollBar(rt, viewportHeight);
             if (showHorizontalScrollBar_) DrawHorizontalScrollBar(rt, viewportWidth);
@@ -3653,7 +3667,7 @@ namespace ZufyUI {
         // ==================== 扩展：显示选项 ====================
         void SetAlternatingRowColors(bool enable) { alternatingRowColors_ = enable; RequestRepaint(); }
         bool GetAlternatingRowColors() const { return alternatingRowColors_; }
-        void SetAlternatingRowColor(Color color) { alternateRowColor_ = color.ToD2D(); alternateBrush_.Reset(); RequestRepaint(); }
+        void SetAlternatingRowColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; alternateRowColor_ = color.ToD2D(); alternateBrush_.Reset(); RequestRepaint(); }
         void SetGridVisible(bool visible) { showGrid_ = visible; RequestRepaint(); }
         bool IsGridVisible() const { return showGrid_; }
         void SetRootDecorated(bool decorated) { rootDecorated_ = decorated; InvalidateLayout(); RequestRepaint(); }
@@ -3721,17 +3735,17 @@ namespace ZufyUI {
         void SetIndent(float indent) { indent_ = indent; InvalidateLayout(); RequestRepaint(); }
         void SetIndicatorWidth(float width) { indicatorWidth_ = width; RequestRepaint(); }
         void SetIndicatorHeightRatio(float ratio) { indicatorHeightRatio_ = clamp(ratio, 0.1f, 1.0f); RequestRepaint(); }
-        void SetIndicatorColor(Color color) { indicatorColor_ = color.ToD2D(); indicatorBrush_.Reset(); RequestRepaint(); }
+        void SetIndicatorColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; indicatorColor_ = color.ToD2D(); indicatorBrush_.Reset(); RequestRepaint(); }
         void SetIndicatorAnimationSpeed(float speed) { indicatorAnimSpeed_ = speed; }
-        void SetBackgroundColor(Color color) { backgroundColor_ = color.ToD2D(); bgBrush_.Reset(); RequestRepaint(); }
-        void SetHeaderBackgroundColor(Color color) { headerBackgroundColor_ = color.ToD2D(); headerBgBrush_.Reset(); RequestRepaint(); }
-        void SetTextColor(Color color) { textColor_ = color.ToD2D(); textBrush_.Reset(); RequestRepaint(); }
-        void SetHeaderTextColor(Color color) { headerTextColor_ = color.ToD2D(); headerTextBrush_.Reset(); RequestRepaint(); }
-        void SetSelectedColor(Color color) { selectedColor_ = color.ToD2D(); selectedBrush_.Reset(); RequestRepaint(); }
-        void SetHoverColor(Color color) { hoverColor_ = color.ToD2D(); hoverBrush_.Reset(); RequestRepaint(); }
-        void SetBorderColor(Color color) { borderColor_ = color.ToD2D(); borderBrush_.Reset(); RequestRepaint(); }
+        void SetBackgroundColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; backgroundColor_ = color.ToD2D(); bgBrush_.Reset(); RequestRepaint(); }
+        void SetHeaderBackgroundColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; headerBackgroundColor_ = color.ToD2D(); headerBgBrush_.Reset(); RequestRepaint(); }
+        void SetTextColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; textColor_ = color.ToD2D(); textBrush_.Reset(); RequestRepaint(); }
+        void SetHeaderTextColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; headerTextColor_ = color.ToD2D(); headerTextBrush_.Reset(); RequestRepaint(); }
+        void SetSelectedColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; selectedColor_ = color.ToD2D(); selectedBrush_.Reset(); RequestRepaint(); }
+        void SetHoverColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; hoverColor_ = color.ToD2D(); hoverBrush_.Reset(); RequestRepaint(); }
+        void SetBorderColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; borderColor_ = color.ToD2D(); borderBrush_.Reset(); RequestRepaint(); }
         void SetGridLineColor(Color color) { gridLineColor_ = color.ToD2D(); gridLineBrush_.Reset(); RequestRepaint(); }
-        void SetScrollBarColors(Color track, Color thumb, Color hoverThumb) {
+        void SetScrollBarColors(Color track, Color thumb, Color hoverThumb) { if (!ThemeManager::IsApplying()) themeManaged_ = false;
             scrollTrackColor_ = track.ToD2D();
             scrollThumbColor_ = thumb.ToD2D();
             scrollHoverThumbColor_ = hoverThumb.ToD2D();
@@ -3771,10 +3785,14 @@ namespace ZufyUI {
                 lb->GetVerticalAlignment() != Label::VAlign::Center)
                 lb->SetAlignment(Label::HAlign::Left, Label::VAlign::Center);
             lb->SetPadding(0.0f);
+            if (!lb->IsThemeManaged()) return;   // 用户对单元格 Label 显式设过色 → 不覆盖
             Color cur = lb->GetTextColor();
             Color want = Color(textColor_.r, textColor_.g, textColor_.b, textColor_.a);
-            if (node && !node->enabled) want = Color(0.6f, 0.6f, 0.6f, textColor_.a);
-            if (cur.r != want.r || cur.g != want.g || cur.b != want.b || cur.a != want.a) lb->SetTextColor(want);
+            if (node && !node->enabled) {
+                const Theme& th = GetWindow() ? GetWindow()->GetTheme() : ThemeManager::AppTheme();
+                want = th.Get(ThemeRole::TextDisabled); want.a = textColor_.a;
+            }
+            if (cur.r != want.r || cur.g != want.g || cur.b != want.b || cur.a != want.a) { lb->SetTextColor(want); lb->SetThemeManaged(true); }   // 设完恢复“受主题管理”
         }
 
         // Label 化：可见节点的单元格 Label 作为子元素进入 Window 合成/事件/裁剪流程（就地摆到滚动后的位置）
@@ -3865,6 +3883,12 @@ namespace ZufyUI {
 
             D2D1_RECT_F clipRect = D2D1::RectF(arrangedRect_.x, arrangedRect_.y + headerOffset,
                 arrangedRect_.x + viewportWidth, arrangedRect_.y + viewportHeight);
+            ComPtr<ID2D1Factory> _rf; rt->GetFactory(&_rf);
+            ComPtr<ID2D1RoundedRectangleGeometry> _rgeo; bool _rl = false;
+            if (_rf && SUCCEEDED(_rf->CreateRoundedRectangleGeometry(D2D1::RoundedRect(arrangedRect_.ToD2D(), 4, 4), _rgeo.GetAddressOf())) && _rgeo) {
+                D2D1_LAYER_PARAMETERS _lp = D2D1::LayerParameters(D2D1::InfiniteRect(), _rgeo.Get(), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+                rt->PushLayer(&_lp, nullptr); _rl = true;
+            }
             rt->PushAxisAlignedClip(clipRect, D2D1_ANTIALIAS_MODE_ALIASED);
 
             int firstVisible = (int)(scrollOffsetY_ / rowHeight_);
@@ -4012,6 +4036,7 @@ namespace ZufyUI {
             rt->PopAxisAlignedClip();
 
             if (headerVisible_) DrawHeader(rt, viewportWidth);   // 表头在内容之后绘制，避免被行覆盖
+            if (_rl) rt->PopLayer();
 
             if (showVerticalScrollBar_) DrawVerticalScrollBar(rt, viewportHeight, headerOffset);
             if (showHorizontalScrollBar_) DrawHorizontalScrollBar(rt, viewportWidth);
@@ -4974,5 +4999,28 @@ namespace ZufyUI {
         ComPtr<ID2D1SolidColorBrush> scrollTrackBrush_, scrollThumbBrush_;
         ComPtr<ID2D1SolidColorBrush> alternateBrush_, checkboxBrush_, iconBrush_;
     };
+
+    // ============================ 主题桥接（数据视图实例） ============================
+    inline void ApplyThemeToDataViewTree(UIElement* e, const Theme& t) {
+        if (!e) return;
+        if (e->IsThemeManaged()) {   // 应用显式设过色的实例不动
+        auto base = [&](auto* v) {
+            v->SetBackgroundColor(t.Get(ThemeRole::Surface));
+            v->SetTextColor(t.Get(ThemeRole::Text));
+            v->SetSelectedColor(t.Get(ThemeRole::Selection));
+            v->SetHoverColor(t.Get(ThemeRole::ControlHover));
+            v->SetIndicatorColor(t.Get(ThemeRole::Accent));
+            v->SetBorderColor(t.Get(ThemeRole::Border));
+            v->SetScrollBarColors(t.Get(ThemeRole::ScrollTrack), t.Get(ThemeRole::ScrollThumb), t.Get(ThemeRole::ScrollThumbHover));
+            v->SetAlternatingRowColor(t.Get(ThemeRole::SurfaceAlt));
+        };
+        if (auto* lv = dynamic_cast<ListView*>(e)) base(lv);
+        else if (auto* tv = dynamic_cast<TableView*>(e)) { base(tv); tv->SetHeaderBackgroundColor(t.Get(ThemeRole::SurfaceAlt)); tv->SetHeaderTextColor(t.Get(ThemeRole::Text)); }
+        else if (auto* tr = dynamic_cast<TreeView*>(e)) { base(tr); tr->SetHeaderBackgroundColor(t.Get(ThemeRole::SurfaceAlt)); tr->SetHeaderTextColor(t.Get(ThemeRole::Text)); }
+        }
+        const auto& kids = e->GetChildren();
+        for (UIElement* c : kids) ApplyThemeToDataViewTree(c, t);
+    }
+    inline bool _themeDataViewHook = []() { ThemeManager::RegisterSubtreeApplier(ApplyThemeToDataViewTree); return true; }();
 
 } // namespace ZufyUI

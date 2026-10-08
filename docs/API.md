@@ -1206,6 +1206,45 @@ class SettingsList : public UIElement {
 - **`版本`**：整窗接收——`Window::SetDropTargetEnabled(true)` + 窗口级 `DragEnter/DragOver/DragLeave/Drop`（`x/y` 为客户区 DIP）。
 - **`版本`**：`Expander::SetIcon(Icon, size)` 在标题前加图标；`TextEdit` 撤销/重做改为标准方案（撤销/重做都还原当时的选区与光标）。
 
+###chapter: 主题系统 | Theme（v1.19.0+）
+
+```cpp
+// 语义色角色（按“角色”取色，而不是按控件）
+enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
+    Surface, SurfaceAlt, SurfaceRaised, Backdrop, Overlay,
+    Control, ControlHover, ControlPressed, ControlDisabled,
+    Accent, AccentHover, AccentPressed,
+    Border, Divider, FocusRing, Selection,
+    ScrollTrack, ScrollThumb, ScrollThumbHover,
+    Danger, Warning, Success, Info, Count };
+struct Theme { Color colors[(int)ThemeRole::Count]; FontSpec font, fontCaption, fontMono;
+    float cornerRadius; bool isDark; std::wstring name;
+    Color Get(ThemeRole) const;   void Set(ThemeRole, Color);
+    static Theme Light();   static Theme Dark();   static Theme HighContrast(); };
+
+// 应用级
+void ThemeManager::SetAppTheme(const Theme&);   void ThemeManager::SetLight/DarkAppTheme();
+Theme& ThemeManager::AppTheme();   bool ThemeManager::IsDark();
+// 跟随系统（注册表 AppsUseLightTheme + DWM AccentColor；WM_SETTINGCHANGE 等自动重解析）
+void ThemeManager::SetFollowSystem(bool);   bool ThemeManager::IsFollowingSystem();
+bool ThemeManager::SystemPrefersDark();   Color ThemeManager::SystemAccent();   Theme ThemeManager::SystemTheme();
+// 测试钩子：模拟系统主题（绕过注册表）
+void ThemeManager::DebugForceSystemTheme(bool enable, bool dark, bool highContrast);
+// 色差重映射：任意硬编码色 → 主题色（精确表，未命中原样返回、保留 alpha）
+void ThemeManager::SetColorMap(std::unordered_map<uint32_t, Color>);   Color ThemeManager::Map(Color);
+// 调试：主题名 + 各 Role 的 AARRGGBB（调试通道命令 23 GetTheme）
+std::wstring ThemeManager::Dump();
+
+// 窗口级
+void Window::SetTheme(const Theme&);   const Theme& Window::GetTheme();
+void Window::SetUseAppTheme(bool = true);   bool Window::IsUsingAppTheme();   void Window::RefreshTheme();
+ZSignal<Window*> UIZSignals::ThemeChanged;   // nullptr=应用级
+ZSignal<Window*> UIZSignals::ThemeReapply;   // 页面/标签切换后重套可见子树
+```
+- 取色优先级：**实例显式设色 > 窗口主题 > 应用主题**。控件只要被显式调用过任何 `Set*Color`，就标记为“用户设色”，主题切换**不再覆盖它**；其余控件跟随主题。
+- **`易错`**：`Backdrop` 是**窗口/背景基色**（浅色白、深色黑）；`SetBackdrop/SetBackgroundColor` 显式指定 tint 后主题不再改它。
+- **`版本`**：`v1.19.0` 引入；窗口周边（标题栏三件套）跟随**系统**主题而非窗口主题；`WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE` 自动重解析。
+
 ###chapter: 无障碍与调试通道 | UIA + SetDebugEnabled（v1.17.0）
 
 ## 无障碍（UIA）
@@ -1239,7 +1278,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.19.2
+###chapter: 版本变化摘录 | v1.15.0 → v1.19.3
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1268,6 +1307,12 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - 新增底部**状态栏** `StatusBar`（左右面板：可选图标 + 文本）。
   - `Window`：`SetMenuBar` / `SetStatusBar` / `SetMenuBarInTitleBar` / `SetShowTitleText`（标题文字与标题栏上的菜单**互斥**）。
   - `Menu` 新增 `onClosed` 回调；`MenuWindow::OnPopupClosed`。
+- **v1.19.3**：
+  - 新增**主题系统**（`ThemeRole` / `Theme` / `ThemeManager`；`Light/Dark/HighContrast`；窗口级 `SetTheme`；`UIZSignals::ThemeChanged/ThemeReapply`）——按角色统一配色；切页/切标签自动重套可见子树。
+  - **跟随系统**：读注册表深/浅色 + 系统强调色，处理 `WM_SETTINGCHANGE`/`WM_THEMECHANGED`/`WM_DWMCOLORIZATIONCOLORCHANGED`/`WM_SYSCOLORCHANGE`；`ThemeManager::SetFollowSystem(bool)`。
+  - **实例显式色优先**：控件被显式 `Set*Color` 后标记“用户设色”，主题不再覆盖；ListView 单项 / TableView 单格与富格 / TreeView 单元格 / 表头 / 交叉行 / Tab 选中与悬停 / 单选框 / NumberBox 悬停 / CheckBox 悬停等全部接入主题。
+  - `Backdrop` 令牌（窗口基色白/黑）；窗口周边（标题栏三件套）跟随**系统**主题；`ThemeManager::Map` 色差重映射。
+  - 修复：`ThemeReapply` 连接未断开的 UAF；`SyncThemeBackdrop` 吞用户 tint；ListView/TableView/TreeView 主题覆盖单项色。
 
 ###chapter: 易错点总表 | 按主题速查
 

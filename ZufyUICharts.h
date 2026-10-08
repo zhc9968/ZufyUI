@@ -64,8 +64,8 @@ namespace ZufyUI {
         void SetShowValues(bool on) { showValues_ = on; RequestRepaint(); }
         void SetShowCategoryLabels(bool on) { showCategoryLabels_ = on; InvalidateLayout(); RequestRepaint(); }
         void SetLabelFont(const FontSpec& f) { labelFont_ = f; valueFont_ = f; InvalidateLayout(); RequestRepaint(); }
-        void SetColors(Color axis, Color grid, Color label) { axisColor_ = axis; gridColor_ = grid; labelColor_ = label; RequestRepaint(); }
-        void SetBackgroundColor(Color c) { bgColor_ = c; RequestRepaint(); }
+        void SetColors(Color axis, Color grid, Color label) { if (!ThemeManager::IsApplying()) themeManaged_ = false; axisColor_ = axis; gridColor_ = grid; labelColor_ = label; RequestRepaint(); }
+        void SetBackgroundColor(Color c) { if (!ThemeManager::IsApplying()) themeManaged_ = false; bgColor_ = c; RequestRepaint(); }
         void SetStickyAxes(bool on) { stickyAxes_ = on; RequestRepaint(); }
         void SetAnimationEnabled(bool on) { animate_ = on; if (!on) animProg_ = 1.0f; RequestRepaint(); }   // 关掉进场动画
         void SetAnimationDuration(float seconds) { animSeconds_ = max(0.01f, seconds); }
@@ -723,6 +723,7 @@ namespace ZufyUI {
         void SetLabelMode(LabelMode m) { labelMode_ = m; InvalidateLayout(); RequestRepaint(); }
         void SetShowLegend(bool on) { showLegend_ = on; InvalidateLayout(); RequestRepaint(); }
         void SetZoom(float z) { zoom_ = clamp(z, 0.4f, 4.0f); RequestRepaint(); }
+        void SetLabelColor(Color c) { if (!ThemeManager::IsApplying()) themeManaged_ = false; labelColor_ = c; RequestRepaint(); }
         float GetZoom() const { return zoom_; }
         void SetAnimationEnabled(bool on) { animate_ = on; if (!on) animProg_ = 1.0f; RequestRepaint(); }
         void SetPalette(const std::vector<Color>& p) { if (!p.empty()) { palette_ = p; for (size_t i = 0; i < slices_.size(); ++i) slices_[i].color = palette_[i % palette_.size()]; RequestRepaint(); } }
@@ -892,5 +893,17 @@ namespace ZufyUI {
         std::vector<float> sliceHoverProg_;
         ComPtr<ID2D1SolidColorBrush> sliceBrush_, textBrush_, legendBrush_;
     };
+
+    // ============================ 主题桥接（图表） ============================
+    inline void ApplyThemeToChartTree(UIElement* e, const Theme& t) {
+        if (!e) return;
+        if (e->IsThemeManaged()) {
+        if (auto* cb = dynamic_cast<ChartBase*>(e)) cb->SetColors(t.Get(ThemeRole::Border), t.Get(ThemeRole::Divider), t.Get(ThemeRole::TextSecondary));
+        else if (auto* pie = dynamic_cast<PieChart*>(e)) pie->SetLabelColor(t.Get(ThemeRole::TextSecondary));
+        }
+        const auto& kids = e->GetChildren();
+        for (UIElement* c : kids) ApplyThemeToChartTree(c, t);
+    }
+    inline bool _themeChartHook = []() { ThemeManager::RegisterSubtreeApplier(ApplyThemeToChartTree); return true; }();
 
 } // namespace ZufyUI

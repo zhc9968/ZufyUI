@@ -89,8 +89,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 19
-#define ZufyUI_VERSION_PATCH 2
-#define ZufyUI_VERSION_STRING L"1.19.2"
+#define ZufyUI_VERSION_PATCH 3
+#define ZufyUI_VERSION_STRING L"1.19.3"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -610,6 +610,132 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool operator!=(const FontSpec& other) const { return !(*this == other); }
     };
 
+    // ============================ 主题（语义色板 + 字体） ============================
+    // 按“角色”而非控件命名：换肤/深色/高对比度只需换一套 Theme，控件取色走 Role。
+    enum class ThemeRole : int {
+        Text, TextSecondary, TextDisabled, TextOnAccent,
+        Surface, SurfaceAlt, SurfaceRaised, Backdrop, Overlay,
+        Control, ControlHover, ControlPressed, ControlDisabled,
+        Accent, AccentHover, AccentPressed,
+        Border, Divider, FocusRing, Selection,
+        ScrollTrack, ScrollThumb, ScrollThumbHover,
+        Danger, Warning, Success, Info,
+        Count
+    };
+
+    struct Theme {
+        Color colors[(int)ThemeRole::Count];
+        FontSpec font, fontCaption, fontMono;
+        float cornerRadius = 8.0f;
+        bool  isDark = false;
+        std::wstring name;
+
+        Theme() { for (int i = 0; i < (int)ThemeRole::Count; ++i) colors[i] = Color(0, 0, 0, 1); }
+        Color Get(ThemeRole r) const { return colors[(int)r]; }
+        void  Set(ThemeRole r, Color c) { colors[(int)r] = c; }
+
+        static Theme Light();
+        static Theme Dark();
+        static Theme HighContrast();
+    };
+
+    inline Theme Theme::Light() {
+        Theme t; t.isDark = false; t.name = L"Light";
+        // 基准 = ListView 调色（调得最好的一套）；相近同义色已合并
+        t.Set(ThemeRole::Text,           Color::FromArgb(255, 0, 0, 0));        // list text #000000
+        t.Set(ThemeRole::TextSecondary,  Color::FromArgb(255, 90, 90, 90));     // #5A5A5A（合并 #5C5C5C/#737373）
+        t.Set(ThemeRole::TextDisabled,   Color::FromArgb(255, 150, 150, 150));  // #969696（合并 #999999 文字/#A0A0A0）
+        t.Set(ThemeRole::TextOnAccent,   Color::FromArgb(255, 255, 255, 255));
+        t.Set(ThemeRole::Surface,        Color::FromArgb(255, 255, 255, 255));  // list bg #FFFFFF
+        t.Set(ThemeRole::SurfaceAlt,     Color::FromArgb(255, 243, 243, 243));  // 控件底（合并 #F5F5F5/#F3F3F3）
+        t.Set(ThemeRole::SurfaceRaised,  Color::FromArgb(255, 255, 255, 255));
+        t.Set(ThemeRole::Backdrop,       Color::FromArgb(255, 255, 255, 255));  // 窗口/背景基色：浅色=纯白
+        t.Set(ThemeRole::Overlay,        Color::FromArgb(60, 0, 0, 0));
+        t.Set(ThemeRole::Control,        Color::FromArgb(255, 243, 243, 243));  // #F3F3F3（合并 #F2F2F2）
+        t.Set(ThemeRole::ControlHover,   Color::FromArgb(255, 230, 230, 230));  // list hover #E6E6E6
+        t.Set(ThemeRole::ControlPressed, Color::FromArgb(255, 214, 214, 214));  // #D6D6D6（合并 #D2D2D2/#D9D9D9）
+        t.Set(ThemeRole::ControlDisabled,Color::FromArgb(255, 237, 237, 237));  // #EDEDED（合并 #E0E0E0/#EEEEEE）
+        t.Set(ThemeRole::Accent,         Color::FromArgb(255, 0, 120, 214));    // list indicator #0078D6（合并 #0078D4/#0078D7）
+        t.Set(ThemeRole::AccentHover,    Color::FromArgb(255, 26, 140, 228));   // #1A8CE4
+        t.Set(ThemeRole::AccentPressed,  Color::FromArgb(255, 0, 90, 170));     // #005AAA（合并 #0064B4）
+        t.Set(ThemeRole::Border,         Color::FromArgb(255, 153, 153, 153));  // list border #999999（合并 #9E9E9E/#8C8C8C）
+        t.Set(ThemeRole::Divider,        Color::FromArgb(255, 204, 204, 204));  // #CCCCCC（网格/分隔，合并 #C8C8C8/#D1D1D1）
+        t.Set(ThemeRole::FocusRing,      Color::FromArgb(255, 0, 120, 214));
+        t.Set(ThemeRole::Selection,      Color::FromArgb(255, 178, 217, 255));  // list selected #B2D9FF
+        t.Set(ThemeRole::ScrollTrack,    Color::FromArgb(204, 230, 230, 230));  // list scroll track #E6E6E6 a204
+        t.Set(ThemeRole::ScrollThumb,    Color::FromArgb(230, 128, 128, 128));  // list thumb #808080 a230
+        t.Set(ThemeRole::ScrollThumbHover, Color::FromArgb(255, 76, 76, 76));   // #4C4C4C
+        t.Set(ThemeRole::Danger,         Color::FromArgb(255, 196, 43, 28));    // #C42B1C（合并 #CC2121/#DB3333/#DC2828）
+        t.Set(ThemeRole::Warning,        Color::FromArgb(255, 224, 152, 20));   // #E09814
+        t.Set(ThemeRole::Success,        Color::FromArgb(255, 16, 124, 16));    // #107C10
+        t.Set(ThemeRole::Info,           Color::FromArgb(255, 0, 120, 214));
+        return t;
+    }
+
+    inline Theme Theme::Dark() {
+        Theme t; t.isDark = true; t.name = L"Dark";
+        t.Set(ThemeRole::Text, Color::FromArgb(255, 235, 235, 235));
+        t.Set(ThemeRole::TextSecondary, Color::FromArgb(255, 178, 178, 178));
+        t.Set(ThemeRole::TextDisabled, Color::FromArgb(255, 120, 120, 120));
+        t.Set(ThemeRole::TextOnAccent, Color::FromArgb(255, 255, 255, 255));
+        t.Set(ThemeRole::Surface, Color::FromArgb(255, 32, 32, 32));
+        t.Set(ThemeRole::SurfaceAlt, Color::FromArgb(255, 43, 43, 43));
+        t.Set(ThemeRole::SurfaceRaised, Color::FromArgb(255, 50, 50, 50));
+        t.Set(ThemeRole::Backdrop, Color::FromArgb(255, 0, 0, 0));   // 深色=纯黑
+        t.Set(ThemeRole::Overlay, Color::FromArgb(120, 0, 0, 0));
+        t.Set(ThemeRole::Control, Color::FromArgb(255, 58, 58, 58));
+        t.Set(ThemeRole::ControlHover, Color::FromArgb(255, 74, 74, 74));
+        t.Set(ThemeRole::ControlPressed, Color::FromArgb(255, 90, 90, 90));
+        t.Set(ThemeRole::ControlDisabled, Color::FromArgb(255, 48, 48, 48));
+        t.Set(ThemeRole::Accent, Color::FromArgb(255, 76, 194, 255));
+        t.Set(ThemeRole::AccentHover, Color::FromArgb(255, 110, 205, 255));
+        t.Set(ThemeRole::AccentPressed, Color::FromArgb(255, 40, 160, 220));
+        t.Set(ThemeRole::Border, Color::FromArgb(255, 90, 90, 90));
+        t.Set(ThemeRole::Divider, Color::FromArgb(255, 70, 70, 70));
+        t.Set(ThemeRole::FocusRing, Color::FromArgb(255, 76, 194, 255));
+        t.Set(ThemeRole::Selection, Color::FromArgb(255, 38, 79, 120));
+        t.Set(ThemeRole::ScrollTrack, Color::FromArgb(200, 60, 60, 60));
+        t.Set(ThemeRole::ScrollThumb, Color::FromArgb(230, 130, 130, 130));
+        t.Set(ThemeRole::ScrollThumbHover, Color::FromArgb(255, 180, 180, 180));
+        t.Set(ThemeRole::Danger, Color::FromArgb(255, 255, 99, 71));
+        t.Set(ThemeRole::Warning, Color::FromArgb(255, 255, 185, 0));
+        t.Set(ThemeRole::Success, Color::FromArgb(255, 108, 203, 95));
+        t.Set(ThemeRole::Info, Color::FromArgb(255, 76, 194, 255));
+        return t;
+    }
+
+    inline Theme Theme::HighContrast() {
+        Theme t; t.isDark = true; t.name = L"HighContrast"; t.cornerRadius = 0.0f;   // 扁平
+        t.Set(ThemeRole::Text, Color::FromArgb(255, 255, 255, 255));
+        t.Set(ThemeRole::TextSecondary, Color::FromArgb(255, 255, 255, 255));
+        t.Set(ThemeRole::TextDisabled, Color::FromArgb(255, 160, 160, 160));
+        t.Set(ThemeRole::TextOnAccent, Color::FromArgb(255, 0, 0, 0));
+        t.Set(ThemeRole::Surface, Color::FromArgb(255, 0, 0, 0));
+        t.Set(ThemeRole::SurfaceAlt, Color::FromArgb(255, 0, 0, 0));
+        t.Set(ThemeRole::SurfaceRaised, Color::FromArgb(255, 0, 0, 0));
+        t.Set(ThemeRole::Backdrop, Color::FromArgb(255, 0, 0, 0));
+        t.Set(ThemeRole::Overlay, Color::FromArgb(160, 0, 0, 0));
+        t.Set(ThemeRole::Control, Color::FromArgb(255, 0, 0, 0));
+        t.Set(ThemeRole::ControlHover, Color::FromArgb(255, 40, 40, 40));
+        t.Set(ThemeRole::ControlPressed, Color::FromArgb(255, 60, 60, 60));
+        t.Set(ThemeRole::ControlDisabled, Color::FromArgb(255, 20, 20, 20));
+        t.Set(ThemeRole::Accent, Color::FromArgb(255, 255, 255, 0));
+        t.Set(ThemeRole::AccentHover, Color::FromArgb(255, 255, 255, 0));
+        t.Set(ThemeRole::AccentPressed, Color::FromArgb(255, 220, 220, 0));
+        t.Set(ThemeRole::Border, Color::FromArgb(255, 255, 255, 255));
+        t.Set(ThemeRole::Divider, Color::FromArgb(255, 255, 255, 255));
+        t.Set(ThemeRole::FocusRing, Color::FromArgb(255, 255, 255, 0));
+        t.Set(ThemeRole::Selection, Color::FromArgb(255, 255, 255, 0));
+        t.Set(ThemeRole::ScrollTrack, Color::FromArgb(255, 0, 0, 0));
+        t.Set(ThemeRole::ScrollThumb, Color::FromArgb(255, 255, 255, 255));
+        t.Set(ThemeRole::ScrollThumbHover, Color::FromArgb(255, 255, 255, 255));
+        t.Set(ThemeRole::Danger, Color::FromArgb(255, 255, 255, 0));
+        t.Set(ThemeRole::Warning, Color::FromArgb(255, 255, 255, 0));
+        t.Set(ThemeRole::Success, Color::FromArgb(255, 255, 255, 0));
+        t.Set(ThemeRole::Info, Color::FromArgb(255, 255, 255, 0));
+        return t;
+    }
+
     struct FontSpecHash {
         size_t operator()(const FontSpec& spec) const {
             size_t h = std::hash<std::wstring>()(spec.familyName);
@@ -871,7 +997,119 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 库内部错误（窗口/菜单/合成后端/设备创建失败等）——应用可订阅以提示或兜底。
         // 参数为可读错误描述。库仍按原语义返回失败（不抛异常、不改变控制流）。
         inline ZSignal<const std::wstring&> Error;
+
+        // 主题变化（参数：nullptr = 应用级主题变了；否则为某个窗口的主题变了）。
+        // 订阅者应让离屏缓存失效并重绘（颜色被烤进了缓存位图）。
+        inline ZSignal<Window*> ThemeChanged;
+        // 请求“把当前主题重新套用到可见子树”（页面/标签切换后，新出现的控件需要套用主题）
+        inline ZSignal<Window*> ThemeReapply;
     }
+
+    // 主题管理器：应用级主题 + 硬编码色的“色差重映射” + 变更广播/钩子
+    class ThemeManager {
+    public:
+        static Theme& AppTheme() { static Theme t = Theme::Light(); return t; }
+
+        static void SetAppTheme(const Theme& t) {
+            AppTheme() = t;
+            bool prev = applyingTheme_; applyingTheme_ = true;   // Hook 里若碰实例颜色，不误标“用户设色”
+            for (auto& h : Hooks()) if (h) h(AppTheme());        // 把主题推给各控件的默认值
+            applyingTheme_ = prev;
+            UIZSignals::ThemeChanged.Fire(nullptr);              // 应用级：所有窗口刷新
+        }
+        static void SetLightAppTheme() { SetAppTheme(Theme::Light()); }
+        static void SetDarkAppTheme()  { SetAppTheme(Theme::Dark()); }
+        static bool IsDark() { return AppTheme().isDark; }
+
+        // 各控件头文件自查注册“把主题应用到自己的默认值”的钩子
+        static std::vector<std::function<void(const Theme&)>>& Hooks() { static std::vector<std::function<void(const Theme&)>> v; return v; }
+        static void RegisterHook(std::function<void(const Theme&)> fn) { if (fn) Hooks().push_back(std::move(fn)); }
+
+        // 子树应用器：切换主题时对“已存在的控件实例”逐个套用颜色（递归子树）
+        static std::vector<std::function<void(UIElement*, const Theme&)>>& SubtreeAppliers() { static std::vector<std::function<void(UIElement*, const Theme&)>> v; return v; }
+        static void RegisterSubtreeApplier(std::function<void(UIElement*, const Theme&)> fn) { if (fn) SubtreeAppliers().push_back(std::move(fn)); }
+        static bool IsApplying() { return applyingTheme_; }   // 主题套用中（控件设色接口据此区分“用户设色”）
+        static void ApplyToSubtree(UIElement* root, const Theme& t) {
+            struct Guard { bool& flag; bool prev; ~Guard() { flag = prev; } } g{ applyingTheme_, applyingTheme_ };
+            applyingTheme_ = true;
+            for (auto& applier : SubtreeAppliers()) if (applier) applier(root, t);
+        }
+
+        // 色差重映射：任意硬编码色 → 主题色（精确表；未命中原样返回，保留原 alpha）
+        static void SetColorMap(std::unordered_map<uint32_t, Color> m) { MapTable() = std::move(m); }
+        static std::unordered_map<uint32_t, Color>& MapTable() { static std::unordered_map<uint32_t, Color> m; return m; }
+        static Color Map(const Color& c) {
+            auto& m = MapTable();
+            if (m.empty()) return c;
+            auto it = m.find(PackRgb(c));
+            if (it == m.end()) return c;
+            return Color(it->second.r, it->second.g, it->second.b, c.a);
+        }
+        // ---- 跟随系统 / 测试钩子 ----
+        static void SetFollowSystem(bool on) { followSystem_ = on; ApplyResolved(); }
+        static bool IsFollowingSystem() { return followSystem_; }
+        // 测试：模拟系统主题（绕过注册表/SPI）。enable=false 恢复手设主题。
+        static void DebugForceSystemTheme(bool enable, bool dark, bool highContrast) {
+            forceEnabled_ = enable; forceDark_ = dark; forceHC_ = highContrast; ApplyResolved();
+        }
+        static bool IsForceEnabled() { return forceEnabled_; }
+        // ---- 系统主题（窗口周边/系统外观用它，而不是当前窗口主题） ----
+        static bool SystemPrefersDark() {
+            DWORD v = 1, sz = sizeof(v), type = 0; HKEY k;
+            if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &k) == ERROR_SUCCESS) {
+                if (RegQueryValueExW(k, L"AppsUseLightTheme", nullptr, &type, (LPBYTE)&v, &sz) != ERROR_SUCCESS) v = 1;
+                RegCloseKey(k);
+            }
+            return v == 0;   // 0 = 深色
+        }
+        static Color SystemAccent() {
+            DWORD v = 0, sz = sizeof(v), type = 0; HKEY k;
+            if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\DWM", 0, KEY_READ, &k) == ERROR_SUCCESS) {
+                RegQueryValueExW(k, L"AccentColor", nullptr, &type, (LPBYTE)&v, &sz);   // 0xAABBGGRR
+                RegCloseKey(k);
+            }
+            if (v == 0 || (v & 0xFFFFFF) == 0) v = 0xFF0078D4;   // 缺失/全黑 → 默认强调色
+            return Color::FromArgb((v >> 24) & 0xFF, v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF);
+        }
+        static Theme SystemTheme() {
+            Theme t = SystemPrefersDark() ? Theme::Dark() : Theme::Light();
+            t.Set(ThemeRole::Accent, SystemAccent());
+            t.name = t.isDark ? L"SystemDark" : L"SystemLight";
+            cachedSystem_ = t; systemValid_ = true;
+            return t;
+        }
+        static const Theme& SystemThemeCached() { if (!systemValid_) SystemTheme(); return cachedSystem_; }
+        static void InvalidateSystemTheme() { systemValid_ = false; }
+
+        static void ApplyResolved() {
+            if (forceEnabled_) { SetAppTheme(forceHC_ ? Theme::HighContrast() : (forceDark_ ? Theme::Dark() : Theme::Light())); return; }
+            if (followSystem_) { SetAppTheme(SystemTheme()); return; }
+        }
+        // 调试通道用：当前应用主题名 + 各 Role 的 0xAARRGGBB
+        static std::wstring Dump() {
+            const Theme& t = AppTheme();
+            wchar_t b[512];
+            swprintf(b, 512, L"theme=%s dark=%d follow=%d force=%d radius=%.1f\n", t.name.c_str(), t.isDark ? 1 : 0, followSystem_ ? 1 : 0, forceEnabled_ ? 1 : 0, t.cornerRadius);
+            std::wstring s = b;
+            static const wchar_t* names[] = { L"Text",L"TextSecondary",L"TextDisabled",L"TextOnAccent",L"Surface",L"SurfaceAlt",L"SurfaceRaised",L"Backdrop",L"Overlay",L"Control",L"ControlHover",L"ControlPressed",L"ControlDisabled",L"Accent",L"AccentHover",L"AccentPressed",L"Border",L"Divider",L"FocusRing",L"Selection",L"ScrollTrack",L"ScrollThumb",L"ScrollThumbHover",L"Danger",L"Warning",L"Success",L"Info" };
+            for (int i = 0; i < (int)ThemeRole::Count; ++i) {
+                Color c = t.Get((ThemeRole)i);
+                auto q = [](float v) { int x = (int)(v * 255.0f + 0.5f); return (unsigned)(x < 0 ? 0 : (x > 255 ? 255 : x)); };
+                swprintf(b, 512, L"%s=%08X\n", names[i], (q(c.a) << 24) | (q(c.r) << 16) | (q(c.g) << 8) | q(c.b));
+                s += b;
+            }
+            return s;
+        }
+    private:
+        inline static bool followSystem_ = false, forceEnabled_ = false, forceDark_ = false, forceHC_ = false;
+        inline static bool applyingTheme_ = false;
+        inline static bool systemValid_ = false;
+        inline static Theme cachedSystem_;
+        static uint32_t PackRgb(const Color& c) {
+            auto q = [](float v) { int i = (int)(v * 255.0f + 0.5f); return (uint32_t)(i < 0 ? 0 : (i > 255 ? 255 : i)); };
+            return (q(c.r) << 16) | (q(c.g) << 8) | q(c.b);
+        }
+    };
 
     namespace detail {
         // 统一库日志缓冲（供调试通道 cmd 13 查询；≤500 条）：
@@ -1403,6 +1641,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         // ---------- 阴影（默认关闭；元素设置，Window 合成进缓存）----------
         void SetShadow(bool enable) { shadowEnabled_ = enable; cacheValid_ = false; RequestRepaint(); }
+        // 主题：该元素颜色是否由主题管理。应用调用任何“设颜色”接口后置 false → 主题套用会跳过它（实例显式色优先）。
+        bool IsThemeManaged() const { return themeManaged_; }
+        void SetThemeManaged(bool on) { themeManaged_ = on; }
         bool HasShadow() const { return shadowEnabled_; }
         void SetShadowColor(Color c) { shadowColor_ = c.ToD2D(); cacheValid_ = false; RequestRepaint(); }
         void SetShadowBlur(float blur) { shadowBlur_ = max(0.0f, blur); cacheValid_ = false; RequestRepaint(); }
@@ -1426,6 +1667,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         mutable std::atomic<unsigned long long> dbgMeasureCount_{ 0 }, dbgArrangeCount_{ 0 }, dbgRepaintCount_{ 0 }, dbgDrawCount_{ 0 };
         mutable double dbgMeasureMs_ = 0.0, dbgArrangeMs_ = 0.0, dbgDrawMs_ = 0.0;
         bool shadowEnabled_ = false;
+        bool themeManaged_ = true;   // 主题是否管理该元素颜色（应用设过色 → false）
         D2D1_COLOR_F shadowColor_ = D2D1::ColorF(0.0f, 0.0f, 0.02f, 0.42f);
         float shadowBlur_ = 10.0f;
         float shadowOffsetX_ = 0.0f;
@@ -2369,6 +2611,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (index < 0 || index >= (int)pages_.size()) return;
             animating_ = false; currentIndex_ = index; fromIndex_ = -1; toIndex_ = -1;
             MarkChildrenDirty();
+            UIZSignals::ThemeReapply.Fire(GetWindow());   // 新页出现 → 重新套用主题
             RequestRepaint();
         }
 
@@ -2380,6 +2623,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             animating_ = true;
             animProgress_ = 0.0f;
             MarkChildrenDirty();   // 子元素列表随 animating_ 变化
+            UIZSignals::ThemeReapply.Fire(GetWindow());   // 切页后重新套用主题
             RequestRepaint(); // 动画开始需要重绘
         }
 
@@ -2982,6 +3226,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             detail::ReleaseAccessibility(this);   // 释放 UIA 根 provider / 元素缓存（定义在 ZufyUIWindowTool.h）
             std::lock_guard<std::recursive_mutex> lk(renderLock_);   // 与"正在出的一帧"串行
             acrylicReloadConn_.disconnect();
+            themeConn_.disconnect();
+            themeReapplyConn_.disconnect();
             ClearFrameworkTimers();   // 通知框架定时器：窗口将亡（让 Timer 与窗口解绑）
             if (rootElement_) rootElement_->AttachWindowRecursive(nullptr);
             if (customTitleBar_) customTitleBar_->AttachWindowRecursive(nullptr); if (menuBar_) menuBar_->AttachWindowRecursive(nullptr); if (statusBar_) statusBar_->AttachWindowRecursive(nullptr);   // 析构路径同样清归属
@@ -3116,6 +3362,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void SetBackdrop(Backdrop backdrop, DWORD tint = 0x00000000) {
             backdrop_ = backdrop;
             backdropColor_ = tint;
+            backdropUserTinted_ = true;   // 用户显式指定背景色 → 主题不再改它
             ApplyBackdrop();
         }
         Backdrop GetBackdrop() const { return backdrop_; }
@@ -3134,6 +3381,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void SetBackgroundColor(Color color) {
             auto to8 = [](float f) -> DWORD { f = clamp(f, 0.0f, 1.0f); return (DWORD)(f * 255.0f + 0.5f); };
             backdropColor_ = (to8(color.a) << 24) | (to8(color.r) << 16) | (to8(color.g) << 8) | to8(color.b);
+            backdropUserTinted_ = true;
             if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE);
         }
         static void SetDefaultBackdrop(Backdrop backdrop, DWORD tint = 0x00000000) {
@@ -3224,6 +3472,15 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 ApplyBackdrop();
                 if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE);
                 }, ConnectionThread::CurrentThread, nullptr);
+
+            // 主题变化（应用级 nullptr 或本窗口）→ 失效缓存 + 背景跟随 + 重绘
+            themeConn_ = UIZSignals::ThemeChanged.connect([this](Window* w) {
+                if (w == this || (!w && useAppTheme_)) OnThemeChanged();   // 应用主题变化：不用应用主题的窗口忽略
+                }, ConnectionThread::CurrentThread, nullptr);
+            themeReapplyConn_ = UIZSignals::ThemeReapply.connect([this](Window* w) {
+                if (!w || w == this) RequestThemeReapply();
+                }, ConnectionThread::CurrentThread, nullptr);
+            themeReapply_ = true;   // 首帧把当前主题套到可见子树
 
             auto defaultRoot = std::make_shared<ColumnBox>();
             defaultRoot->SetMargin(Thickness(20, 20, 20, 20));
@@ -3400,6 +3657,35 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE);
         }
         std::shared_ptr<UIElement> GetStatusBar() const { return statusBar_; }
+
+        // ---- 主题 ----
+        void SetTheme(const Theme& t) { theme_ = t; useAppTheme_ = false; OnThemeChanged(); }
+        const Theme& GetTheme() const { return useAppTheme_ ? ThemeManager::AppTheme() : theme_; }
+        const Theme& GetEffectiveTheme() const { return GetTheme(); }
+        void SetUseAppTheme(bool on = true) { if (useAppTheme_ != on) { useAppTheme_ = on; OnThemeChanged(); } }
+        bool IsUsingAppTheme() const { return useAppTheme_; }
+        void RefreshTheme() { OnThemeChanged(); }
+        void RequestThemeReapply() { themeReapply_ = true; layoutNeeded_ = true; layoutInvalidated_ = true; if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE); }
+        // 窗口/背景基色跟随主题（浅色=白、深色=黑），保留原 alpha（None 不透明；Acrylic/Mica 半透）
+        void SyncThemeBackdrop() {
+            if (!useAppTheme_ || backdropUserTinted_) return;
+            Color b = GetTheme().Get(ThemeRole::Backdrop);
+            auto q = [](float v) { int i = (int)(v * 255.0f + 0.5f); return (DWORD)(i < 0 ? 0 : (i > 255 ? 255 : i)); };
+            DWORD a = (backdropColor_ >> 24) & 0xFF;
+            DWORD nc = (a << 24) | (q(b.r) << 16) | (q(b.g) << 8) | q(b.b);
+            if (nc != backdropColor_) { backdropColor_ = nc; ApplyBackdrop(); }
+        }
+        // 主题变化：失效缓存 + 背景跟随 + 标记“下一帧布局后重套主题” + 重绘
+        void OnThemeChanged() {
+            if (rootElement_) rootElement_->ReleaseDeviceResourcesRecursive();
+            if (customTitleBar_) customTitleBar_->ReleaseDeviceResourcesRecursive();
+            if (menuBar_) menuBar_->ReleaseDeviceResourcesRecursive();
+            if (statusBar_) statusBar_->ReleaseDeviceResourcesRecursive();
+            themeReapply_ = true;   // 真正套用放到布局刷新之后（隐藏页/页面切换也能覆盖到）
+            SyncThemeBackdrop();
+            layoutNeeded_ = true; layoutInvalidated_ = true;
+            if (hwnd_) { InvalidateRect(hwnd_, nullptr, FALSE); RedrawWindow(hwnd_, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN); }
+        }
 
         // 查询系统标题栏按钮的度量（DWM）。只把“右边距”当可靠锚点，
         // 按钮宽/高/垂直位置作为默认参考（用户可覆盖）。返回 valid=false 表示查询失败。
@@ -4226,6 +4512,16 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     return 0;
                 }
                 break;
+            case WM_SETTINGCHANGE:
+                ThemeManager::InvalidateSystemTheme();                 // 个性化设置变更（含 ImmersiveColorSet）
+                if (ThemeManager::IsFollowingSystem()) ThemeManager::ApplyResolved();
+                break;
+            case WM_THEMECHANGED:
+            case WM_DWMCOLORIZATIONCOLORCHANGED:                       // 强调色（DWM 取色）变化
+            case WM_SYSCOLORCHANGE:                                    // 系统颜色变化
+                ThemeManager::InvalidateSystemTheme();
+                if (ThemeManager::IsFollowingSystem()) ThemeManager::ApplyResolved();
+                break;
             case WM_DPICHANGED: {
                 UpdateTimerState();
 #if ZUFYUI_RENDER_THREAD
@@ -4772,9 +5068,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             D2D1_RECT_F rr = D2D1::RectF(x, y, x + w, y + h);
             // 柔和阴影（与元素阴影同一套高斯 CDF 分层，ToolTip 每帧绘制用较少层数）
             DrawSoftShadow(rt, rr, 6.0f, 0.5f, 2.0f, 5.0f, D2D1::ColorF(0, 0, 0, 0.30f), 20, alpha);
+            const Theme& _th = ThemeManager::AppTheme();
             ComPtr<ID2D1SolidColorBrush> bg, fg;
-            rt->CreateSolidColorBrush(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.98f * alpha), bg.GetAddressOf());
-            rt->CreateSolidColorBrush(D2D1::ColorF(0.10f, 0.10f, 0.10f, alpha), fg.GetAddressOf());
+            D2D1_COLOR_F bgc = _th.Get(ThemeRole::Surface).ToD2D(); bgc.a *= 0.98f * alpha;
+            D2D1_COLOR_F fgc = _th.Get(ThemeRole::Text).ToD2D(); fgc.a *= alpha;
+            rt->CreateSolidColorBrush(bgc, bg.GetAddressOf());
+            rt->CreateSolidColorBrush(fgc, fg.GetAddressOf());
             if (bg) rt->FillRoundedRectangle(D2D1::RoundedRect(rr, 6, 6), bg.Get());
             if (layout && fg) {
                 // 裁剪到 tooltip 框内 —— 彻底保证文字不会画到外面
@@ -5168,6 +5467,17 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 }
                 if (menuBar_) npAfter_.push_back(menuBar_.get());
                 if (statusBar_) npAfter_.push_back(statusBar_.get());
+            }
+
+            // 主题套用（放在布局刷新之后 → 当前可见子树的控件都能覆盖到；页面/标签切换后也会重套）
+            if (themeReapply_) {
+                themeReapply_ = false;
+                SyncThemeBackdrop();   // 启动即深色时也把窗口背景读一次
+                const Theme& th = GetTheme();
+                if (rootElement_) ThemeManager::ApplyToSubtree(rootElement_.get(), th);
+                if (customTitleBar_) ThemeManager::ApplyToSubtree(customTitleBar_.get(), th);
+                if (menuBar_) ThemeManager::ApplyToSubtree(menuBar_.get(), th);
+                if (statusBar_) ThemeManager::ApplyToSubtree(statusBar_.get(), th);
             }
 
             // 3. 动画更新
@@ -6075,6 +6385,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool  menuBarInTitleBar_ = true;
         bool  showTitleText_ = false;   // 默认隐藏标题文字（菜单栏叠在标题栏上）；true → 显示标题、菜单栏下移
         float menuBarHeight_ = 0.0f, statusBarHeight_ = 0.0f;
+        Theme theme_;                   // 窗口级主题（useAppTheme_ == false 时生效）
+        bool  useAppTheme_ = true;
+        bool  themeReapply_ = false;    // 下一帧布局后把主题套到可见子树
+        bool  backdropUserTinted_ = false;   // 应用显式设过背景 tint → 主题不覆盖
+        Connection themeConn_;          // 订阅 UIZSignals::ThemeChanged
+        Connection themeReapplyConn_;   // 订阅 UIZSignals::ThemeReapply
         float customTitleBarHeight_ = 0.0f;
         bool titleBarVisible_ = true;
         bool resizable_ = true;
@@ -6577,10 +6893,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         void EnsureBrushes(ID2D1RenderTarget* rt) {
-            if (!bgBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(1, 1, 1), &bgBrush_);
-            if (!hoverBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0, 0.12f), &hoverBrush_);
-            if (!textBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0), &textBrush_);
-            if (!separatorBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0.8f, 0.8f, 0.8f), &separatorBrush_);
+            const Theme& th = ThemeManager::AppTheme();   // 菜单主题跟随应用主题
+            if (!bgBrush_) rt->CreateSolidColorBrush(th.Get(ThemeRole::Surface).ToD2D(), &bgBrush_);
+            if (!hoverBrush_) rt->CreateSolidColorBrush(th.Get(ThemeRole::ControlHover).ToD2D(), &hoverBrush_);
+            if (!textBrush_) rt->CreateSolidColorBrush(th.Get(ThemeRole::Text).ToD2D(), &textBrush_);
+            if (!separatorBrush_) rt->CreateSolidColorBrush(th.Get(ThemeRole::Divider).ToD2D(), &separatorBrush_);
             if (!shadowBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0, 0.03f), &shadowBrush_);
             if (!roundStroke_) {
                 ID2D1Factory* f = nullptr; rt->GetFactory(&f);   // GetFactory 会 AddRef
@@ -6646,9 +6963,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                         if (item->checked) rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.22f, cb * 0.22f), textBrush_);
                     }
                     else if (item->checked) {
-                        textBrush_->SetColor(D2D1::ColorF(0.0f, 0.47f, 0.84f));
+                        textBrush_->SetColor(ThemeManager::AppTheme().Get(ThemeRole::Accent).ToD2D());
                         rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(bx, by, bx + cb, by + cb), cb * 0.28f, cb * 0.28f), textBrush_);
-                        textBrush_->SetColor(D2D1::ColorF(1, 1, 1));
+                        textBrush_->SetColor(ThemeManager::AppTheme().Get(ThemeRole::TextOnAccent).ToD2D());
                         if (roundStroke_) {
                             rt->DrawLine(D2D1::Point2F(bx + cb * 0.24f, by + cb * 0.52f), D2D1::Point2F(bx + cb * 0.43f, by + cb * 0.70f), textBrush_, lw, roundStroke_);
                             rt->DrawLine(D2D1::Point2F(bx + cb * 0.43f, by + cb * 0.70f), D2D1::Point2F(bx + cb * 0.76f, by + cb * 0.30f), textBrush_, lw, roundStroke_);
@@ -6661,17 +6978,17 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 if (item->type == MenuItem::Type::Submenu) textRight = itemRect.right - arrowWidthDip_ - 2;
                 if (!item->shortcut.empty()) textRight -= 104.0f;
                 D2D1_RECT_F textRect = D2D1::RectF(textX, y, textRight, y + itemHeightDip_);
-                D2D1_COLOR_F tcol = D2D1::ColorF(0, 0, 0);
+                D2D1_COLOR_F tcol = ThemeManager::AppTheme().Get(ThemeRole::Text).ToD2D();
                 if (item->textColor) tcol = item->textColor->ToD2D();
-                else if (!item->enabled) tcol = D2D1::ColorF(0.6f, 0.6f, 0.6f);
-                else if (item->danger) tcol = D2D1::ColorF(0.86f, 0.2f, 0.2f);
+                else if (!item->enabled) tcol = ThemeManager::AppTheme().Get(ThemeRole::TextDisabled).ToD2D();
+                else if (item->danger) tcol = ThemeManager::AppTheme().Get(ThemeRole::Danger).ToD2D();
                 textBrush_->SetColor(tcol);
                 if (!item->text.empty()) {
                     IDWriteTextFormat* tf = (item->isDefault && boldFormat_) ? boldFormat_ : textFormat_;
                     rt->DrawText(item->text.c_str(), (UINT32)item->text.length(), tf, textRect, textBrush_);
                 }
                 if (!item->shortcut.empty() && shortcutFormat_) {
-                    textBrush_->SetColor(D2D1::ColorF(0.45f, 0.45f, 0.45f));
+                    textBrush_->SetColor(ThemeManager::AppTheme().Get(ThemeRole::TextSecondary).ToD2D());
                     rt->DrawText(item->shortcut.c_str(), (UINT32)item->shortcut.length(), shortcutFormat_,
                                  D2D1::RectF(itemRect.right - 108.0f, y, itemRect.right - 8.0f, y + itemHeightDip_), textBrush_);
                 }
