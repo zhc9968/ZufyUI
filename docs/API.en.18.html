@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessibility & Debug Channel · ZufyUI API Reference</title>
+    <title>Theme system · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,141 +197,121 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Drag &amp; Drop, cards</a></li><li class="active"><a href="API.en.18.html"><span class="chapter-index">18</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Version digest</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Pitfall index</a></li><li class=""><a href="API.en.21.html"><span class="chapter-index">21</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="accessibility-uia"><div class="toc-row"><a href="#accessibility-uia" data-target="accessibility-uia">Accessibility (UIA)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="debug-automation-channel"><div class="toc-row"><a href="#debug-automation-channel" data-target="debug-automation-channel">Debug / automation channel</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Drag &amp; Drop, cards</a></li><li class="active"><a href="API.en.18.html"><span class="chapter-index">18</span>Theme system</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Version digest</a></li><li class=""><a href="API.en.21.html"><span class="chapter-index">21</span>Pitfall index</a></li><li class=""><a href="API.en.22.html"><span class="chapter-index">22</span>Appendix</a></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Accessibility (UIA)
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>```cpp
+// semantic color roles (look colors up by ROLE, not by control)
+enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
+    Surface, SurfaceAlt, SurfaceRaised, Backdrop, Overlay,
+    Control, ControlHover, ControlPressed, ControlDisabled,
+    Accent, AccentHover, AccentPressed,
+    Border, Divider, FocusRing, Selection,
+    ScrollTrack, ScrollThumb, ScrollThumbHover,
+    Danger, Warning, Success, Info, Count };
+struct Theme { Color colors[(int)ThemeRole::Count]; FontSpec font, fontCaption, fontMono;
+    float cornerRadius; bool isDark; std::wstring name;
+    Color Get(ThemeRole) const;   void Set(ThemeRole, Color);
+    static Theme Light();   static Theme Dark();   static Theme HighContrast(); };
 
-- The provider comes from `ZufyUIWindowTool.h`; element APIs are in the "Element base" chapter.
-- Window APIs: `SetAccessibilityEnabled(bool)` (on by default), `FocusElement`, `GetFocused/Hovered/PressedElement`.
-- **`Pitfall`**: the library stores no history and does no file I/O; the provider reflects only the current frame. `WM_GETOBJECT` is handled only when enabled.
+// app level
+void ThemeManager::SetAppTheme(const Theme&amp;);   void ThemeManager::SetLight/DarkAppTheme();
+Theme&amp; ThemeManager::AppTheme();   bool ThemeManager::IsDark();
+// follow system (registry AppsUseLightTheme + DWM AccentColor; auto re-resolve on WM_SETTINGCHANGE etc.)
+void ThemeManager::SetFollowSystem(bool);   bool ThemeManager::IsFollowingSystem();
+bool ThemeManager::SystemPrefersDark();   Color ThemeManager::SystemAccent();   Theme ThemeManager::SystemTheme();
+// test hook: emulate the system theme (bypass the registry)
+void ThemeManager::DebugForceSystemTheme(bool enable, bool dark, bool highContrast);
+// color remap: any hard-coded color → theme color (exact table; passthrough + keeps alpha on miss)
+void ThemeManager::SetColorMap(std::unordered_map&lt;uint32_t, Color&gt;);   Color ThemeManager::Map(Color);
+// debug: theme name + each Role as AARRGGBB (debug channel cmd 23 GetTheme)
+std::wstring ThemeManager::Dump();
 
-## Debug / automation channel
-
-```cpp
-inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
+// window level
+void Window::SetTheme(const Theme&amp;);   const Theme&amp; Window::GetTheme();
+void Window::SetUseAppTheme(bool = true);   bool Window::IsUsingAppTheme();   void Window::RefreshTheme();
+ZSignal&lt;Window*&gt; UIZSignals::ThemeChanged;   // nullptr = app-wide
+ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // re-apply to visible subtree after page/tab switch
 ```
-- Off by default. When on, the target window handles `WM_COPYDATA` (`dwData` = command id; reply `0x5A554631`) and returns current-frame info only (no file I/O).
-
-| Cmd | Action | Cmd | Action |
-|---|---|---|---|
-| 1 | Ping | 12 | ClearHighlight |
-| 2 | ListWindows | 13 | GetErrors (unified log E/W/I/D, ≤500) |
-| 3 | GetFrameStats | 14 | ClearErrors |
-| 4 | GetElementTree | 15/16/17 | TopN repaint/layout/cache (`all` = all) |
-| 5 | ForceRepaint | 18 | TopN draw |
-| 6 | SetElementText("id\ttext") | 19 | ResetCounters |
-| 7 | InvokeElement | 20 | SetVisible("id\t0/1") |
-| 8 | FocusElement | 21 | SetMargin("id\tx\ty") |
-| 9 | GetElementInfo | 22 | SetHighlightColor("RRGGBB") |
-| 10 | GetElementAt("x,y" screen→AutomationId) | | |
-| 11 | Highlight(id) | | |
-
-- Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
-- **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 18 · Accessibility &amp; Debug Channel</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 18</span><h1>Accessibility &amp; Debug Channel</h1><p class="chapter-summary">UIA + SetDebugEnabled (v1.17.0)</p></header><h2 id="accessibility-uia">Accessibility (UIA)</h2>
-<ul>
-<li>The provider comes from <code>ZufyUIWindowTool.h</code>; element APIs are in the "Element base" chapter.</li>
-<li>Window APIs: <code>SetAccessibilityEnabled(bool)</code> (on by default), <code>FocusElement</code>, <code>GetFocused/Hovered/PressedElement</code>.</li>
-<li><strong><code>Pitfall</code></strong>: the library stores no history and does no file I/O; the provider reflects only the current frame. <code>WM_GETOBJECT</code> is handled only when enabled.</li>
-</ul>
-<h2 id="debug-automation-channel">Debug / automation channel</h2>
-<div class="code-container">
+- Color priority: **explicit instance color &gt; window theme &gt; app theme**. Once a control's `Set*Color` is called explicitly it is flagged "user-colored" and the theme **no longer overrides it**; all other controls follow the theme.
+- **`Pitfall`**: `Backdrop` is the **window/background base color** (white in light, black in dark); after an explicit `SetBackdrop/SetBackgroundColor` tint, the theme no longer changes it.
+- **`Version`**: introduced in `v1.19.0`; window periphery (caption buttons) follows the **system** theme, not the window theme; `WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE` auto re-resolve.</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 18 · Theme system</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 18</span><h1>Theme system</h1><p class="chapter-summary">Theme (v1.19.0+)</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c247e03a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-0b8ecbd2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDebugEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kr">inline</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDebugEnabled</span><span class="p">();</span>
+<div class="highlight"><pre><span></span><span class="c1">// semantic color roles (look colors up by ROLE, not by control)</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ThemeRole</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Text</span><span class="p">,</span><span class="w"> </span><span class="n">TextSecondary</span><span class="p">,</span><span class="w"> </span><span class="n">TextDisabled</span><span class="p">,</span><span class="w"> </span><span class="n">TextOnAccent</span><span class="p">,</span>
+<span class="w">    </span><span class="n">Surface</span><span class="p">,</span><span class="w"> </span><span class="n">SurfaceAlt</span><span class="p">,</span><span class="w"> </span><span class="n">SurfaceRaised</span><span class="p">,</span><span class="w"> </span><span class="n">Backdrop</span><span class="p">,</span><span class="w"> </span><span class="n">Overlay</span><span class="p">,</span>
+<span class="w">    </span><span class="n">Control</span><span class="p">,</span><span class="w"> </span><span class="n">ControlHover</span><span class="p">,</span><span class="w"> </span><span class="n">ControlPressed</span><span class="p">,</span><span class="w"> </span><span class="n">ControlDisabled</span><span class="p">,</span>
+<span class="w">    </span><span class="n">Accent</span><span class="p">,</span><span class="w"> </span><span class="n">AccentHover</span><span class="p">,</span><span class="w"> </span><span class="n">AccentPressed</span><span class="p">,</span>
+<span class="w">    </span><span class="n">Border</span><span class="p">,</span><span class="w"> </span><span class="n">Divider</span><span class="p">,</span><span class="w"> </span><span class="n">FocusRing</span><span class="p">,</span><span class="w"> </span><span class="n">Selection</span><span class="p">,</span>
+<span class="w">    </span><span class="n">ScrollTrack</span><span class="p">,</span><span class="w"> </span><span class="n">ScrollThumb</span><span class="p">,</span><span class="w"> </span><span class="n">ScrollThumbHover</span><span class="p">,</span>
+<span class="w">    </span><span class="n">Danger</span><span class="p">,</span><span class="w"> </span><span class="n">Warning</span><span class="p">,</span><span class="w"> </span><span class="n">Success</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="w"> </span><span class="p">};</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">Theme</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">colors</span><span class="p">[(</span><span class="kt">int</span><span class="p">)</span><span class="n">ThemeRole</span><span class="o">::</span><span class="n">Count</span><span class="p">];</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">font</span><span class="p">,</span><span class="w"> </span><span class="n">fontCaption</span><span class="p">,</span><span class="w"> </span><span class="n">fontMono</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">cornerRadius</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">isDark</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">name</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Color</span><span class="w"> </span><span class="nf">Get</span><span class="p">(</span><span class="n">ThemeRole</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">Set</span><span class="p">(</span><span class="n">ThemeRole</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">);</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Theme</span><span class="w"> </span><span class="nf">Light</span><span class="p">();</span><span class="w">   </span><span class="k">static</span><span class="w"> </span><span class="n">Theme</span><span class="w"> </span><span class="nf">Dark</span><span class="p">();</span><span class="w">   </span><span class="k">static</span><span class="w"> </span><span class="n">Theme</span><span class="w"> </span><span class="nf">HighContrast</span><span class="p">();</span><span class="w"> </span><span class="p">};</span>
+
+<span class="c1">// app level</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ThemeManager::SetAppTheme</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Theme</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="n">ThemeManager</span><span class="o">::</span><span class="n">SetLight</span><span class="o">/</span><span class="n">DarkAppTheme</span><span class="p">();</span>
+<span class="n">Theme</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">ThemeManager::AppTheme</span><span class="p">();</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">ThemeManager::IsDark</span><span class="p">();</span>
+<span class="c1">// follow system (registry AppsUseLightTheme + DWM AccentColor; auto re-resolve on WM_SETTINGCHANGE etc.)</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ThemeManager::SetFollowSystem</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">ThemeManager::IsFollowingSystem</span><span class="p">();</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">ThemeManager::SystemPrefersDark</span><span class="p">();</span><span class="w">   </span><span class="n">Color</span><span class="w"> </span><span class="nf">ThemeManager::SystemAccent</span><span class="p">();</span><span class="w">   </span><span class="n">Theme</span><span class="w"> </span><span class="nf">ThemeManager::SystemTheme</span><span class="p">();</span>
+<span class="c1">// test hook: emulate the system theme (bypass the registry)</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ThemeManager::DebugForceSystemTheme</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">enable</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">dark</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">highContrast</span><span class="p">);</span>
+<span class="c1">// color remap: any hard-coded color → theme color (exact table; passthrough + keeps alpha on miss)</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ThemeManager::SetColorMap</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="o">&gt;</span><span class="p">);</span><span class="w">   </span><span class="n">Color</span><span class="w"> </span><span class="nf">ThemeManager::Map</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
+<span class="c1">// debug: theme name + each Role as AARRGGBB (debug channel cmd 23 GetTheme)</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">ThemeManager::Dump</span><span class="p">();</span>
+
+<span class="c1">// window level</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Window::SetTheme</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Theme</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="k">const</span><span class="w"> </span><span class="n">Theme</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Window::GetTheme</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Window::SetUseAppTheme</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Window::IsUsingAppTheme</span><span class="p">();</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">Window::RefreshTheme</span><span class="p">();</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// nullptr = app-wide</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeReapply</span><span class="p">;</span><span class="w">   </span><span class="c1">// re-apply to visible subtree after page/tab switch</span>
 </pre></div>
-<pre id="code-c247e03a" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
+<pre id="code-0b8ecbd2" style="display: none;">// semantic color roles (look colors up by ROLE, not by control)
+enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
+    Surface, SurfaceAlt, SurfaceRaised, Backdrop, Overlay,
+    Control, ControlHover, ControlPressed, ControlDisabled,
+    Accent, AccentHover, AccentPressed,
+    Border, Divider, FocusRing, Selection,
+    ScrollTrack, ScrollThumb, ScrollThumbHover,
+    Danger, Warning, Success, Info, Count };
+struct Theme { Color colors[(int)ThemeRole::Count]; FontSpec font, fontCaption, fontMono;
+    float cornerRadius; bool isDark; std::wstring name;
+    Color Get(ThemeRole) const;   void Set(ThemeRole, Color);
+    static Theme Light();   static Theme Dark();   static Theme HighContrast(); };
+
+// app level
+void ThemeManager::SetAppTheme(const Theme&amp;);   void ThemeManager::SetLight/DarkAppTheme();
+Theme&amp; ThemeManager::AppTheme();   bool ThemeManager::IsDark();
+// follow system (registry AppsUseLightTheme + DWM AccentColor; auto re-resolve on WM_SETTINGCHANGE etc.)
+void ThemeManager::SetFollowSystem(bool);   bool ThemeManager::IsFollowingSystem();
+bool ThemeManager::SystemPrefersDark();   Color ThemeManager::SystemAccent();   Theme ThemeManager::SystemTheme();
+// test hook: emulate the system theme (bypass the registry)
+void ThemeManager::DebugForceSystemTheme(bool enable, bool dark, bool highContrast);
+// color remap: any hard-coded color → theme color (exact table; passthrough + keeps alpha on miss)
+void ThemeManager::SetColorMap(std::unordered_map&lt;uint32_t, Color&gt;);   Color ThemeManager::Map(Color);
+// debug: theme name + each Role as AARRGGBB (debug channel cmd 23 GetTheme)
+std::wstring ThemeManager::Dump();
+
+// window level
+void Window::SetTheme(const Theme&amp;);   const Theme&amp; Window::GetTheme();
+void Window::SetUseAppTheme(bool = true);   bool Window::IsUsingAppTheme();   void Window::RefreshTheme();
+ZSignal&lt;Window*&gt; UIZSignals::ThemeChanged;   // nullptr = app-wide
+ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // re-apply to visible subtree after page/tab switch</pre>
 </div>
 <ul>
-<li>Off by default. When on, the target window handles <code>WM_COPYDATA</code> (<code>dwData</code> = command id; reply <code>0x5A554631</code>) and returns current-frame info only (no file I/O).</li>
+<li>Color priority: <strong>explicit instance color &gt; window theme &gt; app theme</strong>. Once a control's <code>Set*Color</code> is called explicitly it is flagged "user-colored" and the theme <strong>no longer overrides it</strong>; all other controls follow the theme.</li>
+<li><strong><code>Pitfall</code></strong>: <code>Backdrop</code> is the <strong>window/background base color</strong> (white in light, black in dark); after an explicit <code>SetBackdrop/SetBackgroundColor</code> tint, the theme no longer changes it.</li>
+<li><strong><code>Version</code></strong>: introduced in <code>v1.19.0</code>; window periphery (caption buttons) follows the <strong>system</strong> theme, not the window theme; <code>WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE</code> auto re-resolve.</li>
 </ul>
-<table>
-<thead>
-<tr>
-<th>Cmd</th>
-<th>Action</th>
-<th>Cmd</th>
-<th>Action</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Ping</td>
-<td>12</td>
-<td>ClearHighlight</td>
-</tr>
-<tr>
-<td>2</td>
-<td>ListWindows</td>
-<td>13</td>
-<td>GetErrors (unified log E/W/I/D, ≤500)</td>
-</tr>
-<tr>
-<td>3</td>
-<td>GetFrameStats</td>
-<td>14</td>
-<td>ClearErrors</td>
-</tr>
-<tr>
-<td>4</td>
-<td>GetElementTree</td>
-<td>15/16/17</td>
-<td>TopN repaint/layout/cache (<code>all</code> = all)</td>
-</tr>
-<tr>
-<td>5</td>
-<td>ForceRepaint</td>
-<td>18</td>
-<td>TopN draw</td>
-</tr>
-<tr>
-<td>6</td>
-<td>SetElementText("id\ttext")</td>
-<td>19</td>
-<td>ResetCounters</td>
-</tr>
-<tr>
-<td>7</td>
-<td>InvokeElement</td>
-<td>20</td>
-<td>SetVisible("id\t0/1")</td>
-</tr>
-<tr>
-<td>8</td>
-<td>FocusElement</td>
-<td>21</td>
-<td>SetMargin("id\tx\ty")</td>
-</tr>
-<tr>
-<td>9</td>
-<td>GetElementInfo</td>
-<td>22</td>
-<td>SetHighlightColor("RRGGBB")</td>
-</tr>
-<tr>
-<td>10</td>
-<td>GetElementAt("x,y" screen→AutomationId)</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>11</td>
-<td>Highlight(id)</td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li>Unified log: <code>detail::Log(level, tag, msg)</code> / <code>LogWarning/LogInfo/DebugLog</code> / <code>RecordError</code> (→ E level + fires <code>UIZSignals::Error</code>).</li>
-<li><strong><code>Pitfall</code></strong>: send commands with a timeout (<code>SendMessageTimeout</code> without <code>SMTO_BLOCK</code>), or the debugger hangs when the target is busy. <code>ZUFYUI_DEBUG</code> is a <strong>compile-time</strong> switch (logging); <code>SetDebugEnabled</code> is a <strong>runtime</strong> switch (channel/stats) — do not conflate.</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.17.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Drag &amp; Drop, cards</span><span class="nav-desc">Drag &amp; Drop, Expander, SettingsList (v1.19.0)</span></a><a class="next" href="API.en.19.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Version digest</span><span class="nav-desc">v1.15.0 → v1.19.2</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.en.17.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Drag &amp; Drop, cards</span><span class="nav-desc">Drag &amp; Drop, Expander, SettingsList (v1.19.0)</span></a><a class="next" href="API.en.19.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Accessibility &amp; Debug Channel</span><span class="nav-desc">UIA + SetDebugEnabled (v1.17.0)</span></a></nav>
         </main>
     </div>
 

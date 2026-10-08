@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>无障碍与调试通道 · ZufyUI API 参考</title>
+    <title>主题系统 · ZufyUI API 参考</title>
     <style>
 
 :root {
@@ -197,143 +197,121 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>拖放与卡片组件</a></li><li class="active"><a href="API.18.html"><span class="chapter-index">18</span>无障碍与调试通道</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>版本变化摘录</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>易错点总表</a></li><li class=""><a href="API.21.html"><span class="chapter-index">21</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="无障碍uia"><div class="toc-row"><a href="#无障碍uia" data-target="无障碍uia">无障碍（UIA）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="调试-自动化通道"><div class="toc-row"><a href="#调试-自动化通道" data-target="调试-自动化通道">调试 / 自动化通道</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>拖放与卡片组件</a></li><li class="active"><a href="API.18.html"><span class="chapter-index">18</span>主题系统</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>无障碍与调试通道</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>版本变化摘录</a></li><li class=""><a href="API.21.html"><span class="chapter-index">21</span>易错点总表</a></li><li class=""><a href="API.22.html"><span class="chapter-index">22</span>附录</a></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## 无障碍（UIA）
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>```cpp
+// 语义色角色（按“角色”取色，而不是按控件）
+enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
+    Surface, SurfaceAlt, SurfaceRaised, Backdrop, Overlay,
+    Control, ControlHover, ControlPressed, ControlDisabled,
+    Accent, AccentHover, AccentPressed,
+    Border, Divider, FocusRing, Selection,
+    ScrollTrack, ScrollThumb, ScrollThumbHover,
+    Danger, Warning, Success, Info, Count };
+struct Theme { Color colors[(int)ThemeRole::Count]; FontSpec font, fontCaption, fontMono;
+    float cornerRadius; bool isDark; std::wstring name;
+    Color Get(ThemeRole) const;   void Set(ThemeRole, Color);
+    static Theme Light();   static Theme Dark();   static Theme HighContrast(); };
 
-- 由 `ZufyUIWindowTool.h` 提供 UI Automation 提供程序；元素侧 API 见「元素基类」。
-- 窗口侧：`SetAccessibilityEnabled(bool)`（默认开）、`FocusElement`、`GetFocused/Hovered/PressedElement`。
-- **`易错`**：库**不存历史、不读写文件**，提供程序只反映当前帧。`WM_GETOBJECT` 仅在开启时处理。
+// 应用级
+void ThemeManager::SetAppTheme(const Theme&amp;);   void ThemeManager::SetLight/DarkAppTheme();
+Theme&amp; ThemeManager::AppTheme();   bool ThemeManager::IsDark();
+// 跟随系统（注册表 AppsUseLightTheme + DWM AccentColor；WM_SETTINGCHANGE 等自动重解析）
+void ThemeManager::SetFollowSystem(bool);   bool ThemeManager::IsFollowingSystem();
+bool ThemeManager::SystemPrefersDark();   Color ThemeManager::SystemAccent();   Theme ThemeManager::SystemTheme();
+// 测试钩子：模拟系统主题（绕过注册表）
+void ThemeManager::DebugForceSystemTheme(bool enable, bool dark, bool highContrast);
+// 色差重映射：任意硬编码色 → 主题色（精确表，未命中原样返回、保留 alpha）
+void ThemeManager::SetColorMap(std::unordered_map&lt;uint32_t, Color&gt;);   Color ThemeManager::Map(Color);
+// 调试：主题名 + 各 Role 的 AARRGGBB（调试通道命令 23 GetTheme）
+std::wstring ThemeManager::Dump();
 
-## 调试 / 自动化通道
-
-```cpp
-inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
+// 窗口级
+void Window::SetTheme(const Theme&amp;);   const Theme&amp; Window::GetTheme();
+void Window::SetUseAppTheme(bool = true);   bool Window::IsUsingAppTheme();   void Window::RefreshTheme();
+ZSignal&lt;Window*&gt; UIZSignals::ThemeChanged;   // nullptr=应用级
+ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重套可见子树
 ```
-- 默认**关闭**；开启后目标窗口处理 `WM_COPYDATA`（`dwData` = 命令号，回包 `0x5A554631`）。
-- 命令集（1..22）：
-
-| 命令 | 作用 | 命令 | 作用 |
-|---|---|---|---|
-| 1 | Ping | 12 | ClearHighlight |
-| 2 | ListWindows | 13 | GetErrors（统一日志 E/W/I/D，≤500） |
-| 3 | GetFrameStats | 14 | ClearErrors |
-| 4 | GetElementTree | 15/16/17 | TopN 重绘/布局/缓存（`all`=全部） |
-| 5 | ForceRepaint | 18 | TopN 绘制 |
-| 6 | SetElementText("id\ttext") | 19 | ResetCounters |
-| 7 | InvokeElement | 20 | SetVisible("id\t0/1") |
-| 8 | FocusElement | 21 | SetMargin("id\tx\ty") |
-| 9 | GetElementInfo | 22 | SetHighlightColor("RRGGBB") |
-| 10 | GetElementAt("x,y" 屏幕→AutomationId) | — | — |
-| 11 | Highlight(id) | — | — |
-
-- 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
-- **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 18 章 · 无障碍与调试通道</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 18 章</span><h1>无障碍与调试通道</h1><p class="chapter-summary">UIA + SetDebugEnabled（v1.17.0）</p></header><h2 id="无障碍uia">无障碍（UIA）</h2>
-<ul>
-<li>由 <code>ZufyUIWindowTool.h</code> 提供 UI Automation 提供程序；元素侧 API 见「元素基类」。</li>
-<li>窗口侧：<code>SetAccessibilityEnabled(bool)</code>（默认开）、<code>FocusElement</code>、<code>GetFocused/Hovered/PressedElement</code>。</li>
-<li><strong><code>易错</code></strong>：库<strong>不存历史、不读写文件</strong>，提供程序只反映当前帧。<code>WM_GETOBJECT</code> 仅在开启时处理。</li>
-</ul>
-<h2 id="调试-自动化通道">调试 / 自动化通道</h2>
-<div class="code-container">
+- 取色优先级：**实例显式设色 &gt; 窗口主题 &gt; 应用主题**。控件只要被显式调用过任何 `Set*Color`，就标记为“用户设色”，主题切换**不再覆盖它**；其余控件跟随主题。
+- **`易错`**：`Backdrop` 是**窗口/背景基色**（浅色白、深色黑）；`SetBackdrop/SetBackgroundColor` 显式指定 tint 后主题不再改它。
+- **`版本`**：`v1.19.0` 引入；窗口周边（标题栏三件套）跟随**系统**主题而非窗口主题；`WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE` 自动重解析。</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 18 章 · 主题系统</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 18 章</span><h1>主题系统</h1><p class="chapter-summary">Theme（v1.19.0+）</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-56721f5f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-814af1b0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDebugEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kr">inline</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDebugEnabled</span><span class="p">();</span>
+<div class="highlight"><pre><span></span><span class="c1">// 语义色角色（按“角色”取色，而不是按控件）</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ThemeRole</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Text</span><span class="p">,</span><span class="w"> </span><span class="n">TextSecondary</span><span class="p">,</span><span class="w"> </span><span class="n">TextDisabled</span><span class="p">,</span><span class="w"> </span><span class="n">TextOnAccent</span><span class="p">,</span>
+<span class="w">    </span><span class="n">Surface</span><span class="p">,</span><span class="w"> </span><span class="n">SurfaceAlt</span><span class="p">,</span><span class="w"> </span><span class="n">SurfaceRaised</span><span class="p">,</span><span class="w"> </span><span class="n">Backdrop</span><span class="p">,</span><span class="w"> </span><span class="n">Overlay</span><span class="p">,</span>
+<span class="w">    </span><span class="n">Control</span><span class="p">,</span><span class="w"> </span><span class="n">ControlHover</span><span class="p">,</span><span class="w"> </span><span class="n">ControlPressed</span><span class="p">,</span><span class="w"> </span><span class="n">ControlDisabled</span><span class="p">,</span>
+<span class="w">    </span><span class="n">Accent</span><span class="p">,</span><span class="w"> </span><span class="n">AccentHover</span><span class="p">,</span><span class="w"> </span><span class="n">AccentPressed</span><span class="p">,</span>
+<span class="w">    </span><span class="n">Border</span><span class="p">,</span><span class="w"> </span><span class="n">Divider</span><span class="p">,</span><span class="w"> </span><span class="n">FocusRing</span><span class="p">,</span><span class="w"> </span><span class="n">Selection</span><span class="p">,</span>
+<span class="w">    </span><span class="n">ScrollTrack</span><span class="p">,</span><span class="w"> </span><span class="n">ScrollThumb</span><span class="p">,</span><span class="w"> </span><span class="n">ScrollThumbHover</span><span class="p">,</span>
+<span class="w">    </span><span class="n">Danger</span><span class="p">,</span><span class="w"> </span><span class="n">Warning</span><span class="p">,</span><span class="w"> </span><span class="n">Success</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="w"> </span><span class="p">};</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">Theme</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">colors</span><span class="p">[(</span><span class="kt">int</span><span class="p">)</span><span class="n">ThemeRole</span><span class="o">::</span><span class="n">Count</span><span class="p">];</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">font</span><span class="p">,</span><span class="w"> </span><span class="n">fontCaption</span><span class="p">,</span><span class="w"> </span><span class="n">fontMono</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">cornerRadius</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">isDark</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">name</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Color</span><span class="w"> </span><span class="nf">Get</span><span class="p">(</span><span class="n">ThemeRole</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">Set</span><span class="p">(</span><span class="n">ThemeRole</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">);</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Theme</span><span class="w"> </span><span class="nf">Light</span><span class="p">();</span><span class="w">   </span><span class="k">static</span><span class="w"> </span><span class="n">Theme</span><span class="w"> </span><span class="nf">Dark</span><span class="p">();</span><span class="w">   </span><span class="k">static</span><span class="w"> </span><span class="n">Theme</span><span class="w"> </span><span class="nf">HighContrast</span><span class="p">();</span><span class="w"> </span><span class="p">};</span>
+
+<span class="c1">// 应用级</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ThemeManager::SetAppTheme</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Theme</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="n">ThemeManager</span><span class="o">::</span><span class="n">SetLight</span><span class="o">/</span><span class="n">DarkAppTheme</span><span class="p">();</span>
+<span class="n">Theme</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">ThemeManager::AppTheme</span><span class="p">();</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">ThemeManager::IsDark</span><span class="p">();</span>
+<span class="c1">// 跟随系统（注册表 AppsUseLightTheme + DWM AccentColor；WM_SETTINGCHANGE 等自动重解析）</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ThemeManager::SetFollowSystem</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">ThemeManager::IsFollowingSystem</span><span class="p">();</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">ThemeManager::SystemPrefersDark</span><span class="p">();</span><span class="w">   </span><span class="n">Color</span><span class="w"> </span><span class="nf">ThemeManager::SystemAccent</span><span class="p">();</span><span class="w">   </span><span class="n">Theme</span><span class="w"> </span><span class="nf">ThemeManager::SystemTheme</span><span class="p">();</span>
+<span class="c1">// 测试钩子：模拟系统主题（绕过注册表）</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ThemeManager::DebugForceSystemTheme</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">enable</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">dark</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">highContrast</span><span class="p">);</span>
+<span class="c1">// 色差重映射：任意硬编码色 → 主题色（精确表，未命中原样返回、保留 alpha）</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">ThemeManager::SetColorMap</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="o">&gt;</span><span class="p">);</span><span class="w">   </span><span class="n">Color</span><span class="w"> </span><span class="nf">ThemeManager::Map</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
+<span class="c1">// 调试：主题名 + 各 Role 的 AARRGGBB（调试通道命令 23 GetTheme）</span>
+<span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">ThemeManager::Dump</span><span class="p">();</span>
+
+<span class="c1">// 窗口级</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Window::SetTheme</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Theme</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="k">const</span><span class="w"> </span><span class="n">Theme</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Window::GetTheme</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">Window::SetUseAppTheme</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Window::IsUsingAppTheme</span><span class="p">();</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">Window::RefreshTheme</span><span class="p">();</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// nullptr=应用级</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeReapply</span><span class="p">;</span><span class="w">   </span><span class="c1">// 页面/标签切换后重套可见子树</span>
 </pre></div>
-<pre id="code-56721f5f" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
+<pre id="code-814af1b0" style="display: none;">// 语义色角色（按“角色”取色，而不是按控件）
+enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
+    Surface, SurfaceAlt, SurfaceRaised, Backdrop, Overlay,
+    Control, ControlHover, ControlPressed, ControlDisabled,
+    Accent, AccentHover, AccentPressed,
+    Border, Divider, FocusRing, Selection,
+    ScrollTrack, ScrollThumb, ScrollThumbHover,
+    Danger, Warning, Success, Info, Count };
+struct Theme { Color colors[(int)ThemeRole::Count]; FontSpec font, fontCaption, fontMono;
+    float cornerRadius; bool isDark; std::wstring name;
+    Color Get(ThemeRole) const;   void Set(ThemeRole, Color);
+    static Theme Light();   static Theme Dark();   static Theme HighContrast(); };
+
+// 应用级
+void ThemeManager::SetAppTheme(const Theme&amp;);   void ThemeManager::SetLight/DarkAppTheme();
+Theme&amp; ThemeManager::AppTheme();   bool ThemeManager::IsDark();
+// 跟随系统（注册表 AppsUseLightTheme + DWM AccentColor；WM_SETTINGCHANGE 等自动重解析）
+void ThemeManager::SetFollowSystem(bool);   bool ThemeManager::IsFollowingSystem();
+bool ThemeManager::SystemPrefersDark();   Color ThemeManager::SystemAccent();   Theme ThemeManager::SystemTheme();
+// 测试钩子：模拟系统主题（绕过注册表）
+void ThemeManager::DebugForceSystemTheme(bool enable, bool dark, bool highContrast);
+// 色差重映射：任意硬编码色 → 主题色（精确表，未命中原样返回、保留 alpha）
+void ThemeManager::SetColorMap(std::unordered_map&lt;uint32_t, Color&gt;);   Color ThemeManager::Map(Color);
+// 调试：主题名 + 各 Role 的 AARRGGBB（调试通道命令 23 GetTheme）
+std::wstring ThemeManager::Dump();
+
+// 窗口级
+void Window::SetTheme(const Theme&amp;);   const Theme&amp; Window::GetTheme();
+void Window::SetUseAppTheme(bool = true);   bool Window::IsUsingAppTheme();   void Window::RefreshTheme();
+ZSignal&lt;Window*&gt; UIZSignals::ThemeChanged;   // nullptr=应用级
+ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重套可见子树</pre>
 </div>
 <ul>
-<li>默认<strong>关闭</strong>；开启后目标窗口处理 <code>WM_COPYDATA</code>（<code>dwData</code> = 命令号，回包 <code>0x5A554631</code>）。</li>
-<li>命令集（1..22）：</li>
+<li>取色优先级：<strong>实例显式设色 &gt; 窗口主题 &gt; 应用主题</strong>。控件只要被显式调用过任何 <code>Set*Color</code>，就标记为“用户设色”，主题切换<strong>不再覆盖它</strong>；其余控件跟随主题。</li>
+<li><strong><code>易错</code></strong>：<code>Backdrop</code> 是<strong>窗口/背景基色</strong>（浅色白、深色黑）；<code>SetBackdrop/SetBackgroundColor</code> 显式指定 tint 后主题不再改它。</li>
+<li><strong><code>版本</code></strong>：<code>v1.19.0</code> 引入；窗口周边（标题栏三件套）跟随<strong>系统</strong>主题而非窗口主题；<code>WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE</code> 自动重解析。</li>
 </ul>
-<table>
-<thead>
-<tr>
-<th>命令</th>
-<th>作用</th>
-<th>命令</th>
-<th>作用</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Ping</td>
-<td>12</td>
-<td>ClearHighlight</td>
-</tr>
-<tr>
-<td>2</td>
-<td>ListWindows</td>
-<td>13</td>
-<td>GetErrors（统一日志 E/W/I/D，≤500）</td>
-</tr>
-<tr>
-<td>3</td>
-<td>GetFrameStats</td>
-<td>14</td>
-<td>ClearErrors</td>
-</tr>
-<tr>
-<td>4</td>
-<td>GetElementTree</td>
-<td>15/16/17</td>
-<td>TopN 重绘/布局/缓存（<code>all</code>=全部）</td>
-</tr>
-<tr>
-<td>5</td>
-<td>ForceRepaint</td>
-<td>18</td>
-<td>TopN 绘制</td>
-</tr>
-<tr>
-<td>6</td>
-<td>SetElementText("id\ttext")</td>
-<td>19</td>
-<td>ResetCounters</td>
-</tr>
-<tr>
-<td>7</td>
-<td>InvokeElement</td>
-<td>20</td>
-<td>SetVisible("id\t0/1")</td>
-</tr>
-<tr>
-<td>8</td>
-<td>FocusElement</td>
-<td>21</td>
-<td>SetMargin("id\tx\ty")</td>
-</tr>
-<tr>
-<td>9</td>
-<td>GetElementInfo</td>
-<td>22</td>
-<td>SetHighlightColor("RRGGBB")</td>
-</tr>
-<tr>
-<td>10</td>
-<td>GetElementAt("x,y" 屏幕→AutomationId)</td>
-<td>—</td>
-<td>—</td>
-</tr>
-<tr>
-<td>11</td>
-<td>Highlight(id)</td>
-<td>—</td>
-<td>—</td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li>统一日志：<code>detail::Log(level, tag, msg)</code>、<code>LogWarning/LogInfo/DebugLog</code>、<code>RecordError</code>（→ E 级并触发 <code>UIZSignals::Error</code>）。</li>
-<li><strong><code>易错</code></strong>：调试器侧发命令要带超时（<code>SendMessageTimeout</code>，不加 <code>SMTO_BLOCK</code>），否则目标忙时会卡死调试器。<code>ZUFYUI_DEBUG</code> 是<strong>编译期</strong>开关（日志），<code>SetDebugEnabled</code> 是<strong>运行期</strong>开关（通道/统计）——两套语义别混。</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.17.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">拖放与卡片组件</span><span class="nav-desc">Drag &amp; Drop、Expander、SettingsList（v1.19.0）</span></a><a class="next" href="API.19.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.19.2</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.17.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">拖放与卡片组件</span><span class="nav-desc">Drag &amp; Drop、Expander、SettingsList（v1.19.0）</span></a><a class="next" href="API.19.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a></nav>
         </main>
     </div>
 
