@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Events & Signals · ZufyUI API Reference</title>
+    <title>Appendix · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,197 +197,119 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class="active"><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Drag &amp; Drop, cards</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Theme system</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>DSL</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.21.html"><span class="chapter-index">21</span>Version digest</a></li><li class=""><a href="API.en.22.html"><span class="chapter-index">22</span>Pitfall index</a></li><li class=""><a href="API.en.23.html"><span class="chapter-index">23</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="when-to-use-signals"><div class="toc-row"><a href="#when-to-use-signals" data-target="when-to-use-signals">When to use signals</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="connectionthread"><div class="toc-row"><a href="#connectionthread" data-target="connectionthread">ConnectionThread</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="connection-qt-style-passive-handle"><div class="toc-row"><a href="#connection-qt-style-passive-handle" data-target="connection-qt-style-passive-handle">Connection (Qt-style passive handle)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="connectiongroup"><div class="toc-row"><a href="#connectiongroup" data-target="connectiongroup">ConnectionGroup</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="zsignal"><div class="toc-row"><a href="#zsignal" data-target="zsignal">ZSignal</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="global-signals-uizsignals"><div class="toc-row"><a href="#global-signals-uizsignals" data-target="global-signals-uizsignals">Global signals UIZSignals</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Drag &amp; Drop, cards</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Theme system</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>DSL</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.21.html"><span class="chapter-index">21</span>Version digest</a></li><li class=""><a href="API.en.22.html"><span class="chapter-index">22</span>Pitfall index</a></li><li class="active"><a href="API.en.23.html"><span class="chapter-index">23</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="common-defaults"><div class="toc-row"><a href="#common-defaults" data-target="common-defaults">Common defaults</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="signal-index"><div class="toc-row"><a href="#signal-index" data-target="signal-index">Signal index</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## When to use signals
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Common defaults
 
-- Built-in `ZSignal` for control notifications (click, selection, value change).
-- Custom controls: declare your own `ZSignal&lt;...&gt;` members and `Fire` them.
+| Item | Value |
+|---|---|
+| Root layout | `ColumnBox`, margin 20, spacing 10 |
+| `Color` default | `(0,0,0,1)` |
+| `Button` size | 120×36 |
+| `ToggleSwitch` | 50×24 |
+| `ScrollBar` width / `ShrunkWidthRatio` | 8 / 0.30 |
+| `TabView` tab height / indicator | 34 / 2.5 |
+| `Card` padding / radius | 12 / 8 |
+| `ChartBase` size / palette | 420×260 / 8 colors |
+| `PieChart` size | 320×260 |
+| `TextEdit` font / size / tab | Consolas 14 / 320×160 / 4 |
+| `Expander` header height / radius | 66 / 8 |
+| `ImageView` size | 200×150 |
+| `Window::DefaultBackdropColor` | `0xFFFFFFFF` (white) |
 
-## ConnectionThread
+## Signal index
 
-```cpp
-enum class ConnectionThread { CurrentThread, NewThread, UIThread };
-```
-- `CurrentThread` (default): slot runs synchronously on the firing thread.
-- `NewThread`: **spawns a detached thread per Fire** — do not touch UI inside.
-- `UIThread`: posts the slot to the UI thread (the correct way to update UI from workers).
-- **`Version`**: cross-thread/locking semantics hardened in `v1.15.0`.
-
-## Connection (Qt-style passive handle)
-
-```cpp
-class Connection {
-    void disconnect();
-    bool isConnected() const;
-    explicit operator bool() const;   // destructor does NOT auto-disconnect
-};
-```
-- Disconnected by the host element's `ConnectionGroup` on destruction; **`Connection`'s own destructor does not**.
-- **`Pitfall`**: it is safe to ignore the return of `connect`; but if you keep a `Connection` and `disconnect` manually, the signal may already be gone — `isConnected`/`disconnect` are guarded by an `alive` flag.
-- **`Version`**: passive-handle semantics since `v1.8.1`.
-
-## ConnectionGroup
-
-```cpp
-class ConnectionGroup : public std::enable_shared_from_this&lt;ConnectionGroup&gt; {
-    void disconnectAll(); size_t size() const;
-};
-```
-
-## ZSignal
-
-```cpp
-template&lt;typename... TArgs&gt; class ZSignal {
-    using SlotType = std::function&lt;void(TArgs...)&gt;;
-    Connection connect(SlotType slot,
-                       ConnectionThread thread = ConnectionThread::CurrentThread,
-                       std::shared_ptr&lt;ConnectionGroup&gt; group = nullptr);
-    void Fire(TArgs... targs) const;
-    void operator()(TArgs... targs) const;
-};
-```
-- Fire with `Fire` (**there is no `emit` macro**).
-- **`Pitfall`**: `Fire` iterates a **snapshot**, so a slot may safely `disconnect`; re-firing the same signal inside a slot goes through the "reentrant" path (local copy) — avoid deep recursion there.
-- **`Version`**: `v1.18.0` adds a RAII guard so a throwing slot still restores reentrancy depth and releases the snapshot.
-
-## Global signals UIZSignals
-
-```cpp
-namespace UIZSignals {
-    inline ZSignal&lt;Window*, ID2D1RenderTarget*&gt; DrawOverlay;
-    inline ZSignal&lt;Window*, float, float&gt; GlobalMouseDown;
-    inline ZSignal&lt;Window*&gt; WindowActivated, WindowDeactivated;
-    inline ZSignal&lt;Window*, UIElement*&gt; ElementCaptureRequest, ElementCaptureRelease, RepaintRequest;
-    inline ZSignal&lt;Window*&gt; LayoutInvalidated;
-    inline ZSignal&lt;&gt; DeviceReset, ReloadAcrylic;
-    inline ZSignal&lt;const std::wstring&amp;&gt; Error;         // v1.16.0
-}
-```
-- **`Pitfall`**: `DrawOverlay` carries a `Window*`; subscribers **must** filter by `GetWindow()`, or window A's overlay draws onto window B (classic multi-window cross-talk).
-- `RepaintRequest`/`LayoutInvalidated`/capture signals only fall back for **unmounted** elements; mounted ones route directly via `Window`.
-- `DeviceReset`: release all caches keyed to the render target/device (e.g. `ImageDeviceCache`).</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 4 · Events &amp; Signals</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 4</span><h1>Events &amp; Signals</h1><p class="chapter-summary">ZSignal, Connection, cross-thread</p></header><h2 id="when-to-use-signals">When to use signals</h2>
+- Element: `MouseEnter/MouseLeave/MouseMove/MouseDown/MouseUp/Focused/Blurred/KeyDown/KeyUp/Char`
+- Button: `Clicked/Toggled`; TextBox: `TextChanged/ReturnPressed`; TextEdit: `TextChanged/CursorPositionChanged/SelectionChanged`
+- ComboBox: `SelectionChanged/DropDownOpened/DropDownClosed`; CheckBox: `Toggled/StateChanged`
+- RadioButton: `CheckedChanged/Clicked`; RadioGroup: `SelectionChanged`; ToggleSwitch: `Toggled`
+- Slider: `ValueChanged/SliderReleased`; NumberBox: `ValueChanged/TextChanged`; ProgressBar: `ValueChanged`
+- ScrollViewer: `ScrollChanged`; SplitView: `SplitChanged`; TabView: `SelectionChanged/TabCloseRequested`
+- ListView/TableView/TreeView: `SelectionChanged/ItemClicked(CellClicked)/ItemDoubleClicked/ItemRightClicked/…CheckStateChanged`
+- Chart: `PointClicked/CategoryClicked`; PieChart: `SliceClicked`
+- Drag &amp; drop: element `DragEnter/DragOver/DragLeave/Drop`; window-level `Window::DragEnter/DragOver/DragLeave/Drop`; Expander: `ExpandedChanged`; SettingsList: `RowClicked`
+- Window: `Activated/Deactivated/Closing/Closed/DeviceLost/RenderingError`
+- Global: `UIZSignals::DrawOverlay/GlobalMouseDown/WindowActivated/WindowDeactivated/DeviceReset/ReloadAcrylic/Error`</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 23 · Appendix</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 23</span><h1>Appendix</h1><p class="chapter-summary">Defaults &amp; signal index</p></header><h2 id="common-defaults">Common defaults</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Root layout</td>
+<td><code>ColumnBox</code>, margin 20, spacing 10</td>
+</tr>
+<tr>
+<td><code>Color</code> default</td>
+<td><code>(0,0,0,1)</code></td>
+</tr>
+<tr>
+<td><code>Button</code> size</td>
+<td>120×36</td>
+</tr>
+<tr>
+<td><code>ToggleSwitch</code></td>
+<td>50×24</td>
+</tr>
+<tr>
+<td><code>ScrollBar</code> width / <code>ShrunkWidthRatio</code></td>
+<td>8 / 0.30</td>
+</tr>
+<tr>
+<td><code>TabView</code> tab height / indicator</td>
+<td>34 / 2.5</td>
+</tr>
+<tr>
+<td><code>Card</code> padding / radius</td>
+<td>12 / 8</td>
+</tr>
+<tr>
+<td><code>ChartBase</code> size / palette</td>
+<td>420×260 / 8 colors</td>
+</tr>
+<tr>
+<td><code>PieChart</code> size</td>
+<td>320×260</td>
+</tr>
+<tr>
+<td><code>TextEdit</code> font / size / tab</td>
+<td>Consolas 14 / 320×160 / 4</td>
+</tr>
+<tr>
+<td><code>Expander</code> header height / radius</td>
+<td>66 / 8</td>
+</tr>
+<tr>
+<td><code>ImageView</code> size</td>
+<td>200×150</td>
+</tr>
+<tr>
+<td><code>Window::DefaultBackdropColor</code></td>
+<td><code>0xFFFFFFFF</code> (white)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="signal-index">Signal index</h2>
 <ul>
-<li>Built-in <code>ZSignal</code> for control notifications (click, selection, value change).</li>
-<li>Custom controls: declare your own <code>ZSignal&lt;...&gt;</code> members and <code>Fire</code> them.</li>
+<li>Element: <code>MouseEnter/MouseLeave/MouseMove/MouseDown/MouseUp/Focused/Blurred/KeyDown/KeyUp/Char</code></li>
+<li>Button: <code>Clicked/Toggled</code>; TextBox: <code>TextChanged/ReturnPressed</code>; TextEdit: <code>TextChanged/CursorPositionChanged/SelectionChanged</code></li>
+<li>ComboBox: <code>SelectionChanged/DropDownOpened/DropDownClosed</code>; CheckBox: <code>Toggled/StateChanged</code></li>
+<li>RadioButton: <code>CheckedChanged/Clicked</code>; RadioGroup: <code>SelectionChanged</code>; ToggleSwitch: <code>Toggled</code></li>
+<li>Slider: <code>ValueChanged/SliderReleased</code>; NumberBox: <code>ValueChanged/TextChanged</code>; ProgressBar: <code>ValueChanged</code></li>
+<li>ScrollViewer: <code>ScrollChanged</code>; SplitView: <code>SplitChanged</code>; TabView: <code>SelectionChanged/TabCloseRequested</code></li>
+<li>ListView/TableView/TreeView: <code>SelectionChanged/ItemClicked(CellClicked)/ItemDoubleClicked/ItemRightClicked/…CheckStateChanged</code></li>
+<li>Chart: <code>PointClicked/CategoryClicked</code>; PieChart: <code>SliceClicked</code></li>
+<li>Drag &amp; drop: element <code>DragEnter/DragOver/DragLeave/Drop</code>; window-level <code>Window::DragEnter/DragOver/DragLeave/Drop</code>; Expander: <code>ExpandedChanged</code>; SettingsList: <code>RowClicked</code></li>
+<li>Window: <code>Activated/Deactivated/Closing/Closed/DeviceLost/RenderingError</code></li>
+<li>Global: <code>UIZSignals::DrawOverlay/GlobalMouseDown/WindowActivated/WindowDeactivated/DeviceReset/ReloadAcrylic/Error</code></li>
 </ul>
-<h2 id="connectionthread">ConnectionThread</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-6bd21434', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ConnectionThread</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">CurrentThread</span><span class="p">,</span><span class="w"> </span><span class="n">NewThread</span><span class="p">,</span><span class="w"> </span><span class="n">UIThread</span><span class="w"> </span><span class="p">};</span>
-</pre></div>
-<pre id="code-6bd21434" style="display: none;">enum class ConnectionThread { CurrentThread, NewThread, UIThread };</pre>
-</div>
-<ul>
-<li><code>CurrentThread</code> (default): slot runs synchronously on the firing thread.</li>
-<li><code>NewThread</code>: <strong>spawns a detached thread per Fire</strong> — do not touch UI inside.</li>
-<li><code>UIThread</code>: posts the slot to the UI thread (the correct way to update UI from workers).</li>
-<li><strong><code>Version</code></strong>: cross-thread/locking semantics hardened in <code>v1.15.0</code>.</li>
-</ul>
-<h2 id="connection-qt-style-passive-handle">Connection (Qt-style passive handle)</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-dbbad183', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Connection</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">isConnected</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="k">explicit</span><span class="w"> </span><span class="k">operator</span><span class="w"> </span><span class="kt">bool</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// destructor does NOT auto-disconnect</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-dbbad183" style="display: none;">class Connection {
-    void disconnect();
-    bool isConnected() const;
-    explicit operator bool() const;   // destructor does NOT auto-disconnect
-};</pre>
-</div>
-<ul>
-<li>Disconnected by the host element's <code>ConnectionGroup</code> on destruction; <strong><code>Connection</code>'s own destructor does not</strong>.</li>
-<li><strong><code>Pitfall</code></strong>: it is safe to ignore the return of <code>connect</code>; but if you keep a <code>Connection</code> and <code>disconnect</code> manually, the signal may already be gone — <code>isConnected</code>/<code>disconnect</code> are guarded by an <code>alive</code> flag.</li>
-<li><strong><code>Version</code></strong>: passive-handle semantics since <code>v1.8.1</code>.</li>
-</ul>
-<h2 id="connectiongroup">ConnectionGroup</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5e7db303', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ConnectionGroup</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">ConnectionGroup</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">disconnectAll</span><span class="p">();</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">size</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-5e7db303" style="display: none;">class ConnectionGroup : public std::enable_shared_from_this&lt;ConnectionGroup&gt; {
-    void disconnectAll(); size_t size() const;
-};</pre>
-</div>
-<h2 id="zsignal">ZSignal</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1f23095e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span><span class="w"> </span><span class="n">TArgs</span><span class="o">&gt;</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ZSignal</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">SlotType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">TArgs</span><span class="p">...)</span><span class="o">&gt;</span><span class="p">;</span>
-<span class="w">    </span><span class="n">Connection</span><span class="w"> </span><span class="nf">connect</span><span class="p">(</span><span class="n">SlotType</span><span class="w"> </span><span class="n">slot</span><span class="p">,</span>
-<span class="w">                       </span><span class="n">ConnectionThread</span><span class="w"> </span><span class="kr">thread</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ConnectionThread</span><span class="o">::</span><span class="n">CurrentThread</span><span class="p">,</span>
-<span class="w">                       </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ConnectionGroup</span><span class="o">&gt;</span><span class="w"> </span><span class="n">group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Fire</span><span class="p">(</span><span class="n">TArgs</span><span class="p">...</span><span class="w"> </span><span class="n">targs</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">TArgs</span><span class="p">...</span><span class="w"> </span><span class="n">targs</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
-<span class="p">};</span>
-</pre></div>
-<pre id="code-1f23095e" style="display: none;">template&lt;typename... TArgs&gt; class ZSignal {
-    using SlotType = std::function&lt;void(TArgs...)&gt;;
-    Connection connect(SlotType slot,
-                       ConnectionThread thread = ConnectionThread::CurrentThread,
-                       std::shared_ptr&lt;ConnectionGroup&gt; group = nullptr);
-    void Fire(TArgs... targs) const;
-    void operator()(TArgs... targs) const;
-};</pre>
-</div>
-<ul>
-<li>Fire with <code>Fire</code> (<strong>there is no <code>emit</code> macro</strong>).</li>
-<li><strong><code>Pitfall</code></strong>: <code>Fire</code> iterates a <strong>snapshot</strong>, so a slot may safely <code>disconnect</code>; re-firing the same signal inside a slot goes through the "reentrant" path (local copy) — avoid deep recursion there.</li>
-<li><strong><code>Version</code></strong>: <code>v1.18.0</code> adds a RAII guard so a throwing slot still restores reentrancy depth and releases the snapshot.</li>
-</ul>
-<h2 id="global-signals-uizsignals">Global signals UIZSignals</h2>
-<div class="code-container">
-<div class="code-header">
-<span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9a393f3f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
-</div>
-<div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">UIZSignals</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="n">ID2D1RenderTarget</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">DrawOverlay</span><span class="p">;</span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GlobalMouseDown</span><span class="p">;</span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">WindowActivated</span><span class="p">,</span><span class="w"> </span><span class="n">WindowDeactivated</span><span class="p">;</span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="n">UIElement</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">ElementCaptureRequest</span><span class="p">,</span><span class="w"> </span><span class="n">ElementCaptureRelease</span><span class="p">,</span><span class="w"> </span><span class="n">RepaintRequest</span><span class="p">;</span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">LayoutInvalidated</span><span class="p">;</span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DeviceReset</span><span class="p">,</span><span class="w"> </span><span class="n">ReloadAcrylic</span><span class="p">;</span>
-<span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">Error</span><span class="p">;</span><span class="w">         </span><span class="c1">// v1.16.0</span>
-<span class="p">}</span>
-</pre></div>
-<pre id="code-9a393f3f" style="display: none;">namespace UIZSignals {
-    inline ZSignal&lt;Window*, ID2D1RenderTarget*&gt; DrawOverlay;
-    inline ZSignal&lt;Window*, float, float&gt; GlobalMouseDown;
-    inline ZSignal&lt;Window*&gt; WindowActivated, WindowDeactivated;
-    inline ZSignal&lt;Window*, UIElement*&gt; ElementCaptureRequest, ElementCaptureRelease, RepaintRequest;
-    inline ZSignal&lt;Window*&gt; LayoutInvalidated;
-    inline ZSignal&lt;&gt; DeviceReset, ReloadAcrylic;
-    inline ZSignal&lt;const std::wstring&amp;&gt; Error;         // v1.16.0
-}</pre>
-</div>
-<ul>
-<li><strong><code>Pitfall</code></strong>: <code>DrawOverlay</code> carries a <code>Window*</code>; subscribers <strong>must</strong> filter by <code>GetWindow()</code>, or window A's overlay draws onto window B (classic multi-window cross-talk).</li>
-<li><code>RepaintRequest</code>/<code>LayoutInvalidated</code>/capture signals only fall back for <strong>unmounted</strong> elements; mounted ones route directly via <code>Window</code>.</li>
-<li><code>DeviceReset</code>: release all caches keyed to the render target/device (e.g. <code>ImageDeviceCache</code>).</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.3.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Basic types</span><span class="nav-desc">Color, Rect, Thickness, Size</span></a><a class="next" href="API.en.5.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Fonts &amp; Icons</span><span class="nav-desc">FontSpec, FontManager, Icon</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.en.22.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Pitfall index</span><span class="nav-desc">Quick lookup by topic</span></a><a class="next" href="API.en.html"><span class="nav-label">Contents &#8594;</span><span class="nav-title">Back to the chapter list</span></a></nav>
         </main>
     </div>
 

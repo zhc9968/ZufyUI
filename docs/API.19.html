@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>无障碍与调试通道 · ZufyUI API 参考</title>
+    <title>DSL · ZufyUI API 参考</title>
     <style>
 
 :root {
@@ -197,143 +197,85 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>拖放与卡片组件</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>主题系统</a></li><li class="active"><a href="API.19.html"><span class="chapter-index">19</span>无障碍与调试通道</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>版本变化摘录</a></li><li class=""><a href="API.21.html"><span class="chapter-index">21</span>易错点总表</a></li><li class=""><a href="API.22.html"><span class="chapter-index">22</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="无障碍uia"><div class="toc-row"><a href="#无障碍uia" data-target="无障碍uia">无障碍（UIA）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="调试-自动化通道"><div class="toc-row"><a href="#调试-自动化通道" data-target="调试-自动化通道">调试 / 自动化通道</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>拖放与卡片组件</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>主题系统</a></li><li class="active"><a href="API.19.html"><span class="chapter-index">19</span>DSL</a></li><li class=""><a href="API.20.html"><span class="chapter-index">20</span>无障碍与调试通道</a></li><li class=""><a href="API.21.html"><span class="chapter-index">21</span>版本变化摘录</a></li><li class=""><a href="API.22.html"><span class="chapter-index">22</span>易错点总表</a></li><li class=""><a href="API.23.html"><span class="chapter-index">23</span>附录</a></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## 无障碍（UIA）
-
-- 由 `ZufyUIWindowTool.h` 提供 UI Automation 提供程序；元素侧 API 见「元素基类」。
-- 窗口侧：`SetAccessibilityEnabled(bool)`（默认开）、`FocusElement`、`GetFocused/Hovered/PressedElement`。
-- **`易错`**：库**不存历史、不读写文件**，提供程序只反映当前帧。`WM_GETOBJECT` 仅在开启时处理。
-
-## 调试 / 自动化通道
-
-```cpp
-inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>```cpp
+// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
+namespace ZufyUI::dsl {
+template&lt;class T&gt; class Ref {                      // 包装 shared_ptr&lt;T&gt;
+    T* operator-&gt;() const;   std::shared_ptr&lt;T&gt; shared() const;
+    operator std::shared_ptr&lt;T&gt;() const;           // 兼容 AddChild/SetContent
+    template&lt;class C, class R, class...A0, class...A&gt;
+    Ref&amp; with(R(C::*fn)(A0...), A&amp;&amp;... a);         // 通用 setter 转发（含继承来的 setter）
+    template&lt;class Sig, class F&gt; Ref&amp; on(Sig&amp; sig, F&amp;&amp; f);
+    template&lt;auto SigMem, class F&gt; Ref&amp; on(F&amp;&amp; f);
+    template&lt;class...C&gt; Ref&amp; add(C&amp;&amp;... c);        // 容器加子
+    Ref&amp; width(float); Ref&amp; height(float); Ref&amp; size(float,float);
+    Ref&amp; fill(bool w=true,bool h=true); Ref&amp; margin(Thickness);
+    Ref&amp; visible(bool=true); Ref&amp; enabled(bool=true); Ref&amp; tooltip(const std::wstring&amp;);
+};
+template&lt;class T, class...A&gt; Ref&lt;T&gt; Make(A&amp;&amp;... a);          // 通用工厂
+Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);   Ref&lt;GridLayout&gt; Grid(...);
+// 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
+//         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
+}
 ```
-- 默认**关闭**；开启后目标窗口处理 `WM_COPYDATA`（`dwData` = 命令号，回包 `0x5A554631`）。
-- 命令集（1..22）：
-
-| 命令 | 作用 | 命令 | 作用 |
-|---|---|---|---|
-| 1 | Ping | 12 | ClearHighlight |
-| 2 | ListWindows | 13 | GetErrors（统一日志 E/W/I/D，≤500） |
-| 3 | GetFrameStats | 14 | ClearErrors |
-| 4 | GetElementTree | 15/16/17 | TopN 重绘/布局/缓存（`all`=全部） |
-| 5 | ForceRepaint | 18 | TopN 绘制 |
-| 6 | SetElementText("id\ttext") | 19 | ResetCounters |
-| 7 | InvokeElement | 20 | SetVisible("id\t0/1") |
-| 8 | FocusElement | 21 | SetMargin("id\tx\ty") |
-| 9 | GetElementInfo | 22 | SetHighlightColor("RRGGBB") |
-| 10 | GetElementAt("x,y" 屏幕→AutomationId) | — | — |
-| 11 | Highlight(id) | — | — |
-
-- 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
-- **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 19 章 · 无障碍与调试通道</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 19 章</span><h1>无障碍与调试通道</h1><p class="chapter-summary">UIA + SetDebugEnabled（v1.17.0）</p></header><h2 id="无障碍uia">无障碍（UIA）</h2>
-<ul>
-<li>由 <code>ZufyUIWindowTool.h</code> 提供 UI Automation 提供程序；元素侧 API 见「元素基类」。</li>
-<li>窗口侧：<code>SetAccessibilityEnabled(bool)</code>（默认开）、<code>FocusElement</code>、<code>GetFocused/Hovered/PressedElement</code>。</li>
-<li><strong><code>易错</code></strong>：库<strong>不存历史、不读写文件</strong>，提供程序只反映当前帧。<code>WM_GETOBJECT</code> 仅在开启时处理。</li>
-</ul>
-<h2 id="调试-自动化通道">调试 / 自动化通道</h2>
-<div class="code-container">
+- 用法：`using namespace ZufyUI::dsl;` 后 `Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)`。**不要同时 `using namespace ZufyUI;`**（`Slider/Card/Expander/MenuBar/StatusBar` 短工厂与类名歧义），或改用 `dsl::` 限定。
+- **`易错`**：`with(&amp;T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast&lt;...&gt;(&amp;T::SetX)` 消歧；**有默认参数的函数**（如 `ListView::AddItem`）成员指针调用不支持默认值 → 用 `-&gt;AddItem(...)`。
+- **`易错`**：`GridLayout` 无单参 `AddChild`，`Grid(...)` 内部用 `(child,row,col)`；`Ref&lt;T&gt;` 与 `shared_ptr` 可互转，`Ref&lt;Derived&gt;` 可直接进 `AddChild/SetContent`。</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 19 章 · DSL</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 19 章</span><h1>DSL</h1><p class="chapter-summary">链式构造（ZufyUIDsl.h，v1.19.4）</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7d50aa1d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-966bc2f7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDebugEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kr">inline</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDebugEnabled</span><span class="p">();</span>
+<div class="highlight"><pre><span></span><span class="c1">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）</span>
+<span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="o">::</span><span class="nn">dsl</span><span class="w"> </span><span class="p">{</span>
+<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Ref</span><span class="w"> </span><span class="p">{</span><span class="w">                      </span><span class="c1">// 包装 shared_ptr&lt;T&gt;</span>
+<span class="w">    </span><span class="n">T</span><span class="o">*</span><span class="w"> </span><span class="k">operator</span><span class="o">-&gt;</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">shared</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="k">operator</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">           </span><span class="c1">// 兼容 AddChild/SetContent</span>
+<span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">C</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">R</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="p">...</span><span class="n">A0</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="p">...</span><span class="n">A</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="n">with</span><span class="p">(</span><span class="n">R</span><span class="p">(</span><span class="n">C</span><span class="o">::*</span><span class="n">fn</span><span class="p">)(</span><span class="n">A0</span><span class="p">...),</span><span class="w"> </span><span class="n">A</span><span class="o">&amp;&amp;</span><span class="p">...</span><span class="w"> </span><span class="n">a</span><span class="p">);</span><span class="w">         </span><span class="c1">// 通用 setter 转发（含继承来的 setter）</span>
+<span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">Sig</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">F</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="n">on</span><span class="p">(</span><span class="n">Sig</span><span class="o">&amp;</span><span class="w"> </span><span class="n">sig</span><span class="p">,</span><span class="w"> </span><span class="n">F</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">f</span><span class="p">);</span>
+<span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">auto</span><span class="w"> </span><span class="n">SigMem</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">F</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="n">on</span><span class="p">(</span><span class="n">F</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">f</span><span class="p">);</span>
+<span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="p">...</span><span class="n">C</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="n">add</span><span class="p">(</span><span class="n">C</span><span class="o">&amp;&amp;</span><span class="p">...</span><span class="w"> </span><span class="n">c</span><span class="p">);</span><span class="w">        </span><span class="c1">// 容器加子</span>
+<span class="w">    </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">width</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">height</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">size</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">fill</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">w</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span><span class="kt">bool</span><span class="w"> </span><span class="n">h</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">margin</span><span class="p">(</span><span class="n">Thickness</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">visible</span><span class="p">(</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">enabled</span><span class="p">(</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">tooltip</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="p">};</span>
+<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="p">...</span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Make</span><span class="p">(</span><span class="n">A</span><span class="o">&amp;&amp;</span><span class="p">...</span><span class="w"> </span><span class="n">a</span><span class="p">);</span><span class="w">          </span><span class="c1">// 通用工厂</span>
+<span class="n">Ref</span><span class="o">&lt;</span><span class="n">ColumnBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Col</span><span class="p">(</span><span class="n">children</span><span class="p">...);</span><span class="w">   </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">RowBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Row</span><span class="p">(...);</span><span class="w">   </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">GridLayout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Grid</span><span class="p">(...);</span>
+<span class="c1">// 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring</span>
+<span class="c1">//         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar</span>
+<span class="p">}</span>
 </pre></div>
-<pre id="code-7d50aa1d" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
+<pre id="code-966bc2f7" style="display: none;">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
+namespace ZufyUI::dsl {
+template&lt;class T&gt; class Ref {                      // 包装 shared_ptr&lt;T&gt;
+    T* operator-&gt;() const;   std::shared_ptr&lt;T&gt; shared() const;
+    operator std::shared_ptr&lt;T&gt;() const;           // 兼容 AddChild/SetContent
+    template&lt;class C, class R, class...A0, class...A&gt;
+    Ref&amp; with(R(C::*fn)(A0...), A&amp;&amp;... a);         // 通用 setter 转发（含继承来的 setter）
+    template&lt;class Sig, class F&gt; Ref&amp; on(Sig&amp; sig, F&amp;&amp; f);
+    template&lt;auto SigMem, class F&gt; Ref&amp; on(F&amp;&amp; f);
+    template&lt;class...C&gt; Ref&amp; add(C&amp;&amp;... c);        // 容器加子
+    Ref&amp; width(float); Ref&amp; height(float); Ref&amp; size(float,float);
+    Ref&amp; fill(bool w=true,bool h=true); Ref&amp; margin(Thickness);
+    Ref&amp; visible(bool=true); Ref&amp; enabled(bool=true); Ref&amp; tooltip(const std::wstring&amp;);
+};
+template&lt;class T, class...A&gt; Ref&lt;T&gt; Make(A&amp;&amp;... a);          // 通用工厂
+Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);   Ref&lt;GridLayout&gt; Grid(...);
+// 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
+//         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
+}</pre>
 </div>
 <ul>
-<li>默认<strong>关闭</strong>；开启后目标窗口处理 <code>WM_COPYDATA</code>（<code>dwData</code> = 命令号，回包 <code>0x5A554631</code>）。</li>
-<li>命令集（1..22）：</li>
+<li>用法：<code>using namespace ZufyUI::dsl;</code> 后 <code>Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)</code>。<strong>不要同时 <code>using namespace ZufyUI;</code></strong>（<code>Slider/Card/Expander/MenuBar/StatusBar</code> 短工厂与类名歧义），或改用 <code>dsl::</code> 限定。</li>
+<li><strong><code>易错</code></strong>：<code>with(&amp;T::Setter, args...)</code> 传<strong>成员函数指针</strong>；setter 重载需 <code>static_cast&lt;...&gt;(&amp;T::SetX)</code> 消歧；<strong>有默认参数的函数</strong>（如 <code>ListView::AddItem</code>）成员指针调用不支持默认值 → 用 <code>-&gt;AddItem(...)</code>。</li>
+<li><strong><code>易错</code></strong>：<code>GridLayout</code> 无单参 <code>AddChild</code>，<code>Grid(...)</code> 内部用 <code>(child,row,col)</code>；<code>Ref&lt;T&gt;</code> 与 <code>shared_ptr</code> 可互转，<code>Ref&lt;Derived&gt;</code> 可直接进 <code>AddChild/SetContent</code>。</li>
 </ul>
-<table>
-<thead>
-<tr>
-<th>命令</th>
-<th>作用</th>
-<th>命令</th>
-<th>作用</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Ping</td>
-<td>12</td>
-<td>ClearHighlight</td>
-</tr>
-<tr>
-<td>2</td>
-<td>ListWindows</td>
-<td>13</td>
-<td>GetErrors（统一日志 E/W/I/D，≤500）</td>
-</tr>
-<tr>
-<td>3</td>
-<td>GetFrameStats</td>
-<td>14</td>
-<td>ClearErrors</td>
-</tr>
-<tr>
-<td>4</td>
-<td>GetElementTree</td>
-<td>15/16/17</td>
-<td>TopN 重绘/布局/缓存（<code>all</code>=全部）</td>
-</tr>
-<tr>
-<td>5</td>
-<td>ForceRepaint</td>
-<td>18</td>
-<td>TopN 绘制</td>
-</tr>
-<tr>
-<td>6</td>
-<td>SetElementText("id\ttext")</td>
-<td>19</td>
-<td>ResetCounters</td>
-</tr>
-<tr>
-<td>7</td>
-<td>InvokeElement</td>
-<td>20</td>
-<td>SetVisible("id\t0/1")</td>
-</tr>
-<tr>
-<td>8</td>
-<td>FocusElement</td>
-<td>21</td>
-<td>SetMargin("id\tx\ty")</td>
-</tr>
-<tr>
-<td>9</td>
-<td>GetElementInfo</td>
-<td>22</td>
-<td>SetHighlightColor("RRGGBB")</td>
-</tr>
-<tr>
-<td>10</td>
-<td>GetElementAt("x,y" 屏幕→AutomationId)</td>
-<td>—</td>
-<td>—</td>
-</tr>
-<tr>
-<td>11</td>
-<td>Highlight(id)</td>
-<td>—</td>
-<td>—</td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li>统一日志：<code>detail::Log(level, tag, msg)</code>、<code>LogWarning/LogInfo/DebugLog</code>、<code>RecordError</code>（→ E 级并触发 <code>UIZSignals::Error</code>）。</li>
-<li><strong><code>易错</code></strong>：调试器侧发命令要带超时（<code>SendMessageTimeout</code>，不加 <code>SMTO_BLOCK</code>），否则目标忙时会卡死调试器。<code>ZUFYUI_DEBUG</code> 是<strong>编译期</strong>开关（日志），<code>SetDebugEnabled</code> 是<strong>运行期</strong>开关（通道/统计）——两套语义别混。</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.18.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">主题系统</span><span class="nav-desc">Theme（v1.19.0+）</span></a><a class="next" href="API.20.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.19.3</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.18.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">主题系统</span><span class="nav-desc">Theme（v1.19.0+）</span></a><a class="next" href="API.20.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a></nav>
         </main>
     </div>
 

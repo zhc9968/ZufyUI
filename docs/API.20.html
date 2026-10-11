@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>版本变化摘录 · ZufyUI API 参考</title>
+    <title>无障碍与调试通道 · ZufyUI API 参考</title>
     <style>
 
 :root {
@@ -197,80 +197,143 @@ pre { line-height: 125%; }
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>目录</span><button class="toc-collapse" id="tocCollapse" title="折叠目录">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>拖放与卡片组件</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>主题系统</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>无障碍与调试通道</a></li><li class="active"><a href="API.20.html"><span class="chapter-index">20</span>版本变化摘录</a></li><li class=""><a href="API.21.html"><span class="chapter-index">21</span>易错点总表</a></li><li class=""><a href="API.22.html"><span class="chapter-index">22</span>附录</a></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">章节</div><ul class="chapter-list"><li class=""><a href="API.html"><span class="chapter-index">&#8962;</span>ZufyUI API 参考</a></li><li class=""><a href="API.1.html"><span class="chapter-index">1</span>约定</a></li><li class=""><a href="API.2.html"><span class="chapter-index">2</span>快速开始</a></li><li class=""><a href="API.3.html"><span class="chapter-index">3</span>基础类型</a></li><li class=""><a href="API.4.html"><span class="chapter-index">4</span>事件与信号</a></li><li class=""><a href="API.5.html"><span class="chapter-index">5</span>字体与图标</a></li><li class=""><a href="API.6.html"><span class="chapter-index">6</span>元素基类</a></li><li class=""><a href="API.7.html"><span class="chapter-index">7</span>布局系统</a></li><li class=""><a href="API.8.html"><span class="chapter-index">8</span>窗口</a></li><li class=""><a href="API.9.html"><span class="chapter-index">9</span>基础控件</a></li><li class=""><a href="API.10.html"><span class="chapter-index">10</span>选择与输入</a></li><li class=""><a href="API.11.html"><span class="chapter-index">11</span>进度</a></li><li class=""><a href="API.12.html"><span class="chapter-index">12</span>容器与滚动</a></li><li class=""><a href="API.13.html"><span class="chapter-index">13</span>菜单与弹窗</a></li><li class=""><a href="API.14.html"><span class="chapter-index">14</span>数据视图</a></li><li class=""><a href="API.15.html"><span class="chapter-index">15</span>图表</a></li><li class=""><a href="API.16.html"><span class="chapter-index">16</span>窗口周边</a></li><li class=""><a href="API.17.html"><span class="chapter-index">17</span>拖放与卡片组件</a></li><li class=""><a href="API.18.html"><span class="chapter-index">18</span>主题系统</a></li><li class=""><a href="API.19.html"><span class="chapter-index">19</span>DSL</a></li><li class="active"><a href="API.20.html"><span class="chapter-index">20</span>无障碍与调试通道</a></li><li class=""><a href="API.21.html"><span class="chapter-index">21</span>版本变化摘录</a></li><li class=""><a href="API.22.html"><span class="chapter-index">22</span>易错点总表</a></li><li class=""><a href="API.23.html"><span class="chapter-index">23</span>附录</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">本页总览</div><ul class="toc-list"><li class="toc-item" data-toc="无障碍uia"><div class="toc-row"><a href="#无障碍uia" data-target="无障碍uia">无障碍（UIA）</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="调试-自动化通道"><div class="toc-row"><a href="#调试-自动化通道" data-target="调试-自动化通道">调试 / 自动化通道</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>&gt; 只列**对你写代码有影响**的显著变化。
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## 无障碍（UIA）
 
-- **v1.15.0**：数据视图虚拟化（`SetItemCount` 等）+ 隐藏/筛选/可见序排序（源行号 vs 可见序两套坐标）；跨线程/锁语义收口；`ComboBox` 源索引 API；`TreeView::BeginUpdate/SetNodeText`。
-- **v1.16.0**：系统对话框 `FileDialog`/`ColorDialog`；`UIZSignals::Error`；渲染线程默认关并标注不稳定；托盘回调消息撞号修复；`ZUFYUI_ENABLE_COMCTL_V6` 可选宏。
-- **v1.17.0**：**UIA 无障碍**（默认开）；**外部调试/自动化通道**（`SetDebugEnabled`，默认关，命令 1~22）；**布局拉伸权值**（`ColumnBox`/`RowBox`/`GridLayout` 按权值分配剩余空间）；**省略文本自动 ToolTip**（Label/Button）；`CaptionButton::Kind::Pin`；`TreeView` 节点 `bgColor`/`Get/SetScrollOffsetY`/`ScrollToNode`；`Window::DefaultBackdropColor` 默认纯白。
-- **v1.18.0**：
-  - 新增 `ZufyUICharts.h`：`ChartBase` / `BarChart` / `LineChart` / `PieChart`；`BarChart` 补全横向方向；`PieChart` 滚轮缩放。
-  - 新增 `TextEdit` 多行编辑器 / 只读查看器；`TextRun`；基类新增 `AcceptsTab()`。
-  - `UIElement::ReleaseDeviceResourcesRecursive()`；`PageHost` 隐藏页缓存**延迟释放**（约 1.2s）；`ScrollViewer::UseCache()=false`；`SetUseCache(false)` 立即释放位图。
-  - 库层修复：`Snap` 的 DPI 上下文在 UI 线程也设置；`ZSignal::Fire` RAII 异常安全；`TextBox` shift+点击语义；`Slider` 0 宽 NaN 守卫；`ListView` 池宽度变化重测（`poolW_`）。
-- **v1.19.0**：
-  - 新增**拖放**（`ZufyUIDragDrop.h`）：`Window::BeginDrag` + `DragDataBuilder`；元素 `SetDropTargetEnabled`/`OnDragEnter/Over/Leave/Drop` + 信号；`Label`/`Button`/`TextBox`/`TextEdit`/`ComboBox` 支持拖入/拖出；跨应用文件拖出。
-  - 新增 `Expander`（可折叠卡片：smoothstep 缓动 + 箭头旋转 + 标题悬停高亮）、`SettingsList`（设置行列表）；图片展示用 `Label::SetImage` + `SetImageFit`（等比缩放至完整可见）。
-  - `ComboBox` 下拉箭头改为随展开旋转的 chevron。
-  - 文本拖动为**移动**语义：源端先删原选区再按落点插入（同控件用私有格式去重）。
-- **v1.19.1**：
-  - `TextEdit` 撤销/重做改为**标准方案**（栈顶=当前态）：撤销/重做都**还原当时的选区与光标**；Backspace/Delete/输入/粘贴各一步；拖放插入/移动均可撤销、可重做。
-  - `ScrollViewer`：内容改按**视口宽度**测量（修复 FillWidth/换行内容期望宽度无穷大导致的“卡片被裁剪”与滚动范围错乱）；内容**两遍测量**（出现竖滚动条后按变窄宽度重量）；**尊重内容元素自身的 `margin`**；裁剪四周留 **1px 出血**，避免内容边缘边框被切掉一半。
-  - 拖放落点光标在目标**未聚焦**时也显示；拖动期间**保留源选区**并在落点显示预览光标；落点落在原选区内 → 不变更。
-  - `Expander`：标题条悬停高亮（不再遮挡卡片边框）、箭头随折叠缓动旋转、`SetIcon` 标题图标。
-  - 整窗拖放：`Window::SetDropTargetEnabled` + 窗口级 `DragEnter/DragOver/DragLeave/Drop`。
-  - 图片展示并入 `Label`（新增 `SetImageFit`），移除独立的 `ImageView`。
-- **v1.19.2**：
-  - 新增顶部**菜单栏** `MenuBar`（VS 风格：点击弹 `Menu`；悬停仅高亮**不自动展开**；菜单打开期间条目**保持按下**、关闭复原；默认叠在自定义标题栏上、空白处放行以便拖动标题栏）。
-  - 新增底部**状态栏** `StatusBar`（左右面板：可选图标 + 文本）。
-  - `Window`：`SetMenuBar` / `SetStatusBar` / `SetMenuBarInTitleBar` / `SetShowTitleText`（标题文字与标题栏上的菜单**互斥**）。
-  - `Menu` 新增 `onClosed` 回调；`MenuWindow::OnPopupClosed`。
-- **v1.19.3**：
-  - 新增**主题系统**（`ThemeRole` / `Theme` / `ThemeManager`；`Light/Dark/HighContrast`；窗口级 `SetTheme`；`UIZSignals::ThemeChanged/ThemeReapply`）——按角色统一配色；切页/切标签自动重套可见子树。
-  - **跟随系统**：读注册表深/浅色 + 系统强调色，处理 `WM_SETTINGCHANGE`/`WM_THEMECHANGED`/`WM_DWMCOLORIZATIONCOLORCHANGED`/`WM_SYSCOLORCHANGE`；`ThemeManager::SetFollowSystem(bool)`。
-  - **实例显式色优先**：控件被显式 `Set*Color` 后标记“用户设色”，主题不再覆盖；ListView 单项 / TableView 单格与富格 / TreeView 单元格 / 表头 / 交叉行 / Tab 选中与悬停 / 单选框 / NumberBox 悬停 / CheckBox 悬停等全部接入主题。
-  - `Backdrop` 令牌（窗口基色白/黑）；窗口周边（标题栏三件套）跟随**系统**主题；`ThemeManager::Map` 色差重映射。
-  - 修复：`ThemeReapply` 连接未断开的 UAF；`SyncThemeBackdrop` 吞用户 tint；ListView/TableView/TreeView 主题覆盖单项色。</pre></div></div>
-<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 20 章 · 版本变化摘录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 20 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.19.3</p></header><blockquote>
-<p>只列<strong>对你写代码有影响</strong>的显著变化。</p>
-</blockquote>
+- 由 `ZufyUIWindowTool.h` 提供 UI Automation 提供程序；元素侧 API 见「元素基类」。
+- 窗口侧：`SetAccessibilityEnabled(bool)`（默认开）、`FocusElement`、`GetFocused/Hovered/PressedElement`。
+- **`易错`**：库**不存历史、不读写文件**，提供程序只反映当前帧。`WM_GETOBJECT` 仅在开启时处理。
+
+## 调试 / 自动化通道
+
+```cpp
+inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
+```
+- 默认**关闭**；开启后目标窗口处理 `WM_COPYDATA`（`dwData` = 命令号，回包 `0x5A554631`）。
+- 命令集（1..22）：
+
+| 命令 | 作用 | 命令 | 作用 |
+|---|---|---|---|
+| 1 | Ping | 12 | ClearHighlight |
+| 2 | ListWindows | 13 | GetErrors（统一日志 E/W/I/D，≤500） |
+| 3 | GetFrameStats | 14 | ClearErrors |
+| 4 | GetElementTree | 15/16/17 | TopN 重绘/布局/缓存（`all`=全部） |
+| 5 | ForceRepaint | 18 | TopN 绘制 |
+| 6 | SetElementText("id\ttext") | 19 | ResetCounters |
+| 7 | InvokeElement | 20 | SetVisible("id\t0/1") |
+| 8 | FocusElement | 21 | SetMargin("id\tx\ty") |
+| 9 | GetElementInfo | 22 | SetHighlightColor("RRGGBB") |
+| 10 | GetElementAt("x,y" 屏幕→AutomationId) | — | — |
+| 11 | Highlight(id) | — | — |
+
+- 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
+- **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。</pre></div></div>
+<div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 20 章 · 无障碍与调试通道</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">第 20 章</span><h1>无障碍与调试通道</h1><p class="chapter-summary">UIA + SetDebugEnabled（v1.17.0）</p></header><h2 id="无障碍uia">无障碍（UIA）</h2>
 <ul>
-<li><strong>v1.15.0</strong>：数据视图虚拟化（<code>SetItemCount</code> 等）+ 隐藏/筛选/可见序排序（源行号 vs 可见序两套坐标）；跨线程/锁语义收口；<code>ComboBox</code> 源索引 API；<code>TreeView::BeginUpdate/SetNodeText</code>。</li>
-<li><strong>v1.16.0</strong>：系统对话框 <code>FileDialog</code>/<code>ColorDialog</code>；<code>UIZSignals::Error</code>；渲染线程默认关并标注不稳定；托盘回调消息撞号修复；<code>ZUFYUI_ENABLE_COMCTL_V6</code> 可选宏。</li>
-<li><strong>v1.17.0</strong>：<strong>UIA 无障碍</strong>（默认开）；<strong>外部调试/自动化通道</strong>（<code>SetDebugEnabled</code>，默认关，命令 1~22）；<strong>布局拉伸权值</strong>（<code>ColumnBox</code>/<code>RowBox</code>/<code>GridLayout</code> 按权值分配剩余空间）；<strong>省略文本自动 ToolTip</strong>（Label/Button）；<code>CaptionButton::Kind::Pin</code>；<code>TreeView</code> 节点 <code>bgColor</code>/<code>Get/SetScrollOffsetY</code>/<code>ScrollToNode</code>；<code>Window::DefaultBackdropColor</code> 默认纯白。</li>
-<li><strong>v1.18.0</strong>：</li>
-<li>新增 <code>ZufyUICharts.h</code>：<code>ChartBase</code> / <code>BarChart</code> / <code>LineChart</code> / <code>PieChart</code>；<code>BarChart</code> 补全横向方向；<code>PieChart</code> 滚轮缩放。</li>
-<li>新增 <code>TextEdit</code> 多行编辑器 / 只读查看器；<code>TextRun</code>；基类新增 <code>AcceptsTab()</code>。</li>
-<li><code>UIElement::ReleaseDeviceResourcesRecursive()</code>；<code>PageHost</code> 隐藏页缓存<strong>延迟释放</strong>（约 1.2s）；<code>ScrollViewer::UseCache()=false</code>；<code>SetUseCache(false)</code> 立即释放位图。</li>
-<li>库层修复：<code>Snap</code> 的 DPI 上下文在 UI 线程也设置；<code>ZSignal::Fire</code> RAII 异常安全；<code>TextBox</code> shift+点击语义；<code>Slider</code> 0 宽 NaN 守卫；<code>ListView</code> 池宽度变化重测（<code>poolW_</code>）。</li>
-<li><strong>v1.19.0</strong>：</li>
-<li>新增<strong>拖放</strong>（<code>ZufyUIDragDrop.h</code>）：<code>Window::BeginDrag</code> + <code>DragDataBuilder</code>；元素 <code>SetDropTargetEnabled</code>/<code>OnDragEnter/Over/Leave/Drop</code> + 信号；<code>Label</code>/<code>Button</code>/<code>TextBox</code>/<code>TextEdit</code>/<code>ComboBox</code> 支持拖入/拖出；跨应用文件拖出。</li>
-<li>新增 <code>Expander</code>（可折叠卡片：smoothstep 缓动 + 箭头旋转 + 标题悬停高亮）、<code>SettingsList</code>（设置行列表）；图片展示用 <code>Label::SetImage</code> + <code>SetImageFit</code>（等比缩放至完整可见）。</li>
-<li><code>ComboBox</code> 下拉箭头改为随展开旋转的 chevron。</li>
-<li>文本拖动为<strong>移动</strong>语义：源端先删原选区再按落点插入（同控件用私有格式去重）。</li>
-<li><strong>v1.19.1</strong>：</li>
-<li><code>TextEdit</code> 撤销/重做改为<strong>标准方案</strong>（栈顶=当前态）：撤销/重做都<strong>还原当时的选区与光标</strong>；Backspace/Delete/输入/粘贴各一步；拖放插入/移动均可撤销、可重做。</li>
-<li><code>ScrollViewer</code>：内容改按<strong>视口宽度</strong>测量（修复 FillWidth/换行内容期望宽度无穷大导致的“卡片被裁剪”与滚动范围错乱）；内容<strong>两遍测量</strong>（出现竖滚动条后按变窄宽度重量）；<strong>尊重内容元素自身的 <code>margin</code></strong>；裁剪四周留 <strong>1px 出血</strong>，避免内容边缘边框被切掉一半。</li>
-<li>拖放落点光标在目标<strong>未聚焦</strong>时也显示；拖动期间<strong>保留源选区</strong>并在落点显示预览光标；落点落在原选区内 → 不变更。</li>
-<li><code>Expander</code>：标题条悬停高亮（不再遮挡卡片边框）、箭头随折叠缓动旋转、<code>SetIcon</code> 标题图标。</li>
-<li>整窗拖放：<code>Window::SetDropTargetEnabled</code> + 窗口级 <code>DragEnter/DragOver/DragLeave/Drop</code>。</li>
-<li>图片展示并入 <code>Label</code>（新增 <code>SetImageFit</code>），移除独立的 <code>ImageView</code>。</li>
-<li><strong>v1.19.2</strong>：</li>
-<li>新增顶部<strong>菜单栏</strong> <code>MenuBar</code>（VS 风格：点击弹 <code>Menu</code>；悬停仅高亮<strong>不自动展开</strong>；菜单打开期间条目<strong>保持按下</strong>、关闭复原；默认叠在自定义标题栏上、空白处放行以便拖动标题栏）。</li>
-<li>新增底部<strong>状态栏</strong> <code>StatusBar</code>（左右面板：可选图标 + 文本）。</li>
-<li><code>Window</code>：<code>SetMenuBar</code> / <code>SetStatusBar</code> / <code>SetMenuBarInTitleBar</code> / <code>SetShowTitleText</code>（标题文字与标题栏上的菜单<strong>互斥</strong>）。</li>
-<li><code>Menu</code> 新增 <code>onClosed</code> 回调；<code>MenuWindow::OnPopupClosed</code>。</li>
-<li><strong>v1.19.3</strong>：</li>
-<li>新增<strong>主题系统</strong>（<code>ThemeRole</code> / <code>Theme</code> / <code>ThemeManager</code>；<code>Light/Dark/HighContrast</code>；窗口级 <code>SetTheme</code>；<code>UIZSignals::ThemeChanged/ThemeReapply</code>）——按角色统一配色；切页/切标签自动重套可见子树。</li>
-<li><strong>跟随系统</strong>：读注册表深/浅色 + 系统强调色，处理 <code>WM_SETTINGCHANGE</code>/<code>WM_THEMECHANGED</code>/<code>WM_DWMCOLORIZATIONCOLORCHANGED</code>/<code>WM_SYSCOLORCHANGE</code>；<code>ThemeManager::SetFollowSystem(bool)</code>。</li>
-<li><strong>实例显式色优先</strong>：控件被显式 <code>Set*Color</code> 后标记“用户设色”，主题不再覆盖；ListView 单项 / TableView 单格与富格 / TreeView 单元格 / 表头 / 交叉行 / Tab 选中与悬停 / 单选框 / NumberBox 悬停 / CheckBox 悬停等全部接入主题。</li>
-<li><code>Backdrop</code> 令牌（窗口基色白/黑）；窗口周边（标题栏三件套）跟随<strong>系统</strong>主题；<code>ThemeManager::Map</code> 色差重映射。</li>
-<li>修复：<code>ThemeReapply</code> 连接未断开的 UAF；<code>SyncThemeBackdrop</code> 吞用户 tint；ListView/TableView/TreeView 主题覆盖单项色。</li>
+<li>由 <code>ZufyUIWindowTool.h</code> 提供 UI Automation 提供程序；元素侧 API 见「元素基类」。</li>
+<li>窗口侧：<code>SetAccessibilityEnabled(bool)</code>（默认开）、<code>FocusElement</code>、<code>GetFocused/Hovered/PressedElement</code>。</li>
+<li><strong><code>易错</code></strong>：库<strong>不存历史、不读写文件</strong>，提供程序只反映当前帧。<code>WM_GETOBJECT</code> 仅在开启时处理。</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.19.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a><a class="next" href="API.21.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">易错点总表</span><span class="nav-desc">按主题速查</span></a></nav>
+<h2 id="调试-自动化通道">调试 / 自动化通道</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-ac220d0f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+</div>
+<div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDebugEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kr">inline</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDebugEnabled</span><span class="p">();</span>
+</pre></div>
+<pre id="code-ac220d0f" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
+</div>
+<ul>
+<li>默认<strong>关闭</strong>；开启后目标窗口处理 <code>WM_COPYDATA</code>（<code>dwData</code> = 命令号，回包 <code>0x5A554631</code>）。</li>
+<li>命令集（1..22）：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Ping</td>
+<td>12</td>
+<td>ClearHighlight</td>
+</tr>
+<tr>
+<td>2</td>
+<td>ListWindows</td>
+<td>13</td>
+<td>GetErrors（统一日志 E/W/I/D，≤500）</td>
+</tr>
+<tr>
+<td>3</td>
+<td>GetFrameStats</td>
+<td>14</td>
+<td>ClearErrors</td>
+</tr>
+<tr>
+<td>4</td>
+<td>GetElementTree</td>
+<td>15/16/17</td>
+<td>TopN 重绘/布局/缓存（<code>all</code>=全部）</td>
+</tr>
+<tr>
+<td>5</td>
+<td>ForceRepaint</td>
+<td>18</td>
+<td>TopN 绘制</td>
+</tr>
+<tr>
+<td>6</td>
+<td>SetElementText("id\ttext")</td>
+<td>19</td>
+<td>ResetCounters</td>
+</tr>
+<tr>
+<td>7</td>
+<td>InvokeElement</td>
+<td>20</td>
+<td>SetVisible("id\t0/1")</td>
+</tr>
+<tr>
+<td>8</td>
+<td>FocusElement</td>
+<td>21</td>
+<td>SetMargin("id\tx\ty")</td>
+</tr>
+<tr>
+<td>9</td>
+<td>GetElementInfo</td>
+<td>22</td>
+<td>SetHighlightColor("RRGGBB")</td>
+</tr>
+<tr>
+<td>10</td>
+<td>GetElementAt("x,y" 屏幕→AutomationId)</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Highlight(id)</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>统一日志：<code>detail::Log(level, tag, msg)</code>、<code>LogWarning/LogInfo/DebugLog</code>、<code>RecordError</code>（→ E 级并触发 <code>UIZSignals::Error</code>）。</li>
+<li><strong><code>易错</code></strong>：调试器侧发命令要带超时（<code>SendMessageTimeout</code>，不加 <code>SMTO_BLOCK</code>），否则目标忙时会卡死调试器。<code>ZUFYUI_DEBUG</code> 是<strong>编译期</strong>开关（日志），<code>SetDebugEnabled</code> 是<strong>运行期</strong>开关（通道/统计）——两套语义别混。</li>
+</ul>
+<nav class="chapter-nav"><a class="prev" href="API.19.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">DSL</span><span class="nav-desc">链式构造（ZufyUIDsl.h，v1.19.4）</span></a><a class="next" href="API.21.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.19.4</span></a></nav>
         </main>
     </div>
 

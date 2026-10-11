@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accessibility & Debug Channel · ZufyUI API Reference</title>
+    <title>DSL · ZufyUI API Reference</title>
     <style>
 
 :root {
@@ -197,141 +197,85 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Drag &amp; Drop, cards</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Theme system</a></li><li class="active"><a href="API.en.19.html"><span class="chapter-index">19</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Version digest</a></li><li class=""><a href="API.en.21.html"><span class="chapter-index">21</span>Pitfall index</a></li><li class=""><a href="API.en.22.html"><span class="chapter-index">22</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="accessibility-uia"><div class="toc-row"><a href="#accessibility-uia" data-target="accessibility-uia">Accessibility (UIA)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="debug-automation-channel"><div class="toc-row"><a href="#debug-automation-channel" data-target="debug-automation-channel">Debug / automation channel</a><span class="toc-caret-space"></span></div></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Drag &amp; Drop, cards</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Theme system</a></li><li class="active"><a href="API.en.19.html"><span class="chapter-index">19</span>DSL</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.21.html"><span class="chapter-index">21</span>Version digest</a></li><li class=""><a href="API.en.22.html"><span class="chapter-index">22</span>Pitfall index</a></li><li class=""><a href="API.en.23.html"><span class="chapter-index">23</span>Appendix</a></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>## Accessibility (UIA)
-
-- The provider comes from `ZufyUIWindowTool.h`; element APIs are in the "Element base" chapter.
-- Window APIs: `SetAccessibilityEnabled(bool)` (on by default), `FocusElement`, `GetFocused/Hovered/PressedElement`.
-- **`Pitfall`**: the library stores no history and does no file I/O; the provider reflects only the current frame. `WM_GETOBJECT` is handled only when enabled.
-
-## Debug / automation channel
-
-```cpp
-inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>```cpp
+// header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)
+namespace ZufyUI::dsl {
+template&lt;class T&gt; class Ref {                      // wraps shared_ptr&lt;T&gt;
+    T* operator-&gt;() const;   std::shared_ptr&lt;T&gt; shared() const;
+    operator std::shared_ptr&lt;T&gt;() const;           // usable with AddChild/SetContent
+    template&lt;class C, class R, class...A0, class...A&gt;
+    Ref&amp; with(R(C::*fn)(A0...), A&amp;&amp;... a);         // generic setter forwarding (incl. inherited setters)
+    template&lt;class Sig, class F&gt; Ref&amp; on(Sig&amp; sig, F&amp;&amp; f);
+    template&lt;auto SigMem, class F&gt; Ref&amp; on(F&amp;&amp; f);
+    template&lt;class...C&gt; Ref&amp; add(C&amp;&amp;... c);        // add children to a container
+    Ref&amp; width(float); Ref&amp; height(float); Ref&amp; size(float,float);
+    Ref&amp; fill(bool w=true,bool h=true); Ref&amp; margin(Thickness);
+    Ref&amp; visible(bool=true); Ref&amp; enabled(bool=true); Ref&amp; tooltip(const std::wstring&amp;);
+};
+template&lt;class T, class...A&gt; Ref&lt;T&gt; Make(A&amp;&amp;... a);          // generic factory
+Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);   Ref&lt;GridLayout&gt; Grid(...);
+// short factories: Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
+//                  Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
+}
 ```
-- Off by default. When on, the target window handles `WM_COPYDATA` (`dwData` = command id; reply `0x5A554631`) and returns current-frame info only (no file I/O).
-
-| Cmd | Action | Cmd | Action |
-|---|---|---|---|
-| 1 | Ping | 12 | ClearHighlight |
-| 2 | ListWindows | 13 | GetErrors (unified log E/W/I/D, ≤500) |
-| 3 | GetFrameStats | 14 | ClearErrors |
-| 4 | GetElementTree | 15/16/17 | TopN repaint/layout/cache (`all` = all) |
-| 5 | ForceRepaint | 18 | TopN draw |
-| 6 | SetElementText("id\ttext") | 19 | ResetCounters |
-| 7 | InvokeElement | 20 | SetVisible("id\t0/1") |
-| 8 | FocusElement | 21 | SetMargin("id\tx\ty") |
-| 9 | GetElementInfo | 22 | SetHighlightColor("RRGGBB") |
-| 10 | GetElementAt("x,y" screen→AutomationId) | | |
-| 11 | Highlight(id) | | |
-
-- Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
-- **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.</pre></div></div>
-<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 19 · Accessibility &amp; Debug Channel</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 19</span><h1>Accessibility &amp; Debug Channel</h1><p class="chapter-summary">UIA + SetDebugEnabled (v1.17.0)</p></header><h2 id="accessibility-uia">Accessibility (UIA)</h2>
-<ul>
-<li>The provider comes from <code>ZufyUIWindowTool.h</code>; element APIs are in the "Element base" chapter.</li>
-<li>Window APIs: <code>SetAccessibilityEnabled(bool)</code> (on by default), <code>FocusElement</code>, <code>GetFocused/Hovered/PressedElement</code>.</li>
-<li><strong><code>Pitfall</code></strong>: the library stores no history and does no file I/O; the provider reflects only the current frame. <code>WM_GETOBJECT</code> is handled only when enabled.</li>
-</ul>
-<h2 id="debug-automation-channel">Debug / automation channel</h2>
-<div class="code-container">
+- Usage: `using namespace ZufyUI::dsl;` then `Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)`. Do **not** also `using namespace ZufyUI;` (`Slider/Card/Expander/MenuBar/StatusBar` factories clash with class names) — or qualify with `dsl::`.
+- **`Pitfall`**: `with(&amp;T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast&lt;...&gt;(&amp;T::SetX)`; functions with **default arguments** (e.g. `ListView::AddItem`) can't be called via a member pointer with defaults → use `-&gt;AddItem(...)`.
+- **`Pitfall`**: `GridLayout` has no single-arg `AddChild`; `Grid(...)` uses `(child,row,col)`. `Ref&lt;T&gt;` and `shared_ptr` interconvert; a `Ref&lt;Derived&gt;` can go straight into `AddChild/SetContent`.</pre></div></div>
+<div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 19 · DSL</span></div>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 19</span><h1>DSL</h1><p class="chapter-summary">Fluent construction (ZufyUIDsl.h, v1.19.4)</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-07a5973e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-a7f62311', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
-<div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDebugEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kr">inline</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDebugEnabled</span><span class="p">();</span>
+<div class="highlight"><pre><span></span><span class="c1">// header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)</span>
+<span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="o">::</span><span class="nn">dsl</span><span class="w"> </span><span class="p">{</span>
+<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Ref</span><span class="w"> </span><span class="p">{</span><span class="w">                      </span><span class="c1">// wraps shared_ptr&lt;T&gt;</span>
+<span class="w">    </span><span class="n">T</span><span class="o">*</span><span class="w"> </span><span class="k">operator</span><span class="o">-&gt;</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">shared</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="k">operator</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">           </span><span class="c1">// usable with AddChild/SetContent</span>
+<span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">C</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">R</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="p">...</span><span class="n">A0</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="p">...</span><span class="n">A</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="n">with</span><span class="p">(</span><span class="n">R</span><span class="p">(</span><span class="n">C</span><span class="o">::*</span><span class="n">fn</span><span class="p">)(</span><span class="n">A0</span><span class="p">...),</span><span class="w"> </span><span class="n">A</span><span class="o">&amp;&amp;</span><span class="p">...</span><span class="w"> </span><span class="n">a</span><span class="p">);</span><span class="w">         </span><span class="c1">// generic setter forwarding (incl. inherited setters)</span>
+<span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">Sig</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">F</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="n">on</span><span class="p">(</span><span class="n">Sig</span><span class="o">&amp;</span><span class="w"> </span><span class="n">sig</span><span class="p">,</span><span class="w"> </span><span class="n">F</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">f</span><span class="p">);</span>
+<span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">auto</span><span class="w"> </span><span class="n">SigMem</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">F</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="n">on</span><span class="p">(</span><span class="n">F</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">f</span><span class="p">);</span>
+<span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="p">...</span><span class="n">C</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="n">add</span><span class="p">(</span><span class="n">C</span><span class="o">&amp;&amp;</span><span class="p">...</span><span class="w"> </span><span class="n">c</span><span class="p">);</span><span class="w">        </span><span class="c1">// add children to a container</span>
+<span class="w">    </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">width</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">height</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">size</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">fill</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">w</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span><span class="kt">bool</span><span class="w"> </span><span class="n">h</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">margin</span><span class="p">(</span><span class="n">Thickness</span><span class="p">);</span>
+<span class="w">    </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">visible</span><span class="p">(</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">enabled</span><span class="p">(</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">tooltip</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="p">};</span>
+<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="p">...</span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Make</span><span class="p">(</span><span class="n">A</span><span class="o">&amp;&amp;</span><span class="p">...</span><span class="w"> </span><span class="n">a</span><span class="p">);</span><span class="w">          </span><span class="c1">// generic factory</span>
+<span class="n">Ref</span><span class="o">&lt;</span><span class="n">ColumnBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Col</span><span class="p">(</span><span class="n">children</span><span class="p">...);</span><span class="w">   </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">RowBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Row</span><span class="p">(...);</span><span class="w">   </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">GridLayout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Grid</span><span class="p">(...);</span>
+<span class="c1">// short factories: Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring</span>
+<span class="c1">//                  Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar</span>
+<span class="p">}</span>
 </pre></div>
-<pre id="code-07a5973e" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
+<pre id="code-a7f62311" style="display: none;">// header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)
+namespace ZufyUI::dsl {
+template&lt;class T&gt; class Ref {                      // wraps shared_ptr&lt;T&gt;
+    T* operator-&gt;() const;   std::shared_ptr&lt;T&gt; shared() const;
+    operator std::shared_ptr&lt;T&gt;() const;           // usable with AddChild/SetContent
+    template&lt;class C, class R, class...A0, class...A&gt;
+    Ref&amp; with(R(C::*fn)(A0...), A&amp;&amp;... a);         // generic setter forwarding (incl. inherited setters)
+    template&lt;class Sig, class F&gt; Ref&amp; on(Sig&amp; sig, F&amp;&amp; f);
+    template&lt;auto SigMem, class F&gt; Ref&amp; on(F&amp;&amp; f);
+    template&lt;class...C&gt; Ref&amp; add(C&amp;&amp;... c);        // add children to a container
+    Ref&amp; width(float); Ref&amp; height(float); Ref&amp; size(float,float);
+    Ref&amp; fill(bool w=true,bool h=true); Ref&amp; margin(Thickness);
+    Ref&amp; visible(bool=true); Ref&amp; enabled(bool=true); Ref&amp; tooltip(const std::wstring&amp;);
+};
+template&lt;class T, class...A&gt; Ref&lt;T&gt; Make(A&amp;&amp;... a);          // generic factory
+Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);   Ref&lt;GridLayout&gt; Grid(...);
+// short factories: Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
+//                  Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
+}</pre>
 </div>
 <ul>
-<li>Off by default. When on, the target window handles <code>WM_COPYDATA</code> (<code>dwData</code> = command id; reply <code>0x5A554631</code>) and returns current-frame info only (no file I/O).</li>
+<li>Usage: <code>using namespace ZufyUI::dsl;</code> then <code>Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)</code>. Do <strong>not</strong> also <code>using namespace ZufyUI;</code> (<code>Slider/Card/Expander/MenuBar/StatusBar</code> factories clash with class names) — or qualify with <code>dsl::</code>.</li>
+<li><strong><code>Pitfall</code></strong>: <code>with(&amp;T::Setter, args...)</code> takes a <strong>member function pointer</strong>; overloaded setters need <code>static_cast&lt;...&gt;(&amp;T::SetX)</code>; functions with <strong>default arguments</strong> (e.g. <code>ListView::AddItem</code>) can't be called via a member pointer with defaults → use <code>-&gt;AddItem(...)</code>.</li>
+<li><strong><code>Pitfall</code></strong>: <code>GridLayout</code> has no single-arg <code>AddChild</code>; <code>Grid(...)</code> uses <code>(child,row,col)</code>. <code>Ref&lt;T&gt;</code> and <code>shared_ptr</code> interconvert; a <code>Ref&lt;Derived&gt;</code> can go straight into <code>AddChild/SetContent</code>.</li>
 </ul>
-<table>
-<thead>
-<tr>
-<th>Cmd</th>
-<th>Action</th>
-<th>Cmd</th>
-<th>Action</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>1</td>
-<td>Ping</td>
-<td>12</td>
-<td>ClearHighlight</td>
-</tr>
-<tr>
-<td>2</td>
-<td>ListWindows</td>
-<td>13</td>
-<td>GetErrors (unified log E/W/I/D, ≤500)</td>
-</tr>
-<tr>
-<td>3</td>
-<td>GetFrameStats</td>
-<td>14</td>
-<td>ClearErrors</td>
-</tr>
-<tr>
-<td>4</td>
-<td>GetElementTree</td>
-<td>15/16/17</td>
-<td>TopN repaint/layout/cache (<code>all</code> = all)</td>
-</tr>
-<tr>
-<td>5</td>
-<td>ForceRepaint</td>
-<td>18</td>
-<td>TopN draw</td>
-</tr>
-<tr>
-<td>6</td>
-<td>SetElementText("id\ttext")</td>
-<td>19</td>
-<td>ResetCounters</td>
-</tr>
-<tr>
-<td>7</td>
-<td>InvokeElement</td>
-<td>20</td>
-<td>SetVisible("id\t0/1")</td>
-</tr>
-<tr>
-<td>8</td>
-<td>FocusElement</td>
-<td>21</td>
-<td>SetMargin("id\tx\ty")</td>
-</tr>
-<tr>
-<td>9</td>
-<td>GetElementInfo</td>
-<td>22</td>
-<td>SetHighlightColor("RRGGBB")</td>
-</tr>
-<tr>
-<td>10</td>
-<td>GetElementAt("x,y" screen→AutomationId)</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>11</td>
-<td>Highlight(id)</td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-<ul>
-<li>Unified log: <code>detail::Log(level, tag, msg)</code> / <code>LogWarning/LogInfo/DebugLog</code> / <code>RecordError</code> (→ E level + fires <code>UIZSignals::Error</code>).</li>
-<li><strong><code>Pitfall</code></strong>: send commands with a timeout (<code>SendMessageTimeout</code> without <code>SMTO_BLOCK</code>), or the debugger hangs when the target is busy. <code>ZUFYUI_DEBUG</code> is a <strong>compile-time</strong> switch (logging); <code>SetDebugEnabled</code> is a <strong>runtime</strong> switch (channel/stats) — do not conflate.</li>
-</ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.18.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Theme system</span><span class="nav-desc">Theme (v1.19.0+)</span></a><a class="next" href="API.en.20.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Version digest</span><span class="nav-desc">v1.15.0 → v1.19.3</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.en.18.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Theme system</span><span class="nav-desc">Theme (v1.19.0+)</span></a><a class="next" href="API.en.20.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Accessibility &amp; Debug Channel</span><span class="nav-desc">UIA + SetDebugEnabled (v1.17.0)</span></a></nav>
         </main>
     </div>
 
