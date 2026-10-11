@@ -178,7 +178,7 @@ A tour of the widgets (first page of the demo):
 
 ## Changelog
 
-> Current version: **1.19.6** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.19.7** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
 
 ### 2026-10-11 — Theme system + fluent DSL + card/drag-drop controls + fixes (v1.18.1 → v1.19.5)
 
@@ -189,6 +189,7 @@ A tour of the widgets (first page of the demo):
 - **v1.19.4**: **fluent construction DSL** (`ZufyUIDsl.h`); fixed clipped `CheckBox` label; `ListView/TableView` cache collapsed into a single `ChildrenSig()`; `ChartBase` fill fallback.
 - **v1.19.5**: DSL enhancements — `dsl::App()` window builder + SFINAE per-control sugar + chart composition.
 - **v1.19.6**: fixed `ListView` button-mode checkbox hit off by 4px and `Label` wrap ignoring inline children width; version is now a single source (generator injects `{{ZUFYUI_VERSION}}`) + doc cleanup.
+- **v1.19.7**: audit fixes (chart scrollbar allowance, NumberBox wheel, anim-set dangling, `Menu::ShowAt` exception, layout spacing, data-view child label release, IME association, etc.); added `TODO.md` merging the former plan files.
 
 ### 2026-10-06 — Docs & images update (v1.18.1)
 

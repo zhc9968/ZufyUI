@@ -89,8 +89,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 19
-#define ZufyUI_VERSION_PATCH 6
-#define ZufyUI_VERSION_STRING L"1.19.6"
+#define ZufyUI_VERSION_PATCH 7
+#define ZufyUI_VERSION_STRING L"1.19.7"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -1840,7 +1840,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 maxWidth = max(maxWidth, childSize.width + m.left + m.right);
                 totalHeight += m.top + m.bottom;
             }
-            if (!children_.empty()) totalHeight += spacing_ * (children_.size() - 1);
+            int _n = 0; for (auto& c : children_) if (c && c->IsVisible() && c->ParticipatesInLayout()) ++_n;   // spacing 只按“参与布局”的子元素数
+            if (_n > 1) totalHeight += spacing_ * (_n - 1);
             return Size(width_ > 0 ? width_ : maxWidth, height_ > 0 ? height_ : totalHeight);
         }
 
@@ -1957,7 +1958,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 maxHeight = max(maxHeight, childSize.height + m.top + m.bottom);
                 totalWidth += m.left + m.right;
             }
-            if (!children_.empty()) totalWidth += spacing_ * (children_.size() - 1);
+            int _n = 0; for (auto& c : children_) if (c && c->IsVisible() && c->ParticipatesInLayout()) ++_n;   // spacing 只按“参与布局”的子元素数
+            if (_n > 1) totalWidth += spacing_ * (_n - 1);
             return Size(width_ > 0 ? width_ : totalWidth, height_ > 0 ? height_ : maxHeight);
         }
 
@@ -2095,7 +2097,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         Size MeasureOverride(const Size& availableSize) override {
             int maxRow = 0, maxCol = 0;
             for (auto& item : items_) {
-                if (!item.element->ParticipatesInLayout()) continue;
+                if (!item.element || !item.element->IsVisible() || !item.element->ParticipatesInLayout()) continue;   // 不可见元素不撑大行列数
                 maxRow = max(maxRow, item.row + item.rowSpan);
                 maxCol = max(maxCol, item.col + item.colSpan);
             }
@@ -3489,8 +3491,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             rootElement_->AttachWindowRecursive(this);
             layoutNeeded_ = true;
 
-            defaultIMC_ = ImmGetContext(hwnd_);
-            if (defaultIMC_) ImmReleaseContext(hwnd_, defaultIMC_);
+            defaultIMC_ = ImmAssociateContext(hwnd_, NULL);   // 取默认 HIMC：分离再恢复（ImmGetContext 后 ReleaseContext 会让句柄失效）
+            if (defaultIMC_) ImmAssociateContext(hwnd_, defaultIMC_);
 
             // 不在这里显示窗口：何时显示由应用决定（可先配置好背景/标题栏再 Show()）。
 
@@ -4176,6 +4178,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (!elem) return;
             std::lock_guard<std::recursive_mutex> lk(renderLock_);
             pendingRepaint_.erase(elem);
+            lastActiveAnimElements_.erase(elem);   // 否则下一帧会把这个已销毁元素当“刚停止动画”塞回 pendingRepaint_ → 悬垂
+            activeAnimScratch_.erase(elem);
         }
         void MarkLayoutInvalidated() {
             std::lock_guard<std::recursive_mutex> lk(renderLock_);
@@ -6425,7 +6429,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             std::condition_variable cv;        // inFlight==0 时通知析构线程（替代自旋烧 CPU）
         };
         std::shared_ptr<RenderLiveness> live_ = std::make_shared<RenderLiveness>();
-        std::atomic<int> frameRateLimit_{ -1 };        // A3：-1=未设(用进程默认) / 0=显式不限 / >0=fps 上限
+        std::atomic<int> frameRateLimit_{ -1 };        // A3：-1=未设(用进程默认) / 0=显式不限 / >0=fps 上限（SetFrameRateLimit(负值) 会归一为 0，即“显式不限”）
         std::atomic<double> lastPresentMs_{ 0.0 };    // A3：上次 Present 时刻（QPC ms）；Present 可在 render 线程或 UI 线程(RenderNowSync)发生
         static inline std::atomic<int> s_defaultFrameRateLimit{ 0 }; // A3：进程默认帧率上限（0=不限）
         std::atomic<bool> uiAnimating_{ false };      // UI 线程发布：本帧是否有活跃动画（render 据此决定续帧）
@@ -7231,8 +7235,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     inline void Menu::ShowAt(int screenX, int screenY) {
         detail::InitializeUIThread();
         detail::CloseAllOpenMenus();
+        std::shared_ptr<Menu> self = weak_from_this().lock();   // 栈上/unique 创建的 Menu 会拿不到 shared_ptr
+        if (!self) { detail::ReportError(L"Menu::ShowAt: Menu must be owned by a shared_ptr"); return; }
         auto& holder = MenuWindow::StandaloneHolder();
-        holder = std::make_shared<MenuWindow>(shared_from_this(), nullptr, screenX, screenY);
+        holder = std::make_shared<MenuWindow>(self, nullptr, screenX, screenY);
         if (!holder || !holder->WasCreated()) {   // 创建失败（Compositor/D2D/窗口类）→ 不静默：发错误信号并清空持有
             detail::ReportError(L"Menu::ShowAt: menu window creation FAILED (hwnd=null)");
             holder.reset();

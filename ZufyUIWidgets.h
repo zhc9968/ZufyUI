@@ -418,7 +418,7 @@ namespace ZufyUI {
             if (!children_.empty()) cw += iconSpacing_ * (float)children_.size();
 
             float gapIconText = (iw > 0 && textW > 0) ? iconSpacing_ : 0.0f;
-            float gapTextChild = (textW > 0 && cw > 0) ? iconSpacing_ : ((iw > 0 && cw > 0 && textW <= 0) ? iconSpacing_ : 0.0f);
+            float gapTextChild = (textW <= 0 && iw > 0 && cw > 0) ? iconSpacing_ : 0.0f;   // 文本+子控件时，text→首个子的间距已含在 cw 的“每子前间距”里，勿再算一次
 
             measuredIconW_ = iw; measuredIconH_ = ih;
             measuredTextW_ = textW; measuredTextH_ = textH;
@@ -5629,7 +5629,8 @@ namespace ZufyUI {
             (void)deltaX;
             if (!IsEffectivelyEnabled()) return false;
             Window* w = GetWindow();
-            if (!w || w->GetFocusedElement() != this) return false;   // 未聚焦不消费滚轮（让外层 ScrollViewer 能滚）
+            UIElement* f = w ? w->GetFocusedElement() : nullptr;
+            if (f != this && f != text_.get()) return false;   // 焦点通常落在内部 TextBox 上；未聚焦不消费滚轮（让外层 ScrollViewer 能滚）
             if (deltaY > 0.0f) { StepUp(); return true; }
             if (deltaY < 0.0f) { StepDown(); return true; }
             return false;
@@ -6752,7 +6753,12 @@ namespace ZufyUI {
             cursorPos_ = pos;
             ResetBlink(); SelectionChanged(); NotifyCursor(); EnsureVisible_ = true; RequestRepaint();
         }
-        void SetCursorImpl(int pos, bool keepSel) { if (!keepSel) { selAnchor_ = pos; selStart_ = selEnd_ = pos; } cursorPos_ = pos; ResetBlink(); NotifyCursor(); EnsureVisible_ = true; RequestRepaint();   // 移动即强制显示并重置闪烁
+        void SetCursorImpl(int pos, bool keepSel) {
+            bool _hadSel = (selStart_ != selEnd_);
+            if (!keepSel) { selAnchor_ = pos; selStart_ = selEnd_ = pos; }
+            cursorPos_ = pos; ResetBlink(); NotifyCursor(); EnsureVisible_ = true;
+            if (!keepSel && _hadSel) SelectionChanged();   // 清除选区也要通知（与其它改选区路径一致）
+            RequestRepaint();
         }
         int VisibleLines() { float lh = EmptyH(); return lh > 0 ? max(1, (int)((arrangedRect_.height - 4.0f) / lh)) : 1; }
         void WordBounds(int pos, int& a, int& b) const {

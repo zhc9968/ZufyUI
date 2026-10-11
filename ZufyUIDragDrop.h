@@ -38,7 +38,7 @@ inline std::vector<std::wstring> DragData::GetFiles() const {
         UINT n = DragQueryFileW(h, 0xFFFFFFFF, nullptr, 0);
         for (UINT i = 0; i < n; ++i) {
             UINT len = DragQueryFileW(h, i, nullptr, 0);
-            std::wstring s(len, L'\0');
+            std::wstring s((size_t)len + 1, L'\0');   // +1 容纳结尾 NUL，避免 len==0 时越界写
             UINT got = DragQueryFileW(h, i, &s[0], len + 1);
             s.resize(got);
             out.push_back(std::move(s));

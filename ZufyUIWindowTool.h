@@ -709,7 +709,7 @@ namespace ZufyUI {
 
     inline void MessageBox::Init(HWND parentHwnd, Window* parentWin, const std::wstring& title,
                                  const std::wstring& content, Icon icon, FastButton buttons) {
-        title_ = title.empty() ? L"Message" : title;
+        title_ = title.empty() ? (s_lang_ == Lang::Chinese ? L"消息" : L"Message") : title;
         content_ = content;
         iconKind_ = icon;
         buttons_ = buttons;

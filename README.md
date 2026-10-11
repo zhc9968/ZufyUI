@@ -178,7 +178,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 
 ## 更新日志
 
-> 当前版本：**1.19.6**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.19.7**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
 
 ### 2026-10-11 — 主题系统 + 链式构造 DSL + 卡片/拖放控件 + 一批修复（v1.18.1 → v1.19.5）
 
@@ -189,6 +189,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - **v1.19.4**：**链式构造 DSL**（`ZufyUIDsl.h`）；修复 `CheckBox` 带标签被裁；`ListView/TableView` 缓存判据收敛为单一签名 `ChildrenSig()`；`ChartBase` fill 回退。
 - **v1.19.5**：DSL 增强——`dsl::App()` 窗口构建器 + SFINAE 控件糖 + 图表组合。
 - **v1.19.6**：修复 `ListView` 按钮模式勾选框命中偏 4px、`Label` 换行漏算子控件宽度；版本号单一来源（生成器注入 `{{ZUFYUI_VERSION}}`）+ 文档清理。
+- **v1.19.7**：审计修复一批（图表滚动条占位、NumberBox 滚轮、动画集合悬垂、`Menu::ShowAt` 异常、布局 spacing、数据视图释放子 Label、IME 关联等）；新增 `TODO.md` 合并原计划文件。
 
 ### 2026-10-06 — 文档与配图更新（v1.18.1）
 

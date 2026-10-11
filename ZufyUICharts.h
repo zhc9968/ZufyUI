@@ -217,8 +217,8 @@ namespace ZufyUI {
                 contentH_ = pad + legendH + max(1, C) * (categoryW_ * zoom_) + axisBottom_ + pad;
                 plot_ = Rect(0, 0, valueSize, max(1, C) * (categoryW_ * zoom_));
             }
-            float viewW = max(0.0f, r.width - (hBarVisible_ ? barW_ : 0.0f));
-            float viewH = max(0.0f, r.height - (vBarVisible_ ? barW_ : 0.0f));
+            float viewW = max(0.0f, r.width  - (vBarVisible_ ? barW_ : 0.0f));   // 竖滚动条占“宽度”
+            float viewH = max(0.0f, r.height - (hBarVisible_ ? barW_ : 0.0f));   // 横滚动条占“高度”
             maxScrollX_ = max(0.0f, contentW_ - viewW);
             maxScrollY_ = max(0.0f, contentH_ - viewH);
             scrollX_ = clamp(scrollX_, 0.0f, maxScrollX_);
@@ -231,8 +231,8 @@ namespace ZufyUI {
             if (!vBar_ || !hBar_) return;
             vBarVisible_ = (contentH_ > arrangedRect_.height + 0.5f);
             hBarVisible_ = (contentW_ > arrangedRect_.width + 0.5f);
-            float vw = max(0.0f, arrangedRect_.width - (hBarVisible_ ? barW_ : 0.0f));
-            float vh = max(0.0f, arrangedRect_.height - (vBarVisible_ ? barW_ : 0.0f));
+            float vw = max(0.0f, arrangedRect_.width  - (vBarVisible_ ? barW_ : 0.0f));
+            float vh = max(0.0f, arrangedRect_.height - (hBarVisible_ ? barW_ : 0.0f));
             vBar_->Arrange(Rect(arrangedRect_.x + arrangedRect_.width - barW_, arrangedRect_.y, barW_, vh)); vBar_->SetVisibleNoInvalidate(vBarVisible_); vBar_->SetRange(scrollY_, maxScrollY_, vh);
             hBar_->Arrange(Rect(arrangedRect_.x, arrangedRect_.y + arrangedRect_.height - barW_, vw, barW_)); hBar_->SetVisibleNoInvalidate(hBarVisible_); hBar_->SetRange(scrollX_, maxScrollX_, vw);
         }

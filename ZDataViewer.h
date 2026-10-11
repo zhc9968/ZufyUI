@@ -153,6 +153,7 @@ namespace ZufyUI {
                 itemTextColors_.erase(p);
                 itemTips_.erase(p);
             }
+            childrenView_.clear();   // 即将释放该 Label，先清裸指针
             items_.erase(items_.begin() + index);
             if (selectedIndex_ == index) selectedIndex_ = -1;
             else if (selectedIndex_ > index) selectedIndex_--;
@@ -548,6 +549,7 @@ namespace ZufyUI {
         }
         // 影响“可见子元素布局”的全部判据集中到一处 → 单一签名；以后新增状态只需改这里（防“加了状态忘了加判据”）
         uint64_t ChildrenSig() const {
+            const_cast<ListView*>(this)->EnsureView();   // 保证 view_ 已更新（避免隐式契约）
             uint64_t s = 1469598103934665603ull;
             auto mix = [&](uint64_t v) { s = (s ^ v) * 1099511628211ull; };
             auto fb = [](float f) { uint32_t u; std::memcpy(&u, &f, sizeof(u)); return (uint64_t)u; };
@@ -1059,6 +1061,8 @@ namespace ZufyUI {
             marqueeBorderBrush_.Reset();
             listCheckBrush_.Reset();
             for (auto& label : items_) if (label) label->ReleaseDeviceResources();
+            for (auto& label : pool_) if (label) label->ReleaseDeviceResources();           // 池化可见行 Label
+            for (auto& kv : richRows_) if (kv.second) kv.second->ReleaseDeviceResources();   // 虚拟模式富项整行 Label
             UIElement::ReleaseDeviceResources();
         }
 
@@ -1209,6 +1213,7 @@ namespace ZufyUI {
             virtual_ = true;
             if (n < 0) n = 0;
             vtext_.assign((size_t)n, std::wstring());
+            childrenView_.clear();     // 先清裸指针（旧 Label 即将释放），防悬垂
             items_.clear();            // 从简单模式切来：释放旧 Label（否则永不回收）
             richRows_.clear();         // 旧富项残留
             hiddenRows_.clear();
@@ -1487,6 +1492,7 @@ namespace ZufyUI {
             rows = max(0, rows);
             rowCount_ = rows;
             cellText_.assign((size_t)rows, std::vector<std::wstring>((size_t)colCount_));
+            childrenView_.clear();   // 即将释放富项 Label，先清裸指针
             richCells_.clear();
             hiddenRows_.clear();
             if (selectedRow_ >= rows) selectedRow_ = -1;
@@ -1972,6 +1978,7 @@ namespace ZufyUI {
 
         // 影响“可见单元格布局”的全部判据集中到一处 → 单一签名
         uint64_t ChildrenSig() const {
+            EnsureView();   // 保证 view_ 已更新
             uint64_t s = 1469598103934665603ull;
             auto mix = [&](uint64_t v) { s = (s ^ v) * 1099511628211ull; };
             auto fb = [](float f) { uint32_t u; std::memcpy(&u, &f, sizeof(u)); return (uint64_t)u; };
@@ -3236,11 +3243,13 @@ namespace ZufyUI {
         }
 
         // ---------- 节点操作 ----------
+        void ApplyDefaultExpand(const std::shared_ptr<TreeNode>& n) { if (n && defaultExpandDepth_ >= 0 && n->depth < defaultExpandDepth_) n->expanded = true; }
         std::shared_ptr<TreeNode> AddRoot(const std::wstring& text) {
             auto node = std::make_shared<TreeNode>(text);
             node->columns.resize(columnCount_);
             node->depth = 0;
             node->checkable = checkableMode_;
+            ApplyDefaultExpand(node);
             roots_.push_back(node);
             BuildVisibleList();
             InvalidateLayout();
@@ -3252,6 +3261,7 @@ namespace ZufyUI {
             node->columns.resize(columnCount_);
             node->depth = 0;
             node->checkable = checkableMode_;
+            ApplyDefaultExpand(node);
             roots_.push_back(node);
             BuildVisibleList();
             InvalidateLayout();
@@ -3265,6 +3275,7 @@ namespace ZufyUI {
             child->parent = parent;
             child->depth = parent->depth + 1;
             child->checkable = checkableMode_ || parent->checkable;
+            ApplyDefaultExpand(child);
             parent->children.push_back(child);
             BuildVisibleList();
             InvalidateLayout();
@@ -3278,6 +3289,7 @@ namespace ZufyUI {
             child->parent = parent;
             child->depth = parent->depth + 1;
             child->checkable = checkableMode_ || parent->checkable;
+            ApplyDefaultExpand(child);
             parent->children.push_back(child);
             BuildVisibleList();
             InvalidateLayout();
@@ -4497,6 +4509,14 @@ namespace ZufyUI {
             iconBrush_.Reset();
             marqueeFillBrush_.Reset();
             marqueeBorderBrush_.Reset();
+            {   // 单元格文本是 TreeNode::columns 里的真实 Label，不在 GetChildren() 里 → 递归释放
+                std::function<void(const std::shared_ptr<TreeNode>&)> rel = [&](const std::shared_ptr<TreeNode>& nd) {
+                    if (!nd) return;
+                    for (auto& c : nd->columns) if (c) c->ReleaseDeviceResources();
+                    for (auto& ch : nd->children) rel(ch);
+                };
+                for (auto& r : roots_) rel(r);
+            }
             UIElement::ReleaseDeviceResources();
         }
 
