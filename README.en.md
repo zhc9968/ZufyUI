@@ -26,7 +26,7 @@ ZufyUI is a **header-only** Windows desktop UI framework built directly on Direc
 - **Card components**: collapsible card `Expander` (easing + rotating arrow + header hover highlight + `SetIcon`), settings row list `SettingsList`; image display via `Label::SetImage` + `SetImageFit` (fit to fully visible, drag-out).
 - **Window chrome**: top **menu bar** `MenuBar` (VS-style; overlays the custom title bar by default, switchable) and bottom **status bar** `StatusBar` (left/right panels: icon + text).
 - **Theme system**: semantic `Theme` palette (light / dark / high-contrast), app- and window-level switching, **follows the system** light/dark + accent (auto re-resolve on `WM_SETTINGCHANGE` etc.), `ThemeManager::Map` color remap; **explicit instance colors win** (once set, the theme won't override them).
-- **Fluent construction DSL** (`ZufyUIDsl.h`, optional): `Ref<T>` with `with/on/add`, `Make`/`Col`/`Row`/`Grid`, and per-control short factories — assemble controls / subtrees / signals in one expression; includes a `dsl::App()` window builder and SFINAE-gated per-control sugar.
+- **Fluent construction DSL** (`ZufyUIDsl.h`, optional): `Ref<T>` with `with/on/add/apply`, `Make`/`Wrap`/`Col`/`Row`/`Grid` (including `Cell(row,col,...)` coordinates) and per-control short factories — assemble controls / subtrees / signals in one expression; a `dsl::App()` window builder (config + `hidden` + window signals + automatic `Show()`); SFINAE-gated sugar covering layout, size, weights, colours, spacing, alignment and data-view / menu builders.
 - **Complete animation and transitions**: hover, expand, indicator bar, and page switching (`PageHost`) all have built-in animations, and scrolling supports smooth scrolling.
 - **High-DPI adaptation**: automatically aware of DPI; `Snap()` snaps drawing to physical pixels to avoid blurriness.
 - **IME compatibility**: text boxes support Chinese IME composition input and candidate window positioning.
@@ -63,19 +63,33 @@ msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64
 
 ```text
 ZufyUI/
-├── ZufyUI.h              # Core: types / signals & slots / fonts / elements / layout / menus / window
-├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
-├── ZDataViewer.h      # Data views: ListView / TableView / TreeView
+├── ZufyUI.h              # Core: types / signals & slots / fonts / elements / layout / menus / window / theme
+├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / TextEdit / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider / MenuBar / StatusBar …
+├── ZDataViewer.h         # Data views: ListView / TableView / TreeView
 ├── ZufyUICharts.h        # Charts: ChartBase / BarChart / LineChart / PieChart
-├── ZufyUIWindowTool.h    # Tray / custom title bar / accessibility (UIA) / debug channel
+├── ZufyUIAcrylic.h       # DComp composition effects + acrylic / mica recipes (included by ZufyUI.h)
+├── ZufyUIImages.h        # Image / ImageManager (image loading and device cache)
+├── ZufyUIIcons.h         # FontIcon glyph control
+├── ZufyUIWindowTool.h    # Tray / custom title bar / accessibility (UIA) / system dialogs / debug channel
 ├── ZufyUIDragDrop.h      # Drag & drop: DragData / DragDataBuilder / Window::BeginDrag / element hooks
-├── ZufyUI.cpp            # Demo program entry point (WinMain)
+├── ZufyUIDsl.h           # Optional: fluent construction DSL (Ref / Col / Row / Grid / short factories / dsl::App)
+├── ZufyUI.cpp            # Demo program entry point (wWinMain)
 ├── ZufyUI.slnx           # Solution
 ├── ZufyUI.vcxproj        # Project file
-├── AGENTS.md          # Development principles (incl. "find the root cause before fixing any bug")
-└── docs/
-    ├── API.md         # Full API documentation (Chinese)
-    └── API.en.md      # Full API documentation (English)
+├── AGENTS.md             # Development principles (incl. "find the root cause before fixing any bug")
+├── HANDOFF.md            # Handoff notes (hard rules / architecture / pitfalls / release flow)
+├── TODO.md               # Single authoritative backlog
+├── docs/
+│   ├── API.md            # Full API documentation (Chinese)
+│   └── API.en.md         # Full API documentation (English)
+├── tests/
+│   └── dsl_tests.cpp     # DSL self-test (compile-time + runtime assertions, no window)
+└── tools/
+    ├── build.ps1         # One-shot build: fix BOM → build demo + Debugger → run self-tests
+    ├── ensure_bom.ps1    # BOM guard (restores UTF-8 BOM before building)
+    ├── run_dsl_tests.ps1 # Compile and run the DSL self-test
+    ├── check_api_parity.py # zh/en API code-block parity check
+    └── colorscan.py      # Hard-coded colour audit
 ```
 
 ## Quick start
@@ -178,9 +192,17 @@ A tour of the widgets (first page of the demo):
 
 ## Changelog
 
-> Current version: **1.19.7** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.20.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
 
-### 2026-10-11 — Theme system + fluent DSL + card/drag-drop controls + fixes (v1.18.1 → v1.19.5)
+### 2026-10-11 — DSL polish + one-shot build script + null/self-containment fixes (v1.20.0)
+
+- **DSL**: `root()` now accepts **any `Layout` subclass** (`Row`/`Grid` did not even compile before, because `Ref` → `shared_ptr<Layout>` needs two user-defined conversions); `add()` dispatches on the container's real API; `GridLayout` gains `Cell(row,col,child[,rowSpan,colSpan])` coordinates; added `apply()`/`Wrap()`, a batch of layout/size/weight/colour/spacing/alignment shortcuts, plus `RadioGroup()`/`ScrollBar()`/`Glyph()` factories and data-view & menu builders.
+- **DSL**: `WindowApp::run()` now calls `Show()` (`Window::Create` does not show the window, so the old code ran a message loop with no window); added `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` and the window signal hook `on<&Window::Closed>`; `WindowApp` is now movable.
+- **Fixes**: null guards in `ColumnBox`/`RowBox`/`GridLayout::AddChild` (the DSL's variadic forwarding can pass `nullptr`).
+- **Fix**: `ZufyUIWindowTool.h` now includes `ZufyUIWidgets.h` — it used `Label`/`Button` while depending on the caller to include it first.
+- **Tooling**: new `tools/build.ps1` (one shot: **auto-fix BOM before building** → kill processes holding files → build demo + `ZufyUIDebugger` → run self-tests), `tools/ensure_bom.ps1` (BOM guard), and `tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1` (47 assertions, no window needed, runnable from a shell or CI).
+
+### 2026-10-11 — Theme system + fluent DSL + card/drag-drop controls + fixes (v1.18.1 → v1.19.7)
 
 - **v1.19.0**: Charts `ZufyUICharts.h` (`BarChart`/`LineChart`/`PieChart`); `TextEdit` editor; drag & drop `ZufyUIDragDrop.h` + card controls `Expander`/`SettingsList`; `ComboBox` rotating arrow.
 - **v1.19.1**: `TextEdit` standard undo/redo (restores selection/cursor); drag fixes (drop caret, keeps source selection); `ScrollViewer` measured at viewport width + 1px bleed; `Label::SetImageFit` (standalone `ImageView` removed).

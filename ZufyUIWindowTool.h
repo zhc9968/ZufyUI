@@ -8,6 +8,7 @@
 // 标题栏及按钮默认 UseCache，仅状态变化时重绘；且不参与 Tab 焦点。
 // ============================================================================
 
+#include "ZufyUIWidgets.h"   // 本头用到 Label/Button/ColumnBox 等；原先依赖调用方先包含（pch.h 恰好是这个顺序）
 #include "ZufyUIImages.h"
 #include <vector>
 #include <memory>

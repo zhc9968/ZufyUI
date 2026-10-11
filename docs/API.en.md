@@ -16,11 +16,17 @@
 - Everything is in `namespace ZufyUI`.
 - Headers are **layered by usage**:
   - `ZufyUI.h`: core — types / signals / fonts / element base / layout / menus / window.
+  - `ZufyUIAcrylic.h`: hand-written DComp composition effects + the official acrylic/mica recipes (included by `ZufyUI.h`).
   - `ZufyUIWidgets.h`: basic controls (Label/Button/TextBox/TextEdit/ComboBox/…/ScrollViewer/TabView/icons), includes `ZufyUI.h`.
   - `ZDataViewer.h`: data views (ListView/TableView/TreeView), depends on the two above.
   - `ZufyUICharts.h`: **charts (BarChart/LineChart/PieChart)**, depends on `ZufyUI.h`.
-  - `ZufyUIWindowTool.h`: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel).
+  - `ZufyUIImages.h`: `Image` / `ImageManager` (image loading and device cache).
+  - `ZufyUIIcons.h`: the `FontIcon` glyph control (the `Icon` enum itself lives in `ZufyUIWidgets.h`).
+  - `ZufyUIWindowTool.h`: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel); **since v1.20.0 it includes `ZufyUIWidgets.h` itself**, so it can be included on its own.
+  - `ZufyUIDragDrop.h`: drag & drop (included at the end of `ZufyUI.h`).
+  - `ZufyUIDsl.h`: optional **fluent construction DSL** (purely additive; changes no existing control).
 - All are **header-only**; `#pragma comment(lib, ...)` auto-links `d2d1 / dwrite / dwmapi / imm32 / winmm`.
+- **Source encoding**: `.h` / `.cpp` files containing non-ASCII (e.g. Chinese) must be saved as **UTF-8 with BOM** (otherwise MSVC decodes them with the local code page and reports `C2143/C2259/C2888/C4819`); `.md` / `.tex` are saved as **UTF-8 without BOM**.
 
 ## Units
 
@@ -1225,7 +1231,7 @@ ZSignal<Window*> UIZSignals::ThemeReapply;   // re-apply to visible subtree afte
 - **`Pitfall`**: `Backdrop` is the **window/background base color** (white in light, black in dark); after an explicit `SetBackdrop/SetBackgroundColor` tint, the theme no longer changes it.
 - **`Version`**: introduced in `v1.19.0`; window periphery (caption buttons) follows the **system** theme, not the window theme; `WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE` auto re-resolve.
 
-###chapter: DSL | Fluent construction (ZufyUIDsl.h, v1.19.4)
+###chapter: DSL | Fluent construction (ZufyUIDsl.h, v1.19.4; extended in v1.20.0)
 
 ```cpp
 // header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)
@@ -1235,24 +1241,64 @@ template<class T> class Ref {                      // wraps shared_ptr<T>
     operator std::shared_ptr<T>() const;           // usable with AddChild/SetContent
     template<class C, class R, class...A0, class...A>
     Ref& with(R(C::*fn)(A0...), A&&... a);         // generic setter forwarding (incl. inherited setters)
+    template<class F> Ref& apply(F&& f);           // escape hatch: multi-step/conditional logic via lambda
     template<class Sig, class F> Ref& on(Sig& sig, F&& f);
     template<auto SigMem, class F> Ref& on(F&& f);
-    template<class...C> Ref& add(C&&... c);        // add children to a container
-    Ref& width(float); Ref& height(float); Ref& size(float,float);
-    Ref& fill(bool w=true,bool h=true); Ref& margin(Thickness);
-    Ref& visible(bool=true); Ref& enabled(bool=true); Ref& tooltip(const std::wstring&);
+    template<class...C> Ref& add(C&&... c);        // add children (dispatches on the container's real API)
+    Ref& cell(int row, int col, child, int rowSpan=1, int colSpan=1);   // GridLayout only
+    Ref& width(float); Ref& height(float); Ref& size(float,float); Ref& margin(Thickness);
+    Ref& minWidth(float); Ref& minHeight(float); Ref& maxWidth(float); Ref& maxHeight(float);
+    Ref& minSize(float,float); Ref& maxSize(float,float);
+    Ref& weight(float h,float v); Ref& hWeight(float); Ref& vWeight(float);
+    Ref& fill(bool w=true,bool h=true); Ref& visible(bool=true); Ref& enabled(bool=true);
+    Ref& tooltip(const std::wstring&); Ref& cache(bool=true); Ref& bleed(float);
+    Ref& clipRect(const Rect&); Ref& noClip(); Ref& cursor(HCURSOR);
+    Ref& dropTarget(bool=true); Ref& contextMenuEnabled(bool=true); Ref& accessible(const std::wstring&);
+    // SFINAE-gated sugar: exists only when the control has that method
+    Ref& spacing(float); Ref& spacing(float,float); Ref& padding(const Thickness&);
+    Ref& background(Color); Ref& textColor(Color); Ref& align(Alignment, Alignment);
+    Ref& text(const std::wstring&); Ref& checked(bool=true); Ref& value(float);
+    Ref& placeholder(const std::wstring&); Ref& image(std::shared_ptr<Image>); Ref& imageFit(bool=true);
+    Ref& items({...}); Ref& rows(int); Ref& cols(int); Ref& header(int, const std::wstring&);
+    Ref& cell(int row, int col, const std::wstring&);   // TableView cell
+    Ref& root(const std::wstring&); Ref& separator(); Ref& submenu(const std::wstring&, Menu);
 };
 template<class T, class...A> Ref<T> Make(A&&... a);          // generic factory
-Ref<ColumnBox> Col(children...);   Ref<RowBox> Row(...);   Ref<GridLayout> Grid(...);
+template<class T> Ref<T> Wrap(std::shared_ptr<T> p);         // wrap an existing shared_ptr into the chain
+Ref<ColumnBox> Col(children...);   Ref<RowBox> Row(...);
+Ref<GridLayout> Grid(children...);                          // also accepts Cell(row,col,child)
+CellSpec Cell(int row, int col, child, int rowSpan=1, int colSpan=1);
+using Align = GridLayout::Alignment;                        // used by Ref::align
 // short factories: Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
 //                  Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
+//                  RadioGroup ScrollBar Glyph
+class WindowApp {                                  // dsl::App()
+    WindowApp& size(int,int);   WindowApp& title(const std::wstring&);
+    WindowApp& resizable(bool=true);   WindowApp& corner(Window::WindowCorner);
+    WindowApp& backdrop(Backdrop, DWORD tint=0);   WindowApp& hidden(bool=true);
+    WindowApp& minSize(int,int);   WindowApp& position(int,int);   WindowApp& frameRateLimit(int);
+    WindowApp& theme(const Theme&);   WindowApp& useAppTheme(bool=true);
+    WindowApp& dropTarget(bool=true);   WindowApp& titleBarVisible(bool=true);
+    WindowApp& showTitleText(bool=true);   WindowApp& menuBarInTitleBar(bool=true);
+    WindowApp& icon(HICON, HICON);
+    WindowApp& root(Ref<Layout>);   WindowApp& titleBar(Ref<T>);   WindowApp& menuBar(Ref<T>);
+    WindowApp& statusBar(Ref<T>);
+    template<auto SigMem, class F> WindowApp& on(F&& f);      // e.g. on<&Window::Closed>
+    Window& window();   int run();                 // run(): Create -> apply config -> Show() -> Run()
+};
+WindowApp App();
 }
 ```
 - Usage: `using namespace ZufyUI::dsl;` then `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`. Do **not** also `using namespace ZufyUI;` (`Slider/Card/Expander/MenuBar/StatusBar` factories clash with class names) — or qualify with `dsl::`.
 - **`Pitfall`**: `with(&T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast<...>(&T::SetX)`; functions with **default arguments** (e.g. `ListView::AddItem`) can't be called via a member pointer with defaults → use `->AddItem(...)`.
-- **`Pitfall`**: `GridLayout` has no single-arg `AddChild`; `Grid(...)` uses `(child,row,col)`. `Ref<T>` and `shared_ptr` interconvert; a `Ref<Derived>` can go straight into `AddChild/SetContent`.
-- **Window builder**: `dsl::App()` → `WindowApp` (chain `size/title/resizable/corner/backdrop/root/titleBar/menuBar/statusBar`; `run()` does `Create → apply → Run`). `Window::Run()` returns `void`; `Window` has no public `SetContent` — set the root via `root(Col/Row/Grid)` (goes through `SetRootLayout`).
-- **Per-control sugar** (**SFINAE-gated**: exists only when the control has the method): `text/checked/value/placeholder/padding/category/series/slice/item/menu`; plus `Page()`/`Menu()`/`Settings()` short factories.
+- **`Pitfall`**: anything `with` can't express (multi-step, conditional, needs iteration) goes through `apply(lambda)` so the chain doesn't break. It also silences a conversion warning: `.with(&TextBox::SetWidth, 220)` passes an `int` and trips `C4244` — prefer `.width(220.0f)`.
+- **`add()` dispatches on the container's real API**: `ColumnBox`/`RowBox`/`Label` → `AddChild`; `PageHost` → `AddPage` (non-`Page` arguments are skipped); `GridLayout` needs coordinates, so use `.cell(row,col,child[,rowSpan,colSpan])` or `dsl::Cell(...)`. Null children (`nullptr` / empty `Ref`) are always ignored — no null dereference.
+- **Grid coordinates**: `Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))` places cells explicitly; bare children are still accepted (old behaviour: `(i,0)` in order), so existing code is unaffected.
+- **Window builder**: `dsl::App()` → `WindowApp` (chain `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`; signals via `on<&Window::Closed>(...)`). `root()` accepts **any `Layout` subclass** (`Col`/`Row`/`Grid`), and `titleBar/menuBar/statusBar` take a `Ref<T>` directly.
+- **`Pitfall`**: `Window::Create` **does not show the window** (the app decides when) — `WindowApp::run()` therefore calls `Show()`; use `.hidden()` to start hidden. `WindowApp` is movable but not copyable. `Window::Run()` returns `void`; `Window` has no public `SetContent`, so set the root via `root(...)`.
+- **Per-control sugar** (**SFINAE-gated**: exists only when the control has the method): `text/checked/value/placeholder/padding(float and Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f and h,v)/align/image/imageFit`; extra short factories: `Page()`/`Menu()`/`Settings()`/`RadioGroup()`/`ScrollBar()`/`Glyph()`.
+- **`Pitfall`**: `Image` is **not** a `UIElement` (it is a resource object), so there is no `Ref<Image>` factory — use `.image(Image::FromFile(...)).imageFit(true)` on a `Label`.
+
 
 ###chapter: Accessibility & Debug Channel | UIA + SetDebugEnabled (v1.17.0)
 
@@ -1286,7 +1332,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.19.7
+###chapter: Version digest | v1.15.0 → v1.20.0
 
 > Only the changes that affect your code are listed.
 
@@ -1338,6 +1384,14 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - Fixes: `ChartBase` swapped horizontal/vertical scrollbar allowance (`viewW` uses the vertical bar, `viewH` the horizontal) → rightmost/bottom content unreachable; `NumberBox` wheel focus check (focus is on the inner `TextBox`); `lastActiveAnimElements_` dangling (erased from the anim sets on destruction, prevents random crashes); `Menu::ShowAt` throwing `bad_weak_ptr` when not shared-owned; `ChildrenSig` missing `EnsureView`; `TreeView::SetDefaultExpandDepth` not applied by `AddRoot`/`AddChild`.
   - Fixes: `ColumnBox`/`RowBox` spacing counts only layout-participating children; `GridLayout` row/col count skips invisible; `Label` wrap ignored/duplicated spacing; `ListView`/`TableView` clear `childrenView_` before releasing labels and release pooled/rich/cell labels; `Window::defaultIMC_` via `ImmAssociateContext`; `DragData::GetFiles` buffer `len+1`; `TextEdit` fires `SelectionChanged` when clearing a selection; `MessageBox` default title localized.
   - Added `TODO.md` (merges the former `FEATURE_PLAN.md`/`OPTIMIZATION_PLAN.md`; the single authoritative backlog).
+- **v1.20.0**:
+  - **DSL**: `root()` now accepts **any `Layout` subclass** (previously only `Col` had a dedicated overload, so `Row`/`Grid` failed to compile because `Ref` → `shared_ptr<Layout>` needs **two user-defined conversions**); `titleBar/menuBar/statusBar` likewise take a `Ref<T>` directly.
+  - **DSL**: `add()` dispatches on the container's real API (`ColumnBox`/`RowBox`/`Label` → `AddChild`; `PageHost` → `AddPage`, skipping non-`Page` arguments; `GridLayout` goes through the new coordinate API). Added `dsl::Cell(row,col,child[,rowSpan,colSpan])` and `Ref::cell`, the `apply()` escape hatch, and `Wrap()`.
+  - **DSL**: more shortcuts — size limits (`minWidth/minHeight/maxWidth/maxHeight/minSize/maxSize`), stretch weights (`weight/hWeight/vWeight`), `cache/bleed/clipRect/noClip/cursor/dropTarget/contextMenuEnabled/accessible`, `spacing` (single-arg on `Col`/`Row`, two-arg on `GridLayout`), `padding(Thickness)`, `background/textColor`, `align` (GridLayout); per-control sugar gained `image/imageFit/items/rows/cols/header/cell/root(s)/separator/submenu`; new factories `RadioGroup()/ScrollBar()/Glyph()` (`Image` is a resource object, not a `UIElement`, so it has no factory — use the `Label::SetImage` sugar).
+  - **DSL**: `WindowApp::run()` **now calls `Show()`** — `Window::Create` does not show the window, so the previous implementation ran a **message loop with no window** (looked like a hang); added `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` and the window signal hook `on<&Window::Closed>` (`Window`'s signals are plain members, there is no `Connect`); `WindowApp` is now **movable** (it holds a `unique_ptr<Window>`, because `Window` itself is neither copyable nor movable).
+  - **Fix**: null guards in `ColumnBox`/`RowBox`/`GridLayout::AddChild` — the DSL's variadic forwarding can pass `nullptr`, which used to dereference a null pointer.
+  - **Fix**: `ZufyUIWindowTool.h` was **not self-contained** — it used `Label`/`Button`/`ColumnBox::AddChild` without including `ZufyUIWidgets.h`, relying on the caller to include it first (`pch.h` happened to do so); the include is now present and the header can be included on its own.
+  - **Tooling**: new `tools/build.ps1` (one shot: **auto-fix BOM before building** → kill processes holding files → build demo + `ZufyUIDebugger` → run self-tests), `tools/ensure_bom.ps1` (adds a UTF-8 BOM only to C++ sources that contain non-ASCII and lack one, preventing the GBK misparse behind `C2143/C2259/C2888/C4819`), and `tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1` (47 compile-time/runtime assertions, no window created, runnable from a shell or CI).
 
 ###chapter: Pitfall index | Quick lookup by topic
 
@@ -1352,6 +1406,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **Multi-line editor**: Tab indents; rich text is read-only; wrap-width change rebuilds all line layouts.
 - **Scrollbar**: hosts reserve a gutter via `ShrunkWidthRatio`; idle shrink is **lazy**.
 - **Accessibility/debug**: role drives exposed UIA Patterns; send debug commands with a timeout.
+- **DSL (`ZufyUIDsl.h`, optional)**: `root()` takes any `Layout` subclass; `add()` dispatches on the container's real API (`GridLayout` requires `.cell(row,col,child)` or `dsl::Cell(...)`); null children (`nullptr` / empty `Ref`) are always ignored; `with()` takes member function pointers only — use `apply(lambda)` for multi-step logic; `WindowApp::run()` calls `Show()` (`Window::Create` does not show the window), so use `.hidden()` to start hidden.
 
 ###chapter: Appendix | Defaults & signal index
 

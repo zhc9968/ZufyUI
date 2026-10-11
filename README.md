@@ -26,7 +26,7 @@ ZufyUI 是一个**纯头文件**的 Windows 桌面 UI 框架，直接建立在 D
 - **卡片组件**：可折叠卡片 `Expander`（缓动 + 箭头旋转 + 标题悬停高亮 + `SetIcon` 标题图标）、设置行列表 `SettingsList`；图片展示用 `Label::SetImage` + `SetImageFit`（等比缩放完整可见，可拖出）。
 - **窗口装饰**：顶部**菜单栏** `MenuBar`（VS 风格；默认叠在自定义标题栏上、可切换）、底部**状态栏** `StatusBar`（左右面板：图标 + 文本）。
 - **主题系统**：语义色板 `Theme`（浅/深/高对比度），应用级 / 窗口级切换，**跟随系统**深浅色与强调色（`WM_SETTINGCHANGE` 等自动重解析），`ThemeManager::Map` 色差重映射；**实例显式设色优先**（设过色就不被主题覆盖）。
-- **链式构造 DSL**（`ZufyUIDsl.h`，可选）：`Ref<T>` 的 `with/on/add` + `Make`/`Col`/`Row`/`Grid` + 各控件短工厂，一行组合控件 / 子树 / 信号；含 `dsl::App()` 窗口构建器与 SFINAE 门控的控件糖。
+- **链式构造 DSL**（`ZufyUIDsl.h`，可选）：`Ref<T>` 的 `with/on/add/apply` + `Make`/`Wrap`/`Col`/`Row`/`Grid`（含 `Cell(row,col,...)` 坐标）+ 各控件短工厂，一行组合控件 / 子树 / 信号；`dsl::App()` 窗口构建器（配置 + `hidden` + 窗口信号 + 自动 `Show()`）；SFINAE 门控的控件糖覆盖布局、尺寸、权重、配色、间距、对齐与数据视图 / 菜单构建。
 - **完整动画与转场**：悬停、展开、指示条、页面切换（`PageHost`）都有内置动画，滚动支持平滑滚动。
 - **高 DPI 适配**：自动感知 DPI，`Snap()` 把绘制吸附到物理像素，避免模糊。
 - **IME 兼容**：文本框支持中文输入法组合输入与候选框定位。
@@ -63,19 +63,33 @@ msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64
 
 ```text
 ZufyUI/
-├── ZufyUI.h              # 核心：类型 / 信号槽 / 字体 / 元素 / 布局 / 菜单 / 窗口
-├── ZufyUIWidgets.h       # 基础控件：Label / Button / TextBox / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider
-├── ZDataViewer.h      # 数据视图：ListView / TableView / TreeView
+├── ZufyUI.h              # 核心：类型 / 信号槽 / 字体 / 元素 / 布局 / 菜单 / 窗口 / 主题
+├── ZufyUIWidgets.h       # 基础控件：Label / Button / TextBox / TextEdit / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider / MenuBar / StatusBar …
+├── ZDataViewer.h         # 数据视图：ListView / TableView / TreeView
 ├── ZufyUICharts.h        # 图表：ChartBase / BarChart / LineChart / PieChart
-├── ZufyUIWindowTool.h    # 托盘 / 自定义标题栏 / 无障碍(UIA) / 调试通道
+├── ZufyUIAcrylic.h       # DComp 合成效果 + 亚克力 / 云母配方（由 ZufyUI.h 包含）
+├── ZufyUIImages.h        # Image / ImageManager（图片加载与设备缓存）
+├── ZufyUIIcons.h         # FontIcon 字形控件
+├── ZufyUIWindowTool.h    # 托盘 / 自定义标题栏 / 无障碍(UIA) / 系统对话框 / 调试通道
 ├── ZufyUIDragDrop.h      # 拖放：DragData / DragDataBuilder / Window::BeginDrag / 元素拖放钩子
-├── ZufyUI.cpp            # 综合演示程序入口（WinMain）
+├── ZufyUIDsl.h           # 可选：链式构造 DSL（Ref / Col / Row / Grid / 短工厂 / dsl::App）
+├── ZufyUI.cpp            # 综合演示程序入口（wWinMain）
 ├── ZufyUI.slnx           # 解决方案
 ├── ZufyUI.vcxproj        # 工程文件
-├── AGENTS.md          # 开发原则（含“任何 bug 先找根源再修”的规则）
-└── docs/
-    ├── API.md         # 完整 API 文档（中文）
-    └── API.en.md      # 完整 API 文档（English）
+├── AGENTS.md             # 开发原则（含“任何 bug 先找根源再修”的规则）
+├── HANDOFF.md            # 交接文档（硬规则 / 架构 / 坑与经验 / 发版流程）
+├── TODO.md               # 唯一权威待办清单
+├── docs/
+│   ├── API.md            # 完整 API 文档（中文）
+│   └── API.en.md         # 完整 API 文档（English）
+├── tests/
+│   └── dsl_tests.cpp     # DSL 自检（编译期 + 运行期断言，不建窗口）
+└── tools/
+    ├── build.ps1         # 一键构建：补 BOM → 构建 demo + Debugger → 跑自检
+    ├── ensure_bom.ps1    # BOM 守卫（构建前自动补 UTF-8 BOM）
+    ├── run_dsl_tests.ps1 # 编译并运行 DSL 自检
+    ├── check_api_parity.py # 双语文档代码块一致性校验
+    └── colorscan.py      # 硬编码色审计
 ```
 
 ## 快速开始
@@ -178,9 +192,17 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 
 ## 更新日志
 
-> 当前版本：**1.19.7**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.20.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
 
-### 2026-10-11 — 主题系统 + 链式构造 DSL + 卡片/拖放控件 + 一批修复（v1.18.1 → v1.19.5）
+### 2026-10-11 — DSL 完善 + 一键构建脚本 + 空值/自洽修复（v1.20.0）
+
+- **DSL**：`root()` 改为接受**任意 `Layout` 子类**（`Row`/`Grid` 原先因 `Ref` → `shared_ptr<Layout>` 需要两次用户定义转换而**编译不过**）；`add()` 按容器真实接口分派；`GridLayout` 新增 `Cell(row,col,child[,rowSpan,colSpan])` 坐标；新增 `apply()`/`Wrap()`、一批布局/尺寸/权重/配色/间距/对齐快捷，以及 `RadioGroup()`/`ScrollBar()`/`Glyph()` 工厂与数据视图、菜单构建糖。
+- **DSL**：`WindowApp::run()` 补上 `Show()`（`Window::Create` 本身不显示窗口，原实现会跑一个没有窗口的消息循环）；新增 `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` 与窗口信号 `on<&Window::Closed>`；`WindowApp` 改为可移动。
+- **修复**：`ColumnBox`/`RowBox`/`GridLayout::AddChild` 补**空值守卫**（DSL 的 variadic 转发可能送来 `nullptr`）。
+- **修复**：`ZufyUIWindowTool.h` 补 `#include "ZufyUIWidgets.h"` —— 它用到 `Label`/`Button` 却一直依赖调用方先包含。
+- **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（BOM 守卫）、`tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1`（47 项断言，不建窗口，可命令行 / CI 直接跑）。
+
+### 2026-10-11 — 主题系统 + 链式构造 DSL + 卡片/拖放控件 + 一批修复（v1.18.1 → v1.19.7）
 
 - **v1.19.0**：图表 `ZufyUICharts.h`（`BarChart`/`LineChart`/`PieChart`）；`TextEdit` 多行编辑器；拖放 `ZufyUIDragDrop.h` + 卡片控件 `Expander`/`SettingsList`；`ComboBox` 旋转箭头。
 - **v1.19.1**：`TextEdit` 撤销/重做标准方案（还原选区/光标）；拖放修复（落点光标、保留源选区）；`ScrollViewer` 按视口宽度测量 + 1px 出血；`Label::SetImageFit`（移除独立 `ImageView`）。

@@ -88,9 +88,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 19
-#define ZufyUI_VERSION_PATCH 7
-#define ZufyUI_VERSION_STRING L"1.19.7"
+#define ZufyUI_VERSION_MINOR 20
+#define ZufyUI_VERSION_PATCH 0
+#define ZufyUI_VERSION_STRING L"1.20.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -1810,6 +1810,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     public:
         ColumnBox() : spacing_(0) {}
         void AddChild(std::shared_ptr<UIElement> child) {
+            if (!child) return;   // 空子元素直接忽略（DSL 的 variadic 转发可能送来 null）
             children_.push_back(child);
             child->SetParent(this);
             InvalidateLayout();
@@ -1928,6 +1929,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     public:
         RowBox() : spacing_(0) {}
         void AddChild(std::shared_ptr<UIElement> child) {
+            if (!child) return;   // 空子元素直接忽略
             children_.push_back(child);
             child->SetParent(this);
             InvalidateLayout();
@@ -2056,6 +2058,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             horizontalAlignment_(Alignment::Start), verticalAlignment_(Alignment::Start) {}
 
         void AddChild(std::shared_ptr<UIElement> child, int row, int col, int rowSpan = 1, int colSpan = 1) {
+            if (!child) return;   // 空子元素直接忽略
             GridItem item;
             item.element = child;
             item.row = row;

@@ -2155,26 +2155,29 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             });
         };
 
-        auto col = Col().with(&ColumnBox::SetSpacing, 10.0f).margin(Thickness(16, 16, 16, 16));
+        auto col = Col().spacing(10.0f).margin(Thickness(16, 16, 16, 16));
 
         col->AddChild(
             Row(
                 makeBtn(L"+1", 1), makeBtn(L"+10", 10), makeBtn(L"-1", -1),
                 Check(L"复选").checked(true),
                 Toggle(false).on<&ToggleSwitch::Toggled>([](bool) {})
-            ).with(&RowBox::SetSpacing, 8.0f).shared());
-        col->AddChild(counter.shared());
+            ).spacing(8.0f).shared());
+        col.add(counter);                       // add() 的 ColumnBox 分支
 
-        auto lv = List().fillWidth(true).height(90);
-        for (int i = 0; i < 4; ++i) lv->AddItem(L"DSL 列表项 " + std::to_wstring(i + 1));
-        col->AddChild(lv.shared());
+        // items()：批量加文本项
+        col->AddChild(
+            List().fillWidth(true).height(90)
+                  .items({ L"DSL 列表项 1", L"DSL 列表项 2", L"DSL 列表项 3", L"DSL 列表项 4" })
+                  .shared());
 
+        // Grid 坐标：Cell(行, 列, 子元素)；与原来看似等价的裸元素 (i,0) 排布一致
         col->AddChild(
             Grid(
-                Lbl(L"A").with(&Label::SetBackgroundColor, Color::FromArgb(40, 0, 120, 212)),
-                Lbl(L"B").with(&Label::SetBackgroundColor, Color::FromArgb(40, 16, 124, 16)),
-                Lbl(L"C").with(&Label::SetBackgroundColor, Color::FromArgb(40, 196, 43, 28))
-            ).with(&GridLayout::SetSpacing, 6.0f, 6.0f).shared());
+                Cell(0, 0, Lbl(L"A").background(Color::FromArgb(40, 0, 120, 212))),
+                Cell(1, 0, Lbl(L"B").background(Color::FromArgb(40, 16, 124, 16))),
+                Cell(2, 0, Lbl(L"C").background(Color::FromArgb(40, 196, 43, 28)))
+            ).spacing(6.0f, 6.0f).shared());
 
         col->AddChild(
             ::ZufyUI::dsl::Expander(L"DSL 折叠卡片", L"内容也是 DSL 构建")
@@ -2184,9 +2187,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 .shared());
 
         auto echo = Lbl(L"输入回显：");
-        auto tbi = Txt(L"在此输入").with(&TextBox::SetWidth, 220);
+        auto tbi = Txt(L"在此输入").width(220.0f);
         tbi.on<&TextBox::TextChanged>([echo](const std::wstring& s) { echo->SetText(L"输入回显：" + s); });
-        col->AddChild(Row(tbi.shared(), echo.shared()).with(&RowBox::SetSpacing, 8.0f).shared());
+        col->AddChild(Row(tbi.shared(), echo.shared()).spacing(8.0f).shared());
 
         col->AddChild(Progress().value(0.65f).width(160).height(22).shared());
         col->AddChild(
@@ -2194,7 +2197,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 Pie().size(220, 170).slice(L"A", 3).slice(L"B", 5).slice(L"C", 2),
                 Bar().size(360, 170).category(L"一").category(L"二").category(L"三")
                          .series(L"甲", { 3, 5, 2 }).series(L"乙", { 2, 4, 6 })
-            ).with(&RowBox::SetSpacing, 8.0f).shared());
+            ).spacing(8.0f).shared());
         pageDsl->SetLayout(Scroll().fill(true).with(&ScrollViewer::SetContent, col.shared()).shared());
     }
     mainHost->AddPage(pageDsl);
