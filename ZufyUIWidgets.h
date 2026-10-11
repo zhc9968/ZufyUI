@@ -3994,9 +3994,7 @@ namespace ZufyUI {
             animSpeed_(DefaultAnimationSpeed),
             cornerRadius_(DefaultCornerRadius),
             boxColor_(DefaultBoxColor), borderColor_(DefaultBorderColor), checkColor_(DefaultCheckColor) {
-            width_ = DefaultSize;
-            height_ = DefaultSize;
-            bleed_ = 4.0f;
+            bleed_ = 4.0f;   // 不写死 width_/height_：带标签时由 MeasureOverride 量出（否则在 RowBox 里被当固定宽度、标签被裁）
         }
 
         void SetChecked(bool checked) { SetState(checked ? State::Checked : State::Unchecked); AccessibilityNotifyPropertyChanged(); }
@@ -7257,7 +7255,7 @@ namespace ZufyUI {
         ComboBox::SetDefaultBorderColor(D(ThemeRole::Border));
         ComboBox::SetDefaultIndicatorColor(D(ThemeRole::Accent));
         ComboBox::SetDefaultHoverItemColor(D(ThemeRole::ControlHover));
-        ToggleSwitch::SetDefaultColors(C(ThemeRole::Accent), C(ThemeRole::Control), C(ThemeRole::Surface));
+        ToggleSwitch::SetDefaultColors(C(ThemeRole::Accent), C(ThemeRole::ControlHover), C(ThemeRole::Surface));
         ScrollViewer::SetDefaultColors(D(ThemeRole::ScrollTrack), D(ThemeRole::ScrollThumb), D(ThemeRole::ScrollThumbHover));
         ProgressBar::SetDefaultColors(D(ThemeRole::SurfaceAlt), D(ThemeRole::Accent), D(ThemeRole::Border));
         Slider::SetDefaultColors(D(ThemeRole::SurfaceAlt), D(ThemeRole::Accent));
@@ -7281,7 +7279,7 @@ namespace ZufyUI {
         else if (auto* b = dynamic_cast<Button*>(e)) { b->SetColors(t.Get(ThemeRole::Accent), t.Get(ThemeRole::AccentHover), t.Get(ThemeRole::AccentPressed)); b->SetTextColor(t.Get(ThemeRole::TextOnAccent)); }
         else if (auto* tb = dynamic_cast<TextBox*>(e)) { tb->SetBackgroundColor(t.Get(ThemeRole::SurfaceAlt)); tb->SetBorderColor(t.Get(ThemeRole::Border)); tb->SetTextColor(t.Get(ThemeRole::Text)); tb->SetSelectionColor(t.Get(ThemeRole::Selection)); tb->SetIndicatorColor(t.Get(ThemeRole::Accent)); }
         else if (auto* cb = dynamic_cast<ComboBox*>(e)) { cb->SetNormalBgColor(t.Get(ThemeRole::Control).ToD2D()); cb->SetHoverBgColor(t.Get(ThemeRole::ControlHover).ToD2D()); cb->SetBorderColor(t.Get(ThemeRole::Border).ToD2D()); cb->SetIndicatorColor(t.Get(ThemeRole::Accent).ToD2D()); cb->SetHoverItemColor(t.Get(ThemeRole::ControlHover).ToD2D()); }
-        else if (auto* sw = dynamic_cast<ToggleSwitch*>(e)) { sw->SetColors(t.Get(ThemeRole::Accent), t.Get(ThemeRole::Control), t.Get(ThemeRole::Surface)); sw->SetLabelColor(t.Get(ThemeRole::TextSecondary)); }
+        else if (auto* sw = dynamic_cast<ToggleSwitch*>(e)) { sw->SetColors(t.Get(ThemeRole::Accent), t.Get(ThemeRole::ControlHover), t.Get(ThemeRole::Surface)); sw->SetLabelColor(t.Get(ThemeRole::TextSecondary)); }
         else if (auto* sb = dynamic_cast<ScrollBar*>(e)) { sb->SetColors(t.Get(ThemeRole::ScrollThumb).ToD2D(), t.Get(ThemeRole::ScrollThumbHover).ToD2D(), t.Get(ThemeRole::ScrollTrack).ToD2D()); }
         else if (auto* te = dynamic_cast<TextEdit*>(e)) { te->SetTextColor(t.Get(ThemeRole::Text)); te->SetBackgroundColor(t.Get(ThemeRole::Surface)); te->SetSelectionColor(t.Get(ThemeRole::Selection)); te->SetBorderColor(t.Get(ThemeRole::Border)); te->SetGutterTextColor(t.Get(ThemeRole::TextSecondary)); te->SetGutterBackgroundColor(t.Get(ThemeRole::SurfaceAlt)); te->SetCurrentLineColor(t.Get(ThemeRole::Accent)); te->SetCursorColor(t.Get(ThemeRole::Text)); }
         else if (auto* sl = dynamic_cast<Slider*>(e)) { sl->SetTrackColor(t.Get(ThemeRole::SurfaceAlt)); sl->SetFillColor(t.Get(ThemeRole::Accent)); }

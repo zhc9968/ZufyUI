@@ -4,6 +4,7 @@
 #include "ZDataViewer.h"
 #include "ZufyUIWindowTool.h"
 #include "ZufyUICharts.h"
+#include "ZufyUIDsl.h"
 
 using namespace ZufyUI;
 
@@ -154,6 +155,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     navList->AddItem(L"拖放");
     navList->AddItem(L"设置卡片");
     navList->AddItem(L"主题");
+    navList->AddItem(L"DSL");
     navList->SetSelectedIndex(0);
     mainRow->AddChild(navList);
 
@@ -2123,10 +2125,72 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         auto lv = std::make_shared<ListView>(); lv->SetHeight(120); lv->SetFillWidth(true);
         for (int i = 0; i < 6; ++i) lv->AddItem(L"列表项 " + std::to_wstring(i + 1));
         col->AddChild(lv);
+        {
+            // DSL 冒烟：链式构造 + 组子树 + 连信号
+            using namespace ::ZufyUI::dsl;
+            auto lastPath = std::make_shared<std::wstring>();
+            col->AddChild(Row(
+                Lbl(L"DSL 链式：").margin(Thickness(0, 0, 6, 0)),
+                Btn(L"点击我").size(96, 30).on<&Button::Clicked>([]() { MessageBoxW(nullptr, L"DSL 按钮被点击", L"DSL", MB_OK); }),
+                Check(L"选项").margin(Thickness(12, 0, 6, 0)),
+                Toggle(true)
+            ).with(&RowBox::SetSpacing, 8.0f).shared());
+        }
         auto sv = std::make_shared<ScrollViewer>(); sv->SetFillWidth(true); sv->SetFillHeight(true); sv->SetContent(col);
         pageTheme->SetLayout(sv);
     }
     mainHost->AddPage(pageTheme);
+
+    // ---------- DSL 复杂构造测试页 ----------
+    auto pageDsl = std::make_shared<Page>();
+    {
+        using namespace ::ZufyUI::dsl;
+        auto clicks = std::make_shared<int>(0);
+        auto counter = Lbl(L"点击次数：0");
+
+        auto makeBtn = [&](const std::wstring& t, int d) {
+            return Btn(t).size(84, 30).on<&Button::Clicked>([clicks, counter, d]() {
+                *clicks += d;
+                counter->SetText(L"点击次数：" + std::to_wstring(*clicks));
+            });
+        };
+
+        auto col = Col().with(&ColumnBox::SetSpacing, 10.0f).margin(Thickness(16, 16, 16, 16));
+
+        col->AddChild(
+            Row(
+                makeBtn(L"+1", 1), makeBtn(L"+10", 10), makeBtn(L"-1", -1),
+                Check(L"复选").with(&CheckBox::SetChecked, true),
+                Toggle(false).on<&ToggleSwitch::Toggled>([](bool) {})
+            ).with(&RowBox::SetSpacing, 8.0f).shared());
+        col->AddChild(counter.shared());
+
+        auto lv = List().fillWidth(true).height(90);
+        for (int i = 0; i < 4; ++i) lv->AddItem(L"DSL 列表项 " + std::to_wstring(i + 1));
+        col->AddChild(lv.shared());
+
+        col->AddChild(
+            Grid(
+                Lbl(L"A").with(&Label::SetBackgroundColor, Color::FromArgb(40, 0, 120, 212)),
+                Lbl(L"B").with(&Label::SetBackgroundColor, Color::FromArgb(40, 16, 124, 16)),
+                Lbl(L"C").with(&Label::SetBackgroundColor, Color::FromArgb(40, 196, 43, 28))
+            ).with(&GridLayout::SetSpacing, 6.0f, 6.0f).shared());
+
+        col->AddChild(
+            ::ZufyUI::dsl::Expander(L"DSL 折叠卡片", L"内容也是 DSL 构建")
+                .with(&Expander::SetExpanded, true)
+                .with(&Expander::SetContent,
+                      Col(Lbl(L"展开内容 1"), Btn(L"卡片内按钮").size(120, 30).shared()).shared())
+                .shared());
+
+        auto echo = Lbl(L"输入回显：");
+        auto tbi = Txt(L"在此输入").with(&TextBox::SetWidth, 220);
+        tbi.on<&TextBox::TextChanged>([echo](const std::wstring& s) { echo->SetText(L"输入回显：" + s); });
+        col->AddChild(Row(tbi.shared(), echo.shared()).with(&RowBox::SetSpacing, 8.0f).shared());
+
+        pageDsl->SetLayout(Scroll().fill(true).with(&ScrollViewer::SetContent, col.shared()).shared());
+    }
+    mainHost->AddPage(pageDsl);
 
     // 主页面导航：记录当前索引，根据相对位置设置上下方向
     auto currentMainIndex = std::make_shared<int>(0);

@@ -81,8 +81,8 @@ namespace ZufyUI {
         float GetDefaultHorizontalStretchWeight() const override { return 0.0f; }
         float GetDefaultVerticalStretchWeight() const override { return 0.0f; }
         Size MeasureOverride(const Size& avail) override {
-            float w = (GetFillWidth()  && avail.width  != FLT_MAX && avail.width  > 0.0f) ? avail.width  : width_;
-            float h = (GetFillHeight() && avail.height != FLT_MAX && avail.height > 0.0f) ? avail.height : height_;
+            float w = (GetFillWidth()  && avail.width  != FLT_MAX && avail.width  > 0.0f) ? avail.width  : (width_  > 0.0f ? width_  : 420.0f);   // 回退默认尺寸，避免 fill 但无约束时塌成 0
+            float h = (GetFillHeight() && avail.height != FLT_MAX && avail.height > 0.0f) ? avail.height : (height_ > 0.0f ? height_ : 260.0f);
             return Size(w, h);
         }
 

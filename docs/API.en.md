@@ -1224,6 +1224,33 @@ ZSignal<Window*> UIZSignals::ThemeReapply;   // re-apply to visible subtree afte
 - **`Pitfall`**: `Backdrop` is the **window/background base color** (white in light, black in dark); after an explicit `SetBackdrop/SetBackgroundColor` tint, the theme no longer changes it.
 - **`Version`**: introduced in `v1.19.0`; window periphery (caption buttons) follows the **system** theme, not the window theme; `WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE` auto re-resolve.
 
+###chapter: DSL | Fluent construction (ZufyUIDsl.h, v1.19.4)
+
+```cpp
+// header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)
+namespace ZufyUI::dsl {
+template<class T> class Ref {                      // wraps shared_ptr<T>
+    T* operator->() const;   std::shared_ptr<T> shared() const;
+    operator std::shared_ptr<T>() const;           // usable with AddChild/SetContent
+    template<class C, class R, class...A0, class...A>
+    Ref& with(R(C::*fn)(A0...), A&&... a);         // generic setter forwarding (incl. inherited setters)
+    template<class Sig, class F> Ref& on(Sig& sig, F&& f);
+    template<auto SigMem, class F> Ref& on(F&& f);
+    template<class...C> Ref& add(C&&... c);        // add children to a container
+    Ref& width(float); Ref& height(float); Ref& size(float,float);
+    Ref& fill(bool w=true,bool h=true); Ref& margin(Thickness);
+    Ref& visible(bool=true); Ref& enabled(bool=true); Ref& tooltip(const std::wstring&);
+};
+template<class T, class...A> Ref<T> Make(A&&... a);          // generic factory
+Ref<ColumnBox> Col(children...);   Ref<RowBox> Row(...);   Ref<GridLayout> Grid(...);
+// short factories: Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
+//                  Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
+}
+```
+- Usage: `using namespace ZufyUI::dsl;` then `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`. Do **not** also `using namespace ZufyUI;` (`Slider/Card/Expander/MenuBar/StatusBar` factories clash with class names) — or qualify with `dsl::`.
+- **`Pitfall`**: `with(&T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast<...>(&T::SetX)`; functions with **default arguments** (e.g. `ListView::AddItem`) can't be called via a member pointer with defaults → use `->AddItem(...)`.
+- **`Pitfall`**: `GridLayout` has no single-arg `AddChild`; `Grid(...)` uses `(child,row,col)`. `Ref<T>` and `shared_ptr` interconvert; a `Ref<Derived>` can go straight into `AddChild/SetContent`.
+
 ###chapter: Accessibility & Debug Channel | UIA + SetDebugEnabled (v1.17.0)
 
 ## Accessibility (UIA)
@@ -1256,7 +1283,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.19.3
+###chapter: Version digest | v1.15.0 → v1.19.4
 
 > Only the changes that affect your code are listed.
 
@@ -1291,6 +1318,12 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Explicit instance color wins**: once a control's `Set*Color` is called it is flagged "user-colored" and the theme no longer overrides it; ListView items / TableView cells+rich cells / TreeView cells / headers / alternating rows / Tab selected+hover / radio / NumberBox hover / CheckBox hover all themed.
   - `Backdrop` token (window base white/black); window periphery (caption buttons) follows the **system** theme; `ThemeManager::Map` color remap.
   - Fixes: `ThemeReapply` connection leak (UAF); `SyncThemeBackdrop` swallowing user tint; ListView/TableView/TreeView theme overriding per-item colors.
+- **v1.19.4**:
+  - New **DSL** (`ZufyUIDsl.h`): `Ref<T>` (`with/on/add` + layout shortcuts), `Make<T>`, `Col/Row/Grid` and per-control short factories — fluent construction / subtree assembly / signal wiring; demo gains a "DSL" page.
+  - Fix: `CheckBox` hard-coded `width_/height_` in its ctor → treated as a **fixed width** in `RowBox/ColumnBox` and the **label was clipped**.
+  - `ListView/TableView` `RefreshChildren` cache criteria collapsed into a **single signature** `ChildrenSig()` (criteria in one place, harder to forget); consistent with `TreeView`.
+  - `ChartBase::MeasureOverride`: falls back to `420×260` when `fill` but unconstrained/no size (no longer collapses to 0).
+  - `Window::SetMinSize` default content measure gets a **600 DIP** width floor; `pch.h` `ZufyUI_DEBUG` now `#ifdef _DEBUG`; `Theme::HighContrast` role colors distinguished (no longer all-yellow).
 
 ###chapter: Pitfall index | Quick lookup by topic
 

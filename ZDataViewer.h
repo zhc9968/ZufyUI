@@ -546,23 +546,30 @@ namespace ZufyUI {
             last = (int)((snapped + arrangedRect_.height) / eff);
             if (last > vc - 1) last = vc - 1;
         }
+        // 影响“可见子元素布局”的全部判据集中到一处 → 单一签名；以后新增状态只需改这里（防“加了状态忘了加判据”）
+        uint64_t ChildrenSig() const {
+            uint64_t s = 1469598103934665603ull;
+            auto mix = [&](uint64_t v) { s = (s ^ v) * 1099511628211ull; };
+            auto fb = [](float f) { uint32_t u; std::memcpy(&u, &f, sizeof(u)); return (uint64_t)u; };
+            mix(fb(Snap(scrollOffsetY_)));
+            mix(fb(buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_));
+            mix((uint64_t)view_.size());
+            mix((uint64_t)(viewVersion_ + 1));
+            mix(itemsCheckable_ ? 1ull : 0ull);
+            mix(fb(arrangedRect_.x)); mix(fb(arrangedRect_.y));
+            mix(fb(arrangedRect_.width)); mix(fb(arrangedRect_.height));
+            return s;
+        }
         void RefreshChildren() override {   // 只在 update/layout 阶段（UI 线程）调用；GetChildren 不再改树
             float eff = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
             float snapped = Snap(scrollOffsetY_);
             EnsureView();
             // 命中缓存要覆盖所有影响子元素布局的输入：滚动量、可见数、视图版本、行高、勾选框、容器矩形。
-            if (!childrenDirty_ &&
-                snapped == lastChildrenScrollY_ && eff == lastChildrenEff_ &&
-                view_.size() == lastChildrenCount_ && viewVersion_ == lastViewVersion_ &&
-                itemsCheckable_ == lastChildrenCheckable_ &&
-                arrangedRect_.x == lastChildrenArrX_ && arrangedRect_.y == lastChildrenArrY_ &&
-                arrangedRect_.width == lastChildrenArrW_ && arrangedRect_.height == lastChildrenArrH_)
+            uint64_t sig = ChildrenSig();
+            if (!childrenDirty_ && sig == lastChildrenSig_)
                 return;
             childrenDirty_ = false;
-            lastChildrenScrollY_ = snapped; lastChildrenEff_ = eff;
-            lastChildrenCount_ = view_.size(); lastViewVersion_ = viewVersion_; lastChildrenCheckable_ = itemsCheckable_;
-            lastChildrenArrX_ = arrangedRect_.x; lastChildrenArrY_ = arrangedRect_.y;
-            lastChildrenArrW_ = arrangedRect_.width; lastChildrenArrH_ = arrangedRect_.height;
+            lastChildrenSig_ = sig;
             childrenView_.clear();
             if (eff <= 0.0f) return;
             float left = arrangedRect_.x + (buttonMode_ ? 4.0f : 0.0f) + 8.0f;   // 按钮模式 itemRect 左移 4（与原绘制一致）
@@ -610,12 +617,7 @@ namespace ZufyUI {
             return D2D1::RectF(arrangedRect_.x - 2.0f, arrangedRect_.y - 2.0f,
                 arrangedRect_.x + arrangedRect_.width + 2.0f, arrangedRect_.y + arrangedRect_.height + 2.0f);
         }
-        mutable float lastChildrenScrollY_ = -1e30f;
-        mutable float lastChildrenEff_ = -1e30f;
-        mutable size_t lastChildrenCount_ = (size_t)-1;
-        mutable int lastViewVersion_ = -1;
-        mutable bool lastChildrenCheckable_ = false;
-        mutable float lastChildrenArrX_ = -1e30f, lastChildrenArrY_ = -1e30f, lastChildrenArrW_ = -1e30f, lastChildrenArrH_ = -1e30f;
+        mutable uint64_t lastChildrenSig_ = ~0ull;   // ListView::RefreshChildren 的单一版本签名（判据集中在 ChildrenSig）
 
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_) return;
@@ -1968,30 +1970,28 @@ namespace ZufyUI {
             lb->SetPadding(0.0f);
         }
 
+        // 影响“可见单元格布局”的全部判据集中到一处 → 单一签名
+        uint64_t ChildrenSig() const {
+            uint64_t s = 1469598103934665603ull;
+            auto mix = [&](uint64_t v) { s = (s ^ v) * 1099511628211ull; };
+            auto fb = [](float f) { uint32_t u; std::memcpy(&u, &f, sizeof(u)); return (uint64_t)u; };
+            for (int c = 0; c < colCount_; ++c) mix(fb(GetEffectiveColumnWidth(c)));   // 列宽（顺序敏感）
+            mix(fb(Snap(scrollOffsetX_))); mix(fb(Snap(scrollOffsetY_)));
+            mix(fb(TotalRowsHeight()));
+            mix((uint64_t)view_.size());
+            mix((uint64_t)(viewVersion_ + 1));
+            mix((uint64_t)colCount_);
+            mix(fb(arrangedRect_.x)); mix(fb(arrangedRect_.y));
+            mix(fb(arrangedRect_.width)); mix(fb(arrangedRect_.height));
+            return s;
+        }
         // Label 化：可见单元格 Label 作为子元素进入 Window 合成流程（就地摆到滚动后的位置）
         void RefreshChildren() override {   // 只在 update/layout 阶段（UI 线程）调用；GetChildren 不再改树
-            // 命中缓存必须覆盖“所有影响单元格布局的几何”：滚动量、列宽（**顺序敏感**）、行高总和、行列数、控件矩形。
-            // 不能只比列宽总和：交换两列宽度时总和不变，但每列的 x 位置全变。
-            unsigned long long colSig = 1469598103934665603ull;
-            for (int c = 0; c < colCount_; ++c) {
-                float w = GetEffectiveColumnWidth(c);
-                unsigned bits = 0; std::memcpy(&bits, &w, sizeof(bits));
-                colSig = (colSig ^ (unsigned long long)bits) * 1099511628211ull;
-            }
             EnsureView();
-            float totalH = TotalRowsHeight();
-            float sx = Snap(scrollOffsetX_), sy = Snap(scrollOffsetY_);
-            if (!childrenDirty_ &&
-                sx == lastScrollX_ && sy == lastScrollY_ && colSig == lastColSig_ && totalH == lastTotalH_ &&
-                view_.size() == (size_t)lastRowCount_ && viewVersion_ == lastViewVersion_ && colCount_ == lastColCount_ &&
-                arrangedRect_.x == lastArrX_ && arrangedRect_.y == lastArrY_ &&
-                arrangedRect_.width == lastArrW_ && arrangedRect_.height == lastArrH_)
-                return;
+            uint64_t sig = ChildrenSig();
+            if (!childrenDirty_ && sig == lastChildrenSig_) return;
             childrenDirty_ = false;
-            lastScrollX_ = sx; lastScrollY_ = sy; lastColSig_ = colSig; lastTotalH_ = totalH;
-            lastRowCount_ = (int)view_.size(); lastViewVersion_ = viewVersion_; lastColCount_ = colCount_;
-            lastArrX_ = arrangedRect_.x; lastArrY_ = arrangedRect_.y;
-            lastArrW_ = arrangedRect_.width; lastArrH_ = arrangedRect_.height;
+            lastChildrenSig_ = sig;
             childrenView_.clear();
             if (view_.empty() || colCount_ <= 0) return;
             float headerOffset = headerVisible_ ? headerHeight_ : 0.0f;
@@ -2058,11 +2058,7 @@ namespace ZufyUI {
             return D2D1::RectF(arrangedRect_.x - 2.0f, arrangedRect_.y - 2.0f,
                 arrangedRect_.x + arrangedRect_.width + 2.0f, arrangedRect_.y + arrangedRect_.height + 2.0f);
         }
-        mutable float lastScrollX_ = -1e30f, lastScrollY_ = -1e30f, lastTotalH_ = -1e30f;
-        mutable int lastViewVersion_ = -1;
-        mutable unsigned long long lastColSig_ = 0;
-        mutable float lastArrX_ = -1e30f, lastArrY_ = -1e30f, lastArrW_ = -1e30f, lastArrH_ = -1e30f;
-        mutable int lastRowCount_ = -1, lastColCount_ = -1;
+        mutable uint64_t lastChildrenSig_ = ~0ull;   // TableView::RefreshChildren 的单一版本签名
 
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_) return;

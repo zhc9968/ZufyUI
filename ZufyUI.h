@@ -89,8 +89,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 19
-#define ZufyUI_VERSION_PATCH 3
-#define ZufyUI_VERSION_STRING L"1.19.3"
+#define ZufyUI_VERSION_PATCH 4
+#define ZufyUI_VERSION_STRING L"1.19.4"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -729,10 +729,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         t.Set(ThemeRole::ScrollTrack, Color::FromArgb(255, 0, 0, 0));
         t.Set(ThemeRole::ScrollThumb, Color::FromArgb(255, 255, 255, 255));
         t.Set(ThemeRole::ScrollThumbHover, Color::FromArgb(255, 255, 255, 255));
-        t.Set(ThemeRole::Danger, Color::FromArgb(255, 255, 255, 0));
-        t.Set(ThemeRole::Warning, Color::FromArgb(255, 255, 255, 0));
-        t.Set(ThemeRole::Success, Color::FromArgb(255, 255, 255, 0));
-        t.Set(ThemeRole::Info, Color::FromArgb(255, 255, 255, 0));
+        t.Set(ThemeRole::Danger, Color::FromArgb(255, 255, 120, 120));   // 亮红（黑底可读）
+        t.Set(ThemeRole::Warning, Color::FromArgb(255, 255, 255, 0));    // 黄
+        t.Set(ThemeRole::Success, Color::FromArgb(255, 128, 255, 128));  // 亮绿
+        t.Set(ThemeRole::Info, Color::FromArgb(255, 128, 192, 255));     // 亮蓝
         return t;
     }
 
@@ -4692,7 +4692,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 }
                 else {
                     if (rootElement_) {
-                        Size minSize = rootElement_->Measure(Size(0, 0));
+                        Size minSize = rootElement_->Measure(Size(600.0f, 0.0f));   // 给可用宽度一个下限，避免换行内容测出异常宽的最小尺寸
                         int minWidthPx = MulDiv((int)ceil(minSize.width), dpi_, 96);
                         int minHeightPx = MulDiv((int)ceil(minSize.height), dpi_, 96);
                         if (minWidthPx < 200) minWidthPx = 200;

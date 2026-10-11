@@ -1245,6 +1245,33 @@ ZSignal<Window*> UIZSignals::ThemeReapply;   // 页面/标签切换后重套可�
 - **`易错`**：`Backdrop` 是**窗口/背景基色**（浅色白、深色黑）；`SetBackdrop/SetBackgroundColor` 显式指定 tint 后主题不再改它。
 - **`版本`**：`v1.19.0` 引入；窗口周边（标题栏三件套）跟随**系统**主题而非窗口主题；`WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE` 自动重解析。
 
+###chapter: DSL | 链式构造（ZufyUIDsl.h，v1.19.4）
+
+```cpp
+// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
+namespace ZufyUI::dsl {
+template<class T> class Ref {                      // 包装 shared_ptr<T>
+    T* operator->() const;   std::shared_ptr<T> shared() const;
+    operator std::shared_ptr<T>() const;           // 兼容 AddChild/SetContent
+    template<class C, class R, class...A0, class...A>
+    Ref& with(R(C::*fn)(A0...), A&&... a);         // 通用 setter 转发（含继承来的 setter）
+    template<class Sig, class F> Ref& on(Sig& sig, F&& f);
+    template<auto SigMem, class F> Ref& on(F&& f);
+    template<class...C> Ref& add(C&&... c);        // 容器加子
+    Ref& width(float); Ref& height(float); Ref& size(float,float);
+    Ref& fill(bool w=true,bool h=true); Ref& margin(Thickness);
+    Ref& visible(bool=true); Ref& enabled(bool=true); Ref& tooltip(const std::wstring&);
+};
+template<class T, class...A> Ref<T> Make(A&&... a);          // 通用工厂
+Ref<ColumnBox> Col(children...);   Ref<RowBox> Row(...);   Ref<GridLayout> Grid(...);
+// 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
+//         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
+}
+```
+- 用法：`using namespace ZufyUI::dsl;` 后 `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`。**不要同时 `using namespace ZufyUI;`**（`Slider/Card/Expander/MenuBar/StatusBar` 短工厂与类名歧义），或改用 `dsl::` 限定。
+- **`易错`**：`with(&T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast<...>(&T::SetX)` 消歧；**有默认参数的函数**（如 `ListView::AddItem`）成员指针调用不支持默认值 → 用 `->AddItem(...)`。
+- **`易错`**：`GridLayout` 无单参 `AddChild`，`Grid(...)` 内部用 `(child,row,col)`；`Ref<T>` 与 `shared_ptr` 可互转，`Ref<Derived>` 可直接进 `AddChild/SetContent`。
+
 ###chapter: 无障碍与调试通道 | UIA + SetDebugEnabled（v1.17.0）
 
 ## 无障碍（UIA）
@@ -1278,7 +1305,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.19.3
+###chapter: 版本变化摘录 | v1.15.0 → v1.19.4
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1313,6 +1340,12 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **实例显式色优先**：控件被显式 `Set*Color` 后标记“用户设色”，主题不再覆盖；ListView 单项 / TableView 单格与富格 / TreeView 单元格 / 表头 / 交叉行 / Tab 选中与悬停 / 单选框 / NumberBox 悬停 / CheckBox 悬停等全部接入主题。
   - `Backdrop` 令牌（窗口基色白/黑）；窗口周边（标题栏三件套）跟随**系统**主题；`ThemeManager::Map` 色差重映射。
   - 修复：`ThemeReapply` 连接未断开的 UAF；`SyncThemeBackdrop` 吞用户 tint；ListView/TableView/TreeView 主题覆盖单项色。
+- **v1.19.4**：
+  - 新增 **DSL**（`ZufyUIDsl.h`）：`Ref<T>`（`with/on/add` + 布局快捷）、`Make<T>`、`Col/Row/Grid` 与各控件短工厂——链式构造 / 组子树 / 连信号；demo 新增「DSL」页压测。
+  - 修复：`CheckBox` 构造写死 `width_/height_` → 带标签时在 `RowBox/ColumnBox` 里被当**固定宽度**、**标签被裁**。
+  - `ListView/TableView` 的 `RefreshChildren` 缓存判据改为**单一签名** `ChildrenSig()`（判据集中一处，防将来漏加）；与 `TreeView` 一致。
+  - `ChartBase::MeasureOverride`：`fill` 但无约束/未设尺寸时回退 `420×260`（不再塌成 0）。
+  - `Window::SetMinSize` 默认内容测量给 **600 DIP** 宽度下限；`pch.h` 的 `ZufyUI_DEBUG` 改为 `#ifdef _DEBUG`；`Theme::HighContrast` 语义色区分（不再全黄）。
 
 ###chapter: 易错点总表 | 按主题速查
 
