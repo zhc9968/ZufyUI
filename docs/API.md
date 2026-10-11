@@ -1271,6 +1271,8 @@ Ref<ColumnBox> Col(children...);   Ref<RowBox> Row(...);   Ref<GridLayout> Grid(
 - 用法：`using namespace ZufyUI::dsl;` 后 `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`。**不要同时 `using namespace ZufyUI;`**（`Slider/Card/Expander/MenuBar/StatusBar` 短工厂与类名歧义），或改用 `dsl::` 限定。
 - **`易错`**：`with(&T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast<...>(&T::SetX)` 消歧；**有默认参数的函数**（如 `ListView::AddItem`）成员指针调用不支持默认值 → 用 `->AddItem(...)`。
 - **`易错`**：`GridLayout` 无单参 `AddChild`，`Grid(...)` 内部用 `(child,row,col)`；`Ref<T>` 与 `shared_ptr` 可互转，`Ref<Derived>` 可直接进 `AddChild/SetContent`。
+- **窗口构建器**：`dsl::App()` → `WindowApp`（链式 `size/title/resizable/corner/backdrop/root/titleBar/menuBar/statusBar`；`run()` 内部 `Create → 应用 → Run`）。`Window::Run()` 返回 `void`；`Window` 无公开 `SetContent`，根内容用 `root(Col/Row/Grid)`（走 `SetRootLayout`）。
+- **控件专属糖**（**SFINAE 门控**：仅当控件有该方法时才存在）：`text/checked/value/placeholder/padding/category/series/slice/item/menu`；另有 `Page()`/`Menu()`/`Settings()` 短工厂。
 
 ###chapter: 无障碍与调试通道 | UIA + SetDebugEnabled（v1.17.0）
 
@@ -1305,7 +1307,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.19.4
+###chapter: 版本变化摘录 | v1.15.0 → v1.19.5
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1346,6 +1348,9 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - `ListView/TableView` 的 `RefreshChildren` 缓存判据改为**单一签名** `ChildrenSig()`（判据集中一处，防将来漏加）；与 `TreeView` 一致。
   - `ChartBase::MeasureOverride`：`fill` 但无约束/未设尺寸时回退 `420×260`（不再塌成 0）。
   - `Window::SetMinSize` 默认内容测量给 **600 DIP** 宽度下限；`pch.h` 的 `ZufyUI_DEBUG` 改为 `#ifdef _DEBUG`；`Theme::HighContrast` 语义色区分（不再全黄）。
+- **v1.19.5**：
+  - DSL 增强：`dsl::App()` / `WindowApp` 窗口构建器（链式配置 + `run()`）；`Page()/Menu()/Settings()` 短工厂；**SFINAE 门控**的控件专属糖（`text/checked/value/placeholder/padding/category/series/slice/item/menu`）。
+  - demo「DSL」页用上糖与图表组合（`Pie().slice(...)`、`Bar().category(...).series(...)`、`Progress().value(...)`）。
 
 ###chapter: 易错点总表 | 按主题速查
 

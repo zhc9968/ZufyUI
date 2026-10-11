@@ -238,9 +238,12 @@ pre { line-height: 125%; }
   - 修复：`CheckBox` 构造写死 `width_/height_` → 带标签时在 `RowBox/ColumnBox` 里被当**固定宽度**、**标签被裁**。
   - `ListView/TableView` 的 `RefreshChildren` 缓存判据改为**单一签名** `ChildrenSig()`（判据集中一处，防将来漏加）；与 `TreeView` 一致。
   - `ChartBase::MeasureOverride`：`fill` 但无约束/未设尺寸时回退 `420×260`（不再塌成 0）。
-  - `Window::SetMinSize` 默认内容测量给 **600 DIP** 宽度下限；`pch.h` 的 `ZufyUI_DEBUG` 改为 `#ifdef _DEBUG`；`Theme::HighContrast` 语义色区分（不再全黄）。</pre></div></div>
+  - `Window::SetMinSize` 默认内容测量给 **600 DIP** 宽度下限；`pch.h` 的 `ZufyUI_DEBUG` 改为 `#ifdef _DEBUG`；`Theme::HighContrast` 语义色区分（不再全黄）。
+- **v1.19.5**：
+  - DSL 增强：`dsl::App()` / `WindowApp` 窗口构建器（链式配置 + `run()`）；`Page()/Menu()/Settings()` 短工厂；**SFINAE 门控**的控件专属糖（`text/checked/value/placeholder/padding/category/series/slice/item/menu`）。
+  - demo「DSL」页用上糖与图表组合（`Pie().slice(...)`、`Bar().category(...).series(...)`、`Progress().value(...)`）。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 21 章 · 版本变化摘录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.19.4</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.19.5</p></header><blockquote>
 <p>只列<strong>对你写代码有影响</strong>的显著变化。</p>
 </blockquote>
 <ul>
@@ -281,6 +284,9 @@ pre { line-height: 125%; }
 <li><code>ListView/TableView</code> 的 <code>RefreshChildren</code> 缓存判据改为<strong>单一签名</strong> <code>ChildrenSig()</code>（判据集中一处，防将来漏加）；与 <code>TreeView</code> 一致。</li>
 <li><code>ChartBase::MeasureOverride</code>：<code>fill</code> 但无约束/未设尺寸时回退 <code>420×260</code>（不再塌成 0）。</li>
 <li><code>Window::SetMinSize</code> 默认内容测量给 <strong>600 DIP</strong> 宽度下限；<code>pch.h</code> 的 <code>ZufyUI_DEBUG</code> 改为 <code>#ifdef _DEBUG</code>；<code>Theme::HighContrast</code> 语义色区分（不再全黄）。</li>
+<li><strong>v1.19.5</strong>：</li>
+<li>DSL 增强：<code>dsl::App()</code> / <code>WindowApp</code> 窗口构建器（链式配置 + <code>run()</code>）；<code>Page()/Menu()/Settings()</code> 短工厂；<strong>SFINAE 门控</strong>的控件专属糖（<code>text/checked/value/placeholder/padding/category/series/slice/item/menu</code>）。</li>
+<li>demo「DSL」页用上糖与图表组合（<code>Pie().slice(...)</code>、<code>Bar().category(...).series(...)</code>、<code>Progress().value(...)</code>）。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.20.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a><a class="next" href="API.22.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">易错点总表</span><span class="nav-desc">按主题速查</span></a></nav>
         </main>

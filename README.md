@@ -26,7 +26,7 @@ ZufyUI 是一个**纯头文件**的 Windows 桌面 UI 框架，直接建立在 D
 - **卡片组件**：可折叠卡片 `Expander`（缓动 + 箭头旋转 + 标题悬停高亮 + `SetIcon` 标题图标）、设置行列表 `SettingsList`；图片展示用 `Label::SetImage` + `SetImageFit`（等比缩放完整可见，可拖出）。
 - **窗口装饰**：顶部**菜单栏** `MenuBar`（VS 风格；默认叠在自定义标题栏上、可切换）、底部**状态栏** `StatusBar`（左右面板：图标 + 文本）。
 - **主题系统**：语义色板 `Theme`（浅/深/高对比度），应用级 / 窗口级切换，**跟随系统**深浅色与强调色（`WM_SETTINGCHANGE` 等自动重解析），`ThemeManager::Map` 色差重映射；**实例显式设色优先**（设过色就不被主题覆盖）。
-- **链式构造 DSL**（`ZufyUIDsl.h`，可选）：`Ref<T>` 的 `with/on/add` + `Make`/`Col`/`Row`/`Grid` + 各控件短工厂，一行组合控件 / 子树 / 信号。
+- **链式构造 DSL**（`ZufyUIDsl.h`，可选）：`Ref<T>` 的 `with/on/add` + `Make`/`Col`/`Row`/`Grid` + 各控件短工厂，一行组合控件 / 子树 / 信号；含 `dsl::App()` 窗口构建器与 SFINAE 门控的控件糖。
 - **完整动画与转场**：悬停、展开、指示条、页面切换（`PageHost`）都有内置动画，滚动支持平滑滚动。
 - **高 DPI 适配**：自动感知 DPI，`Snap()` 把绘制吸附到物理像素，避免模糊。
 - **IME 兼容**：文本框支持中文输入法组合输入与候选框定位。

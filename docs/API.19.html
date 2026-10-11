@@ -223,12 +223,14 @@ Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);   Ref&lt;Gr
 ```
 - 用法：`using namespace ZufyUI::dsl;` 后 `Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)`。**不要同时 `using namespace ZufyUI;`**（`Slider/Card/Expander/MenuBar/StatusBar` 短工厂与类名歧义），或改用 `dsl::` 限定。
 - **`易错`**：`with(&amp;T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast&lt;...&gt;(&amp;T::SetX)` 消歧；**有默认参数的函数**（如 `ListView::AddItem`）成员指针调用不支持默认值 → 用 `-&gt;AddItem(...)`。
-- **`易错`**：`GridLayout` 无单参 `AddChild`，`Grid(...)` 内部用 `(child,row,col)`；`Ref&lt;T&gt;` 与 `shared_ptr` 可互转，`Ref&lt;Derived&gt;` 可直接进 `AddChild/SetContent`。</pre></div></div>
+- **`易错`**：`GridLayout` 无单参 `AddChild`，`Grid(...)` 内部用 `(child,row,col)`；`Ref&lt;T&gt;` 与 `shared_ptr` 可互转，`Ref&lt;Derived&gt;` 可直接进 `AddChild/SetContent`。
+- **窗口构建器**：`dsl::App()` → `WindowApp`（链式 `size/title/resizable/corner/backdrop/root/titleBar/menuBar/statusBar`；`run()` 内部 `Create → 应用 → Run`）。`Window::Run()` 返回 `void`；`Window` 无公开 `SetContent`，根内容用 `root(Col/Row/Grid)`（走 `SetRootLayout`）。
+- **控件专属糖**（**SFINAE 门控**：仅当控件有该方法时才存在）：`text/checked/value/placeholder/padding/category/series/slice/item/menu`；另有 `Page()`/`Menu()`/`Settings()` 短工厂。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 19 章 · DSL</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 19 章</span><h1>DSL</h1><p class="chapter-summary">链式构造（ZufyUIDsl.h，v1.19.4）</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-966bc2f7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-7c78d483', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）</span>
 <span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="o">::</span><span class="nn">dsl</span><span class="w"> </span><span class="p">{</span>
@@ -250,7 +252,7 @@ Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);   Ref&lt;Gr
 <span class="c1">//         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-966bc2f7" style="display: none;">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
+<pre id="code-7c78d483" style="display: none;">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
 namespace ZufyUI::dsl {
 template&lt;class T&gt; class Ref {                      // 包装 shared_ptr&lt;T&gt;
     T* operator-&gt;() const;   std::shared_ptr&lt;T&gt; shared() const;
@@ -274,6 +276,8 @@ Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);   Ref&lt;Gr
 <li>用法：<code>using namespace ZufyUI::dsl;</code> 后 <code>Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)</code>。<strong>不要同时 <code>using namespace ZufyUI;</code></strong>（<code>Slider/Card/Expander/MenuBar/StatusBar</code> 短工厂与类名歧义），或改用 <code>dsl::</code> 限定。</li>
 <li><strong><code>易错</code></strong>：<code>with(&amp;T::Setter, args...)</code> 传<strong>成员函数指针</strong>；setter 重载需 <code>static_cast&lt;...&gt;(&amp;T::SetX)</code> 消歧；<strong>有默认参数的函数</strong>（如 <code>ListView::AddItem</code>）成员指针调用不支持默认值 → 用 <code>-&gt;AddItem(...)</code>。</li>
 <li><strong><code>易错</code></strong>：<code>GridLayout</code> 无单参 <code>AddChild</code>，<code>Grid(...)</code> 内部用 <code>(child,row,col)</code>；<code>Ref&lt;T&gt;</code> 与 <code>shared_ptr</code> 可互转，<code>Ref&lt;Derived&gt;</code> 可直接进 <code>AddChild/SetContent</code>。</li>
+<li><strong>窗口构建器</strong>：<code>dsl::App()</code> → <code>WindowApp</code>（链式 <code>size/title/resizable/corner/backdrop/root/titleBar/menuBar/statusBar</code>；<code>run()</code> 内部 <code>Create → 应用 → Run</code>）。<code>Window::Run()</code> 返回 <code>void</code>；<code>Window</code> 无公开 <code>SetContent</code>，根内容用 <code>root(Col/Row/Grid)</code>（走 <code>SetRootLayout</code>）。</li>
+<li><strong>控件专属糖</strong>（<strong>SFINAE 门控</strong>：仅当控件有该方法时才存在）：<code>text/checked/value/placeholder/padding/category/series/slice/item/menu</code>；另有 <code>Page()</code>/<code>Menu()</code>/<code>Settings()</code> 短工厂。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.18.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">主题系统</span><span class="nav-desc">Theme（v1.19.0+）</span></a><a class="next" href="API.20.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a></nav>
         </main>
