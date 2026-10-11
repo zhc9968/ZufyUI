@@ -224,7 +224,7 @@ std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   i
 void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector&lt;int&gt; GetCheckedIndices() const;
 void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&amp;);
 ```
-- **`Pitfall`**: `Sort()` rearranges `items_` and **clears multi-selection/checks**; `SortView` only changes **visible order**.
+- **`Pitfall`**: `SortItems()` rearranges `items_` and **clears multi-selection/checks**; `SortView` only changes **visible order**.
 - **`Pitfall`**: pooled text uses `SetTextFast`, and the container must re-measure on width change (`v1.18.0` adds `poolW_` to re-measure on width change, fixing stale ellipsis).
 - **`Version`**: `BeginUpdate` `v1.9.6`; coords `v1.10.0`; virtualization/hide/filter/visible order `v1.15.0`.
 
@@ -293,7 +293,7 @@ float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToN
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b3916aba', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-4d175e8b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">,</span><span class="w"> </span><span class="n">ItemClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemDoubleClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemRightClicked</span><span class="p">;</span>
@@ -314,7 +314,7 @@ float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToN
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCheckable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItemChecked</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCheckedIndices</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetItemDisabled</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItemTextColor</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="n">Color</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItemToolTip</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 </pre></div>
-<pre id="code-b3916aba" style="display: none;">enum class SelectionMode { Single, Extended, Multi, None };
+<pre id="code-4d175e8b" style="display: none;">enum class SelectionMode { Single, Extended, Multi, None };
 ZSignal&lt;int&gt; SelectionChanged, ItemClicked, ItemDoubleClicked, ItemRightClicked;
 ZSignal&lt;std::vector&lt;int&gt;&gt; SelectionChangedMulti;   ZSignal&lt;int,bool&gt; ItemCheckStateChanged;
 float ContentToLocalX/Y(float) const;   float LocalToContentX/Y(float) const;   // v1.10.0
@@ -334,7 +334,7 @@ void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector&lt;int
 void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&amp;);</pre>
 </div>
 <ul>
-<li><strong><code>Pitfall</code></strong>: <code>Sort()</code> rearranges <code>items_</code> and <strong>clears multi-selection/checks</strong>; <code>SortView</code> only changes <strong>visible order</strong>.</li>
+<li><strong><code>Pitfall</code></strong>: <code>SortItems()</code> rearranges <code>items_</code> and <strong>clears multi-selection/checks</strong>; <code>SortView</code> only changes <strong>visible order</strong>.</li>
 <li><strong><code>Pitfall</code></strong>: pooled text uses <code>SetTextFast</code>, and the container must re-measure on width change (<code>v1.18.0</code> adds <code>poolW_</code> to re-measure on width change, fixing stale ellipsis).</li>
 <li><strong><code>Version</code></strong>: <code>BeginUpdate</code> <code>v1.9.6</code>; coords <code>v1.10.0</code>; virtualization/hide/filter/visible order <code>v1.15.0</code>.</li>
 </ul>
@@ -342,7 +342,7 @@ void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color); 
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b105e3f9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-86c01f5f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Cell</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Column</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
 <span class="k">static</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="nf">CellKey</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">);</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">CellKeyRow</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="p">);</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">CellKeyCol</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="p">);</span>
@@ -360,7 +360,7 @@ void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color); 
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCellTextColor</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">,</span><span class="n">Color</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCellToolTip</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnComparator</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SortByColumn</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span>
 </pre></div>
-<pre id="code-b105e3f9" style="display: none;">enum class SelectionMode { Cell, Row, Column, None };
+<pre id="code-86c01f5f" style="display: none;">enum class SelectionMode { Cell, Row, Column, None };
 static long long CellKey(int r,int c); static int CellKeyRow(long long); static int CellKeyCol(long long);
 ZSignal&lt;int,int&gt; CellClicked, CellDoubleClicked, CurrentCellChanged, CellRightClicked;
 ZSignal&lt;int&gt; HeaderClicked;  ZSignal&lt;std::vector&lt;std::pair&lt;int,int&gt;&gt;&gt; SelectionChangedCells;
@@ -383,7 +383,7 @@ void SetColumnComparator(int, std::function&lt;bool(const std::wstring&amp;,cons
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-dfb62670', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-43225703', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">CheckState</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Unchecked</span><span class="p">,</span><span class="w"> </span><span class="n">PartiallyChecked</span><span class="p">,</span><span class="w"> </span><span class="n">Checked</span><span class="w"> </span><span class="p">};</span>
 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">columns</span><span class="p">;</span><span class="w">   </span><span class="c1">// one real Label per column; col0 = node text</span>
@@ -393,7 +393,7 @@ void SetColumnComparator(int, std::function&lt;bool(const std::wstring&amp;,cons
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">checkable</span><span class="p">;</span><span class="w">  </span><span class="n">CheckState</span><span class="w"> </span><span class="n">checkState</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">selected</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">tooltip</span><span class="p">;</span><span class="w">   </span><span class="n">Color</span><span class="w"> </span><span class="n">bgColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span><span class="w">   </span><span class="c1">// row background, v1.17.0</span>
 </pre></div>
-<pre id="code-dfb62670" style="display: none;">enum class CheckState { Unchecked, PartiallyChecked, Checked };
+<pre id="code-43225703" style="display: none;">enum class CheckState { Unchecked, PartiallyChecked, Checked };
 std::vector&lt;std::shared_ptr&lt;Label&gt;&gt; columns;   // one real Label per column; col0 = node text
 std::weak_ptr&lt;TreeNode&gt; parent;                // weak! use .lock()
 std::vector&lt;std::shared_ptr&lt;TreeNode&gt;&gt; children;
@@ -409,7 +409,7 @@ std::wstring tooltip;   Color bgColor = Color(0,0,0,0);   // row background, v1.
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f3d8149f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-dc768985', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">CheckMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Linked</span><span class="p">,</span><span class="w"> </span><span class="n">Independent</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">TreeNode</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">,</span><span class="w"> </span><span class="n">NodeClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemDoubleClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemRightClicked</span><span class="p">;</span>
@@ -428,7 +428,7 @@ std::wstring tooltip;   Color bgColor = Color(0,0,0,0);   // row background, v1.
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetNodeCheckState</span><span class="p">(</span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="n">TreeNode</span><span class="o">::</span><span class="n">CheckState</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">updateChildren</span><span class="o">=</span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">updateParent</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">GetScrollOffsetY</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetScrollOffsetY</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ScrollToNode</span><span class="p">(</span><span class="n">node</span><span class="p">);</span><span class="w">   </span><span class="c1">// v1.17.0</span>
 </pre></div>
-<pre id="code-f3d8149f" style="display: none;">enum class SelectionMode { Single, Extended, Multi };   enum class CheckMode { Linked, Independent };
+<pre id="code-dc768985" style="display: none;">enum class SelectionMode { Single, Extended, Multi };   enum class CheckMode { Linked, Independent };
 ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;&gt; SelectionChanged, NodeClicked, ItemDoubleClicked, ItemRightClicked;
 ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;,bool&gt; ExpandChanged;   ZSignal&lt;int&gt; HeaderClicked;
 ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;, TreeNode::CheckState&gt; ItemCheckStateChanged;
@@ -465,7 +465,8 @@ float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToN
     var saved = null;
     try { saved = localStorage.getItem('md2html-theme'); } catch (e) {}
     var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var theme = saved || (prefersDark ? 'dark' : 'light');
+    var initial = root.getAttribute('data-theme');
+    var theme = saved || ((initial && initial !== 'auto') ? initial : (prefersDark ? 'dark' : 'light'));
     function applyTheme(t) {
         root.setAttribute('data-theme', t);
         if (themeBtn) themeBtn.textContent = (t === 'dark') ? '\u2600' : '\u263D';

@@ -241,11 +241,11 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ae772e26', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b0a62517', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDebugEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kr">inline</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDebugEnabled</span><span class="p">();</span>
 </pre></div>
-<pre id="code-ae772e26" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
+<pre id="code-b0a62517" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
 </div>
 <ul>
 <li>默认<strong>关闭</strong>；开启后目标窗口处理 <code>WM_COPYDATA</code>（<code>dwData</code> = 命令号，回包 <code>0x5A554631</code>）。</li>
@@ -333,7 +333,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 <li>统一日志：<code>detail::Log(level, tag, msg)</code>、<code>LogWarning/LogInfo/DebugLog</code>、<code>RecordError</code>（→ E 级并触发 <code>UIZSignals::Error</code>）。</li>
 <li><strong><code>易错</code></strong>：调试器侧发命令要带超时（<code>SendMessageTimeout</code>，不加 <code>SMTO_BLOCK</code>），否则目标忙时会卡死调试器。<code>ZUFYUI_DEBUG</code> 是<strong>编译期</strong>开关（日志），<code>SetDebugEnabled</code> 是<strong>运行期</strong>开关（通道/统计）——两套语义别混。</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.19.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">DSL</span><span class="nav-desc">链式构造（ZufyUIDsl.h，v1.19.4）</span></a><a class="next" href="API.21.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.19.5</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.19.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">DSL</span><span class="nav-desc">链式构造（ZufyUIDsl.h，v1.19.4）</span></a><a class="next" href="API.21.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.19.7</span></a></nav>
         </main>
     </div>
 
@@ -349,7 +349,8 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
     var saved = null;
     try { saved = localStorage.getItem('md2html-theme'); } catch (e) {}
     var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var theme = saved || (prefersDark ? 'dark' : 'light');
+    var initial = root.getAttribute('data-theme');
+    var theme = saved || ((initial && initial !== 'auto') ? initial : (prefersDark ? 'dark' : 'light'));
     function applyTheme(t) {
         root.setAttribute('data-theme', t);
         if (themeBtn) themeBtn.textContent = (t === 'dark') ? '\u2600' : '\u263D';

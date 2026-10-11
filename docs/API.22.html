@@ -201,31 +201,31 @@ pre { line-height: 125%; }
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>- **颜色**：`Color` 分量是 [0,1]；整数用 `Color::FromArgb`。
-- **尺寸/布局**：`SetWidth/Height` 是固定尺寸；`SetFill*` 是填满父轴；拉伸权值分配**剩余**空间（v1.17.0）；图表尺寸来自自身 `width_/height_`，且默认权值 0。
+- **尺寸/布局**：`SetWidth/Height` 是固定尺寸；`SetFill*` 是填满父轴；拉伸权值分配**剩余**空间（v1.17.0）；图表默认权值 0，`SetFill*` 在父级有约束时生效、无约束时回退 `420×260`（v1.19.4）。
 - **窗口最小尺寸**：含长文本/图表的窗口建议显式 `SetMinSize`，否则会被内容测量结果撑大。
 - **重绘**：`RequestRepaint()` 只标脏、**不排帧**；不要试图在标脏处强制出帧（会持续重渲染卡顿）。`InvalidateLayout()` 冒泡，`InvalidateLayoutSelf()` 不冒泡（池化/虚拟 rebind 用）。
 - **缓存**：默认开；每帧内容变化/实例极多的控件 `SetUseCache(false)`；释放整棵子树用 `ReleaseDeviceResourcesRecursive()`。
 - **文本**：`SetTextFast` 不重绘（池化专用）；`FontManager` 返回的 layout/format 共享只读，勿改。
 - **信号**：`Fire` 快照遍历、可安全 disconnect；`Connection` 析构不断开；`DrawOverlay` 必须按窗口过滤；别用捕获自身 `shared_ptr` 的 lambda 连自己。
-- **数据视图**：源行号 vs 可见序两套坐标；`Sort` 重排并清多选，`SortView` 只改可见序；`parent` 是 `weak_ptr`；行背景用 `node-&gt;bgColor`。
+- **数据视图**：源行号 vs 可见序两套坐标；`SortItems` 重排并清多选，`SortView` 只改可见序；`parent` 是 `weak_ptr`；行背景用 `node-&gt;bgColor`。
 - **多行编辑**：`AcceptsTab` 为真时 Tab 是缩进；富文本只读；换行宽度变化重建全部行 layout。
 - **滚动条**：宿主用 `ShrunkWidthRatio` 预留槽位；空闲缩小是**惰性**的。
 - **无障碍/调试**：角色决定暴露的 UIA Pattern；调试命令发送要带超时。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 22 章 · 易错点总表</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 22 章</span><h1>易错点总表</h1><p class="chapter-summary">按主题速查</p></header><ul>
 <li><strong>颜色</strong>：<code>Color</code> 分量是 [0,1]；整数用 <code>Color::FromArgb</code>。</li>
-<li><strong>尺寸/布局</strong>：<code>SetWidth/Height</code> 是固定尺寸；<code>SetFill*</code> 是填满父轴；拉伸权值分配<strong>剩余</strong>空间（v1.17.0）；图表尺寸来自自身 <code>width_/height_</code>，且默认权值 0。</li>
+<li><strong>尺寸/布局</strong>：<code>SetWidth/Height</code> 是固定尺寸；<code>SetFill*</code> 是填满父轴；拉伸权值分配<strong>剩余</strong>空间（v1.17.0）；图表默认权值 0，<code>SetFill*</code> 在父级有约束时生效、无约束时回退 <code>420×260</code>（v1.19.4）。</li>
 <li><strong>窗口最小尺寸</strong>：含长文本/图表的窗口建议显式 <code>SetMinSize</code>，否则会被内容测量结果撑大。</li>
 <li><strong>重绘</strong>：<code>RequestRepaint()</code> 只标脏、<strong>不排帧</strong>；不要试图在标脏处强制出帧（会持续重渲染卡顿）。<code>InvalidateLayout()</code> 冒泡，<code>InvalidateLayoutSelf()</code> 不冒泡（池化/虚拟 rebind 用）。</li>
 <li><strong>缓存</strong>：默认开；每帧内容变化/实例极多的控件 <code>SetUseCache(false)</code>；释放整棵子树用 <code>ReleaseDeviceResourcesRecursive()</code>。</li>
 <li><strong>文本</strong>：<code>SetTextFast</code> 不重绘（池化专用）；<code>FontManager</code> 返回的 layout/format 共享只读，勿改。</li>
 <li><strong>信号</strong>：<code>Fire</code> 快照遍历、可安全 disconnect；<code>Connection</code> 析构不断开；<code>DrawOverlay</code> 必须按窗口过滤；别用捕获自身 <code>shared_ptr</code> 的 lambda 连自己。</li>
-<li><strong>数据视图</strong>：源行号 vs 可见序两套坐标；<code>Sort</code> 重排并清多选，<code>SortView</code> 只改可见序；<code>parent</code> 是 <code>weak_ptr</code>；行背景用 <code>node-&gt;bgColor</code>。</li>
+<li><strong>数据视图</strong>：源行号 vs 可见序两套坐标；<code>SortItems</code> 重排并清多选，<code>SortView</code> 只改可见序；<code>parent</code> 是 <code>weak_ptr</code>；行背景用 <code>node-&gt;bgColor</code>。</li>
 <li><strong>多行编辑</strong>：<code>AcceptsTab</code> 为真时 Tab 是缩进；富文本只读；换行宽度变化重建全部行 layout。</li>
 <li><strong>滚动条</strong>：宿主用 <code>ShrunkWidthRatio</code> 预留槽位；空闲缩小是<strong>惰性</strong>的。</li>
 <li><strong>无障碍/调试</strong>：角色决定暴露的 UIA Pattern；调试命令发送要带超时。</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.21.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.19.5</span></a><a class="next" href="API.23.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">附录</span><span class="nav-desc">默认值与信号索引</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.21.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.19.7</span></a><a class="next" href="API.23.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">附录</span><span class="nav-desc">默认值与信号索引</span></a></nav>
         </main>
     </div>
 
@@ -241,7 +241,8 @@ pre { line-height: 125%; }
     var saved = null;
     try { saved = localStorage.getItem('md2html-theme'); } catch (e) {}
     var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var theme = saved || (prefersDark ? 'dark' : 'light');
+    var initial = root.getAttribute('data-theme');
+    var theme = saved || ((initial && initial !== 'auto') ? initial : (prefersDark ? 'dark' : 'light'));
     function applyTheme(t) {
         root.setAttribute('data-theme', t);
         if (themeBtn) themeBtn.textContent = (t === 'dark') ? '\u2600' : '\u263D';

@@ -230,7 +230,7 @@ Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);   Ref&lt;Gr
 <header class="chapter-header"><span class="chapter-eyebrow">第 19 章</span><h1>DSL</h1><p class="chapter-summary">链式构造（ZufyUIDsl.h，v1.19.4）</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7c78d483', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-9b754771', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）</span>
 <span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="o">::</span><span class="nn">dsl</span><span class="w"> </span><span class="p">{</span>
@@ -252,7 +252,7 @@ Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);   Ref&lt;Gr
 <span class="c1">//         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-7c78d483" style="display: none;">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
+<pre id="code-9b754771" style="display: none;">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
 namespace ZufyUI::dsl {
 template&lt;class T&gt; class Ref {                      // 包装 shared_ptr&lt;T&gt;
     T* operator-&gt;() const;   std::shared_ptr&lt;T&gt; shared() const;
@@ -295,7 +295,8 @@ Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);   Ref&lt;Gr
     var saved = null;
     try { saved = localStorage.getItem('md2html-theme'); } catch (e) {}
     var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var theme = saved || (prefersDark ? 'dark' : 'light');
+    var initial = root.getAttribute('data-theme');
+    var theme = saved || ((initial && initial !== 'auto') ? initial : (prefersDark ? 'dark' : 'light'));
     function applyTheme(t) {
         root.setAttribute('data-theme', t);
         if (themeBtn) themeBtn.textContent = (t === 'dark') ? '\u2600' : '\u263D';

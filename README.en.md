@@ -74,7 +74,8 @@ ZufyUI/
 ├── ZufyUI.vcxproj        # Project file
 ├── AGENTS.md          # Development principles (incl. "find the root cause before fixing any bug")
 └── docs/
-    └── API.en.md      # Full API documentation
+    ├── API.md         # Full API documentation (Chinese)
+    └── API.en.md      # Full API documentation (English)
 ```
 
 ## Quick start
@@ -176,6 +177,19 @@ A tour of the widgets (first page of the demo):
 3. **Entry point / subsystem**: `wWinMain` + `/SUBSYSTEM:WINDOWS` (or the "Entry point pitfall" above).
 
 ## Changelog
+
+> Current version: **1.19.7** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-11 — Theme system + fluent DSL + card/drag-drop controls + fixes (v1.18.1 → v1.19.5)
+
+- **v1.19.0**: Charts `ZufyUICharts.h` (`BarChart`/`LineChart`/`PieChart`); `TextEdit` editor; drag & drop `ZufyUIDragDrop.h` + card controls `Expander`/`SettingsList`; `ComboBox` rotating arrow.
+- **v1.19.1**: `TextEdit` standard undo/redo (restores selection/cursor); drag fixes (drop caret, keeps source selection); `ScrollViewer` measured at viewport width + 1px bleed; `Label::SetImageFit` (standalone `ImageView` removed).
+- **v1.19.2**: `MenuBar` top menu + `StatusBar` bottom bar (overlaid on the custom title bar by default).
+- **v1.19.3**: **theme system** (`Theme`/`ThemeRole`/`ThemeManager`; light/dark/high-contrast; follows system light/dark + accent; explicit instance colors win); `UIZSignals::ThemeChanged`/`ThemeReapply`.
+- **v1.19.4**: **fluent construction DSL** (`ZufyUIDsl.h`); fixed clipped `CheckBox` label; `ListView/TableView` cache collapsed into a single `ChildrenSig()`; `ChartBase` fill fallback.
+- **v1.19.5**: DSL enhancements — `dsl::App()` window builder + SFINAE per-control sugar + chart composition.
+- **v1.19.6**: fixed `ListView` button-mode checkbox hit off by 4px and `Label` wrap ignoring inline children width; version is now a single source (generator injects `{{ZUFYUI_VERSION}}`) + doc cleanup.
+- **v1.19.7**: audit fixes (chart scrollbar allowance, NumberBox wheel, anim-set dangling, `Menu::ShowAt` exception, layout spacing, data-view child label release, IME association, etc.); added `TODO.md` merging the former plan files.
 
 ### 2026-10-06 — Docs & images update (v1.18.1)
 
@@ -425,7 +439,7 @@ A tour of the widgets (first page of the demo):
 **Build**
 - Added a precompiled header `pch.h` / `pch.cpp` (demo compile ~1.1s); `Release` drops debug info; `Debug` adds `/bigobj`.
 
-> Known issue: menu windows use the "layered window + software render target" path and each menu creates its own D2D factory → every menu open costs ~+90MB (released a few seconds after closing). Planned fix: reuse the shared device (move menus to the DComp path).
+> Note (historical): menu popups early on used the "layered window + software render target" path and each menu created its own D2D factory → ~+90MB per open; **fixed since v1.8.0 (`MenuWindowBase : Window` + DComp + process-shared device)**. Kept only as history.
 
 ### 2026-09-20 — Performance work + backdrop API consolidation (v1.9.6)
 

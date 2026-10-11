@@ -302,7 +302,8 @@ pre { line-height: 125%; }
     var saved = null;
     try { saved = localStorage.getItem('md2html-theme'); } catch (e) {}
     var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var theme = saved || (prefersDark ? 'dark' : 'light');
+    var initial = root.getAttribute('data-theme');
+    var theme = saved || ((initial && initial !== 'auto') ? initial : (prefersDark ? 'dark' : 'light'));
     function applyTheme(t) {
         root.setAttribute('data-theme', t);
         if (themeBtn) themeBtn.textContent = (t === 'dark') ? '\u2600' : '\u263D';

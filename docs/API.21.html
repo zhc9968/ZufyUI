@@ -241,9 +241,17 @@ pre { line-height: 125%; }
   - `Window::SetMinSize` 默认内容测量给 **600 DIP** 宽度下限；`pch.h` 的 `ZufyUI_DEBUG` 改为 `#ifdef _DEBUG`；`Theme::HighContrast` 语义色区分（不再全黄）。
 - **v1.19.5**：
   - DSL 增强：`dsl::App()` / `WindowApp` 窗口构建器（链式配置 + `run()`）；`Page()/Menu()/Settings()` 短工厂；**SFINAE 门控**的控件专属糖（`text/checked/value/placeholder/padding/category/series/slice/item/menu`）。
-  - demo「DSL」页用上糖与图表组合（`Pie().slice(...)`、`Bar().category(...).series(...)`、`Progress().value(...)`）。</pre></div></div>
+  - demo「DSL」页用上糖与图表组合（`Pie().slice(...)`、`Bar().category(...).series(...)`、`Progress().value(...)`）。
+- **v1.19.6**：
+  - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
+  - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `{{ZUFYUI_VERSION}}`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+- **v1.19.7**：
+  - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
+  - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
+  - 新增 `TODO.md`（合并原 `FEATURE_PLAN.md`/`OPTIMIZATION_PLAN.md`，唯一权威待办清单）。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 21 章 · 版本变化摘录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.19.5</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.19.7</p></header><blockquote>
 <p>只列<strong>对你写代码有影响</strong>的显著变化。</p>
 </blockquote>
 <ul>
@@ -287,6 +295,14 @@ pre { line-height: 125%; }
 <li><strong>v1.19.5</strong>：</li>
 <li>DSL 增强：<code>dsl::App()</code> / <code>WindowApp</code> 窗口构建器（链式配置 + <code>run()</code>）；<code>Page()/Menu()/Settings()</code> 短工厂；<strong>SFINAE 门控</strong>的控件专属糖（<code>text/checked/value/placeholder/padding/category/series/slice/item/menu</code>）。</li>
 <li>demo「DSL」页用上糖与图表组合（<code>Pie().slice(...)</code>、<code>Bar().category(...).series(...)</code>、<code>Progress().value(...)</code>）。</li>
+<li><strong>v1.19.6</strong>：</li>
+<li>修复：<code>ListView</code> 按钮模式下勾选框<strong>命中位置少偏移 4px</strong>（与绘制/子元素左边界对齐）。</li>
+<li>修复：<code>Label::MeasureOverride</code> 的 Wrap 分支<strong>漏算内联子控件宽度</strong>（带 <code>AddChild</code> 的换行 Label 文本会挤压/溢出）。</li>
+<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>{{ZUFYUI_VERSION}}</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
+<li><strong>v1.19.7</strong>：</li>
+<li>修复：<code>ChartBase</code> 横/纵滚动条占位写反（<code>viewW</code> 用竖条、<code>viewH</code> 用横条）→ 最右/最底滚不到；<code>NumberBox</code> 滚轮焦点判断（焦点在内部 <code>TextBox</code>）；<code>lastActiveAnimElements_</code> 悬垂（析构时从动画集合擦除，防随机崩溃）；<code>Menu::ShowAt</code> 非 <code>shared_ptr</code> 时抛 <code>bad_weak_ptr</code>；<code>ChildrenSig</code> 缺 <code>EnsureView</code>；<code>TreeView::SetDefaultExpandDepth</code> 对 <code>AddRoot</code>/<code>AddChild</code> 不生效。</li>
+<li>修复：<code>ColumnBox</code>/<code>RowBox</code> spacing 按“参与布局的子元素数”算；<code>GridLayout</code> 行列数过滤不可见元素；<code>Label</code> 换行漏算子控件宽度 / 多算一个间距；<code>ListView</code>/<code>TableView</code> 释放 Label 前清 <code>childrenView_</code>、补释放池化/富项/单元格 Label；<code>Window::defaultIMC_</code> 改 <code>ImmAssociateContext</code>；<code>DragData::GetFiles</code> 缓冲 <code>len+1</code>；<code>TextEdit</code> 清选区补发 <code>SelectionChanged</code>；<code>MessageBox</code> 默认标题本地化。</li>
+<li>新增 <code>TODO.md</code>（合并原 <code>FEATURE_PLAN.md</code>/<code>OPTIMIZATION_PLAN.md</code>，唯一权威待办清单）。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.20.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a><a class="next" href="API.22.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">易错点总表</span><span class="nav-desc">按主题速查</span></a></nav>
         </main>
@@ -304,7 +320,8 @@ pre { line-height: 125%; }
     var saved = null;
     try { saved = localStorage.getItem('md2html-theme'); } catch (e) {}
     var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var theme = saved || (prefersDark ? 'dark' : 'light');
+    var initial = root.getAttribute('data-theme');
+    var theme = saved || ((initial && initial !== 'auto') ? initial : (prefersDark ? 'dark' : 'light'));
     function applyTheme(t) {
         root.setAttribute('data-theme', t);
         if (themeBtn) themeBtn.textContent = (t === 'dark') ? '\u2600' : '\u263D';

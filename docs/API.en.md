@@ -7,7 +7,7 @@
 
 > **Two markers used throughout**:
 > - **`Pitfall`**: real traps / counter-intuitive behavior — read these first.
-> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.18.0** (previous: v1.17.0).
+> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v{{ZUFYUI_VERSION}}**.
 
 ###chapter: Conventions | Namespaces, units, lifetime, version & pitfall notation
 
@@ -842,6 +842,7 @@ void AddCheckItem(const std::wstring& text, bool checked, std::function<void(boo
 void AddSeparator();   void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id=0);
 std::vector<std::shared_ptr<MenuItem>> items;
 std::function<void(Menu&)> onOpening;   ZSignal<int> ItemSelected;
+std::function<void()> onClosed;   // fired after the popup closes
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // standalone popup (tray / right-click)
 ```
 - **`Pitfall`**: item callbacks are deferred via `PostToUIThread` (they often open modal dialogs; closing the menu on the current WndProc stack would cause UAF).
@@ -924,7 +925,7 @@ std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   i
 void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector<int> GetCheckedIndices() const;
 void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&);
 ```
-- **`Pitfall`**: `Sort()` rearranges `items_` and **clears multi-selection/checks**; `SortView` only changes **visible order**.
+- **`Pitfall`**: `SortItems()` rearranges `items_` and **clears multi-selection/checks**; `SortView` only changes **visible order**.
 - **`Pitfall`**: pooled text uses `SetTextFast`, and the container must re-measure on width change (`v1.18.0` adds `poolW_` to re-measure on width change, fixing stale ellipsis).
 - **`Version`**: `BeginUpdate` `v1.9.6`; coords `v1.10.0`; virtualization/hide/filter/visible order `v1.15.0`.
 
@@ -1038,7 +1039,7 @@ virtual void ComputeValueRange(double& lo, double& hi);
 virtual void UpdateHover(float,float);   virtual void OnDataClick(float,float);
 virtual std::wstring HoveredText() const;
 ```
-- **`Pitfall`**: size comes from the chart's own `width_/height_` (default `420×260`). **`SetFillWidth/Height` alone won't size the chart** — set explicit `SetWidth/SetHeight`, or give it a layout stretch weight. Charts default to weight 0.
+- **`Version`**: `SetFillWidth/Height(true)` fills the parent axis when the parent gives a constraint; with no constraint (`avail=FLT_MAX`) and no explicit size it **falls back to the default `420×260`** (since v1.19.4; no longer collapses to 0). Charts default to weight 0 — use `SetFillWidth/Height(true)` or a stretch weight to fill the layout.
 - **`Pitfall`**: a custom `ChartBase` subclass **must call `InitScrollBars()`** (as BarChart/LineChart do) or the internal scrollbars stay null.
 - **`Pitfall`**: for live data use `UpdateSeriesValues` (no animation replay), not `SetSeriesValues`.
 - **`Pitfall`**: wheel = Ctrl-zoom (0.4..3) / Shift-horizontal scroll / else vertical; drag pans only after > 4 DIP. Area-fill baseline is clamped into the visible axis range so auto-ranged charts don't flood the plot.
@@ -1285,7 +1286,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.19.5
+###chapter: Version digest | v1.15.0 → v1.19.7
 
 > Only the changes that affect your code are listed.
 
@@ -1329,11 +1330,19 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.5**:
   - DSL enhancements: `dsl::App()` / `WindowApp` window builder (fluent config + `run()`); `Page()/Menu()/Settings()` short factories; **SFINAE-gated** per-control sugar (`text/checked/value/placeholder/padding/category/series/slice/item/menu`).
   - The demo "DSL" page uses the sugar and chart composition (`Pie().slice(...)`, `Bar().category(...).series(...)`, `Progress().value(...)`).
+- **v1.19.6**:
+  - Fix: `ListView` button mode checkbox **hit test was 4px off** (now aligned with the draw / child left edge).
+  - Fix: `Label::MeasureOverride` wrap branch **ignored inline children width** (wrapping Labels with `AddChild` squeezed/overflowed text).
+  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `{{ZUFYUI_VERSION}}`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
+- **v1.19.7**:
+  - Fixes: `ChartBase` swapped horizontal/vertical scrollbar allowance (`viewW` uses the vertical bar, `viewH` the horizontal) → rightmost/bottom content unreachable; `NumberBox` wheel focus check (focus is on the inner `TextBox`); `lastActiveAnimElements_` dangling (erased from the anim sets on destruction, prevents random crashes); `Menu::ShowAt` throwing `bad_weak_ptr` when not shared-owned; `ChildrenSig` missing `EnsureView`; `TreeView::SetDefaultExpandDepth` not applied by `AddRoot`/`AddChild`.
+  - Fixes: `ColumnBox`/`RowBox` spacing counts only layout-participating children; `GridLayout` row/col count skips invisible; `Label` wrap ignored/duplicated spacing; `ListView`/`TableView` clear `childrenView_` before releasing labels and release pooled/rich/cell labels; `Window::defaultIMC_` via `ImmAssociateContext`; `DragData::GetFiles` buffer `len+1`; `TextEdit` fires `SelectionChanged` when clearing a selection; `MessageBox` default title localized.
+  - Added `TODO.md` (merges the former `FEATURE_PLAN.md`/`OPTIMIZATION_PLAN.md`; the single authoritative backlog).
 
 ###chapter: Pitfall index | Quick lookup by topic
 
 - **Color**: components are [0,1]; use `Color::FromArgb` for integers.
-- **Size/layout**: `SetWidth/Height` = fixed size; `SetFill*` = fill parent axis; stretch weights distribute **leftover** space (v1.17.0); charts size from their own `width_/height_` and default to weight 0.
+- **Size/layout**: `SetWidth/Height` = fixed size; `SetFill*` = fill parent axis; stretch weights distribute **leftover** space (v1.17.0); charts default to weight 0, `SetFill*` takes effect when the parent gives a constraint and falls back to `420×260` otherwise (v1.19.4).
 - **Window min size**: set `SetMinSize` explicitly for windows with long text/charts, or the content measure blows it up.
 - **Repaint**: `RequestRepaint()` marks only, **does not schedule a frame**; don't force a frame there (continuous re-render stutter). `InvalidateLayout()` bubbles; `InvalidateLayoutSelf()` does not (pool/virtual rebind).
 - **Cache**: on by default; `SetUseCache(false)` for per-frame/heavy controls; release subtrees with `ReleaseDeviceResourcesRecursive()`.
@@ -1361,7 +1370,6 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 | `PieChart` size | 320×260 |
 | `TextEdit` font / size / tab | Consolas 14 / 320×160 / 4 |
 | `Expander` header height / radius | 66 / 8 |
-| `ImageView` size | 200×150 |
 | `Window::DefaultBackdropColor` | `0xFFFFFFFF` (white) |
 
 ## Signal index

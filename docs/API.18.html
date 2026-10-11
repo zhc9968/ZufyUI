@@ -240,7 +240,7 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重�
 <header class="chapter-header"><span class="chapter-eyebrow">第 18 章</span><h1>主题系统</h1><p class="chapter-summary">Theme（v1.19.0+）</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ba12d293', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-0c6f73f6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// 语义色角色（按“角色”取色，而不是按控件）</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ThemeRole</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Text</span><span class="p">,</span><span class="w"> </span><span class="n">TextSecondary</span><span class="p">,</span><span class="w"> </span><span class="n">TextDisabled</span><span class="p">,</span><span class="w"> </span><span class="n">TextOnAccent</span><span class="p">,</span>
@@ -274,7 +274,7 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重�
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// nullptr=应用级</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeReapply</span><span class="p">;</span><span class="w">   </span><span class="c1">// 页面/标签切换后重套可见子树</span>
 </pre></div>
-<pre id="code-ba12d293" style="display: none;">// 语义色角色（按“角色”取色，而不是按控件）
+<pre id="code-0c6f73f6" style="display: none;">// 语义色角色（按“角色”取色，而不是按控件）
 enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
     Surface, SurfaceAlt, SurfaceRaised, Backdrop, Overlay,
     Control, ControlHover, ControlPressed, ControlDisabled,
@@ -327,7 +327,8 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重�
     var saved = null;
     try { saved = localStorage.getItem('md2html-theme'); } catch (e) {}
     var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    var theme = saved || (prefersDark ? 'dark' : 'light');
+    var initial = root.getAttribute('data-theme');
+    var theme = saved || ((initial && initial !== 'auto') ? initial : (prefersDark ? 'dark' : 'light'));
     function applyTheme(t) {
         root.setAttribute('data-theme', t);
         if (themeBtn) themeBtn.textContent = (t === 'dark') ? '\u2600' : '\u263D';

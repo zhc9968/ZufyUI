@@ -74,7 +74,8 @@ ZufyUI/
 ├── ZufyUI.vcxproj        # 工程文件
 ├── AGENTS.md          # 开发原则（含“任何 bug 先找根源再修”的规则）
 └── docs/
-    └── API.md         # 完整 API 文档
+    ├── API.md         # 完整 API 文档（中文）
+    └── API.en.md      # 完整 API 文档（English）
 ```
 
 ## 快速开始
@@ -176,6 +177,19 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 3. **入口/子系统**：`wWinMain` + `/SUBSYSTEM:WINDOWS`（或按上面的“入口易错”处理）。
 
 ## 更新日志
+
+> 当前版本：**1.19.7**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-11 — 主题系统 + 链式构造 DSL + 卡片/拖放控件 + 一批修复（v1.18.1 → v1.19.5）
+
+- **v1.19.0**：图表 `ZufyUICharts.h`（`BarChart`/`LineChart`/`PieChart`）；`TextEdit` 多行编辑器；拖放 `ZufyUIDragDrop.h` + 卡片控件 `Expander`/`SettingsList`；`ComboBox` 旋转箭头。
+- **v1.19.1**：`TextEdit` 撤销/重做标准方案（还原选区/光标）；拖放修复（落点光标、保留源选区）；`ScrollViewer` 按视口宽度测量 + 1px 出血；`Label::SetImageFit`（移除独立 `ImageView`）。
+- **v1.19.2**：`MenuBar` 顶部菜单栏 + `StatusBar` 底部状态栏（默认叠在自定义标题栏上）。
+- **v1.19.3**：**主题系统**（`Theme`/`ThemeRole`/`ThemeManager`；浅/深/高对比度；跟随系统深浅色与强调色；实例显式设色优先）；`UIZSignals::ThemeChanged`/`ThemeReapply`。
+- **v1.19.4**：**链式构造 DSL**（`ZufyUIDsl.h`）；修复 `CheckBox` 带标签被裁；`ListView/TableView` 缓存判据收敛为单一签名 `ChildrenSig()`；`ChartBase` fill 回退。
+- **v1.19.5**：DSL 增强——`dsl::App()` 窗口构建器 + SFINAE 控件糖 + 图表组合。
+- **v1.19.6**：修复 `ListView` 按钮模式勾选框命中偏 4px、`Label` 换行漏算子控件宽度；版本号单一来源（生成器注入 `{{ZUFYUI_VERSION}}`）+ 文档清理。
+- **v1.19.7**：审计修复一批（图表滚动条占位、NumberBox 滚轮、动画集合悬垂、`Menu::ShowAt` 异常、布局 spacing、数据视图释放子 Label、IME 关联等）；新增 `TODO.md` 合并原计划文件。
 
 ### 2026-10-06 — 文档与配图更新（v1.18.1）
 
@@ -425,7 +439,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 **构建**
 - 引入预编译头 `pch.h` / `pch.cpp`（改 demo 的编译 ~1.1s）；`Release` 关闭调试信息；`Debug` 补 `/bigobj`。
 
-> 已知问题：菜单窗口走「分层窗口 + 软件渲染目标」路径且每个菜单自建 D2D 工厂 → 每弹一次菜单约 +90MB（关闭后数秒回收）。计划改为复用共享设备（菜单走 DComp 路径），修复前请留意。
+> 说明（历史）：菜单弹出层早期走「分层窗口 + 软件渲染目标」且每个菜单自建 D2D 工厂 → 每弹一次约 +90MB；**自 v1.8.0 重构（`MenuWindowBase : Window` + DComp + 进程级共享设备）已根治**。保留此条仅作历史记录。
 
 ### 2026-09-20 — 性能优化 + 背景 API 收敛（v1.9.6）
 
