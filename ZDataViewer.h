@@ -893,7 +893,7 @@ namespace ZufyUI {
                     float eff = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
                     float itemTop = arrangedRect_.y + vi * eff - Snap(scrollOffsetY_);
                     float cy = itemTop + itemHeight_ / 2.0f;
-                    float cbX = arrangedRect_.x + 8.0f;
+                    float cbX = arrangedRect_.x + (buttonMode_ ? 4.0f : 0.0f) + 8.0f;   // 与 Draw/RefreshChildren 的按钮模式内缩 4px 对齐
                     if (x >= cbX && x <= cbX + 15.0f && y >= cy - 7.5f && y <= cy + 7.5f) {
                         SetItemChecked(idx, !IsItemChecked(idx));
                         return;

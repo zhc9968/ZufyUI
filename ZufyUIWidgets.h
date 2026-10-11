@@ -377,7 +377,10 @@ namespace ZufyUI {
                 IDWriteTextFormat* fmt = GetFontFormat();
                 if (factory && fmt) {
                     if (overflow_ == TextOverflow::Wrap && availableSize.width != FLT_MAX && availableSize.width > 0) {
-                        float availW = max(0.0f, availableSize.width - padW - (iw > 0 ? iw + iconSpacing_ : 0.0f));
+                        float childrenW = 0.0f;   // 换行宽度也要扣掉内联子控件（否则文本挤到子控件下面/溢出）
+                        for (auto& c : children_) { if (c) childrenW += c->Measure(Size(FLT_MAX, FLT_MAX)).width; }
+                        if (!children_.empty()) childrenW += iconSpacing_ * (float)children_.size();
+                        float availW = max(0.0f, availableSize.width - padW - (iw > 0 ? iw + iconSpacing_ : 0.0f) - childrenW);
                         // 走全局布局缓存（wrap）；测量只取 metrics，装饰保持旧行为（不加行距/多行）
                         ComPtr<IDWriteTextLayout> tempLayout = FontManager::Instance().GetStyledLayout(
                             text_, fmt, availW, 10000.0f, false, (int)hAlign_, (int)vAlign_, 0.0f, 0);

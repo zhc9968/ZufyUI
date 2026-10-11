@@ -8,7 +8,7 @@
 
 > **两个贯穿全文的标记**：
 > - **`易错`**：真实踩过的坑 / 反直觉行为，优先看这些。
-> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v1.18.0**（上一版 v1.17.0）。
+> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v{{ZUFYUI_VERSION}}**。
 
 ###chapter: 约定 | 命名空间、单位、生命周期、版本与易错标注约定
 
@@ -856,6 +856,7 @@ void AddCheckItem(const std::wstring& text, bool checked, std::function<void(boo
 void AddSeparator();   void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id=0);
 std::vector<std::shared_ptr<MenuItem>> items;
 std::function<void(Menu&)> onOpening;   ZSignal<int> ItemSelected;
+std::function<void()> onClosed;   // 弹出层关闭后回调
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // 独立弹出（托盘/右键）
 ```
 - **`易错`**：菜单项回调会 `PostToUIThread` **推迟到当前消息之后**执行（因为回调常开模态框，若在当前 WndProc 栈上关菜单会触发 UAF）。
@@ -942,7 +943,7 @@ std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   i
 void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector<int> GetCheckedIndices() const;
 void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&);
 ```
-- **`易错`**：`Sort()` 会重排 `items_` 并**清空多选/勾选**；`SortView` 只改**可见序**。
+- **`易错`**：`SortItems()` 会重排 `items_` 并**清空多选/勾选**；`SortView` 只改**可见序**。
 - **`易错`**：池化下改行文本走 `SetTextFast`，且容器宽度变化必须重测（`v1.18.0` 修：新增 `poolW_`，宽度变也重测，修省略号错位）。
 - **`版本`**：`BeginUpdate` `v1.9.6`；坐标转换 `v1.10.0`；虚拟化/隐藏/筛选/可见序 `v1.15.0`。
 
@@ -1057,7 +1058,7 @@ virtual void ComputeValueRange(double& lo, double& hi);
 virtual void UpdateHover(float,float);   virtual void OnDataClick(float,float);
 virtual std::wstring HoveredText() const;
 ```
-- **`易错`**：图表尺寸来自自身的 `width_/height_`（默认 `420×260`）。**只 `SetFillWidth/Height` 不会改变图表尺寸**——要显式 `SetWidth/SetHeight`，或用布局的拉伸权值让其铺满。图表默认拉伸权值为 0。
+- **`版本`**：`SetFillWidth/Height(true)` 在父级给出约束时会铺满；无约束（`avail=FLT_MAX`）且未设尺寸时**回退默认 `420×260`**（v1.19.4 起；不再塌成 0）。图表默认拉伸权值为 0，需要它随布局铺满时用 `SetFillWidth/Height(true)` 或权值。
 - **`易错`**：自定义 `ChartBase` 子类**必须调用 `InitScrollBars()`**（`BarChart`/`LineChart` 构造里已调），否则内部滚动条为空。
 - **`易错`**：实时数据用 `UpdateSeriesValues`（不重播动画），别用 `SetSeriesValues`（会重置进场动画，配合 250ms 刷新会一直闪）。
 - **`易错`**：`SetValueAxisRange(min,max)` 仅当 `max>min` 生效；滚轮 `Ctrl`=缩放(0.4..3)、`Shift`=横向滚动、否则纵向；拖动位移 > 4 DIP 才判为平移。
@@ -1307,7 +1308,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.19.5
+###chapter: 版本变化摘录 | v1.15.0 → v1.19.6
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1351,17 +1352,21 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.5**：
   - DSL 增强：`dsl::App()` / `WindowApp` 窗口构建器（链式配置 + `run()`）；`Page()/Menu()/Settings()` 短工厂；**SFINAE 门控**的控件专属糖（`text/checked/value/placeholder/padding/category/series/slice/item/menu`）。
   - demo「DSL」页用上糖与图表组合（`Pie().slice(...)`、`Bar().category(...).series(...)`、`Progress().value(...)`）。
+- **v1.19.6**：
+  - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
+  - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `{{ZUFYUI_VERSION}}`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 
 ###chapter: 易错点总表 | 按主题速查
 
 - **颜色**：`Color` 分量是 [0,1]；整数用 `Color::FromArgb`。
-- **尺寸/布局**：`SetWidth/Height` 是固定尺寸；`SetFill*` 是填满父轴；拉伸权值分配**剩余**空间（v1.17.0）；图表尺寸来自自身 `width_/height_`，且默认权值 0。
+- **尺寸/布局**：`SetWidth/Height` 是固定尺寸；`SetFill*` 是填满父轴；拉伸权值分配**剩余**空间（v1.17.0）；图表默认权值 0，`SetFill*` 在父级有约束时生效、无约束时回退 `420×260`（v1.19.4）。
 - **窗口最小尺寸**：含长文本/图表的窗口建议显式 `SetMinSize`，否则会被内容测量结果撑大。
 - **重绘**：`RequestRepaint()` 只标脏、**不排帧**；不要试图在标脏处强制出帧（会持续重渲染卡顿）。`InvalidateLayout()` 冒泡，`InvalidateLayoutSelf()` 不冒泡（池化/虚拟 rebind 用）。
 - **缓存**：默认开；每帧内容变化/实例极多的控件 `SetUseCache(false)`；释放整棵子树用 `ReleaseDeviceResourcesRecursive()`。
 - **文本**：`SetTextFast` 不重绘（池化专用）；`FontManager` 返回的 layout/format 共享只读，勿改。
 - **信号**：`Fire` 快照遍历、可安全 disconnect；`Connection` 析构不断开；`DrawOverlay` 必须按窗口过滤；别用捕获自身 `shared_ptr` 的 lambda 连自己。
-- **数据视图**：源行号 vs 可见序两套坐标；`Sort` 重排并清多选，`SortView` 只改可见序；`parent` 是 `weak_ptr`；行背景用 `node->bgColor`。
+- **数据视图**：源行号 vs 可见序两套坐标；`SortItems` 重排并清多选，`SortView` 只改可见序；`parent` 是 `weak_ptr`；行背景用 `node->bgColor`。
 - **多行编辑**：`AcceptsTab` 为真时 Tab 是缩进；富文本只读；换行宽度变化重建全部行 layout。
 - **滚动条**：宿主用 `ShrunkWidthRatio` 预留槽位；空闲缩小是**惰性**的。
 - **无障碍/调试**：角色决定暴露的 UIA Pattern；调试命令发送要带超时。
@@ -1384,7 +1389,6 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 | `PieChart` 默认尺寸 | 320×260 |
 | `TextEdit` 默认字体 / 尺寸 / tab | Consolas 14 / 320×160 / 4 |
 | `Expander` 标题高 / 圆角 | 66 / 8 |
-| `ImageView` 默认尺寸 | 200×150 |
 | `Window::DefaultBackdropColor` | `0xFFFFFFFF`（纯白） |
 
 ## 内置信号索引
