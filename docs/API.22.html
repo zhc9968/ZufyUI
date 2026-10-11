@@ -210,7 +210,8 @@ pre { line-height: 125%; }
 - **数据视图**：源行号 vs 可见序两套坐标；`SortItems` 重排并清多选，`SortView` 只改可见序；`parent` 是 `weak_ptr`；行背景用 `node-&gt;bgColor`。
 - **多行编辑**：`AcceptsTab` 为真时 Tab 是缩进；富文本只读；换行宽度变化重建全部行 layout。
 - **滚动条**：宿主用 `ShrunkWidthRatio` 预留槽位；空闲缩小是**惰性**的。
-- **无障碍/调试**：角色决定暴露的 UIA Pattern；调试命令发送要带超时。</pre></div></div>
+- **无障碍/调试**：角色决定暴露的 UIA Pattern；调试命令发送要带超时。
+- **DSL（`ZufyUIDsl.h`，可选）**：`root()` 收任意 `Layout` 子类；`add()` 按容器真实接口分派（`GridLayout` 必须用 `.cell(row,col,child)` 或 `dsl::Cell(...)`）；空元素（`nullptr` / 空 `Ref`）一律被忽略；`with()` 只接成员函数指针，多步逻辑用 `apply(lambda)`；`WindowApp::run()` 会 `Show()`（`Window::Create` 不显示窗口），隐藏启动用 `.hidden()`。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 22 章 · 易错点总表</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 22 章</span><h1>易错点总表</h1><p class="chapter-summary">按主题速查</p></header><ul>
 <li><strong>颜色</strong>：<code>Color</code> 分量是 [0,1]；整数用 <code>Color::FromArgb</code>。</li>
@@ -224,8 +225,9 @@ pre { line-height: 125%; }
 <li><strong>多行编辑</strong>：<code>AcceptsTab</code> 为真时 Tab 是缩进；富文本只读；换行宽度变化重建全部行 layout。</li>
 <li><strong>滚动条</strong>：宿主用 <code>ShrunkWidthRatio</code> 预留槽位；空闲缩小是<strong>惰性</strong>的。</li>
 <li><strong>无障碍/调试</strong>：角色决定暴露的 UIA Pattern；调试命令发送要带超时。</li>
+<li><strong>DSL（<code>ZufyUIDsl.h</code>，可选）</strong>：<code>root()</code> 收任意 <code>Layout</code> 子类；<code>add()</code> 按容器真实接口分派（<code>GridLayout</code> 必须用 <code>.cell(row,col,child)</code> 或 <code>dsl::Cell(...)</code>）；空元素（<code>nullptr</code> / 空 <code>Ref</code>）一律被忽略；<code>with()</code> 只接成员函数指针，多步逻辑用 <code>apply(lambda)</code>；<code>WindowApp::run()</code> 会 <code>Show()</code>（<code>Window::Create</code> 不显示窗口），隐藏启动用 <code>.hidden()</code>。</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.21.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.19.7</span></a><a class="next" href="API.23.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">附录</span><span class="nav-desc">默认值与信号索引</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.21.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">版本变化摘录</span><span class="nav-desc">v1.15.0 → v1.20.0</span></a><a class="next" href="API.23.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">附录</span><span class="nav-desc">默认值与信号索引</span></a></nav>
         </main>
     </div>
 

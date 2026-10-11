@@ -240,7 +240,7 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // re-apply to visible subtre
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 18</span><h1>Theme system</h1><p class="chapter-summary">Theme (v1.19.0+)</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5e16a54e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-dcab1166', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// semantic color roles (look colors up by ROLE, not by control)</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ThemeRole</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Text</span><span class="p">,</span><span class="w"> </span><span class="n">TextSecondary</span><span class="p">,</span><span class="w"> </span><span class="n">TextDisabled</span><span class="p">,</span><span class="w"> </span><span class="n">TextOnAccent</span><span class="p">,</span>
@@ -274,7 +274,7 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // re-apply to visible subtre
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// nullptr = app-wide</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeReapply</span><span class="p">;</span><span class="w">   </span><span class="c1">// re-apply to visible subtree after page/tab switch</span>
 </pre></div>
-<pre id="code-5e16a54e" style="display: none;">// semantic color roles (look colors up by ROLE, not by control)
+<pre id="code-dcab1166" style="display: none;">// semantic color roles (look colors up by ROLE, not by control)
 enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
     Surface, SurfaceAlt, SurfaceRaised, Backdrop, Overlay,
     Control, ControlHover, ControlPressed, ControlDisabled,
@@ -311,7 +311,7 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // re-apply to visible subtre
 <li><strong><code>Pitfall</code></strong>: <code>Backdrop</code> is the <strong>window/background base color</strong> (white in light, black in dark); after an explicit <code>SetBackdrop/SetBackgroundColor</code> tint, the theme no longer changes it.</li>
 <li><strong><code>Version</code></strong>: introduced in <code>v1.19.0</code>; window periphery (caption buttons) follows the <strong>system</strong> theme, not the window theme; <code>WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE</code> auto re-resolve.</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.17.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Drag &amp; Drop, cards</span><span class="nav-desc">Drag &amp; Drop, Expander, SettingsList (v1.19.0)</span></a><a class="next" href="API.en.19.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">DSL</span><span class="nav-desc">Fluent construction (ZufyUIDsl.h, v1.19.4)</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.en.17.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Drag &amp; Drop, cards</span><span class="nav-desc">Drag &amp; Drop, Expander, SettingsList (v1.19.0)</span></a><a class="next" href="API.en.19.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">DSL</span><span class="nav-desc">Fluent construction (ZufyUIDsl.h, v1.19.4; extended in v1.20.0)</span></a></nav>
         </main>
     </div>
 

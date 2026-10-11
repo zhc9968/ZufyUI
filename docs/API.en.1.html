@@ -205,11 +205,17 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 - Everything is in `namespace ZufyUI`.
 - Headers are **layered by usage**:
   - `ZufyUI.h`: core — types / signals / fonts / element base / layout / menus / window.
+  - `ZufyUIAcrylic.h`: hand-written DComp composition effects + the official acrylic/mica recipes (included by `ZufyUI.h`).
   - `ZufyUIWidgets.h`: basic controls (Label/Button/TextBox/TextEdit/ComboBox/…/ScrollViewer/TabView/icons), includes `ZufyUI.h`.
   - `ZDataViewer.h`: data views (ListView/TableView/TreeView), depends on the two above.
   - `ZufyUICharts.h`: **charts (BarChart/LineChart/PieChart)**, depends on `ZufyUI.h`.
-  - `ZufyUIWindowTool.h`: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel).
+  - `ZufyUIImages.h`: `Image` / `ImageManager` (image loading and device cache).
+  - `ZufyUIIcons.h`: the `FontIcon` glyph control (the `Icon` enum itself lives in `ZufyUIWidgets.h`).
+  - `ZufyUIWindowTool.h`: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel); **since v1.20.0 it includes `ZufyUIWidgets.h` itself**, so it can be included on its own.
+  - `ZufyUIDragDrop.h`: drag &amp; drop (included at the end of `ZufyUI.h`).
+  - `ZufyUIDsl.h`: optional **fluent construction DSL** (purely additive; changes no existing control).
 - All are **header-only**; `#pragma comment(lib, ...)` auto-links `d2d1 / dwrite / dwmapi / imm32 / winmm`.
+- **Source encoding**: `.h` / `.cpp` files containing non-ASCII (e.g. Chinese) must be saved as **UTF-8 with BOM** (otherwise MSVC decodes them with the local code page and reports `C2143/C2259/C2888/C4819`); `.md` / `.tex` are saved as **UTF-8 without BOM**.
 
 ## Units
 
@@ -248,11 +254,17 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 <li>Everything is in <code>namespace ZufyUI</code>.</li>
 <li>Headers are <strong>layered by usage</strong>:</li>
 <li><code>ZufyUI.h</code>: core — types / signals / fonts / element base / layout / menus / window.</li>
+<li><code>ZufyUIAcrylic.h</code>: hand-written DComp composition effects + the official acrylic/mica recipes (included by <code>ZufyUI.h</code>).</li>
 <li><code>ZufyUIWidgets.h</code>: basic controls (Label/Button/TextBox/TextEdit/ComboBox/…/ScrollViewer/TabView/icons), includes <code>ZufyUI.h</code>.</li>
 <li><code>ZDataViewer.h</code>: data views (ListView/TableView/TreeView), depends on the two above.</li>
 <li><code>ZufyUICharts.h</code>: <strong>charts (BarChart/LineChart/PieChart)</strong>, depends on <code>ZufyUI.h</code>.</li>
-<li><code>ZufyUIWindowTool.h</code>: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel).</li>
+<li><code>ZufyUIImages.h</code>: <code>Image</code> / <code>ImageManager</code> (image loading and device cache).</li>
+<li><code>ZufyUIIcons.h</code>: the <code>FontIcon</code> glyph control (the <code>Icon</code> enum itself lives in <code>ZufyUIWidgets.h</code>).</li>
+<li><code>ZufyUIWindowTool.h</code>: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel); <strong>since v1.20.0 it includes <code>ZufyUIWidgets.h</code> itself</strong>, so it can be included on its own.</li>
+<li><code>ZufyUIDragDrop.h</code>: drag &amp; drop (included at the end of <code>ZufyUI.h</code>).</li>
+<li><code>ZufyUIDsl.h</code>: optional <strong>fluent construction DSL</strong> (purely additive; changes no existing control).</li>
 <li>All are <strong>header-only</strong>; <code>#pragma comment(lib, ...)</code> auto-links <code>d2d1 / dwrite / dwmapi / imm32 / winmm</code>.</li>
+<li><strong>Source encoding</strong>: <code>.h</code> / <code>.cpp</code> files containing non-ASCII (e.g. Chinese) must be saved as <strong>UTF-8 with BOM</strong> (otherwise MSVC decodes them with the local code page and reports <code>C2143/C2259/C2888/C4819</code>); <code>.md</code> / <code>.tex</code> are saved as <strong>UTF-8 without BOM</strong>.</li>
 </ul>
 <h2 id="units">Units</h2>
 <ul>

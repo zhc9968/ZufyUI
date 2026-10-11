@@ -210,7 +210,8 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 - **Data views**: source-index vs. visible-order coordinates; `Sort` rearranges + clears multi-select, `SortView` only reorders; `parent` is `weak_ptr`; row background via `node-&gt;bgColor`.
 - **Multi-line editor**: Tab indents; rich text is read-only; wrap-width change rebuilds all line layouts.
 - **Scrollbar**: hosts reserve a gutter via `ShrunkWidthRatio`; idle shrink is **lazy**.
-- **Accessibility/debug**: role drives exposed UIA Patterns; send debug commands with a timeout.</pre></div></div>
+- **Accessibility/debug**: role drives exposed UIA Patterns; send debug commands with a timeout.
+- **DSL (`ZufyUIDsl.h`, optional)**: `root()` takes any `Layout` subclass; `add()` dispatches on the container's real API (`GridLayout` requires `.cell(row,col,child)` or `dsl::Cell(...)`); null children (`nullptr` / empty `Ref`) are always ignored; `with()` takes member function pointers only — use `apply(lambda)` for multi-step logic; `WindowApp::run()` calls `Show()` (`Window::Create` does not show the window), so use `.hidden()` to start hidden.</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 22 · Pitfall index</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 22</span><h1>Pitfall index</h1><p class="chapter-summary">Quick lookup by topic</p></header><ul>
 <li><strong>Color</strong>: components are [0,1]; use <code>Color::FromArgb</code> for integers.</li>
@@ -224,8 +225,9 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 <li><strong>Multi-line editor</strong>: Tab indents; rich text is read-only; wrap-width change rebuilds all line layouts.</li>
 <li><strong>Scrollbar</strong>: hosts reserve a gutter via <code>ShrunkWidthRatio</code>; idle shrink is <strong>lazy</strong>.</li>
 <li><strong>Accessibility/debug</strong>: role drives exposed UIA Patterns; send debug commands with a timeout.</li>
+<li><strong>DSL (<code>ZufyUIDsl.h</code>, optional)</strong>: <code>root()</code> takes any <code>Layout</code> subclass; <code>add()</code> dispatches on the container's real API (<code>GridLayout</code> requires <code>.cell(row,col,child)</code> or <code>dsl::Cell(...)</code>); null children (<code>nullptr</code> / empty <code>Ref</code>) are always ignored; <code>with()</code> takes member function pointers only — use <code>apply(lambda)</code> for multi-step logic; <code>WindowApp::run()</code> calls <code>Show()</code> (<code>Window::Create</code> does not show the window), so use <code>.hidden()</code> to start hidden.</li>
 </ul>
-<nav class="chapter-nav"><a class="prev" href="API.en.21.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Version digest</span><span class="nav-desc">v1.15.0 → v1.19.7</span></a><a class="next" href="API.en.23.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Appendix</span><span class="nav-desc">Defaults &amp; signal index</span></a></nav>
+<nav class="chapter-nav"><a class="prev" href="API.en.21.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Version digest</span><span class="nav-desc">v1.15.0 → v1.20.0</span></a><a class="next" href="API.en.23.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Appendix</span><span class="nav-desc">Defaults &amp; signal index</span></a></nav>
         </main>
     </div>
 

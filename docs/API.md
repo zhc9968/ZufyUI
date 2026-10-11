@@ -17,11 +17,17 @@
 - 所有内容位于 `namespace ZufyUI`。
 - 头文件**按使用分层**：
   - `ZufyUI.h`：核心——类型 / 信号槽 / 字体 / 元素基类 / 布局 / 菜单 / 窗口。
+  - `ZufyUIAcrylic.h`：手写 DComp 合成效果 + 官方亚克力/云母配方（由 `ZufyUI.h` 包含）。
   - `ZufyUIWidgets.h`：基础控件（Label/Button/TextBox/TextEdit/ComboBox/…/ScrollViewer/TabView/图标…），内部 `#include "ZufyUI.h"`。
   - `ZDataViewer.h`：数据视图（ListView/TableView/TreeView），依赖前两者。
   - `ZufyUICharts.h`：**图表（BarChart/LineChart/PieChart）**，依赖 `ZufyUI.h`。
-  - `ZufyUIWindowTool.h`：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）。
+  - `ZufyUIImages.h`：`Image` / `ImageManager`（图片加载与设备缓存）。
+  - `ZufyUIIcons.h`：`FontIcon` 字形控件（`Icon` 枚举本身在 `ZufyUIWidgets.h`）。
+  - `ZufyUIWindowTool.h`：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）；**自 v1.20.0 起自身包含 `ZufyUIWidgets.h`**，可单独包含。
+  - `ZufyUIDragDrop.h`：拖放（由 `ZufyUI.h` 末尾包含）。
+  - `ZufyUIDsl.h`：可选**链式构造 DSL**（纯附加，不修改任何现有控件）。
 - 全部是**纯头文件**；`#pragma comment(lib, ...)` 会自动链接 `d2d1 / dwrite / dwmapi / imm32 / winmm`。
+- **源码编码**：含中文的 `.h` / `.cpp` 必须存为 **UTF-8 带 BOM**（否则 MSVC 按本地代码页解析，报 `C2143/C2259/C2888/C4819`）；`.md` / `.tex` 存为 **UTF-8 无 BOM**。
 
 ## 单位
 
@@ -1246,7 +1252,7 @@ ZSignal<Window*> UIZSignals::ThemeReapply;   // 页面/标签切换后重套可�
 - **`易错`**：`Backdrop` 是**窗口/背景基色**（浅色白、深色黑）；`SetBackdrop/SetBackgroundColor` 显式指定 tint 后主题不再改它。
 - **`版本`**：`v1.19.0` 引入；窗口周边（标题栏三件套）跟随**系统**主题而非窗口主题；`WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE` 自动重解析。
 
-###chapter: DSL | 链式构造（ZufyUIDsl.h，v1.19.4）
+###chapter: DSL | 链式构造（ZufyUIDsl.h，v1.19.4；v1.20.0 扩充）
 
 ```cpp
 // 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
@@ -1256,24 +1262,64 @@ template<class T> class Ref {                      // 包装 shared_ptr<T>
     operator std::shared_ptr<T>() const;           // 兼容 AddChild/SetContent
     template<class C, class R, class...A0, class...A>
     Ref& with(R(C::*fn)(A0...), A&&... a);         // 通用 setter 转发（含继承来的 setter）
+    template<class F> Ref& apply(F&& f);           // 逃生口：多步/条件逻辑用 lambda
     template<class Sig, class F> Ref& on(Sig& sig, F&& f);
     template<auto SigMem, class F> Ref& on(F&& f);
-    template<class...C> Ref& add(C&&... c);        // 容器加子
-    Ref& width(float); Ref& height(float); Ref& size(float,float);
-    Ref& fill(bool w=true,bool h=true); Ref& margin(Thickness);
-    Ref& visible(bool=true); Ref& enabled(bool=true); Ref& tooltip(const std::wstring&);
+    template<class...C> Ref& add(C&&... c);        // 容器加子（按容器真实接口分派）
+    Ref& cell(int row, int col, child, int rowSpan=1, int colSpan=1);   // GridLayout 专用
+    Ref& width(float); Ref& height(float); Ref& size(float,float); Ref& margin(Thickness);
+    Ref& minWidth(float); Ref& minHeight(float); Ref& maxWidth(float); Ref& maxHeight(float);
+    Ref& minSize(float,float); Ref& maxSize(float,float);
+    Ref& weight(float h,float v); Ref& hWeight(float); Ref& vWeight(float);
+    Ref& fill(bool w=true,bool h=true); Ref& visible(bool=true); Ref& enabled(bool=true);
+    Ref& tooltip(const std::wstring&); Ref& cache(bool=true); Ref& bleed(float);
+    Ref& clipRect(const Rect&); Ref& noClip(); Ref& cursor(HCURSOR);
+    Ref& dropTarget(bool=true); Ref& contextMenuEnabled(bool=true); Ref& accessible(const std::wstring&);
+    // SFINAE 门控糖：仅当该控件有对应方法时才存在
+    Ref& spacing(float); Ref& spacing(float,float); Ref& padding(const Thickness&);
+    Ref& background(Color); Ref& textColor(Color); Ref& align(Alignment, Alignment);
+    Ref& text(const std::wstring&); Ref& checked(bool=true); Ref& value(float);
+    Ref& placeholder(const std::wstring&); Ref& image(std::shared_ptr<Image>); Ref& imageFit(bool=true);
+    Ref& items({...}); Ref& rows(int); Ref& cols(int); Ref& header(int, const std::wstring&);
+    Ref& cell(int row, int col, const std::wstring&);   // TableView 单元格
+    Ref& root(const std::wstring&); Ref& separator(); Ref& submenu(const std::wstring&, Menu);
 };
 template<class T, class...A> Ref<T> Make(A&&... a);          // 通用工厂
-Ref<ColumnBox> Col(children...);   Ref<RowBox> Row(...);   Ref<GridLayout> Grid(...);
+template<class T> Ref<T> Wrap(std::shared_ptr<T> p);         // 把已有 shared_ptr 接进链
+Ref<ColumnBox> Col(children...);   Ref<RowBox> Row(...);
+Ref<GridLayout> Grid(children...);                          // 也接受 Cell(row,col,child)
+CellSpec Cell(int row, int col, child, int rowSpan=1, int colSpan=1);
+using Align = GridLayout::Alignment;                        // 供 Ref::align 使用
 // 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
 //         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
+//         RadioGroup ScrollBar Glyph
+class WindowApp {                                  // dsl::App()
+    WindowApp& size(int,int);   WindowApp& title(const std::wstring&);
+    WindowApp& resizable(bool=true);   WindowApp& corner(Window::WindowCorner);
+    WindowApp& backdrop(Backdrop, DWORD tint=0);   WindowApp& hidden(bool=true);
+    WindowApp& minSize(int,int);   WindowApp& position(int,int);   WindowApp& frameRateLimit(int);
+    WindowApp& theme(const Theme&);   WindowApp& useAppTheme(bool=true);
+    WindowApp& dropTarget(bool=true);   WindowApp& titleBarVisible(bool=true);
+    WindowApp& showTitleText(bool=true);   WindowApp& menuBarInTitleBar(bool=true);
+    WindowApp& icon(HICON, HICON);
+    WindowApp& root(Ref<Layout>);   WindowApp& titleBar(Ref<T>);   WindowApp& menuBar(Ref<T>);
+    WindowApp& statusBar(Ref<T>);
+    template<auto SigMem, class F> WindowApp& on(F&& f);      // 如 on<&Window::Closed>
+    Window& window();   int run();                 // run(): Create → 应用配置 → Show() → Run()
+};
+WindowApp App();
 }
 ```
 - 用法：`using namespace ZufyUI::dsl;` 后 `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`。**不要同时 `using namespace ZufyUI;`**（`Slider/Card/Expander/MenuBar/StatusBar` 短工厂与类名歧义），或改用 `dsl::` 限定。
 - **`易错`**：`with(&T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast<...>(&T::SetX)` 消歧；**有默认参数的函数**（如 `ListView::AddItem`）成员指针调用不支持默认值 → 用 `->AddItem(...)`。
-- **`易错`**：`GridLayout` 无单参 `AddChild`，`Grid(...)` 内部用 `(child,row,col)`；`Ref<T>` 与 `shared_ptr` 可互转，`Ref<Derived>` 可直接进 `AddChild/SetContent`。
-- **窗口构建器**：`dsl::App()` → `WindowApp`（链式 `size/title/resizable/corner/backdrop/root/titleBar/menuBar/statusBar`；`run()` 内部 `Create → 应用 → Run`）。`Window::Run()` 返回 `void`；`Window` 无公开 `SetContent`，根内容用 `root(Col/Row/Grid)`（走 `SetRootLayout`）。
-- **控件专属糖**（**SFINAE 门控**：仅当控件有该方法时才存在）：`text/checked/value/placeholder/padding/category/series/slice/item/menu`；另有 `Page()`/`Menu()`/`Settings()` 短工厂。
+- **`易错`**：不宜用 `with` 表达的（多步、条件、需要迭代）用 `apply(lambda)`，避免链断掉。普通类型转换告警也顺手消掉：`.with(&TextBox::SetWidth, 220)` 传 `int` 会报 `C4244`，直接用 `.width(220.0f)`。
+- **容器 `add()` 按真实接口分派**：`ColumnBox`/`RowBox`/`Label` → `AddChild`；`PageHost` → `AddPage`（非 `Page` 实参会被跳过）；`GridLayout` 需要坐标，用 `.cell(row,col,child[,rowSpan,colSpan])` 或 `dsl::Cell(...)`。空元素（`nullptr` / 空 `Ref`）一律被忽略，不会解引用空指针。
+- **Grid 坐标**：`Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))` 显式定位；也仍接受**裸子元素**（沿用旧行为，按出现顺序排 `(i,0)`，现有代码不受影响）。
+- **窗口构建器**：`dsl::App()` → `WindowApp`（链式 `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`；信号用 `on<&Window::Closed>(...)`）。`root()` 接受**任意 `Layout` 子类**（`Col`/`Row`/`Grid` 都行），`titleBar/menuBar/statusBar` 可直接收 `Ref<T>`。
+- **`易错`**：`Window::Create` **不显示窗口**（何时显示由应用决定），所以 `WindowApp::run()` 内部会补 `Show()`；要隐藏启动就调 `.hidden()`。`WindowApp` 可移动、不可拷贝。`Window::Run()` 返回 `void`；`Window` 无公开 `SetContent`，根内容走 `root(...)`。
+- **控件专属糖**（**SFINAE 门控**：仅当控件有该方法时才存在）：`text/checked/value/placeholder/padding(float 与 Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f 与 h,v)/align/image/imageFit`；短工厂另有 `Page()`/`Menu()`/`Settings()`/`RadioGroup()`/`ScrollBar()`/`Glyph()`。
+- **`易错`**：`Image` 不是 `UIElement`（是资源对象），所以没有 `Ref<Image>` 工厂 —— 用 `Label` 上的 `.image(Image::FromFile(...)).imageFit(true)`。
+
 
 ###chapter: 无障碍与调试通道 | UIA + SetDebugEnabled（v1.17.0）
 
@@ -1308,7 +1354,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.19.7
+###chapter: 版本变化摘录 | v1.15.0 → v1.20.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1360,6 +1406,14 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
   - 新增 `TODO.md`（合并原 `FEATURE_PLAN.md`/`OPTIMIZATION_PLAN.md`，唯一权威待办清单）。
+- **v1.20.0**：
+  - **DSL**：`root()` 改为接受**任意 `Layout` 子类**（原先只有 `Col` 有专门重载，`Row`/`Grid` 会因「`Ref` → `shared_ptr<Layout>` 需要**两次用户定义转换**」而编译失败）；`titleBar/menuBar/statusBar` 同样可直接收 `Ref<T>`。
+  - **DSL**：`add()` 按容器的真实接口分派（`ColumnBox`/`RowBox`/`Label` → `AddChild`；`PageHost` → `AddPage`，非 `Page` 实参跳过；`GridLayout` 改走坐标 API）。新增 `dsl::Cell(row,col,child[,rowSpan,colSpan])` 与 `Ref::cell`、`apply()` 逃生口、`Wrap()`。
+  - **DSL**：补齐快捷——尺寸上下限（`minWidth/minHeight/maxWidth/maxHeight/minSize/maxSize`）、拉伸权重（`weight/hWeight/vWeight`）、`cache/bleed/clipRect/noClip/cursor/dropTarget/contextMenuEnabled/accessible`、`spacing`（`Col`/`Row` 单参、`GridLayout` 双参）、`padding(Thickness)`、`background/textColor`、`align`（GridLayout）；控件糖新增 `image/imageFit/items/rows/cols/header/cell/root(s)/separator/submenu`；工厂新增 `RadioGroup()/ScrollBar()/Glyph()`（`Image` 是资源对象而非 `UIElement`，故不做工厂，走 `Label::SetImage` 糖）。
+  - **DSL**：`WindowApp::run()` **补上 `Show()`**——`Window::Create` 本身不显示窗口，原实现会跑一个**没有窗口的消息循环**（表现为卡死）；新增 `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` 与窗口信号 `on<&Window::Closed>`（`Window` 的信号是裸成员、没有 `Connect`）；`WindowApp` 改为**可移动**（内部改持 `unique_ptr<Window>`，因为 `Window` 自身既不可拷贝也不可移动）。
+  - **修复**：`ColumnBox`/`RowBox`/`GridLayout::AddChild` 补**空值守卫**——DSL 的 variadic 转发可能送来 `nullptr`，原实现会解引用空指针。
+  - **修复**：`ZufyUIWindowTool.h` **自身不完整**——它用到 `Label`/`Button`/`ColumnBox::AddChild` 却未 include `ZufyUIWidgets.h`，一直依赖调用方先包含（`pch.h` 恰好是这个顺序）；已补上，该头现在可单独包含。
+  - **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 `C2143/C2259/C2888/C4819`）、`tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1`（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。
 
 ###chapter: 易错点总表 | 按主题速查
 
@@ -1374,6 +1428,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **多行编辑**：`AcceptsTab` 为真时 Tab 是缩进；富文本只读；换行宽度变化重建全部行 layout。
 - **滚动条**：宿主用 `ShrunkWidthRatio` 预留槽位；空闲缩小是**惰性**的。
 - **无障碍/调试**：角色决定暴露的 UIA Pattern；调试命令发送要带超时。
+- **DSL（`ZufyUIDsl.h`，可选）**：`root()` 收任意 `Layout` 子类；`add()` 按容器真实接口分派（`GridLayout` 必须用 `.cell(row,col,child)` 或 `dsl::Cell(...)`）；空元素（`nullptr` / 空 `Ref`）一律被忽略；`with()` 只接成员函数指针，多步逻辑用 `apply(lambda)`；`WindowApp::run()` 会 `Show()`（`Window::Create` 不显示窗口），隐藏启动用 `.hidden()`。
 
 ###chapter: 附录 | 默认值与信号索引
 

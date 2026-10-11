@@ -245,13 +245,21 @@ pre { line-height: 125%; }
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `{{ZUFYUI_VERSION}}`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.20.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
-  - 新增 `TODO.md`（合并原 `FEATURE_PLAN.md`/`OPTIMIZATION_PLAN.md`，唯一权威待办清单）。</pre></div></div>
+  - 新增 `TODO.md`（合并原 `FEATURE_PLAN.md`/`OPTIMIZATION_PLAN.md`，唯一权威待办清单）。
+- **v1.20.0**：
+  - **DSL**：`root()` 改为接受**任意 `Layout` 子类**（原先只有 `Col` 有专门重载，`Row`/`Grid` 会因「`Ref` → `shared_ptr&lt;Layout&gt;` 需要**两次用户定义转换**」而编译失败）；`titleBar/menuBar/statusBar` 同样可直接收 `Ref&lt;T&gt;`。
+  - **DSL**：`add()` 按容器的真实接口分派（`ColumnBox`/`RowBox`/`Label` → `AddChild`；`PageHost` → `AddPage`，非 `Page` 实参跳过；`GridLayout` 改走坐标 API）。新增 `dsl::Cell(row,col,child[,rowSpan,colSpan])` 与 `Ref::cell`、`apply()` 逃生口、`Wrap()`。
+  - **DSL**：补齐快捷——尺寸上下限（`minWidth/minHeight/maxWidth/maxHeight/minSize/maxSize`）、拉伸权重（`weight/hWeight/vWeight`）、`cache/bleed/clipRect/noClip/cursor/dropTarget/contextMenuEnabled/accessible`、`spacing`（`Col`/`Row` 单参、`GridLayout` 双参）、`padding(Thickness)`、`background/textColor`、`align`（GridLayout）；控件糖新增 `image/imageFit/items/rows/cols/header/cell/root(s)/separator/submenu`；工厂新增 `RadioGroup()/ScrollBar()/Glyph()`（`Image` 是资源对象而非 `UIElement`，故不做工厂，走 `Label::SetImage` 糖）。
+  - **DSL**：`WindowApp::run()` **补上 `Show()`**——`Window::Create` 本身不显示窗口，原实现会跑一个**没有窗口的消息循环**（表现为卡死）；新增 `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` 与窗口信号 `on&lt;&amp;Window::Closed&gt;`（`Window` 的信号是裸成员、没有 `Connect`）；`WindowApp` 改为**可移动**（内部改持 `unique_ptr&lt;Window&gt;`，因为 `Window` 自身既不可拷贝也不可移动）。
+  - **修复**：`ColumnBox`/`RowBox`/`GridLayout::AddChild` 补**空值守卫**——DSL 的 variadic 转发可能送来 `nullptr`，原实现会解引用空指针。
+  - **修复**：`ZufyUIWindowTool.h` **自身不完整**——它用到 `Label`/`Button`/`ColumnBox::AddChild` 却未 include `ZufyUIWidgets.h`，一直依赖调用方先包含（`pch.h` 恰好是这个顺序）；已补上，该头现在可单独包含。
+  - **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 `C2143/C2259/C2888/C4819`）、`tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1`（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 21 章 · 版本变化摘录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.19.7</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.20.0</p></header><blockquote>
 <p>只列<strong>对你写代码有影响</strong>的显著变化。</p>
 </blockquote>
 <ul>
@@ -298,11 +306,19 @@ pre { line-height: 125%; }
 <li><strong>v1.19.6</strong>：</li>
 <li>修复：<code>ListView</code> 按钮模式下勾选框<strong>命中位置少偏移 4px</strong>（与绘制/子元素左边界对齐）。</li>
 <li>修复：<code>Label::MeasureOverride</code> 的 Wrap 分支<strong>漏算内联子控件宽度</strong>（带 <code>AddChild</code> 的换行 Label 文本会挤压/溢出）。</li>
-<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>{{ZUFYUI_VERSION}}</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
+<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.20.0</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
 <li><strong>v1.19.7</strong>：</li>
 <li>修复：<code>ChartBase</code> 横/纵滚动条占位写反（<code>viewW</code> 用竖条、<code>viewH</code> 用横条）→ 最右/最底滚不到；<code>NumberBox</code> 滚轮焦点判断（焦点在内部 <code>TextBox</code>）；<code>lastActiveAnimElements_</code> 悬垂（析构时从动画集合擦除，防随机崩溃）；<code>Menu::ShowAt</code> 非 <code>shared_ptr</code> 时抛 <code>bad_weak_ptr</code>；<code>ChildrenSig</code> 缺 <code>EnsureView</code>；<code>TreeView::SetDefaultExpandDepth</code> 对 <code>AddRoot</code>/<code>AddChild</code> 不生效。</li>
 <li>修复：<code>ColumnBox</code>/<code>RowBox</code> spacing 按“参与布局的子元素数”算；<code>GridLayout</code> 行列数过滤不可见元素；<code>Label</code> 换行漏算子控件宽度 / 多算一个间距；<code>ListView</code>/<code>TableView</code> 释放 Label 前清 <code>childrenView_</code>、补释放池化/富项/单元格 Label；<code>Window::defaultIMC_</code> 改 <code>ImmAssociateContext</code>；<code>DragData::GetFiles</code> 缓冲 <code>len+1</code>；<code>TextEdit</code> 清选区补发 <code>SelectionChanged</code>；<code>MessageBox</code> 默认标题本地化。</li>
 <li>新增 <code>TODO.md</code>（合并原 <code>FEATURE_PLAN.md</code>/<code>OPTIMIZATION_PLAN.md</code>，唯一权威待办清单）。</li>
+<li><strong>v1.20.0</strong>：</li>
+<li><strong>DSL</strong>：<code>root()</code> 改为接受<strong>任意 <code>Layout</code> 子类</strong>（原先只有 <code>Col</code> 有专门重载，<code>Row</code>/<code>Grid</code> 会因「<code>Ref</code> → <code>shared_ptr&lt;Layout&gt;</code> 需要<strong>两次用户定义转换</strong>」而编译失败）；<code>titleBar/menuBar/statusBar</code> 同样可直接收 <code>Ref&lt;T&gt;</code>。</li>
+<li><strong>DSL</strong>：<code>add()</code> 按容器的真实接口分派（<code>ColumnBox</code>/<code>RowBox</code>/<code>Label</code> → <code>AddChild</code>；<code>PageHost</code> → <code>AddPage</code>，非 <code>Page</code> 实参跳过；<code>GridLayout</code> 改走坐标 API）。新增 <code>dsl::Cell(row,col,child[,rowSpan,colSpan])</code> 与 <code>Ref::cell</code>、<code>apply()</code> 逃生口、<code>Wrap()</code>。</li>
+<li><strong>DSL</strong>：补齐快捷——尺寸上下限（<code>minWidth/minHeight/maxWidth/maxHeight/minSize/maxSize</code>）、拉伸权重（<code>weight/hWeight/vWeight</code>）、<code>cache/bleed/clipRect/noClip/cursor/dropTarget/contextMenuEnabled/accessible</code>、<code>spacing</code>（<code>Col</code>/<code>Row</code> 单参、<code>GridLayout</code> 双参）、<code>padding(Thickness)</code>、<code>background/textColor</code>、<code>align</code>（GridLayout）；控件糖新增 <code>image/imageFit/items/rows/cols/header/cell/root(s)/separator/submenu</code>；工厂新增 <code>RadioGroup()/ScrollBar()/Glyph()</code>（<code>Image</code> 是资源对象而非 <code>UIElement</code>，故不做工厂，走 <code>Label::SetImage</code> 糖）。</li>
+<li><strong>DSL</strong>：<code>WindowApp::run()</code> <strong>补上 <code>Show()</code></strong>——<code>Window::Create</code> 本身不显示窗口，原实现会跑一个<strong>没有窗口的消息循环</strong>（表现为卡死）；新增 <code>hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar</code> 与窗口信号 <code>on&lt;&amp;Window::Closed&gt;</code>（<code>Window</code> 的信号是裸成员、没有 <code>Connect</code>）；<code>WindowApp</code> 改为<strong>可移动</strong>（内部改持 <code>unique_ptr&lt;Window&gt;</code>，因为 <code>Window</code> 自身既不可拷贝也不可移动）。</li>
+<li><strong>修复</strong>：<code>ColumnBox</code>/<code>RowBox</code>/<code>GridLayout::AddChild</code> 补<strong>空值守卫</strong>——DSL 的 variadic 转发可能送来 <code>nullptr</code>，原实现会解引用空指针。</li>
+<li><strong>修复</strong>：<code>ZufyUIWindowTool.h</code> <strong>自身不完整</strong>——它用到 <code>Label</code>/<code>Button</code>/<code>ColumnBox::AddChild</code> 却未 include <code>ZufyUIWidgets.h</code>，一直依赖调用方先包含（<code>pch.h</code> 恰好是这个顺序）；已补上，该头现在可单独包含。</li>
+<li><strong>工程</strong>：新增 <code>tools/build.ps1</code>（一键：<strong>构建前自动补 BOM</strong> → 杀占用进程 → 构建 demo + <code>ZufyUIDebugger</code> → 跑自检）、<code>tools/ensure_bom.ps1</code>（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 <code>C2143/C2259/C2888/C4819</code>）、<code>tests/dsl_tests.cpp</code> + <code>tools/run_dsl_tests.ps1</code>（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.20.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a><a class="next" href="API.22.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">易错点总表</span><span class="nav-desc">按主题速查</span></a></nav>
         </main>

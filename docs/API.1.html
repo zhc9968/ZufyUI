@@ -205,11 +205,17 @@ pre { line-height: 125%; }
 - 所有内容位于 `namespace ZufyUI`。
 - 头文件**按使用分层**：
   - `ZufyUI.h`：核心——类型 / 信号槽 / 字体 / 元素基类 / 布局 / 菜单 / 窗口。
+  - `ZufyUIAcrylic.h`：手写 DComp 合成效果 + 官方亚克力/云母配方（由 `ZufyUI.h` 包含）。
   - `ZufyUIWidgets.h`：基础控件（Label/Button/TextBox/TextEdit/ComboBox/…/ScrollViewer/TabView/图标…），内部 `#include "ZufyUI.h"`。
   - `ZDataViewer.h`：数据视图（ListView/TableView/TreeView），依赖前两者。
   - `ZufyUICharts.h`：**图表（BarChart/LineChart/PieChart）**，依赖 `ZufyUI.h`。
-  - `ZufyUIWindowTool.h`：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）。
+  - `ZufyUIImages.h`：`Image` / `ImageManager`（图片加载与设备缓存）。
+  - `ZufyUIIcons.h`：`FontIcon` 字形控件（`Icon` 枚举本身在 `ZufyUIWidgets.h`）。
+  - `ZufyUIWindowTool.h`：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）；**自 v1.20.0 起自身包含 `ZufyUIWidgets.h`**，可单独包含。
+  - `ZufyUIDragDrop.h`：拖放（由 `ZufyUI.h` 末尾包含）。
+  - `ZufyUIDsl.h`：可选**链式构造 DSL**（纯附加，不修改任何现有控件）。
 - 全部是**纯头文件**；`#pragma comment(lib, ...)` 会自动链接 `d2d1 / dwrite / dwmapi / imm32 / winmm`。
+- **源码编码**：含中文的 `.h` / `.cpp` 必须存为 **UTF-8 带 BOM**（否则 MSVC 按本地代码页解析，报 `C2143/C2259/C2888/C4819`）；`.md` / `.tex` 存为 **UTF-8 无 BOM**。
 
 ## 单位
 
@@ -248,11 +254,17 @@ pre { line-height: 125%; }
 <li>所有内容位于 <code>namespace ZufyUI</code>。</li>
 <li>头文件<strong>按使用分层</strong>：</li>
 <li><code>ZufyUI.h</code>：核心——类型 / 信号槽 / 字体 / 元素基类 / 布局 / 菜单 / 窗口。</li>
+<li><code>ZufyUIAcrylic.h</code>：手写 DComp 合成效果 + 官方亚克力/云母配方（由 <code>ZufyUI.h</code> 包含）。</li>
 <li><code>ZufyUIWidgets.h</code>：基础控件（Label/Button/TextBox/TextEdit/ComboBox/…/ScrollViewer/TabView/图标…），内部 <code>#include "ZufyUI.h"</code>。</li>
 <li><code>ZDataViewer.h</code>：数据视图（ListView/TableView/TreeView），依赖前两者。</li>
 <li><code>ZufyUICharts.h</code>：<strong>图表（BarChart/LineChart/PieChart）</strong>，依赖 <code>ZufyUI.h</code>。</li>
-<li><code>ZufyUIWindowTool.h</code>：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）。</li>
+<li><code>ZufyUIImages.h</code>：<code>Image</code> / <code>ImageManager</code>（图片加载与设备缓存）。</li>
+<li><code>ZufyUIIcons.h</code>：<code>FontIcon</code> 字形控件（<code>Icon</code> 枚举本身在 <code>ZufyUIWidgets.h</code>）。</li>
+<li><code>ZufyUIWindowTool.h</code>：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）；<strong>自 v1.20.0 起自身包含 <code>ZufyUIWidgets.h</code></strong>，可单独包含。</li>
+<li><code>ZufyUIDragDrop.h</code>：拖放（由 <code>ZufyUI.h</code> 末尾包含）。</li>
+<li><code>ZufyUIDsl.h</code>：可选<strong>链式构造 DSL</strong>（纯附加，不修改任何现有控件）。</li>
 <li>全部是<strong>纯头文件</strong>；<code>#pragma comment(lib, ...)</code> 会自动链接 <code>d2d1 / dwrite / dwmapi / imm32 / winmm</code>。</li>
+<li><strong>源码编码</strong>：含中文的 <code>.h</code> / <code>.cpp</code> 必须存为 <strong>UTF-8 带 BOM</strong>（否则 MSVC 按本地代码页解析，报 <code>C2143/C2259/C2888/C4819</code>）；<code>.md</code> / <code>.tex</code> 存为 <strong>UTF-8 无 BOM</strong>。</li>
 </ul>
 <h2 id="单位">单位</h2>
 <ul>
