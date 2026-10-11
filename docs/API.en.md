@@ -1250,6 +1250,8 @@ Ref<ColumnBox> Col(children...);   Ref<RowBox> Row(...);   Ref<GridLayout> Grid(
 - Usage: `using namespace ZufyUI::dsl;` then `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`. Do **not** also `using namespace ZufyUI;` (`Slider/Card/Expander/MenuBar/StatusBar` factories clash with class names) — or qualify with `dsl::`.
 - **`Pitfall`**: `with(&T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast<...>(&T::SetX)`; functions with **default arguments** (e.g. `ListView::AddItem`) can't be called via a member pointer with defaults → use `->AddItem(...)`.
 - **`Pitfall`**: `GridLayout` has no single-arg `AddChild`; `Grid(...)` uses `(child,row,col)`. `Ref<T>` and `shared_ptr` interconvert; a `Ref<Derived>` can go straight into `AddChild/SetContent`.
+- **Window builder**: `dsl::App()` → `WindowApp` (chain `size/title/resizable/corner/backdrop/root/titleBar/menuBar/statusBar`; `run()` does `Create → apply → Run`). `Window::Run()` returns `void`; `Window` has no public `SetContent` — set the root via `root(Col/Row/Grid)` (goes through `SetRootLayout`).
+- **Per-control sugar** (**SFINAE-gated**: exists only when the control has the method): `text/checked/value/placeholder/padding/category/series/slice/item/menu`; plus `Page()`/`Menu()`/`Settings()` short factories.
 
 ###chapter: Accessibility & Debug Channel | UIA + SetDebugEnabled (v1.17.0)
 
@@ -1283,7 +1285,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.19.4
+###chapter: Version digest | v1.15.0 → v1.19.5
 
 > Only the changes that affect your code are listed.
 
@@ -1324,6 +1326,9 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - `ListView/TableView` `RefreshChildren` cache criteria collapsed into a **single signature** `ChildrenSig()` (criteria in one place, harder to forget); consistent with `TreeView`.
   - `ChartBase::MeasureOverride`: falls back to `420×260` when `fill` but unconstrained/no size (no longer collapses to 0).
   - `Window::SetMinSize` default content measure gets a **600 DIP** width floor; `pch.h` `ZufyUI_DEBUG` now `#ifdef _DEBUG`; `Theme::HighContrast` role colors distinguished (no longer all-yellow).
+- **v1.19.5**:
+  - DSL enhancements: `dsl::App()` / `WindowApp` window builder (fluent config + `run()`); `Page()/Menu()/Settings()` short factories; **SFINAE-gated** per-control sugar (`text/checked/value/placeholder/padding/category/series/slice/item/menu`).
+  - The demo "DSL" page uses the sugar and chart composition (`Pie().slice(...)`, `Bar().category(...).series(...)`, `Progress().value(...)`).
 
 ###chapter: Pitfall index | Quick lookup by topic
 

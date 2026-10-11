@@ -26,7 +26,7 @@ ZufyUI is a **header-only** Windows desktop UI framework built directly on Direc
 - **Card components**: collapsible card `Expander` (easing + rotating arrow + header hover highlight + `SetIcon`), settings row list `SettingsList`; image display via `Label::SetImage` + `SetImageFit` (fit to fully visible, drag-out).
 - **Window chrome**: top **menu bar** `MenuBar` (VS-style; overlays the custom title bar by default, switchable) and bottom **status bar** `StatusBar` (left/right panels: icon + text).
 - **Theme system**: semantic `Theme` palette (light / dark / high-contrast), app- and window-level switching, **follows the system** light/dark + accent (auto re-resolve on `WM_SETTINGCHANGE` etc.), `ThemeManager::Map` color remap; **explicit instance colors win** (once set, the theme won't override them).
-- **Fluent construction DSL** (`ZufyUIDsl.h`, optional): `Ref<T>` with `with/on/add`, `Make`/`Col`/`Row`/`Grid`, and per-control short factories — assemble controls / subtrees / signals in one expression.
+- **Fluent construction DSL** (`ZufyUIDsl.h`, optional): `Ref<T>` with `with/on/add`, `Make`/`Col`/`Row`/`Grid`, and per-control short factories — assemble controls / subtrees / signals in one expression; includes a `dsl::App()` window builder and SFINAE-gated per-control sugar.
 - **Complete animation and transitions**: hover, expand, indicator bar, and page switching (`PageHost`) all have built-in animations, and scrolling supports smooth scrolling.
 - **High-DPI adaptation**: automatically aware of DPI; `Snap()` snaps drawing to physical pixels to avoid blurriness.
 - **IME compatibility**: text boxes support Chinese IME composition input and candidate window positioning.

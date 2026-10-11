@@ -2160,7 +2160,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         col->AddChild(
             Row(
                 makeBtn(L"+1", 1), makeBtn(L"+10", 10), makeBtn(L"-1", -1),
-                Check(L"复选").with(&CheckBox::SetChecked, true),
+                Check(L"复选").checked(true),
                 Toggle(false).on<&ToggleSwitch::Toggled>([](bool) {})
             ).with(&RowBox::SetSpacing, 8.0f).shared());
         col->AddChild(counter.shared());
@@ -2188,6 +2188,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         tbi.on<&TextBox::TextChanged>([echo](const std::wstring& s) { echo->SetText(L"输入回显：" + s); });
         col->AddChild(Row(tbi.shared(), echo.shared()).with(&RowBox::SetSpacing, 8.0f).shared());
 
+        col->AddChild(Progress().value(0.65f).width(160).height(22).shared());
+        col->AddChild(
+            Row(
+                Pie().size(220, 170).slice(L"A", 3).slice(L"B", 5).slice(L"C", 2),
+                Bar().size(360, 170).category(L"一").category(L"二").category(L"三")
+                         .series(L"甲", { 3, 5, 2 }).series(L"乙", { 2, 4, 6 })
+            ).with(&RowBox::SetSpacing, 8.0f).shared());
         pageDsl->SetLayout(Scroll().fill(true).with(&ScrollViewer::SetContent, col.shared()).shared());
     }
     mainHost->AddPage(pageDsl);

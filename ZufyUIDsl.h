@@ -9,6 +9,7 @@
 #include "ZufyUIWidgets.h"
 #include "ZDataViewer.h"
 #include "ZufyUICharts.h"
+#include <type_traits>
 
 namespace ZufyUI {
 namespace dsl {
@@ -67,6 +68,28 @@ namespace dsl {
         Ref& enabled(bool on = true)    { return with(&T::SetEnabled, on); }
         Ref& tooltip(const std::wstring& s) { return with(&T::SetToolTip, s); }
 
+        // ---- 控件专属糖：SFINAE 门控 —— 仅当 T 有对应方法时才存在（不会误用/报错）----
+        template<class U = T, class = std::void_t<decltype(std::declval<U&>().SetText(std::declval<const std::wstring&>()))>>
+        Ref& text(const std::wstring& s) { if (p_) p_->SetText(s); return *this; }
+        template<class U = T, class = std::void_t<decltype(std::declval<U&>().SetChecked(true))>>
+        Ref& checked(bool on = true) { if (p_) p_->SetChecked(on); return *this; }
+        template<class U = T, class = std::void_t<decltype(std::declval<U&>().SetValue(1.0f))>>
+        Ref& value(float v) { if (p_) p_->SetValue(v); return *this; }
+        template<class U = T, class = std::void_t<decltype(std::declval<U&>().SetPlaceholder(std::declval<const std::wstring&>()))>>
+        Ref& placeholder(const std::wstring& s) { if (p_) p_->SetPlaceholder(s); return *this; }
+        template<class U = T, class = std::void_t<decltype(std::declval<U&>().SetPadding(0.0f))>>
+        Ref& padding(float v) { if (p_) p_->SetPadding(v); return *this; }
+        template<class U = T, class = std::void_t<decltype(std::declval<U&>().AddCategory(std::declval<const std::wstring&>()))>>
+        Ref& category(const std::wstring& c) { if (p_) p_->AddCategory(c); return *this; }
+        template<class U = T, class = std::void_t<decltype(std::declval<U&>().AddSeries(std::declval<const std::wstring&>(), std::declval<const std::vector<double>&>()))>>
+        Ref& series(const std::wstring& name, std::vector<double> v) { if (p_) p_->AddSeries(name, std::move(v)); return *this; }
+        template<class U = T, class = std::void_t<decltype(std::declval<U&>().AddItem(std::declval<const std::wstring&>(), std::declval<std::function<void()>>()))>>
+        Ref& item(const std::wstring& t, std::function<void()> cb = nullptr) { if (p_) p_->AddItem(t, std::move(cb)); return *this; }
+        template<class U = T, class = std::void_t<decltype(std::declval<U&>().AddMenu(std::declval<const std::wstring&>(), std::declval<std::shared_ptr<Menu>>()))>>
+        Ref& menu(const std::wstring& title, std::shared_ptr<Menu> m) { if (p_) p_->AddMenu(title, std::move(m)); return *this; }
+        template<class U = T, class = std::void_t<decltype(std::declval<U&>().AddSlice(std::declval<const std::wstring&>(), 0.0))>>
+        Ref& slice(const std::wstring& label, double v) { if (p_) p_->AddSlice(label, v); return *this; }
+
     private:
         std::shared_ptr<T> p_;
     };
@@ -108,8 +131,56 @@ namespace dsl {
     inline Ref<ZufyUI::Card> Card(){ return Make<ZufyUI::Card>(); }
     inline Ref<ZufyUI::Expander> Expander(const std::wstring& title = L"", const std::wstring& sub = L""){ return Make<ZufyUI::Expander>(title, sub); }
     inline Ref<PageHost> Pages(){ return Make<PageHost>(); }
+    inline Ref<ZufyUI::Page> Page(){ return Make<ZufyUI::Page>(); }
+    inline Ref<ZufyUI::Menu> Menu(){ return Make<ZufyUI::Menu>(); }
+    inline Ref<SettingsList> Settings(){ return Make<SettingsList>(); }
     inline Ref<ZufyUI::MenuBar> MenuBar(){ return Make<ZufyUI::MenuBar>(); }
     inline Ref<ZufyUI::StatusBar> StatusBar(){ return Make<ZufyUI::StatusBar>(); }
+
+    // ---------- 窗口构建器（链式配置 + run）----------
+    //   auto app = dsl::App();  app.title(...).size(...).backdrop(...).root(Col(...)).run();
+    class WindowApp {
+    public:
+        WindowApp() = default;
+        WindowApp(const WindowApp&) = delete;
+        WindowApp& operator=(const WindowApp&) = delete;
+
+        WindowApp& size(int w, int h) { w_ = w; h_ = h; return *this; }
+        WindowApp& title(const std::wstring& t) { title_ = t; return *this; }
+        WindowApp& resizable(bool on = true) { resizable_ = on; resizableSet_ = true; return *this; }
+        WindowApp& corner(ZufyUI::Window::WindowCorner c) { corner_ = c; cornerSet_ = true; return *this; }
+        WindowApp& backdrop(ZufyUI::Backdrop b, DWORD tint = 0) { backdrop_ = b; tint_ = tint; backdropSet_ = true; return *this; }
+        WindowApp& root(std::shared_ptr<Layout> l) { root_ = std::move(l); return *this; }
+        WindowApp& root(Ref<ColumnBox> l) { root_ = l.shared(); return *this; }
+        WindowApp& titleBar(std::shared_ptr<UIElement> b) { titleBar_ = std::move(b); return *this; }
+        WindowApp& menuBar(std::shared_ptr<UIElement> b) { menuBar_ = std::move(b); return *this; }
+        WindowApp& statusBar(std::shared_ptr<UIElement> b) { statusBar_ = std::move(b); return *this; }
+
+        ZufyUI::Window& window() { return win_; }
+        int run() {
+            if (!win_.Create(w_, h_, title_)) return 1;
+            if (resizableSet_) win_.SetResizable(resizable_);
+            if (cornerSet_) win_.SetWindowCorner(corner_);
+            if (backdropSet_) win_.SetBackdrop(backdrop_, tint_);
+            if (titleBar_) win_.SetCustomTitleBar(titleBar_);
+            if (menuBar_) win_.SetMenuBar(menuBar_);
+            if (statusBar_) win_.SetStatusBar(statusBar_);
+            if (root_) win_.SetRootLayout(root_);
+            win_.Run();
+            return 0;
+        }
+
+    private:
+        ZufyUI::Window win_;
+        int w_ = 1000, h_ = 700;
+        std::wstring title_ = L"ZufyUI";
+        bool resizable_ = true, resizableSet_ = false;
+        ZufyUI::Window::WindowCorner corner_ = ZufyUI::Window::WindowCorner::Round; bool cornerSet_ = false;
+        ZufyUI::Backdrop backdrop_ = ZufyUI::Backdrop::None; DWORD tint_ = 0; bool backdropSet_ = false;
+        std::shared_ptr<Layout> root_;
+        std::shared_ptr<UIElement> titleBar_, menuBar_, statusBar_;
+    };
+    inline WindowApp App() { return WindowApp{}; }
 
 } // namespace dsl
 } // namespace ZufyUI
