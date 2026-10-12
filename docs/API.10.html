@@ -229,8 +229,10 @@ class RadioGroup  { enum class Orientation { Vertical, Horizontal };
 ```cpp
 ZSignal&lt;bool&gt; Toggled;   void SetOn(bool);  bool IsOn() const;
 void SetIndeterminate(bool);   // 半选外观
+inline static float DefaultAnimationDuration;   // 一次完整动画时长(秒)，默认 0.25
 ```
 - 默认 50×24。
+- **`版本`**：`v1.21.0` 起滑块/底色/悬停改为**时长驱动 ease-in-out**（`DefaultAnimationDuration`，默认 0.25s），到点精确结束、不再持续重绘；此前是线性推进（`animSpeed_=9.6` 时 0→1 仅约 0.10s，看起来像瞬变）。`SetAnimationSpeed` 仍保留"越大越快"（换算成时长倍率）。
 
 ## Slider
 
@@ -259,14 +261,14 @@ void SetDefaultValue(double);  void ResetToDefault();
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0f16e544', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-29f66f08', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">State</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Unchecked</span><span class="p">,</span><span class="w"> </span><span class="n">PartiallyChecked</span><span class="p">,</span><span class="w"> </span><span class="n">Checked</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">State</span><span class="o">&gt;</span><span class="w"> </span><span class="n">StateChanged</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetChecked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetState</span><span class="p">(</span><span class="n">State</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">Toggle</span><span class="p">();</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTriState</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">DrawBox</span><span class="p">(...);</span><span class="w">   </span><span class="c1">// 可复用的勾选框绘制（数据视图也用）</span>
 </pre></div>
-<pre id="code-0f16e544" style="display: none;">enum class State { Unchecked, PartiallyChecked, Checked };
+<pre id="code-29f66f08" style="display: none;">enum class State { Unchecked, PartiallyChecked, Checked };
 ZSignal&lt;bool&gt; Toggled;   ZSignal&lt;State&gt; StateChanged;
 void SetChecked(bool);  void SetState(State);  void Toggle();  void SetTriState(bool);
 static void DrawBox(...);   // 可复用的勾选框绘制（数据视图也用）</pre>
@@ -278,7 +280,7 @@ static void DrawBox(...);   // 可复用的勾选框绘制（数据视图也用�
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-76c5d6ed', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-4967cfec', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">RadioButton</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CheckedChanged</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetChecked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RadioGroup</span><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span>
@@ -286,7 +288,7 @@ static void DrawBox(...);   // 可复用的勾选框绘制（数据视图也用�
 <span class="w">                    </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">newIdx</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">oldIdx</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanging</span><span class="p">;</span><span class="w">   </span><span class="c1">// 返回 false 可否决</span>
 <span class="w">                    </span><span class="kt">int</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">selected</span><span class="o">=</span><span class="nb">false</span><span class="p">);</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">RadioButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetButton</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetItemCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedIndex</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-76c5d6ed" style="display: none;">class RadioButton { ZSignal&lt;bool&gt; CheckedChanged; ZSignal&lt;&gt; Clicked; void SetChecked(bool); ... };
+<pre id="code-4967cfec" style="display: none;">class RadioButton { ZSignal&lt;bool&gt; CheckedChanged; ZSignal&lt;&gt; Clicked; void SetChecked(bool); ... };
 class RadioGroup  { enum class Orientation { Vertical, Horizontal };
                     ZSignal&lt;int&gt; SelectionChanged;
                     std::function&lt;bool(int newIdx, int oldIdx)&gt; SelectionChanging;   // 返回 false 可否决
@@ -300,27 +302,30 @@ class RadioGroup  { enum class Orientation { Vertical, Horizontal };
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d89a1c78', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-f7ca273e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetOn</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsOn</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// 半选外观</span>
+<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">DefaultAnimationDuration</span><span class="p">;</span><span class="w">   </span><span class="c1">// 一次完整动画时长(秒)，默认 0.25</span>
 </pre></div>
-<pre id="code-d89a1c78" style="display: none;">ZSignal&lt;bool&gt; Toggled;   void SetOn(bool);  bool IsOn() const;
-void SetIndeterminate(bool);   // 半选外观</pre>
+<pre id="code-f7ca273e" style="display: none;">ZSignal&lt;bool&gt; Toggled;   void SetOn(bool);  bool IsOn() const;
+void SetIndeterminate(bool);   // 半选外观
+inline static float DefaultAnimationDuration;   // 一次完整动画时长(秒)，默认 0.25</pre>
 </div>
 <ul>
 <li>默认 50×24。</li>
+<li><strong><code>版本</code></strong>：<code>v1.21.0</code> 起滑块/底色/悬停改为<strong>时长驱动 ease-in-out</strong>（<code>DefaultAnimationDuration</code>，默认 0.25s），到点精确结束、不再持续重绘；此前是线性推进（<code>animSpeed_=9.6</code> 时 0→1 仅约 0.10s，看起来像瞬变）。<code>SetAnimationSpeed</code> 仍保留"越大越快"（换算成时长倍率）。</li>
 </ul>
 <h2 id="slider">Slider</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-192dfee2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-499294ad', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">SliderReleased</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetRange</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">min</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">max</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStep</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSnapToStep</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 </pre></div>
-<pre id="code-192dfee2" style="display: none;">ZSignal&lt;float&gt; ValueChanged;   ZSignal&lt;&gt; SliderReleased;
+<pre id="code-499294ad" style="display: none;">ZSignal&lt;float&gt; ValueChanged;   ZSignal&lt;&gt; SliderReleased;
 void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);  void SetSnapToStep(bool);</pre>
 </div>
 <ul>
@@ -331,14 +336,14 @@ void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e0f265f6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-80bc2df1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">fire</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRange</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">lo</span><span class="p">,</span><span class="kt">double</span><span class="w"> </span><span class="n">hi</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetStep</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDecimals</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetWrap</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultValue</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ResetToDefault</span><span class="p">();</span>
 </pre></div>
-<pre id="code-e0f265f6" style="display: none;">ZSignal&lt;double&gt; ValueChanged;   ZSignal&lt;const std::wstring&amp;&gt; TextChanged;
+<pre id="code-80bc2df1" style="display: none;">ZSignal&lt;double&gt; ValueChanged;   ZSignal&lt;const std::wstring&amp;&gt; TextChanged;
 void SetValue(double, bool fire=true);  void SetRange(double lo,double hi);
 void SetStep(double);  void SetDecimals(int);  void SetWrap(bool);
 void SetDefaultValue(double);  void ResetToDefault();</pre>

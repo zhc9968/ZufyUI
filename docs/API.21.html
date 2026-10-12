@@ -245,7 +245,7 @@ pre { line-height: 125%; }
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.20.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.21.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
@@ -257,9 +257,22 @@ pre { line-height: 125%; }
   - **DSL**：`WindowApp::run()` **补上 `Show()`**——`Window::Create` 本身不显示窗口，原实现会跑一个**没有窗口的消息循环**（表现为卡死）；新增 `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` 与窗口信号 `on&lt;&amp;Window::Closed&gt;`（`Window` 的信号是裸成员、没有 `Connect`）；`WindowApp` 改为**可移动**（内部改持 `unique_ptr&lt;Window&gt;`，因为 `Window` 自身既不可拷贝也不可移动）。
   - **修复**：`ColumnBox`/`RowBox`/`GridLayout::AddChild` 补**空值守卫**——DSL 的 variadic 转发可能送来 `nullptr`，原实现会解引用空指针。
   - **修复**：`ZufyUIWindowTool.h` **自身不完整**——它用到 `Label`/`Button`/`ColumnBox::AddChild` 却未 include `ZufyUIWidgets.h`，一直依赖调用方先包含（`pch.h` 恰好是这个顺序）；已补上，该头现在可单独包含。
-  - **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 `C2143/C2259/C2888/C4819`）、`tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1`（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。</pre></div></div>
+  - **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 `C2143/C2259/C2888/C4819`）、`tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1`（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。
+- **v1.21.0**：
+  - **修复**：`Card` 悬停**闪出蓝色边框**——主题套用器给卡片设了 `SetHoverBorderColor(Accent)`，而卡片本没有这个行为；已移除（悬停仍改背景色）。
+  - **修复**：`ProgressBar` **拉伸后内填充圆角与外框对不上**——轨道、裁剪几何、边框三处用的仍是成员 `height_`（初始高度），只有填充用了实际高度；三处统一为 `arrangedRect_.height / 2`。
+  - **修复**：`Button` 文案**有空间却被省略号裁掉**——`MeasureOverride` 直接返回恒定 `width_`（构造时 `DefaultWidth=120`）；改为按文案撑开（`max(width_, 文案宽 + 2*padding)`），新增 `Button::AutoSizeToText`（静态，默认 `true`）与 `SetAutoSizeToText(false)`。**这是布局行为变更**。
+  - **新增**：`ToggleSwitch` 改**时长驱动 ease-in-out** 缓动（`DefaultAnimationDuration=0.25s`，到点精确结束）；修鼠标点击/键盘路径绕过 `SetOn` 导致动画不启动（表现为"瞬间开关"）。
+  - **新增**：`ProgressBar` 数值**缓动**（`DefaultValueAnimDuration=0.22s`，填充条与百分比文字同步）；同版本修 `ProgressBar` 悬停/数值在长空闲后一帧跳到位的观感问题（动画一律时长驱动）。
+  - **新增**：`SplitView` **折叠**能力——拖到边缘阈值内先出"即将折叠"覆盖层（半透明强调色 + 方向箭头，alpha 渐入渐出，**不改内容**），松手才折叠（尺寸带缓动到 0）；折叠后该侧显示小按钮（画在内容**之上**，圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后带缓动展开到最小极限值；`SetCollapseEnabled(false)` 可整体关闭。公开 API：`SetCollapseEnabled/IsCollapseEnabled/SetCollapseThreshold/CollapseFirst/CollapseSecond/Expand/IsFirstCollapsed/IsSecondCollapsed/GetCollapsedSide/IsCollapsing/GetCollapseProgress/SetExpandButtonColors/SetExpandButtonSize` + 信号 `CollapsedChanged(int)`。
+  - **新增**：`detail::EaseOutCubic` / `detail::EaseInOutCubic`（时长驱动缓动，库内动画统一口径）。
+  - **新增**：`ThemeRole::Shadow`（**追加在枚举末尾**，避免改动既有枚举值）+ 浅色/深色/高对比度取值；`UIElement::DefaultShadowColor`/`SetDefaultShadowColor`；`Window::SetBackdrop(Backdrop)` 跟随主题（带 `tint` 的重载表示锁定）+ `ApplyThemeToBackdropParams` 钩子。
+  - **修复**：`PieChart` Ctrl+滚轮**缩放无效**——`PieChart` 自己的 `zoom_` 遮蔽了 `ChartBase::zoom_`（委派基类只改基类那份）；现由饼图自己处理 Ctrl 并走 `SetZoom`。语义明确为 **Ctrl+滚轮 = 缩放 / 普通滚轮 = 只平移**。
+  - **修复**：图表滚轮平移"画面不动"——平移路径缺 `SyncScrollPositions()`（只改了 `scrollX_/scrollY_`，未重算 `baseX_/baseY_`）。
+  - **修复**：`ColumnBox` 会把**没有显式宽度的子元素**按可用宽度摆（横向不吃拉伸权值）→ 文档补充"想让卡片按内容收窄要放进 `Row`"；`SettingsList` 被放进 `Card` 自带 `GridLayout`（自动列给 `FLT_MAX`）时会退化成 0 宽 → 文档补充正确用法（`SetLayout(Col(...))` + `SetFillWidth(true)`）。
+  - **工程**：`tests/dsl_tests.cpp` 62 → **85** 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 21 章 · 版本变化摘录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.20.0</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.21.0</p></header><blockquote>
 <p>只列<strong>对你写代码有影响</strong>的显著变化。</p>
 </blockquote>
 <ul>
@@ -306,7 +319,7 @@ pre { line-height: 125%; }
 <li><strong>v1.19.6</strong>：</li>
 <li>修复：<code>ListView</code> 按钮模式下勾选框<strong>命中位置少偏移 4px</strong>（与绘制/子元素左边界对齐）。</li>
 <li>修复：<code>Label::MeasureOverride</code> 的 Wrap 分支<strong>漏算内联子控件宽度</strong>（带 <code>AddChild</code> 的换行 Label 文本会挤压/溢出）。</li>
-<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.20.0</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
+<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.21.0</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
 <li><strong>v1.19.7</strong>：</li>
 <li>修复：<code>ChartBase</code> 横/纵滚动条占位写反（<code>viewW</code> 用竖条、<code>viewH</code> 用横条）→ 最右/最底滚不到；<code>NumberBox</code> 滚轮焦点判断（焦点在内部 <code>TextBox</code>）；<code>lastActiveAnimElements_</code> 悬垂（析构时从动画集合擦除，防随机崩溃）；<code>Menu::ShowAt</code> 非 <code>shared_ptr</code> 时抛 <code>bad_weak_ptr</code>；<code>ChildrenSig</code> 缺 <code>EnsureView</code>；<code>TreeView::SetDefaultExpandDepth</code> 对 <code>AddRoot</code>/<code>AddChild</code> 不生效。</li>
 <li>修复：<code>ColumnBox</code>/<code>RowBox</code> spacing 按“参与布局的子元素数”算；<code>GridLayout</code> 行列数过滤不可见元素；<code>Label</code> 换行漏算子控件宽度 / 多算一个间距；<code>ListView</code>/<code>TableView</code> 释放 Label 前清 <code>childrenView_</code>、补释放池化/富项/单元格 Label；<code>Window::defaultIMC_</code> 改 <code>ImmAssociateContext</code>；<code>DragData::GetFiles</code> 缓冲 <code>len+1</code>；<code>TextEdit</code> 清选区补发 <code>SelectionChanged</code>；<code>MessageBox</code> 默认标题本地化。</li>
@@ -319,6 +332,19 @@ pre { line-height: 125%; }
 <li><strong>修复</strong>：<code>ColumnBox</code>/<code>RowBox</code>/<code>GridLayout::AddChild</code> 补<strong>空值守卫</strong>——DSL 的 variadic 转发可能送来 <code>nullptr</code>，原实现会解引用空指针。</li>
 <li><strong>修复</strong>：<code>ZufyUIWindowTool.h</code> <strong>自身不完整</strong>——它用到 <code>Label</code>/<code>Button</code>/<code>ColumnBox::AddChild</code> 却未 include <code>ZufyUIWidgets.h</code>，一直依赖调用方先包含（<code>pch.h</code> 恰好是这个顺序）；已补上，该头现在可单独包含。</li>
 <li><strong>工程</strong>：新增 <code>tools/build.ps1</code>（一键：<strong>构建前自动补 BOM</strong> → 杀占用进程 → 构建 demo + <code>ZufyUIDebugger</code> → 跑自检）、<code>tools/ensure_bom.ps1</code>（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 <code>C2143/C2259/C2888/C4819</code>）、<code>tests/dsl_tests.cpp</code> + <code>tools/run_dsl_tests.ps1</code>（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。</li>
+<li><strong>v1.21.0</strong>：</li>
+<li><strong>修复</strong>：<code>Card</code> 悬停<strong>闪出蓝色边框</strong>——主题套用器给卡片设了 <code>SetHoverBorderColor(Accent)</code>，而卡片本没有这个行为；已移除（悬停仍改背景色）。</li>
+<li><strong>修复</strong>：<code>ProgressBar</code> <strong>拉伸后内填充圆角与外框对不上</strong>——轨道、裁剪几何、边框三处用的仍是成员 <code>height_</code>（初始高度），只有填充用了实际高度；三处统一为 <code>arrangedRect_.height / 2</code>。</li>
+<li><strong>修复</strong>：<code>Button</code> 文案<strong>有空间却被省略号裁掉</strong>——<code>MeasureOverride</code> 直接返回恒定 <code>width_</code>（构造时 <code>DefaultWidth=120</code>）；改为按文案撑开（<code>max(width_, 文案宽 + 2*padding)</code>），新增 <code>Button::AutoSizeToText</code>（静态，默认 <code>true</code>）与 <code>SetAutoSizeToText(false)</code>。<strong>这是布局行为变更</strong>。</li>
+<li><strong>新增</strong>：<code>ToggleSwitch</code> 改<strong>时长驱动 ease-in-out</strong> 缓动（<code>DefaultAnimationDuration=0.25s</code>，到点精确结束）；修鼠标点击/键盘路径绕过 <code>SetOn</code> 导致动画不启动（表现为"瞬间开关"）。</li>
+<li><strong>新增</strong>：<code>ProgressBar</code> 数值<strong>缓动</strong>（<code>DefaultValueAnimDuration=0.22s</code>，填充条与百分比文字同步）；同版本修 <code>ProgressBar</code> 悬停/数值在长空闲后一帧跳到位的观感问题（动画一律时长驱动）。</li>
+<li><strong>新增</strong>：<code>SplitView</code> <strong>折叠</strong>能力——拖到边缘阈值内先出"即将折叠"覆盖层（半透明强调色 + 方向箭头，alpha 渐入渐出，<strong>不改内容</strong>），松手才折叠（尺寸带缓动到 0）；折叠后该侧显示小按钮（画在内容<strong>之上</strong>，圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后带缓动展开到最小极限值；<code>SetCollapseEnabled(false)</code> 可整体关闭。公开 API：<code>SetCollapseEnabled/IsCollapseEnabled/SetCollapseThreshold/CollapseFirst/CollapseSecond/Expand/IsFirstCollapsed/IsSecondCollapsed/GetCollapsedSide/IsCollapsing/GetCollapseProgress/SetExpandButtonColors/SetExpandButtonSize</code> + 信号 <code>CollapsedChanged(int)</code>。</li>
+<li><strong>新增</strong>：<code>detail::EaseOutCubic</code> / <code>detail::EaseInOutCubic</code>（时长驱动缓动，库内动画统一口径）。</li>
+<li><strong>新增</strong>：<code>ThemeRole::Shadow</code>（<strong>追加在枚举末尾</strong>，避免改动既有枚举值）+ 浅色/深色/高对比度取值；<code>UIElement::DefaultShadowColor</code>/<code>SetDefaultShadowColor</code>；<code>Window::SetBackdrop(Backdrop)</code> 跟随主题（带 <code>tint</code> 的重载表示锁定）+ <code>ApplyThemeToBackdropParams</code> 钩子。</li>
+<li><strong>修复</strong>：<code>PieChart</code> Ctrl+滚轮<strong>缩放无效</strong>——<code>PieChart</code> 自己的 <code>zoom_</code> 遮蔽了 <code>ChartBase::zoom_</code>（委派基类只改基类那份）；现由饼图自己处理 Ctrl 并走 <code>SetZoom</code>。语义明确为 <strong>Ctrl+滚轮 = 缩放 / 普通滚轮 = 只平移</strong>。</li>
+<li><strong>修复</strong>：图表滚轮平移"画面不动"——平移路径缺 <code>SyncScrollPositions()</code>（只改了 <code>scrollX_/scrollY_</code>，未重算 <code>baseX_/baseY_</code>）。</li>
+<li><strong>修复</strong>：<code>ColumnBox</code> 会把<strong>没有显式宽度的子元素</strong>按可用宽度摆（横向不吃拉伸权值）→ 文档补充"想让卡片按内容收窄要放进 <code>Row</code>"；<code>SettingsList</code> 被放进 <code>Card</code> 自带 <code>GridLayout</code>（自动列给 <code>FLT_MAX</code>）时会退化成 0 宽 → 文档补充正确用法（<code>SetLayout(Col(...))</code> + <code>SetFillWidth(true)</code>）。</li>
+<li><strong>工程</strong>：<code>tests/dsl_tests.cpp</code> 62 → <strong>85</strong> 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.20.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a><a class="next" href="API.22.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">易错点总表</span><span class="nav-desc">按主题速查</span></a></nav>
         </main>

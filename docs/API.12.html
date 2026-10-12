@@ -238,10 +238,16 @@ enum class Orientation { Vertical, Horizontal };   // Vertical = 左右两栏 + 
 ZSignal&lt;float&gt; SplitChanged;   // 新比例 0..1
 void SetFirst/SetSecond(std::shared_ptr&lt;UIElement&gt;);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
+ZSignal&lt;int&gt; CollapsedChanged;   // 0=未折叠 1=第一栏 2=第二栏
+void SetCollapseEnabled(bool);   bool IsCollapseEnabled() const;   void SetCollapseThreshold(float);
+void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/IsSecondCollapsed() const;
+void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
 bool UseCache() const override { return false; }
 ```
 - **`易错`**：`Orientation` 命名反直觉（`Vertical` 指竖直分隔条、水平排列两栏）。
-- **`版本`**：`v1.12.0`；NaN/Inf 守卫 `v1.14.0`。
+- **折叠（`v1.21.0`）**：把分隔条拖到**距某侧边缘 `CollapseThreshold`（默认 28px）内** → 该侧内容**上方**浮出半透明强调色覆盖层 + 指向折叠方向的箭头（alpha 渐入渐出）；**此时不改内容**，**松手**才真正折叠（该侧尺寸带缓动从当前值变为 0）。折叠后该侧边缘出现小按钮（圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后该侧尺寸带缓动从 0 变为**最小极限值**（`SetMinFirst/MinSecond`；未设则回到折叠前比例）。整个功能可 `SetCollapseEnabled(false)` 关闭。
+- **`易错`**：覆盖层与本控件内部的 `Overlay` 子元素有关——它是**最后一个子元素**（框架按子元素顺序绘制），所以天生画在两栏内容**之上**；不要试图在 `SplitView::Draw` 里画这类装饰（会被内容盖住）。
+- **`版本`**：`v1.12.0`；NaN/Inf 守卫 `v1.14.0`；折叠/小按钮 `v1.21.0`。
 
 ## TabView
 
@@ -263,7 +269,7 @@ void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransit
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-add58a0a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-14a943f3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ScrollBarVisibility</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Auto</span><span class="p">,</span><span class="w"> </span><span class="n">Always</span><span class="p">,</span><span class="w"> </span><span class="n">Hidden</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ScrollChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// (offsetX, offsetY)，动画中也发</span>
@@ -274,7 +280,7 @@ void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransit
 <span class="kt">void</span><span class="w"> </span><span class="nf">ScrollTo</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="kt">bool</span><span class="w"> </span><span class="n">animated</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ScrollBy</span><span class="p">(...);</span>
 <span class="kt">float</span><span class="w"> </span><span class="n">GetScrollOffsetX</span><span class="o">/</span><span class="n">Y</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-add58a0a" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
+<pre id="code-14a943f3" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
 ZSignal&lt;float,float&gt; ScrollChanged;   // (offsetX, offsetY)，动画中也发
 void SetContent(std::shared_ptr&lt;UIElement&gt;);
 void SetVertical/HorizontalScrollEnabled(bool);
@@ -291,7 +297,7 @@ float GetScrollOffsetX/Y() const;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5ddb1269', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-ba81e2c1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">animate</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
 <span class="k">explicit</span><span class="w"> </span><span class="n">ScrollBar</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">vertical</span><span class="p">);</span>
@@ -301,7 +307,7 @@ float GetScrollOffsetX/Y() const;</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetIdleDelay</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoShrink</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">MarkActive</span><span class="p">();</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">ShrunkWidthRatio</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认 0.30</span>
 </pre></div>
-<pre id="code-5ddb1269" style="display: none;">std::function&lt;void(float value, bool animate)&gt; ValueChanged;
+<pre id="code-ba81e2c1" style="display: none;">std::function&lt;void(float value, bool animate)&gt; ValueChanged;
 explicit ScrollBar(bool vertical);
 void SetRange(float value, float maxValue, float viewportSize);   // 宿主每帧推入
 void SetBarWidth(float);  void SetMinLength(float);  void SetHitExtra(float);
@@ -319,29 +325,39 @@ inline static float ShrunkWidthRatio;   // 默认 0.30</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-688acafe', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-9785fca1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// Vertical = 左右两栏 + 竖直分隔条</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SplitChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// 新比例 0..1</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">SetFirst</span><span class="o">/</span><span class="n">SetSecond</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetSplitRatio</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSplitterWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">SetMinFirst</span><span class="o">/</span><span class="n">MinSecond</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CollapsedChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// 0=未折叠 1=第一栏 2=第二栏</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCollapseEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsCollapseEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCollapseThreshold</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">CollapseFirst</span><span class="o">/</span><span class="n">CollapseSecond</span><span class="p">();</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">Expand</span><span class="p">();</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="n">IsFirstCollapsed</span><span class="o">/</span><span class="n">IsSecondCollapsed</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetExpandButtonColors</span><span class="p">(</span><span class="n">Color</span><span class="p">,</span><span class="n">Color</span><span class="p">,</span><span class="n">Color</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetExpandButtonSize</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">);</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 </pre></div>
-<pre id="code-688acafe" style="display: none;">enum class Orientation { Vertical, Horizontal };   // Vertical = 左右两栏 + 竖直分隔条
+<pre id="code-9785fca1" style="display: none;">enum class Orientation { Vertical, Horizontal };   // Vertical = 左右两栏 + 竖直分隔条
 ZSignal&lt;float&gt; SplitChanged;   // 新比例 0..1
 void SetFirst/SetSecond(std::shared_ptr&lt;UIElement&gt;);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
+ZSignal&lt;int&gt; CollapsedChanged;   // 0=未折叠 1=第一栏 2=第二栏
+void SetCollapseEnabled(bool);   bool IsCollapseEnabled() const;   void SetCollapseThreshold(float);
+void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/IsSecondCollapsed() const;
+void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
 bool UseCache() const override { return false; }</pre>
 </div>
 <ul>
 <li><strong><code>易错</code></strong>：<code>Orientation</code> 命名反直觉（<code>Vertical</code> 指竖直分隔条、水平排列两栏）。</li>
-<li><strong><code>版本</code></strong>：<code>v1.12.0</code>；NaN/Inf 守卫 <code>v1.14.0</code>。</li>
+<li><strong>折叠（<code>v1.21.0</code>）</strong>：把分隔条拖到<strong>距某侧边缘 <code>CollapseThreshold</code>（默认 28px）内</strong> → 该侧内容<strong>上方</strong>浮出半透明强调色覆盖层 + 指向折叠方向的箭头（alpha 渐入渐出）；<strong>此时不改内容</strong>，<strong>松手</strong>才真正折叠（该侧尺寸带缓动从当前值变为 0）。折叠后该侧边缘出现小按钮（圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后该侧尺寸带缓动从 0 变为<strong>最小极限值</strong>（<code>SetMinFirst/MinSecond</code>；未设则回到折叠前比例）。整个功能可 <code>SetCollapseEnabled(false)</code> 关闭。</li>
+<li><strong><code>易错</code></strong>：覆盖层与本控件内部的 <code>Overlay</code> 子元素有关——它是<strong>最后一个子元素</strong>（框架按子元素顺序绘制），所以天生画在两栏内容<strong>之上</strong>；不要试图在 <code>SplitView::Draw</code> 里画这类装饰（会被内容盖住）。</li>
+<li><strong><code>版本</code></strong>：<code>v1.12.0</code>；NaN/Inf 守卫 <code>v1.14.0</code>；折叠/小按钮 <code>v1.21.0</code>。</li>
 </ul>
 <h2 id="tabview">TabView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1498aba7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b784415a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Tab</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">label</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Page</span><span class="o">&gt;</span><span class="w"> </span><span class="n">page</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">TabCloseRequested</span><span class="p">;</span>
@@ -352,7 +368,7 @@ bool UseCache() const override { return false; }</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedIndex</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetSelectedIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionDirection</span><span class="p">(</span><span class="n">PageHost</span><span class="o">::</span><span class="n">TransitionDirection</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoTransitionDirection</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 </pre></div>
-<pre id="code-1498aba7" style="display: none;">struct Tab { std::shared_ptr&lt;Label&gt; label; std::shared_ptr&lt;Page&gt; page; bool closable; ... };
+<pre id="code-b784415a" style="display: none;">struct Tab { std::shared_ptr&lt;Label&gt; label; std::shared_ptr&lt;Page&gt; page; bool closable; ... };
 ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;int&gt; TabCloseRequested;
 int  AddTab(const std::wstring&amp;, std::shared_ptr&lt;UIElement&gt; content=nullptr, bool closable=false);
 int  AddTab(std::shared_ptr&lt;Label&gt;, ...);

@@ -238,10 +238,16 @@ enum class Orientation { Vertical, Horizontal };   // Vertical = left/right pane
 ZSignal&lt;float&gt; SplitChanged;
 void SetFirst/SetSecond(std::shared_ptr&lt;UIElement&gt;);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
+ZSignal&lt;int&gt; CollapsedChanged;   // 0=expanded 1=first pane 2=second pane
+void SetCollapseEnabled(bool);   bool IsCollapseEnabled() const;   void SetCollapseThreshold(float);
+void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/IsSecondCollapsed() const;
+void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
 bool UseCache() const override { return false; }
 ```
 - **`Pitfall`**: `Orientation` naming is counter-intuitive (`Vertical` = vertical splitter, horizontal arrangement).
-- **`Version`**: `v1.12.0`; NaN/Inf guard `v1.14.0`.
+- **Collapse (`v1.21.0`)**: drag the splitter to within `CollapseThreshold` (default 28px) of one side's edge → a translucent accent **overlay plus an arrow pointing in the collapse direction fades in ON TOP OF that pane's content** (the content is *not* changed yet); the pane actually collapses **on mouse release** (its size eases from the current value to 0). Once collapsed, a small button appears at that edge (rounded light grey + arrow pointing in the expand direction + hover easing); clicking it eases that side from 0 to its **minimum limit** (`SetMinFirst/MinSecond`, or back to the pre-collapse ratio if no minimum is set). The whole feature can be turned off with `SetCollapseEnabled(false)`.
+- **`Pitfall`**: the overlay is an internal `Overlay` **child element placed last** (the framework draws children in order), which is why it naturally ends up above both panes; do not try to paint such decorations from `SplitView::Draw` (the children would cover them).
+- **`Version`**: `v1.12.0`; NaN/Inf guard `v1.14.0`; collapse + expand button `v1.21.0`.
 
 ## TabView
 
@@ -263,7 +269,7 @@ void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransit
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5b4ec323', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-cb88fc11', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ScrollBarVisibility</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Auto</span><span class="p">,</span><span class="w"> </span><span class="n">Always</span><span class="p">,</span><span class="w"> </span><span class="n">Hidden</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ScrollChanged</span><span class="p">;</span>
@@ -274,7 +280,7 @@ void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransit
 <span class="kt">void</span><span class="w"> </span><span class="nf">ScrollTo</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="kt">bool</span><span class="w"> </span><span class="n">animated</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ScrollBy</span><span class="p">(...);</span>
 <span class="kt">float</span><span class="w"> </span><span class="n">GetScrollOffsetX</span><span class="o">/</span><span class="n">Y</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-5b4ec323" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
+<pre id="code-cb88fc11" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
 ZSignal&lt;float,float&gt; ScrollChanged;
 void SetContent(std::shared_ptr&lt;UIElement&gt;);
 void SetVertical/HorizontalScrollEnabled(bool);
@@ -291,7 +297,7 @@ float GetScrollOffsetX/Y() const;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ec3d963c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-4e30c727', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">animate</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
 <span class="k">explicit</span><span class="w"> </span><span class="n">ScrollBar</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">vertical</span><span class="p">);</span>
@@ -301,7 +307,7 @@ float GetScrollOffsetX/Y() const;</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetIdleDelay</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoShrink</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">MarkActive</span><span class="p">();</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">ShrunkWidthRatio</span><span class="p">;</span><span class="w">   </span><span class="c1">// default 0.30</span>
 </pre></div>
-<pre id="code-ec3d963c" style="display: none;">std::function&lt;void(float value, bool animate)&gt; ValueChanged;
+<pre id="code-4e30c727" style="display: none;">std::function&lt;void(float value, bool animate)&gt; ValueChanged;
 explicit ScrollBar(bool vertical);
 void SetRange(float value, float maxValue, float viewportSize);   // host pushes each frame
 void SetBarWidth(float);  void SetMinLength(float);  void SetHitExtra(float);
@@ -319,29 +325,39 @@ inline static float ShrunkWidthRatio;   // default 0.30</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-aa651b75', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-90a65e9e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// Vertical = left/right panes + vertical splitter</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SplitChanged</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">SetFirst</span><span class="o">/</span><span class="n">SetSecond</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetSplitRatio</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSplitterWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">SetMinFirst</span><span class="o">/</span><span class="n">MinSecond</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CollapsedChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// 0=expanded 1=first pane 2=second pane</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetCollapseEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsCollapseEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCollapseThreshold</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">CollapseFirst</span><span class="o">/</span><span class="n">CollapseSecond</span><span class="p">();</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">Expand</span><span class="p">();</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="n">IsFirstCollapsed</span><span class="o">/</span><span class="n">IsSecondCollapsed</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetExpandButtonColors</span><span class="p">(</span><span class="n">Color</span><span class="p">,</span><span class="n">Color</span><span class="p">,</span><span class="n">Color</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetExpandButtonSize</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">);</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 </pre></div>
-<pre id="code-aa651b75" style="display: none;">enum class Orientation { Vertical, Horizontal };   // Vertical = left/right panes + vertical splitter
+<pre id="code-90a65e9e" style="display: none;">enum class Orientation { Vertical, Horizontal };   // Vertical = left/right panes + vertical splitter
 ZSignal&lt;float&gt; SplitChanged;
 void SetFirst/SetSecond(std::shared_ptr&lt;UIElement&gt;);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
+ZSignal&lt;int&gt; CollapsedChanged;   // 0=expanded 1=first pane 2=second pane
+void SetCollapseEnabled(bool);   bool IsCollapseEnabled() const;   void SetCollapseThreshold(float);
+void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/IsSecondCollapsed() const;
+void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
 bool UseCache() const override { return false; }</pre>
 </div>
 <ul>
 <li><strong><code>Pitfall</code></strong>: <code>Orientation</code> naming is counter-intuitive (<code>Vertical</code> = vertical splitter, horizontal arrangement).</li>
-<li><strong><code>Version</code></strong>: <code>v1.12.0</code>; NaN/Inf guard <code>v1.14.0</code>.</li>
+<li><strong>Collapse (<code>v1.21.0</code>)</strong>: drag the splitter to within <code>CollapseThreshold</code> (default 28px) of one side's edge → a translucent accent <strong>overlay plus an arrow pointing in the collapse direction fades in ON TOP OF that pane's content</strong> (the content is <em>not</em> changed yet); the pane actually collapses <strong>on mouse release</strong> (its size eases from the current value to 0). Once collapsed, a small button appears at that edge (rounded light grey + arrow pointing in the expand direction + hover easing); clicking it eases that side from 0 to its <strong>minimum limit</strong> (<code>SetMinFirst/MinSecond</code>, or back to the pre-collapse ratio if no minimum is set). The whole feature can be turned off with <code>SetCollapseEnabled(false)</code>.</li>
+<li><strong><code>Pitfall</code></strong>: the overlay is an internal <code>Overlay</code> <strong>child element placed last</strong> (the framework draws children in order), which is why it naturally ends up above both panes; do not try to paint such decorations from <code>SplitView::Draw</code> (the children would cover them).</li>
+<li><strong><code>Version</code></strong>: <code>v1.12.0</code>; NaN/Inf guard <code>v1.14.0</code>; collapse + expand button <code>v1.21.0</code>.</li>
 </ul>
 <h2 id="tabview">TabView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b38a6fb7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-b4861188', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Tab</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">label</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Page</span><span class="o">&gt;</span><span class="w"> </span><span class="n">page</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">TabCloseRequested</span><span class="p">;</span>
@@ -352,7 +368,7 @@ bool UseCache() const override { return false; }</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedIndex</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetSelectedIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionDirection</span><span class="p">(</span><span class="n">PageHost</span><span class="o">::</span><span class="n">TransitionDirection</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoTransitionDirection</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 </pre></div>
-<pre id="code-b38a6fb7" style="display: none;">struct Tab { std::shared_ptr&lt;Label&gt; label; std::shared_ptr&lt;Page&gt; page; bool closable; ... };
+<pre id="code-b4861188" style="display: none;">struct Tab { std::shared_ptr&lt;Label&gt; label; std::shared_ptr&lt;Page&gt; page; bool closable; ... };
 ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;int&gt; TabCloseRequested;
 int  AddTab(const std::wstring&amp;, std::shared_ptr&lt;UIElement&gt; content=nullptr, bool closable=false);
 int  AddTab(std::shared_ptr&lt;Label&gt;, ...);

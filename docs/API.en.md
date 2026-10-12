@@ -633,9 +633,11 @@ void SetColors(Color normal, Color hover, Color pressed);   void SetTextColor(Co
 void SetCornerRadius(float);   void SetHoverAnimationSpeed(float);
 void SetCheckable(bool);  void SetChecked(bool);  bool IsChecked() const;
 void SetAutoRepeat(bool enable, float intervalMs=400);
+void SetAutoSizeToText(bool);   inline static bool AutoSizeToText;   // default true: grow to fit text
 ```
 - Default `120×36`; `Clicked` only if press+release are both inside.
-- **`Pitfall`**: `IsChecked()` is meaningless unless checkable.
+- **`Pitfall`**: `IsChecked()` is meaningless unless checkable. Do not parent the internal Label manually.
+- **`Version`**: since `v1.21.0` a Button **grows to fit its own text by default** (`MeasureOverride` returns `max(width_, textWidth + 2*padding)`); before that the width was a constant `DefaultWidth`, so long captions were truncated with an ellipsis. For a fixed width call `SetAutoSizeToText(false)` or set an explicit width.
 
 ## TextBox (single-line)
 
@@ -723,8 +725,10 @@ class RadioGroup  { enum class Orientation { Vertical, Horizontal };
 ```cpp
 ZSignal<bool> Toggled;   void SetOn(bool);  bool IsOn() const;
 void SetIndeterminate(bool);   // half-selected appearance
+inline static float DefaultAnimationDuration;   // full animation duration (s), default 0.25
 ```
 - Default 50×24.
+- **`Version`**: since `v1.21.0` the knob/track/hover animation is **duration-driven ease-in-out** (`DefaultAnimationDuration`, default 0.25s) and stops exactly on time instead of repainting forever; before it was linear (`animSpeed_=9.6` finished 0→1 in ~0.10s, which read as an instant snap). `SetAnimationSpeed` still means "larger = faster" (converted to a duration multiplier).
 
 ## Slider
 
@@ -755,8 +759,10 @@ ZSignal<float> ValueChanged;
 void SetValue(float);          // normalized to [0,1]
 void SetRange(float min,float max);  void SetRangeValue(float);   // [min,max]
 void SetIndeterminate(bool);   void SetIndeterminateBlockWidth(float);  void SetIndeterminateSpeed(float);
+inline static float DefaultValueAnimDuration;   // value animation duration (s), default 0.22
 ```
 - **`Pitfall`**: `SetValue` is `[0,1]`, `SetRangeValue` is `[min,max]` — do not mix.
+- **`Version`**: since `v1.21.0` value changes are **eased** (internal `displayValue_`, duration-driven; the fill and the `%` text move together and stop on time). The same version fixes the **inner fill radius not matching the outer frame after stretching** (track/clip/border used the member `height_`; now all use `arrangedRect_.height / 2`).
 
 ## ProgressRing
 
@@ -806,10 +812,16 @@ enum class Orientation { Vertical, Horizontal };   // Vertical = left/right pane
 ZSignal<float> SplitChanged;
 void SetFirst/SetSecond(std::shared_ptr<UIElement>);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
+ZSignal<int> CollapsedChanged;   // 0=expanded 1=first pane 2=second pane
+void SetCollapseEnabled(bool);   bool IsCollapseEnabled() const;   void SetCollapseThreshold(float);
+void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/IsSecondCollapsed() const;
+void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
 bool UseCache() const override { return false; }
 ```
 - **`Pitfall`**: `Orientation` naming is counter-intuitive (`Vertical` = vertical splitter, horizontal arrangement).
-- **`Version`**: `v1.12.0`; NaN/Inf guard `v1.14.0`.
+- **Collapse (`v1.21.0`)**: drag the splitter to within `CollapseThreshold` (default 28px) of one side's edge → a translucent accent **overlay plus an arrow pointing in the collapse direction fades in ON TOP OF that pane's content** (the content is *not* changed yet); the pane actually collapses **on mouse release** (its size eases from the current value to 0). Once collapsed, a small button appears at that edge (rounded light grey + arrow pointing in the expand direction + hover easing); clicking it eases that side from 0 to its **minimum limit** (`SetMinFirst/MinSecond`, or back to the pre-collapse ratio if no minimum is set). The whole feature can be turned off with `SetCollapseEnabled(false)`.
+- **`Pitfall`**: the overlay is an internal `Overlay` **child element placed last** (the framework draws children in order), which is why it naturally ends up above both panes; do not try to paint such decorations from `SplitView::Draw` (the children would cover them).
+- **`Version`**: `v1.12.0`; NaN/Inf guard `v1.14.0`; collapse + expand button `v1.21.0`.
 
 ## TabView
 
@@ -1327,12 +1339,12 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 | 8 | FocusElement | 21 | SetMargin("id\tx\ty") |
 | 9 | GetElementInfo | 22 | SetHighlightColor("RRGGBB") |
 | 10 | GetElementAt("x,y" screen→AutomationId) | | |
-| 11 | Highlight(id) | | |
+| 11 | Highlight(id) | 23 | GetTheme (theme name + AARRGGBB per role) |
 
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.20.0
+###chapter: Version digest | v1.15.0 → v1.21.0
 
 > Only the changes that affect your code are listed.
 
@@ -1392,6 +1404,19 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Fix**: null guards in `ColumnBox`/`RowBox`/`GridLayout::AddChild` — the DSL's variadic forwarding can pass `nullptr`, which used to dereference a null pointer.
   - **Fix**: `ZufyUIWindowTool.h` was **not self-contained** — it used `Label`/`Button`/`ColumnBox::AddChild` without including `ZufyUIWidgets.h`, relying on the caller to include it first (`pch.h` happened to do so); the include is now present and the header can be included on its own.
   - **Tooling**: new `tools/build.ps1` (one shot: **auto-fix BOM before building** → kill processes holding files → build demo + `ZufyUIDebugger` → run self-tests), `tools/ensure_bom.ps1` (adds a UTF-8 BOM only to C++ sources that contain non-ASCII and lack one, preventing the GBK misparse behind `C2143/C2259/C2888/C4819`), and `tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1` (47 compile-time/runtime assertions, no window created, runnable from a shell or CI).
+- **v1.21.0**:
+  - **Fix**: `Card` flashed a **blue hover border** — the theme applier set `SetHoverBorderColor(Accent)` on cards, a behaviour cards never had; removed (hover still changes the background).
+  - **Fix**: `ProgressBar` **inner fill radius no longer matched the outer frame after stretching** — the track, the clip geometry and the border still used the member `height_` (construction-time height) while only the fill used the arranged height; all three now use `arrangedRect_.height / 2`.
+  - **Fix**: `Button` captions were **ellipsized even with room to spare** — `MeasureOverride` returned a constant `width_` (set to `DefaultWidth = 120` in the constructor); it now grows to fit the text (`max(width_, textWidth + 2*padding)`), with `Button::AutoSizeToText` (static, default `true`) and `SetAutoSizeToText(false)`. **This is a layout behaviour change.**
+  - **New**: `ToggleSwitch` uses **duration-driven ease-in-out** (`DefaultAnimationDuration = 0.25s`, stops exactly on time); also fixes mouse-click/keyboard paths that bypassed `SetOn` and therefore never started the animation (the "instant snap").
+  - **New**: `ProgressBar` value **easing** (`DefaultValueAnimDuration = 0.22s`; fill and percentage text move together).
+  - **New**: `SplitView` **collapse**: dragging within the edge threshold first shows an "about to collapse" overlay (translucent accent + direction arrow, alpha fade, **content untouched**); the pane collapses on release (size eases to 0); afterwards a small button is drawn **on top of the content** at that edge (rounded light grey + arrow pointing in the expand direction + hover easing), and clicking it eases that side from 0 to its minimum limit. `SetCollapseEnabled(false)` disables the whole feature. Public API: `SetCollapseEnabled/IsCollapseEnabled/SetCollapseThreshold/CollapseFirst/CollapseSecond/Expand/IsFirstCollapsed/IsSecondCollapsed/GetCollapsedSide/IsCollapsing/GetCollapseProgress/SetExpandButtonColors/SetExpandButtonSize` plus the `CollapsedChanged(int)` signal.
+  - **New**: `detail::EaseOutCubic` / `detail::EaseInOutCubic` (duration-driven easing, one shared convention for in-library animations).
+  - **New**: `ThemeRole::Shadow` (**appended at the end of the enum** so existing values keep their numbers) with Light/Dark/HighContrast values; `UIElement::DefaultShadowColor`/`SetDefaultShadowColor`; `Window::SetBackdrop(Backdrop)` follows the theme (the `tint` overload means "locked") plus the `ApplyThemeToBackdropParams` hook.
+  - **Fix**: `PieChart` **Ctrl+wheel zoom did nothing** — `PieChart`'s own `zoom_` shadows `ChartBase::zoom_`, so delegating to the base only changed the base's copy; the pie now handles Ctrl itself via `SetZoom`. Semantics are explicit: **Ctrl+wheel = zoom / plain wheel = pan only**.
+  - **Fix**: chart wheel panning "did not move" — the wheel path was missing `SyncScrollPositions()` (it changed `scrollX_/scrollY_` but never recomputed `baseX_/baseY_`).
+  - **Fix**: documented that `ColumnBox` arranges a child **without an explicit width** at the available width (horizontal stretch ignores the weight) — so "make a card hug its content" means wrapping it in a `Row`; and that a `SettingsList` placed in a `Card`'s built-in `GridLayout` (auto columns pass `FLT_MAX`) degenerates to zero width — use `SetLayout(Col(...))` + `SetFillWidth(true)`.
+  - **Tooling**: `tests/dsl_tests.cpp` 62 → **85** assertions (regressions for this batch: button auto-size on/off, label width follows text, progress/toggle easing convergence, SplitView collapse and expand-to-minimum).
 
 ###chapter: Pitfall index | Quick lookup by topic
 
