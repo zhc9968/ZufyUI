@@ -208,7 +208,7 @@ enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
     Accent, AccentHover, AccentPressed,
     Border, Divider, FocusRing, Selection,
     ScrollTrack, ScrollThumb, ScrollThumbHover,
-    Danger, Warning, Success, Info, Count };
+    Danger, Warning, Success, Info, Shadow, Count };
 struct Theme { Color colors[(int)ThemeRole::Count]; FontSpec font, fontCaption, fontMono;
     float cornerRadius; bool isDark; std::wstring name;
     Color Get(ThemeRole) const;   void Set(ThemeRole, Color);
@@ -224,6 +224,9 @@ bool ThemeManager::SystemPrefersDark();   Color ThemeManager::SystemAccent();   
 void ThemeManager::DebugForceSystemTheme(bool enable, bool dark, bool highContrast);
 // 色差重映射：任意硬编码色 → 主题色（精确表，未命中原样返回、保留 alpha）
 void ThemeManager::SetColorMap(std::unordered_map&lt;uint32_t, Color&gt;);   Color ThemeManager::Map(Color);
+// 钩子注册：返回 RAII HookHandle（析构自动断开）；库内部固定钩子用 RegisterHookPermanent
+HookHandle ThemeManager::RegisterHook(std::function&lt;void(const Theme&amp;)&gt;);
+HookHandle ThemeManager::RegisterSubtreeApplier(std::function&lt;void(UIElement*, const Theme&amp;)&gt;);
 // 调试：主题名 + 各 Role 的 AARRGGBB（调试通道命令 23 GetTheme）
 std::wstring ThemeManager::Dump();
 
@@ -240,7 +243,7 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重�
 <header class="chapter-header"><span class="chapter-eyebrow">第 18 章</span><h1>主题系统</h1><p class="chapter-summary">Theme（v1.19.0+）</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-58b4f448', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-25664172', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// 语义色角色（按“角色”取色，而不是按控件）</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ThemeRole</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Text</span><span class="p">,</span><span class="w"> </span><span class="n">TextSecondary</span><span class="p">,</span><span class="w"> </span><span class="n">TextDisabled</span><span class="p">,</span><span class="w"> </span><span class="n">TextOnAccent</span><span class="p">,</span>
@@ -249,7 +252,7 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重�
 <span class="w">    </span><span class="n">Accent</span><span class="p">,</span><span class="w"> </span><span class="n">AccentHover</span><span class="p">,</span><span class="w"> </span><span class="n">AccentPressed</span><span class="p">,</span>
 <span class="w">    </span><span class="n">Border</span><span class="p">,</span><span class="w"> </span><span class="n">Divider</span><span class="p">,</span><span class="w"> </span><span class="n">FocusRing</span><span class="p">,</span><span class="w"> </span><span class="n">Selection</span><span class="p">,</span>
 <span class="w">    </span><span class="n">ScrollTrack</span><span class="p">,</span><span class="w"> </span><span class="n">ScrollThumb</span><span class="p">,</span><span class="w"> </span><span class="n">ScrollThumbHover</span><span class="p">,</span>
-<span class="w">    </span><span class="n">Danger</span><span class="p">,</span><span class="w"> </span><span class="n">Warning</span><span class="p">,</span><span class="w"> </span><span class="n">Success</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="w"> </span><span class="p">};</span>
+<span class="w">    </span><span class="n">Danger</span><span class="p">,</span><span class="w"> </span><span class="n">Warning</span><span class="p">,</span><span class="w"> </span><span class="n">Success</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="n">Shadow</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="w"> </span><span class="p">};</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">Theme</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">colors</span><span class="p">[(</span><span class="kt">int</span><span class="p">)</span><span class="n">ThemeRole</span><span class="o">::</span><span class="n">Count</span><span class="p">];</span><span class="w"> </span><span class="n">FontSpec</span><span class="w"> </span><span class="n">font</span><span class="p">,</span><span class="w"> </span><span class="n">fontCaption</span><span class="p">,</span><span class="w"> </span><span class="n">fontMono</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">cornerRadius</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">isDark</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">name</span><span class="p">;</span>
 <span class="w">    </span><span class="n">Color</span><span class="w"> </span><span class="nf">Get</span><span class="p">(</span><span class="n">ThemeRole</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">Set</span><span class="p">(</span><span class="n">ThemeRole</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">);</span>
@@ -265,6 +268,9 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重�
 <span class="kt">void</span><span class="w"> </span><span class="nf">ThemeManager::DebugForceSystemTheme</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">enable</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">dark</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">highContrast</span><span class="p">);</span>
 <span class="c1">// 色差重映射：任意硬编码色 → 主题色（精确表，未命中原样返回、保留 alpha）</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">ThemeManager::SetColorMap</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="o">&gt;</span><span class="p">);</span><span class="w">   </span><span class="n">Color</span><span class="w"> </span><span class="nf">ThemeManager::Map</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span>
+<span class="c1">// 钩子注册：返回 RAII HookHandle（析构自动断开）；库内部固定钩子用 RegisterHookPermanent</span>
+<span class="n">HookHandle</span><span class="w"> </span><span class="nf">ThemeManager::RegisterHook</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Theme</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">);</span>
+<span class="n">HookHandle</span><span class="w"> </span><span class="nf">ThemeManager::RegisterSubtreeApplier</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Theme</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="c1">// 调试：主题名 + 各 Role 的 AARRGGBB（调试通道命令 23 GetTheme）</span>
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">ThemeManager::Dump</span><span class="p">();</span>
 
@@ -274,14 +280,14 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重�
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// nullptr=应用级</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeReapply</span><span class="p">;</span><span class="w">   </span><span class="c1">// 页面/标签切换后重套可见子树</span>
 </pre></div>
-<pre id="code-58b4f448" style="display: none;">// 语义色角色（按“角色”取色，而不是按控件）
+<pre id="code-25664172" style="display: none;">// 语义色角色（按“角色”取色，而不是按控件）
 enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
     Surface, SurfaceAlt, SurfaceRaised, Backdrop, Overlay,
     Control, ControlHover, ControlPressed, ControlDisabled,
     Accent, AccentHover, AccentPressed,
     Border, Divider, FocusRing, Selection,
     ScrollTrack, ScrollThumb, ScrollThumbHover,
-    Danger, Warning, Success, Info, Count };
+    Danger, Warning, Success, Info, Shadow, Count };
 struct Theme { Color colors[(int)ThemeRole::Count]; FontSpec font, fontCaption, fontMono;
     float cornerRadius; bool isDark; std::wstring name;
     Color Get(ThemeRole) const;   void Set(ThemeRole, Color);
@@ -297,6 +303,9 @@ bool ThemeManager::SystemPrefersDark();   Color ThemeManager::SystemAccent();   
 void ThemeManager::DebugForceSystemTheme(bool enable, bool dark, bool highContrast);
 // 色差重映射：任意硬编码色 → 主题色（精确表，未命中原样返回、保留 alpha）
 void ThemeManager::SetColorMap(std::unordered_map&lt;uint32_t, Color&gt;);   Color ThemeManager::Map(Color);
+// 钩子注册：返回 RAII HookHandle（析构自动断开）；库内部固定钩子用 RegisterHookPermanent
+HookHandle ThemeManager::RegisterHook(std::function&lt;void(const Theme&amp;)&gt;);
+HookHandle ThemeManager::RegisterSubtreeApplier(std::function&lt;void(UIElement*, const Theme&amp;)&gt;);
 // 调试：主题名 + 各 Role 的 AARRGGBB（调试通道命令 23 GetTheme）
 std::wstring ThemeManager::Dump();
 

@@ -239,6 +239,8 @@ using Align = GridLayout::Alignment;                        // 供 Ref::align �
 // 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
 //         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
 //         RadioGroup ScrollBar Glyph
+// 与类同名者用无歧义别名（避免 using namespace 同时命中两类 → C2872）：
+//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander
 class WindowApp {                                  // dsl::App()
     WindowApp&amp; size(int,int);   WindowApp&amp; title(const std::wstring&amp;);
     WindowApp&amp; resizable(bool=true);   WindowApp&amp; corner(Window::WindowCorner);
@@ -256,8 +258,8 @@ class WindowApp {                                  // dsl::App()
 WindowApp App();
 }
 ```
-- 用法：`using namespace ZufyUI::dsl;` 后 `Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)`。**不要同时 `using namespace ZufyUI;`**（`Slider/Card/Expander/MenuBar/StatusBar` 短工厂与类名歧义），或改用 `dsl::` 限定。
-- **`易错`**：`with(&amp;T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast&lt;...&gt;(&amp;T::SetX)` 消歧；**有默认参数的函数**（如 `ListView::AddItem`）成员指针调用不支持默认值 → 用 `-&gt;AddItem(...)`。
+- 用法：`using namespace ZufyUI::dsl;` 后 `Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)`。与 `using namespace ZufyUI;` 同时用时，**与类同名的短工厂改用无歧义别名** `make_slider` / `make_card` / `make_page` / `make_menu` / `make_menu_bar` / `make_status_bar` / `make_radio_group` / `make_scroll_bar` / `make_expander`（或 `dsl::` 限定）。
+- **`易错`**：`with(&amp;T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast&lt;...&gt;(&amp;T::SetX)` 消歧。**带默认参数的函数不能直接用于 `with`**（成员指针含全部形参 → “参数太少”）；这类函数自 **v1.22.0** 起已拆成**无默认参数的重载**（如 `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`，`ListView::AddItem(text)` / `AddItemWidget(shared_ptr&lt;Label&gt;)`，`RadioGroup::AddItem` / `AddItemSelected`，`Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`）。
 - **`易错`**：不宜用 `with` 表达的（多步、条件、需要迭代）用 `apply(lambda)`，避免链断掉。普通类型转换告警也顺手消掉：`.with(&amp;TextBox::SetWidth, 220)` 传 `int` 会报 `C4244`，直接用 `.width(220.0f)`。
 - **容器 `add()` 按真实接口分派**：`ColumnBox`/`RowBox`/`Label` → `AddChild`；`PageHost` → `AddPage`（非 `Page` 实参会被跳过）；`GridLayout` 需要坐标，用 `.cell(row,col,child[,rowSpan,colSpan])` 或 `dsl::Cell(...)`。空元素（`nullptr` / 空 `Ref`）一律被忽略，不会解引用空指针。
 - **Grid 坐标**：`Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))` 显式定位；也仍接受**裸子元素**（沿用旧行为，按出现顺序排 `(i,0)`，现有代码不受影响）。
@@ -269,7 +271,7 @@ WindowApp App();
 <header class="chapter-header"><span class="chapter-eyebrow">第 19 章</span><h1>DSL</h1><p class="chapter-summary">链式构造（ZufyUIDsl.h，v1.19.4；v1.20.0 扩充）</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-6f0f05fc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-f3d5cb80', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）</span>
 <span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="o">::</span><span class="nn">dsl</span><span class="w"> </span><span class="p">{</span>
@@ -309,6 +311,8 @@ WindowApp App();
 <span class="c1">// 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring</span>
 <span class="c1">//         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar</span>
 <span class="c1">//         RadioGroup ScrollBar Glyph</span>
+<span class="c1">// 与类同名者用无歧义别名（避免 using namespace 同时命中两类 → C2872）：</span>
+<span class="c1">//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">WindowApp</span><span class="w"> </span><span class="p">{</span><span class="w">                                  </span><span class="c1">// dsl::App()</span>
 <span class="w">    </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">size</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">);</span><span class="w">   </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">title</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 <span class="w">    </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">resizable</span><span class="p">(</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">   </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">corner</span><span class="p">(</span><span class="n">Window</span><span class="o">::</span><span class="n">WindowCorner</span><span class="p">);</span>
@@ -326,7 +330,7 @@ WindowApp App();
 <span class="n">WindowApp</span><span class="w"> </span><span class="nf">App</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-6f0f05fc" style="display: none;">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
+<pre id="code-f3d5cb80" style="display: none;">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
 namespace ZufyUI::dsl {
 template&lt;class T&gt; class Ref {                      // 包装 shared_ptr&lt;T&gt;
     T* operator-&gt;() const;   std::shared_ptr&lt;T&gt; shared() const;
@@ -364,6 +368,8 @@ using Align = GridLayout::Alignment;                        // 供 Ref::align �
 // 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
 //         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
 //         RadioGroup ScrollBar Glyph
+// 与类同名者用无歧义别名（避免 using namespace 同时命中两类 → C2872）：
+//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander
 class WindowApp {                                  // dsl::App()
     WindowApp&amp; size(int,int);   WindowApp&amp; title(const std::wstring&amp;);
     WindowApp&amp; resizable(bool=true);   WindowApp&amp; corner(Window::WindowCorner);
@@ -382,8 +388,8 @@ WindowApp App();
 }</pre>
 </div>
 <ul>
-<li>用法：<code>using namespace ZufyUI::dsl;</code> 后 <code>Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)</code>。<strong>不要同时 <code>using namespace ZufyUI;</code></strong>（<code>Slider/Card/Expander/MenuBar/StatusBar</code> 短工厂与类名歧义），或改用 <code>dsl::</code> 限定。</li>
-<li><strong><code>易错</code></strong>：<code>with(&amp;T::Setter, args...)</code> 传<strong>成员函数指针</strong>；setter 重载需 <code>static_cast&lt;...&gt;(&amp;T::SetX)</code> 消歧；<strong>有默认参数的函数</strong>（如 <code>ListView::AddItem</code>）成员指针调用不支持默认值 → 用 <code>-&gt;AddItem(...)</code>。</li>
+<li>用法：<code>using namespace ZufyUI::dsl;</code> 后 <code>Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)</code>。与 <code>using namespace ZufyUI;</code> 同时用时，<strong>与类同名的短工厂改用无歧义别名</strong> <code>make_slider</code> / <code>make_card</code> / <code>make_page</code> / <code>make_menu</code> / <code>make_menu_bar</code> / <code>make_status_bar</code> / <code>make_radio_group</code> / <code>make_scroll_bar</code> / <code>make_expander</code>（或 <code>dsl::</code> 限定）。</li>
+<li><strong><code>易错</code></strong>：<code>with(&amp;T::Setter, args...)</code> 传<strong>成员函数指针</strong>；setter 重载需 <code>static_cast&lt;...&gt;(&amp;T::SetX)</code> 消歧。<strong>带默认参数的函数不能直接用于 <code>with</code></strong>（成员指针含全部形参 → “参数太少”）；这类函数自 <strong>v1.22.0</strong> 起已拆成<strong>无默认参数的重载</strong>（如 <code>TreeView::SetCheckable(bool)</code> / <code>SetCheckableShallow(bool)</code>，<code>ListView::AddItem(text)</code> / <code>AddItemWidget(shared_ptr&lt;Label&gt;)</code>，<code>RadioGroup::AddItem</code> / <code>AddItemSelected</code>，<code>Menu::AddCheckItem</code> / <code>AddCheckItemCb</code> / <code>AddCheckItemRadio</code>）。</li>
 <li><strong><code>易错</code></strong>：不宜用 <code>with</code> 表达的（多步、条件、需要迭代）用 <code>apply(lambda)</code>，避免链断掉。普通类型转换告警也顺手消掉：<code>.with(&amp;TextBox::SetWidth, 220)</code> 传 <code>int</code> 会报 <code>C4244</code>，直接用 <code>.width(220.0f)</code>。</li>
 <li><strong>容器 <code>add()</code> 按真实接口分派</strong>：<code>ColumnBox</code>/<code>RowBox</code>/<code>Label</code> → <code>AddChild</code>；<code>PageHost</code> → <code>AddPage</code>（非 <code>Page</code> 实参会被跳过）；<code>GridLayout</code> 需要坐标，用 <code>.cell(row,col,child[,rowSpan,colSpan])</code> 或 <code>dsl::Cell(...)</code>。空元素（<code>nullptr</code> / 空 <code>Ref</code>）一律被忽略，不会解引用空指针。</li>
 <li><strong>Grid 坐标</strong>：<code>Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))</code> 显式定位；也仍接受<strong>裸子元素</strong>（沿用旧行为，按出现顺序排 <code>(i,0)</code>，现有代码不受影响）。</li>

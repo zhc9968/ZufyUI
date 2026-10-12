@@ -245,7 +245,7 @@ pre { line-height: 125%; }
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.21.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.22.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
@@ -270,9 +270,18 @@ pre { line-height: 125%; }
   - **修复**：`PieChart` Ctrl+滚轮**缩放无效**——`PieChart` 自己的 `zoom_` 遮蔽了 `ChartBase::zoom_`（委派基类只改基类那份）；现由饼图自己处理 Ctrl 并走 `SetZoom`。语义明确为 **Ctrl+滚轮 = 缩放 / 普通滚轮 = 只平移**。
   - **修复**：图表滚轮平移"画面不动"——平移路径缺 `SyncScrollPositions()`（只改了 `scrollX_/scrollY_`，未重算 `baseX_/baseY_`）。
   - **修复**：`ColumnBox` 会把**没有显式宽度的子元素**按可用宽度摆（横向不吃拉伸权值）→ 文档补充"想让卡片按内容收窄要放进 `Row`"；`SettingsList` 被放进 `Card` 自带 `GridLayout`（自动列给 `FLT_MAX`）时会退化成 0 宽 → 文档补充正确用法（`SetLayout(Col(...))` + `SetFillWidth(true)`）。
-  - **工程**：`tests/dsl_tests.cpp` 62 → **85** 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。</pre></div></div>
+  - **工程**：`tests/dsl_tests.cpp` 62 → **85** 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。
+- **v1.22.0**（**含破坏性 API 变更**）：
+  - **修复**：`MessageBox`（及一切模态框）**首次点击穿透到后面的主窗口**——模态若在 `Window::OnMouseUp` 的槽里弹出，该函数末尾的 `ReleaseCapture()` 要等模态循环结束才执行 → 整段模态期间主窗口仍持 `SetCapture`，系统把鼠标消息优先给捕获窗口；`Window::RunModal` 现于进入循环前 `if (GetCapture()) ReleaseCapture();`。
+  - **修复**：`ScrollViewer` **滚动链**——滚到顶/底后不再吞掉滚轮（该方向不能再滚则返回 `false` 沿父链冒泡），外层页面可继续滚动。
+  - **修复**：`SplitView` **展开无缓动 + 小按钮跳侧**——旧 `Expand()` 在动画开始前就清掉折叠标志，而 `PaneLengths` 正靠它做插值 → 尺寸瞬跳；改用贯穿折叠/展开的 `collapseSide_`，动画收尾才清零；按钮位置/箭头也按其判断。
+  - **破坏性 · P0-1**：**带默认参数的成员函数拆成无默认参数的重载**（让 `.with()` 可用）：`TreeView::SetCheckable(bool)` + `SetCheckableShallow(bool)`；`SetNodeCheckable(node,bool)` + `SetNodeCheckableRecursive`；`SetNodeEnabled(node,bool)` + `SetNodeEnabledRecursive`；`SetNodeCheckState(node,state)` + `SetNodeCheckStateFull(...,updateChildren,updateParent)`；`ListView::AddItem(text)` 与富项 **`AddItemWidget(shared_ptr&lt;Label&gt;)`**（原名弃用）；`RadioGroup::AddItem` / **`AddItemSelected`** / `AddButton` / **`AddButtonSelected`**；`Menu::AddCheckItem(text,checked)` / **`AddCheckItemCb`** / **`AddCheckItemRadio`**。
+  - **新增 · P0-2**：同名 dsl 工厂的**无歧义别名** `make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander`（避开 `using namespace` 同时命中两类时的 C2872）。
+  - **新增 · P1-2**：`Page::SetScrollableContent(content)`——一行把整页内容套进 `ScrollViewer` + 边距。
+  - **新增 · P1-4**：`ThemeManager::RegisterHook` / `RegisterSubtreeApplier` 返回 **RAII `HookHandle`**（析构自动断开）；库内部固定钩子改用 `RegisterHookPermanent` / `RegisterSubtreeApplierPermanent`。
+  - **文档 · P3**：新增 `docs/pitfalls.md`（易错点总表）；`AGENTS.md` 增补「链式构造 / API 约定」。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 21 章 · 版本变化摘录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.21.0</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.22.0</p></header><blockquote>
 <p>只列<strong>对你写代码有影响</strong>的显著变化。</p>
 </blockquote>
 <ul>
@@ -319,7 +328,7 @@ pre { line-height: 125%; }
 <li><strong>v1.19.6</strong>：</li>
 <li>修复：<code>ListView</code> 按钮模式下勾选框<strong>命中位置少偏移 4px</strong>（与绘制/子元素左边界对齐）。</li>
 <li>修复：<code>Label::MeasureOverride</code> 的 Wrap 分支<strong>漏算内联子控件宽度</strong>（带 <code>AddChild</code> 的换行 Label 文本会挤压/溢出）。</li>
-<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.21.0</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
+<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.22.0</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
 <li><strong>v1.19.7</strong>：</li>
 <li>修复：<code>ChartBase</code> 横/纵滚动条占位写反（<code>viewW</code> 用竖条、<code>viewH</code> 用横条）→ 最右/最底滚不到；<code>NumberBox</code> 滚轮焦点判断（焦点在内部 <code>TextBox</code>）；<code>lastActiveAnimElements_</code> 悬垂（析构时从动画集合擦除，防随机崩溃）；<code>Menu::ShowAt</code> 非 <code>shared_ptr</code> 时抛 <code>bad_weak_ptr</code>；<code>ChildrenSig</code> 缺 <code>EnsureView</code>；<code>TreeView::SetDefaultExpandDepth</code> 对 <code>AddRoot</code>/<code>AddChild</code> 不生效。</li>
 <li>修复：<code>ColumnBox</code>/<code>RowBox</code> spacing 按“参与布局的子元素数”算；<code>GridLayout</code> 行列数过滤不可见元素；<code>Label</code> 换行漏算子控件宽度 / 多算一个间距；<code>ListView</code>/<code>TableView</code> 释放 Label 前清 <code>childrenView_</code>、补释放池化/富项/单元格 Label；<code>Window::defaultIMC_</code> 改 <code>ImmAssociateContext</code>；<code>DragData::GetFiles</code> 缓冲 <code>len+1</code>；<code>TextEdit</code> 清选区补发 <code>SelectionChanged</code>；<code>MessageBox</code> 默认标题本地化。</li>
@@ -345,6 +354,15 @@ pre { line-height: 125%; }
 <li><strong>修复</strong>：图表滚轮平移"画面不动"——平移路径缺 <code>SyncScrollPositions()</code>（只改了 <code>scrollX_/scrollY_</code>，未重算 <code>baseX_/baseY_</code>）。</li>
 <li><strong>修复</strong>：<code>ColumnBox</code> 会把<strong>没有显式宽度的子元素</strong>按可用宽度摆（横向不吃拉伸权值）→ 文档补充"想让卡片按内容收窄要放进 <code>Row</code>"；<code>SettingsList</code> 被放进 <code>Card</code> 自带 <code>GridLayout</code>（自动列给 <code>FLT_MAX</code>）时会退化成 0 宽 → 文档补充正确用法（<code>SetLayout(Col(...))</code> + <code>SetFillWidth(true)</code>）。</li>
 <li><strong>工程</strong>：<code>tests/dsl_tests.cpp</code> 62 → <strong>85</strong> 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。</li>
+<li><strong>v1.22.0</strong>（<strong>含破坏性 API 变更</strong>）：</li>
+<li><strong>修复</strong>：<code>MessageBox</code>（及一切模态框）<strong>首次点击穿透到后面的主窗口</strong>——模态若在 <code>Window::OnMouseUp</code> 的槽里弹出，该函数末尾的 <code>ReleaseCapture()</code> 要等模态循环结束才执行 → 整段模态期间主窗口仍持 <code>SetCapture</code>，系统把鼠标消息优先给捕获窗口；<code>Window::RunModal</code> 现于进入循环前 <code>if (GetCapture()) ReleaseCapture();</code>。</li>
+<li><strong>修复</strong>：<code>ScrollViewer</code> <strong>滚动链</strong>——滚到顶/底后不再吞掉滚轮（该方向不能再滚则返回 <code>false</code> 沿父链冒泡），外层页面可继续滚动。</li>
+<li><strong>修复</strong>：<code>SplitView</code> <strong>展开无缓动 + 小按钮跳侧</strong>——旧 <code>Expand()</code> 在动画开始前就清掉折叠标志，而 <code>PaneLengths</code> 正靠它做插值 → 尺寸瞬跳；改用贯穿折叠/展开的 <code>collapseSide_</code>，动画收尾才清零；按钮位置/箭头也按其判断。</li>
+<li><strong>破坏性 · P0-1</strong>：<strong>带默认参数的成员函数拆成无默认参数的重载</strong>（让 <code>.with()</code> 可用）：<code>TreeView::SetCheckable(bool)</code> + <code>SetCheckableShallow(bool)</code>；<code>SetNodeCheckable(node,bool)</code> + <code>SetNodeCheckableRecursive</code>；<code>SetNodeEnabled(node,bool)</code> + <code>SetNodeEnabledRecursive</code>；<code>SetNodeCheckState(node,state)</code> + <code>SetNodeCheckStateFull(...,updateChildren,updateParent)</code>；<code>ListView::AddItem(text)</code> 与富项 <strong><code>AddItemWidget(shared_ptr&lt;Label&gt;)</code></strong>（原名弃用）；<code>RadioGroup::AddItem</code> / <strong><code>AddItemSelected</code></strong> / <code>AddButton</code> / <strong><code>AddButtonSelected</code></strong>；<code>Menu::AddCheckItem(text,checked)</code> / <strong><code>AddCheckItemCb</code></strong> / <strong><code>AddCheckItemRadio</code></strong>。</li>
+<li><strong>新增 · P0-2</strong>：同名 dsl 工厂的<strong>无歧义别名</strong> <code>make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander</code>（避开 <code>using namespace</code> 同时命中两类时的 C2872）。</li>
+<li><strong>新增 · P1-2</strong>：<code>Page::SetScrollableContent(content)</code>——一行把整页内容套进 <code>ScrollViewer</code> + 边距。</li>
+<li><strong>新增 · P1-4</strong>：<code>ThemeManager::RegisterHook</code> / <code>RegisterSubtreeApplier</code> 返回 <strong>RAII <code>HookHandle</code></strong>（析构自动断开）；库内部固定钩子改用 <code>RegisterHookPermanent</code> / <code>RegisterSubtreeApplierPermanent</code>。</li>
+<li><strong>文档 · P3</strong>：新增 <code>docs/pitfalls.md</code>（易错点总表）；<code>AGENTS.md</code> 增补「链式构造 / API 约定」。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.20.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a><a class="next" href="API.22.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">易错点总表</span><span class="nav-desc">按主题速查</span></a></nav>
         </main>

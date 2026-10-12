@@ -433,6 +433,7 @@ void SetHorizontalAlignment(Alignment);        void SetVerticalAlignment(Alignme
 class LayoutHost : public UIElement { std::shared_ptr<UIElement> GetLayout() const; void SetLayout(...); };
 class Card  : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
 class Page  : public LayoutHost { DefaultPadding=10; ... };
+void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // 一行套 ScrollViewer(fill)+8px 边距
 ```
 - `LayoutHost` 是“单槽容器”，内部装一个布局元素；`Card` 是带圆角/描边/悬停的卡片；`Page` 是 `TabView`/`PageHost` 的页面容器。
 - `Card::UseCache()` = `HasShadow()`；`Page::UseCache()` = false。
@@ -729,7 +730,9 @@ class RadioButton { ZSignal<bool> CheckedChanged; ZSignal<> Clicked; void SetChe
 class RadioGroup  { enum class Orientation { Vertical, Horizontal };
                     ZSignal<int> SelectionChanged;
                     std::function<bool(int newIdx, int oldIdx)> SelectionChanging;   // 返回 false 可否决
-                    int AddItem(const std::wstring&, bool selected=false); std::shared_ptr<RadioButton> GetButton(int index) const; int GetItemCount() const; void SetSelectedIndex(int); ... };
+                    int AddItem(const std::wstring&);   int AddItemSelected(const std::wstring&, bool selected);
+                    int AddButton(std::shared_ptr<RadioButton>);   int AddButtonSelected(std::shared_ptr<RadioButton>, bool selected);
+                    std::shared_ptr<RadioButton> GetButton(int index) const; int GetItemCount() const; void SetSelectedIndex(int); ... };
 ```
 - **`易错`**：单独一个 `RadioButton` 不做互斥；互斥由 `RadioGroup` 保证。
 - **`版本`**：`v1.11.0`。
@@ -870,7 +873,9 @@ std::shared_ptr<Label> icon;
 
 ```cpp
 void AddItem(const std::wstring& text, std::function<void()> cb = nullptr, int id = 0);
-void AddCheckItem(const std::wstring& text, bool checked, std::function<void(bool)> onToggle = nullptr, int id=0, bool radio=false);
+void AddCheckItem(const std::wstring& text, bool checked);
+void AddCheckItemCb(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
+void AddCheckItemRadio(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
 void AddSeparator();   void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id=0);
 std::vector<std::shared_ptr<MenuItem>> items;
 std::function<void(Menu&)> onOpening;   ZSignal<int> ItemSelected;
@@ -946,7 +951,7 @@ enum class SelectionMode { Single, Extended, Multi, None };
 ZSignal<int> SelectionChanged, ItemClicked, ItemDoubleClicked, ItemRightClicked;
 ZSignal<std::vector<int>> SelectionChangedMulti;   ZSignal<int,bool> ItemCheckStateChanged;
 float ContentToLocalX/Y(float) const;   float LocalToContentX/Y(float) const;   // v1.10.0
-void AddItem(const std::wstring&);   void SetItem(int, const std::wstring&);
+void AddItem(const std::wstring&);   void AddItemWidget(std::shared_ptr<Label> rich);   void SetItem(int, const std::wstring&);
 std::wstring GetItemText(int) const;   int GetItemCount() const;
 void SortItems(std::function<bool(const std::wstring&,const std::wstring&)>);   void ScrollToItem(int);
 void BeginUpdate();   void EndUpdate();
@@ -1016,8 +1021,11 @@ void ExpandNode(node,bool);  void ExpandAll();  void CollapseAll();  void Expand
 void SetDefaultExpandDepth(int);                             // 只影响之后插入的节点
 void SetFilter(std::function<bool(const std::shared_ptr<TreeNode>&)>);   void Search(const std::wstring&);
 void SetSelectionMode(SelectionMode);  void SetSelectedNode(node);  std::vector<std::shared_ptr<TreeNode>> GetSelectedNodes() const;
-void SetCheckable(bool enable, bool recursive=true);  void SetCheckMode(CheckMode);
-void SetNodeCheckState(node, TreeNode::CheckState, bool updateChildren=true, bool updateParent=true);
+void SetCheckable(bool enable);  void SetCheckableShallow(bool enable);  void SetCheckMode(CheckMode);
+void SetNodeCheckable(node, bool);   void SetNodeCheckableRecursive(node, bool);
+void SetNodeEnabled(node, bool);     void SetNodeEnabledRecursive(node, bool);
+void SetNodeCheckState(node, TreeNode::CheckState);
+void SetNodeCheckStateFull(node, TreeNode::CheckState, bool updateChildren, bool updateParent);
 float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToNode(node);   // v1.17.0
 ```
 - **`易错`**：`Search` 保留命中节点**及其祖先链**；`SetDefaultExpandDepth` 只影响**未来**插入；`CheckMode::Linked` 自动算 `PartiallyChecked`。
@@ -1235,7 +1243,7 @@ enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
     Accent, AccentHover, AccentPressed,
     Border, Divider, FocusRing, Selection,
     ScrollTrack, ScrollThumb, ScrollThumbHover,
-    Danger, Warning, Success, Info, Count };
+    Danger, Warning, Success, Info, Shadow, Count };
 struct Theme { Color colors[(int)ThemeRole::Count]; FontSpec font, fontCaption, fontMono;
     float cornerRadius; bool isDark; std::wstring name;
     Color Get(ThemeRole) const;   void Set(ThemeRole, Color);
@@ -1251,6 +1259,9 @@ bool ThemeManager::SystemPrefersDark();   Color ThemeManager::SystemAccent();   
 void ThemeManager::DebugForceSystemTheme(bool enable, bool dark, bool highContrast);
 // 色差重映射：任意硬编码色 → 主题色（精确表，未命中原样返回、保留 alpha）
 void ThemeManager::SetColorMap(std::unordered_map<uint32_t, Color>);   Color ThemeManager::Map(Color);
+// 钩子注册：返回 RAII HookHandle（析构自动断开）；库内部固定钩子用 RegisterHookPermanent
+HookHandle ThemeManager::RegisterHook(std::function<void(const Theme&)>);
+HookHandle ThemeManager::RegisterSubtreeApplier(std::function<void(UIElement*, const Theme&)>);
 // 调试：主题名 + 各 Role 的 AARRGGBB（调试通道命令 23 GetTheme）
 std::wstring ThemeManager::Dump();
 
@@ -1305,6 +1316,8 @@ using Align = GridLayout::Alignment;                        // 供 Ref::align �
 // 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
 //         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
 //         RadioGroup ScrollBar Glyph
+// 与类同名者用无歧义别名（避免 using namespace 同时命中两类 → C2872）：
+//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander
 class WindowApp {                                  // dsl::App()
     WindowApp& size(int,int);   WindowApp& title(const std::wstring&);
     WindowApp& resizable(bool=true);   WindowApp& corner(Window::WindowCorner);
@@ -1322,8 +1335,8 @@ class WindowApp {                                  // dsl::App()
 WindowApp App();
 }
 ```
-- 用法：`using namespace ZufyUI::dsl;` 后 `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`。**不要同时 `using namespace ZufyUI;`**（`Slider/Card/Expander/MenuBar/StatusBar` 短工厂与类名歧义），或改用 `dsl::` 限定。
-- **`易错`**：`with(&T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast<...>(&T::SetX)` 消歧；**有默认参数的函数**（如 `ListView::AddItem`）成员指针调用不支持默认值 → 用 `->AddItem(...)`。
+- 用法：`using namespace ZufyUI::dsl;` 后 `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`。与 `using namespace ZufyUI;` 同时用时，**与类同名的短工厂改用无歧义别名** `make_slider` / `make_card` / `make_page` / `make_menu` / `make_menu_bar` / `make_status_bar` / `make_radio_group` / `make_scroll_bar` / `make_expander`（或 `dsl::` 限定）。
+- **`易错`**：`with(&T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast<...>(&T::SetX)` 消歧。**带默认参数的函数不能直接用于 `with`**（成员指针含全部形参 → “参数太少”）；这类函数自 **v1.22.0** 起已拆成**无默认参数的重载**（如 `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`，`ListView::AddItem(text)` / `AddItemWidget(shared_ptr<Label>)`，`RadioGroup::AddItem` / `AddItemSelected`，`Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`）。
 - **`易错`**：不宜用 `with` 表达的（多步、条件、需要迭代）用 `apply(lambda)`，避免链断掉。普通类型转换告警也顺手消掉：`.with(&TextBox::SetWidth, 220)` 传 `int` 会报 `C4244`，直接用 `.width(220.0f)`。
 - **容器 `add()` 按真实接口分派**：`ColumnBox`/`RowBox`/`Label` → `AddChild`；`PageHost` → `AddPage`（非 `Page` 实参会被跳过）；`GridLayout` 需要坐标，用 `.cell(row,col,child[,rowSpan,colSpan])` 或 `dsl::Cell(...)`。空元素（`nullptr` / 空 `Ref`）一律被忽略，不会解引用空指针。
 - **Grid 坐标**：`Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))` 显式定位；也仍接受**裸子元素**（沿用旧行为，按出现顺序排 `(i,0)`，现有代码不受影响）。
@@ -1366,7 +1379,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.21.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.22.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1439,6 +1452,15 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **修复**：图表滚轮平移"画面不动"——平移路径缺 `SyncScrollPositions()`（只改了 `scrollX_/scrollY_`，未重算 `baseX_/baseY_`）。
   - **修复**：`ColumnBox` 会把**没有显式宽度的子元素**按可用宽度摆（横向不吃拉伸权值）→ 文档补充"想让卡片按内容收窄要放进 `Row`"；`SettingsList` 被放进 `Card` 自带 `GridLayout`（自动列给 `FLT_MAX`）时会退化成 0 宽 → 文档补充正确用法（`SetLayout(Col(...))` + `SetFillWidth(true)`）。
   - **工程**：`tests/dsl_tests.cpp` 62 → **85** 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。
+- **v1.22.0**（**含破坏性 API 变更**）：
+  - **修复**：`MessageBox`（及一切模态框）**首次点击穿透到后面的主窗口**——模态若在 `Window::OnMouseUp` 的槽里弹出，该函数末尾的 `ReleaseCapture()` 要等模态循环结束才执行 → 整段模态期间主窗口仍持 `SetCapture`，系统把鼠标消息优先给捕获窗口；`Window::RunModal` 现于进入循环前 `if (GetCapture()) ReleaseCapture();`。
+  - **修复**：`ScrollViewer` **滚动链**——滚到顶/底后不再吞掉滚轮（该方向不能再滚则返回 `false` 沿父链冒泡），外层页面可继续滚动。
+  - **修复**：`SplitView` **展开无缓动 + 小按钮跳侧**——旧 `Expand()` 在动画开始前就清掉折叠标志，而 `PaneLengths` 正靠它做插值 → 尺寸瞬跳；改用贯穿折叠/展开的 `collapseSide_`，动画收尾才清零；按钮位置/箭头也按其判断。
+  - **破坏性 · P0-1**：**带默认参数的成员函数拆成无默认参数的重载**（让 `.with()` 可用）：`TreeView::SetCheckable(bool)` + `SetCheckableShallow(bool)`；`SetNodeCheckable(node,bool)` + `SetNodeCheckableRecursive`；`SetNodeEnabled(node,bool)` + `SetNodeEnabledRecursive`；`SetNodeCheckState(node,state)` + `SetNodeCheckStateFull(...,updateChildren,updateParent)`；`ListView::AddItem(text)` 与富项 **`AddItemWidget(shared_ptr<Label>)`**（原名弃用）；`RadioGroup::AddItem` / **`AddItemSelected`** / `AddButton` / **`AddButtonSelected`**；`Menu::AddCheckItem(text,checked)` / **`AddCheckItemCb`** / **`AddCheckItemRadio`**。
+  - **新增 · P0-2**：同名 dsl 工厂的**无歧义别名** `make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander`（避开 `using namespace` 同时命中两类时的 C2872）。
+  - **新增 · P1-2**：`Page::SetScrollableContent(content)`——一行把整页内容套进 `ScrollViewer` + 边距。
+  - **新增 · P1-4**：`ThemeManager::RegisterHook` / `RegisterSubtreeApplier` 返回 **RAII `HookHandle`**（析构自动断开）；库内部固定钩子改用 `RegisterHookPermanent` / `RegisterSubtreeApplierPermanent`。
+  - **文档 · P3**：新增 `docs/pitfalls.md`（易错点总表）；`AGENTS.md` 增补「链式构造 / API 约定」。
 
 ###chapter: 易错点总表 | 按主题速查
 

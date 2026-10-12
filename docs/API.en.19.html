@@ -239,6 +239,8 @@ using Align = GridLayout::Alignment;                        // used by Ref::alig
 // short factories: Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
 //                  Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
 //                  RadioGroup ScrollBar Glyph
+// unambiguous aliases for (name-colliding) factories (avoids C2872 under two using-directives):
+//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander
 class WindowApp {                                  // dsl::App()
     WindowApp&amp; size(int,int);   WindowApp&amp; title(const std::wstring&amp;);
     WindowApp&amp; resizable(bool=true);   WindowApp&amp; corner(Window::WindowCorner);
@@ -256,8 +258,8 @@ class WindowApp {                                  // dsl::App()
 WindowApp App();
 }
 ```
-- Usage: `using namespace ZufyUI::dsl;` then `Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)`. Do **not** also `using namespace ZufyUI;` (`Slider/Card/Expander/MenuBar/StatusBar` factories clash with class names) — or qualify with `dsl::`.
-- **`Pitfall`**: `with(&amp;T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast&lt;...&gt;(&amp;T::SetX)`; functions with **default arguments** (e.g. `ListView::AddItem`) can't be called via a member pointer with defaults → use `-&gt;AddItem(...)`.
+- Usage: `using namespace ZufyUI::dsl;` then `Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)`. When combined with `using namespace ZufyUI;`, use the **collision-free aliases** for name-clashing factories: `make_slider` / `make_card` / `make_page` / `make_menu` / `make_menu_bar` / `make_status_bar` / `make_radio_group` / `make_scroll_bar` / `make_expander` (or qualify with `dsl::`).
+- **`Pitfall`**: `with(&amp;T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast&lt;...&gt;(&amp;T::SetX)`. A function with **default arguments** can't be used with `with` (the pointer carries every parameter → "too few arguments"); since **v1.22.0** such functions are split into **non-defaulted overloads** (e.g. `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`, `ListView::AddItem(text)` / `AddItemWidget(shared_ptr&lt;Label&gt;)`, `RadioGroup::AddItem` / `AddItemSelected`, `Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`).
 - **`Pitfall`**: anything `with` can't express (multi-step, conditional, needs iteration) goes through `apply(lambda)` so the chain doesn't break. It also silences a conversion warning: `.with(&amp;TextBox::SetWidth, 220)` passes an `int` and trips `C4244` — prefer `.width(220.0f)`.
 - **`add()` dispatches on the container's real API**: `ColumnBox`/`RowBox`/`Label` → `AddChild`; `PageHost` → `AddPage` (non-`Page` arguments are skipped); `GridLayout` needs coordinates, so use `.cell(row,col,child[,rowSpan,colSpan])` or `dsl::Cell(...)`. Null children (`nullptr` / empty `Ref`) are always ignored — no null dereference.
 - **Grid coordinates**: `Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))` places cells explicitly; bare children are still accepted (old behaviour: `(i,0)` in order), so existing code is unaffected.
@@ -269,7 +271,7 @@ WindowApp App();
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 19</span><h1>DSL</h1><p class="chapter-summary">Fluent construction (ZufyUIDsl.h, v1.19.4; extended in v1.20.0)</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ad320301', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-b16a43de', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)</span>
 <span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="o">::</span><span class="nn">dsl</span><span class="w"> </span><span class="p">{</span>
@@ -309,6 +311,8 @@ WindowApp App();
 <span class="c1">// short factories: Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring</span>
 <span class="c1">//                  Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar</span>
 <span class="c1">//                  RadioGroup ScrollBar Glyph</span>
+<span class="c1">// unambiguous aliases for (name-colliding) factories (avoids C2872 under two using-directives):</span>
+<span class="c1">//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">WindowApp</span><span class="w"> </span><span class="p">{</span><span class="w">                                  </span><span class="c1">// dsl::App()</span>
 <span class="w">    </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">size</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">);</span><span class="w">   </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">title</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 <span class="w">    </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">resizable</span><span class="p">(</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">   </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">corner</span><span class="p">(</span><span class="n">Window</span><span class="o">::</span><span class="n">WindowCorner</span><span class="p">);</span>
@@ -326,7 +330,7 @@ WindowApp App();
 <span class="n">WindowApp</span><span class="w"> </span><span class="nf">App</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-ad320301" style="display: none;">// header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)
+<pre id="code-b16a43de" style="display: none;">// header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)
 namespace ZufyUI::dsl {
 template&lt;class T&gt; class Ref {                      // wraps shared_ptr&lt;T&gt;
     T* operator-&gt;() const;   std::shared_ptr&lt;T&gt; shared() const;
@@ -364,6 +368,8 @@ using Align = GridLayout::Alignment;                        // used by Ref::alig
 // short factories: Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
 //                  Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
 //                  RadioGroup ScrollBar Glyph
+// unambiguous aliases for (name-colliding) factories (avoids C2872 under two using-directives):
+//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander
 class WindowApp {                                  // dsl::App()
     WindowApp&amp; size(int,int);   WindowApp&amp; title(const std::wstring&amp;);
     WindowApp&amp; resizable(bool=true);   WindowApp&amp; corner(Window::WindowCorner);
@@ -382,8 +388,8 @@ WindowApp App();
 }</pre>
 </div>
 <ul>
-<li>Usage: <code>using namespace ZufyUI::dsl;</code> then <code>Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)</code>. Do <strong>not</strong> also <code>using namespace ZufyUI;</code> (<code>Slider/Card/Expander/MenuBar/StatusBar</code> factories clash with class names) — or qualify with <code>dsl::</code>.</li>
-<li><strong><code>Pitfall</code></strong>: <code>with(&amp;T::Setter, args...)</code> takes a <strong>member function pointer</strong>; overloaded setters need <code>static_cast&lt;...&gt;(&amp;T::SetX)</code>; functions with <strong>default arguments</strong> (e.g. <code>ListView::AddItem</code>) can't be called via a member pointer with defaults → use <code>-&gt;AddItem(...)</code>.</li>
+<li>Usage: <code>using namespace ZufyUI::dsl;</code> then <code>Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)</code>. When combined with <code>using namespace ZufyUI;</code>, use the <strong>collision-free aliases</strong> for name-clashing factories: <code>make_slider</code> / <code>make_card</code> / <code>make_page</code> / <code>make_menu</code> / <code>make_menu_bar</code> / <code>make_status_bar</code> / <code>make_radio_group</code> / <code>make_scroll_bar</code> / <code>make_expander</code> (or qualify with <code>dsl::</code>).</li>
+<li><strong><code>Pitfall</code></strong>: <code>with(&amp;T::Setter, args...)</code> takes a <strong>member function pointer</strong>; overloaded setters need <code>static_cast&lt;...&gt;(&amp;T::SetX)</code>. A function with <strong>default arguments</strong> can't be used with <code>with</code> (the pointer carries every parameter → "too few arguments"); since <strong>v1.22.0</strong> such functions are split into <strong>non-defaulted overloads</strong> (e.g. <code>TreeView::SetCheckable(bool)</code> / <code>SetCheckableShallow(bool)</code>, <code>ListView::AddItem(text)</code> / <code>AddItemWidget(shared_ptr&lt;Label&gt;)</code>, <code>RadioGroup::AddItem</code> / <code>AddItemSelected</code>, <code>Menu::AddCheckItem</code> / <code>AddCheckItemCb</code> / <code>AddCheckItemRadio</code>).</li>
 <li><strong><code>Pitfall</code></strong>: anything <code>with</code> can't express (multi-step, conditional, needs iteration) goes through <code>apply(lambda)</code> so the chain doesn't break. It also silences a conversion warning: <code>.with(&amp;TextBox::SetWidth, 220)</code> passes an <code>int</code> and trips <code>C4244</code> — prefer <code>.width(220.0f)</code>.</li>
 <li><strong><code>add()</code> dispatches on the container's real API</strong>: <code>ColumnBox</code>/<code>RowBox</code>/<code>Label</code> → <code>AddChild</code>; <code>PageHost</code> → <code>AddPage</code> (non-<code>Page</code> arguments are skipped); <code>GridLayout</code> needs coordinates, so use <code>.cell(row,col,child[,rowSpan,colSpan])</code> or <code>dsl::Cell(...)</code>. Null children (<code>nullptr</code> / empty <code>Ref</code>) are always ignored — no null dereference.</li>
 <li><strong>Grid coordinates</strong>: <code>Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))</code> places cells explicitly; bare children are still accepted (old behaviour: <code>(i,0)</code> in order), so existing code is unaffected.</li>

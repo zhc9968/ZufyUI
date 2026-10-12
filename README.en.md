@@ -81,7 +81,8 @@ ZufyUI/
 ├── TODO.md               # Single authoritative backlog
 ├── docs/
 │   ├── API.md            # Full API documentation (Chinese)
-│   └── API.en.md         # Full API documentation (English)
+│   ├── API.en.md         # Full API documentation (English)
+│   └── pitfalls.md       # Pitfall index
 ├── tests/
 │   └── dsl_tests.cpp     # DSL self-test (compile-time + runtime assertions, no window)
 └── tools/
@@ -192,7 +193,18 @@ A tour of the widgets (first page of the demo):
 
 ## Changelog
 
-> Current version: **1.21.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.22.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-12 — API debt cleanup (P0–P3): `.with` usability, collision-free factories, RAII theme hooks, one-line scrollable page (v1.22.0)
+
+- **Breaking · member functions with default arguments split into non-defaulted overloads** (so `.with()` is usable): `TreeView::SetCheckable(bool)` + `SetCheckableShallow(bool)`; `SetNodeCheckable` + `SetNodeCheckableRecursive`; `SetNodeEnabled` + `SetNodeEnabledRecursive`; `SetNodeCheckState` + `SetNodeCheckStateFull`; `ListView::AddItem(text)` and rich-item **`AddItemWidget(shared_ptr<Label>)`**; `RadioGroup::AddItem` / **`AddItemSelected`** / `AddButton` / **`AddButtonSelected`**; `Menu::AddCheckItem` / **`AddCheckItemCb`** / **`AddCheckItemRadio`**.
+- **New · collision-free aliases** for name-clashing factories: `make_slider` / `make_card` / `make_page` / `make_menu` / `make_menu_bar` / `make_status_bar` / `make_radio_group` / `make_scroll_bar` / `make_expander`.
+- **New · `Page::SetScrollableContent(content)`** — one line wraps the whole page in a `ScrollViewer` + margin.
+- **New · `ThemeManager::RegisterHook`/`RegisterSubtreeApplier` return a RAII `HookHandle`** (auto-disconnect on destruction); the library's fixed hooks use `RegisterHookPermanent`.
+- **New · `docs/pitfalls.md`**; `AGENTS.md` gained a "chaining / API conventions" section.
+- **Fixes**: `MessageBox` (and modals) **first-click fall-through** (`ReleaseCapture` before `RunModal`); `ScrollViewer` **scroll chaining** (no wheel swallowing at the edges); `SplitView` **expand had no easing + button jumped sides**.
+- **Docs**: `docs/API.md`/`API.en.md` synced.
+
 
 ### 2026-10-12 — Feedback batch: SplitView collapse, rendering/layout fixes, demo home page + menu/status bar (v1.21.0)
 
