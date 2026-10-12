@@ -128,7 +128,7 @@ namespace ZufyUI {
         void OnMouseMove(float x, float y) override {
             if (pressed_) {
                 if (!panning_ && (fabs(x - pressX_) + fabs(y - pressY_) > 4.0f)) panning_ = true;
-                if (panning_) { scrollX_ = clamp(panStartScrollX_ - (x - pressX_), 0.0f, maxScrollX_); scrollY_ = clamp(panStartScrollY_ - (y - pressY_), 0.0f, maxScrollY_); PushScrollToBars(); RequestRepaint(); return; }
+                if (panning_) { scrollX_ = clamp(panStartScrollX_ - (x - pressX_), 0.0f, maxScrollX_); scrollY_ = clamp(panStartScrollY_ - (y - pressY_), 0.0f, maxScrollY_); PushScrollToBars(); SyncScrollPositions(); RequestRepaint(); return; }
             }
             UpdateHover(x, y);   // 子类更新悬停项
         }
@@ -145,9 +145,10 @@ namespace ZufyUI {
         bool OnMouseWheel(float dx, float dy) override {
             (void)dx;
             if (GetKeyState(VK_CONTROL) & 0x8000) { zoom_ = clamp(zoom_ * (1.0f + dy * 0.12f), 0.4f, 3.0f); InvalidateLayout(); RequestRepaint(); return true; }
-            // 只有内容真的可滚时才消费，否则返回 false 冒泡给外层（否则外层滚动会“卡住”）
+            // 只有内容真的可滚时才消费，否则返回 false 冒泡给外层（否则外层滚动会"卡住"）
             if (GetKeyState(VK_SHIFT) & 0x8000) { if (maxScrollX_ <= 0.0f) return false; scrollX_ = clamp(scrollX_ - dy * 40.0f, 0.0f, maxScrollX_); }
             else { if (maxScrollY_ <= 0.0f) return false; scrollY_ = clamp(scrollY_ - dy * 40.0f, 0.0f, maxScrollY_); }
+            SyncScrollPositions();   // 关键：滚轮平移必须同步 baseX_/baseY_，否则只改了 scroll_ 而画面不动
             PushScrollToBars(); RequestRepaint(); return true;
         }
         bool OnContextMenu(float x, float y) override {
@@ -180,7 +181,7 @@ namespace ZufyUI {
         virtual std::wstring HoveredText() const { return std::wstring(); }
 
         // ---- 公用几何 ----
-        void ComputeContent() {
+        virtual void ComputeContent() {   // 允许子类自定内容模型（如 PieChart：内容 = 视口 × zoom）
             const Rect& r = arrangedRect_;
             if (r.width <= 1.0f || r.height <= 1.0f) return;
             IDWriteTextFormat* lf = FontManager::Instance().GetFormat(labelFont_);
@@ -236,14 +237,24 @@ namespace ZufyUI {
             vBar_->Arrange(Rect(arrangedRect_.x + arrangedRect_.width - barW_, arrangedRect_.y, barW_, vh)); vBar_->SetVisibleNoInvalidate(vBarVisible_); vBar_->SetRange(scrollY_, maxScrollY_, vh);
             hBar_->Arrange(Rect(arrangedRect_.x, arrangedRect_.y + arrangedRect_.height - barW_, vw, barW_)); hBar_->SetVisibleNoInvalidate(hBarVisible_); hBar_->SetRange(scrollX_, maxScrollX_, vw);
         }
+        // 仅"滚动量"变化时同步绘制基准：ComputeContent() 只在布局时跑，而平移不改布局，
+        //   不在这里同步就会出现"滚动条动了、画面不动"（baseX_/plot_ 仍是旧值）。
+        void SyncScrollPositions() {
+            float nx = arrangedRect_.x - scrollX_, ny = arrangedRect_.y - scrollY_;
+            float dx = nx - baseX_, dy = ny - baseY_;
+            plot_.x += dx; plot_.y += dy;
+            legendRect_.x += dx; legendRect_.y += dy;
+            baseX_ = nx; baseY_ = ny;
+        }
         void PushScrollToBars() { if (vBar_) vBar_->SetValue(scrollY_); if (hBar_) hBar_->SetValue(scrollX_); }
         void OnDataChanged() { animProg_ = animate_ ? 0.0f : 1.0f; InvalidateLayout(); RequestRepaint(); }
         void InitScrollBars() {
+            // 注意：这里**不要**调 SetColors。SetColors 在非主题套用期会把 themeManaged_ 置 false，
+            //   而本函数在构造期执行 → 滚动条会从此永久退出主题管理（深色主题下颜色不对的根因）。
+            //   颜色交给主题：新建用 ScrollBar::Default*（由主题钩子写入），实例由套用器覆盖。
             vBar_ = std::make_shared<ScrollBar>(true); vBar_->SetParent(this); vBar_->SetBarWidth(barW_); vBar_->SetMinLength(20.0f); vBar_->SetHitExtra(4.0f);
-            vBar_->SetColors(Color::FromArgb(200, 140, 140, 140).ToD2D(), Color::FromArgb(255, 90, 90, 90).ToD2D(), D2D1::ColorF(0, 0, 0, 0));
             vBar_->ValueChanged = [this](float v, bool) { scrollY_ = v; RequestRepaint(); };
             hBar_ = std::make_shared<ScrollBar>(false); hBar_->SetParent(this); hBar_->SetBarWidth(barW_); hBar_->SetMinLength(20.0f); hBar_->SetHitExtra(4.0f);
-            hBar_->SetColors(Color::FromArgb(200, 140, 140, 140).ToD2D(), Color::FromArgb(255, 90, 90, 90).ToD2D(), D2D1::ColorF(0, 0, 0, 0));
             hBar_->ValueChanged = [this](float v, bool) { scrollX_ = v; RequestRepaint(); };
         }
         float ValueY(double v) const { return plot_.y + plot_.height - (float)((v - axisMin_) / (axisMax_ - axisMin_)) * plot_.height; }
@@ -697,7 +708,8 @@ namespace ZufyUI {
     // =========================================================================
     // PieChart —— 饼图 / 环形图
     // =========================================================================
-    class PieChart : public UIElement {
+    // 继承 ChartBase 以获得：拖拽平移 + 双向滚动条 + 滚轮（饼图自己覆写滚轮为缩放）
+    class PieChart : public ChartBase {
     public:
         enum class LabelMode { None, Percent, Value, LabelAndPercent };
         struct Slice { std::wstring label; double value; Color color; };
@@ -706,7 +718,7 @@ namespace ZufyUI {
         AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Group; }
         ZSignal<int> SliceClicked;   // (slice index)
 
-        PieChart() { width_ = 320.0f; height_ = 260.0f; labelFont_.size = 12.0f; valueFont_.size = 11.0f; }
+        PieChart() : ChartBase() { width_ = 320.0f; height_ = 260.0f; labelFont_.size = 12.0f; valueFont_.size = 11.0f; InitScrollBars(); }
 
         void AddSlice(const std::wstring& label, double value, Color color = Color::FromArgb(0, 0, 0, 0)) {
             if (color.a <= 0.0f) color = palette_[slices_.size() % palette_.size()];
@@ -722,7 +734,7 @@ namespace ZufyUI {
         void SetSliceGap(float deg) { gapDeg_ = clamp(deg, 0.0f, 5.0f); RequestRepaint(); }
         void SetLabelMode(LabelMode m) { labelMode_ = m; InvalidateLayout(); RequestRepaint(); }
         void SetShowLegend(bool on) { showLegend_ = on; InvalidateLayout(); RequestRepaint(); }
-        void SetZoom(float z) { zoom_ = clamp(z, 0.4f, 4.0f); RequestRepaint(); }
+        void SetZoom(float z) { zoom_ = clamp(z, 0.4f, 4.0f); recenterScroll_ = true; InvalidateLayout(); RequestRepaint(); }
         void SetLabelColor(Color c) { if (!ThemeManager::IsApplying()) themeManaged_ = false; labelColor_ = c; RequestRepaint(); }
         float GetZoom() const { return zoom_; }
         void SetAnimationEnabled(bool on) { animate_ = on; if (!on) animProg_ = 1.0f; RequestRepaint(); }
@@ -736,7 +748,43 @@ namespace ZufyUI {
             float h = (GetFillHeight() && avail.height != FLT_MAX && avail.height > 0.0f) ? avail.height : height_;
             return Size(w, h);
         }
-        void ArrangeOverride(const Rect& finalRect) override { UIElement::ArrangeOverride(finalRect); }
+        // ChartBase 的纯虚接口：饼图自己实现整个 Draw（不走基类的坐标轴/数据绘制），故为空实现
+        void DrawData(ID2D1RenderTarget*) override {}
+
+        // 注意：不要覆写 ArrangeOverride —— 必须让 ChartBase 的那份跑，它负责 ComputeContent() + SyncBars()（滚动条布局/范围）
+
+        // 内容 = 视口 × zoom → 放大后可平移、出现滚动条；缩放后把滚动位置居中，饼心不会跑出视口
+        void ComputeContent() override {
+            const Rect& r = arrangedRect_;
+            if (r.width <= 1.0f || r.height <= 1.0f) return;
+            contentW_ = r.width * zoom_;
+            contentH_ = r.height * zoom_;
+            float viewW = max(0.0f, r.width - (vBarVisible_ ? barW_ : 0.0f));
+            float viewH = max(0.0f, r.height - (hBarVisible_ ? barW_ : 0.0f));
+            maxScrollX_ = max(0.0f, contentW_ - viewW);
+            maxScrollY_ = max(0.0f, contentH_ - viewH);
+            if (recenterScroll_) { recenterScroll_ = false; scrollX_ = maxScrollX_ * 0.5f; scrollY_ = maxScrollY_ * 0.5f; }
+            scrollX_ = clamp(scrollX_, 0.0f, maxScrollX_);
+            scrollY_ = clamp(scrollY_, 0.0f, maxScrollY_);
+            baseX_ = r.x - scrollX_;
+            baseY_ = r.y - scrollY_;
+            plot_ = Rect(baseX_, baseY_, contentW_, contentH_);
+        }
+
+        // 统一几何：Draw 与 HitSlice 必须共用（含平移偏移），否则平移后命中会与画面错位
+        void PieGeometry(float& cx, float& cy, float& radius, float& ir) const {
+            const Rect& r = arrangedRect_;
+            bool laid = (contentW_ > 1.0f && contentH_ > 1.0f);
+            float cw = laid ? contentW_ : r.width;
+            float ch = laid ? contentH_ : r.height;
+            float bx = laid ? baseX_ : r.x;
+            float by = laid ? baseY_ : r.y;
+            float legendH = (showLegend_ && !slices_.empty()) ? (labelFont_.size * 1.9f + 6.0f) : 0.0f;
+            radius = max(10.0f, min(r.width, r.height - legendH) * 0.5f - 24.0f) * zoom_;
+            ir = radius * donut_;
+            cx = bx + cw * 0.5f;
+            cy = by + (ch - legendH) * 0.5f;
+        }
 
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_) return;
@@ -744,9 +792,7 @@ namespace ZufyUI {
             const Rect& r = arrangedRect_;
             double total = 0; for (auto& s : slices_) total += s.value;
             float legendH = (showLegend_ && !slices_.empty()) ? (labelFont_.size * 1.9f + 6.0f) : 0.0f;
-            float cx = r.x + r.width * 0.5f, cy = r.y + (r.height - legendH) * 0.5f;
-            float radius = (max(10.0f, min(r.width, r.height - legendH) * 0.5f - 24.0f) * zoom_);
-            float ir = radius * donut_;
+            float cx, cy, radius, ir; PieGeometry(cx, cy, radius, ir);
             if (total <= 0 || slices_.empty()) { rt->PopAxisAlignedClip(); return; }
             ID2D1Factory* fac = nullptr; rt->GetFactory(&fac);
             if (!fac) { rt->PopAxisAlignedClip(); return; }
@@ -807,12 +853,41 @@ namespace ZufyUI {
         }
 
         void OnMouseMove(float x, float y) override {
-            int i = HitSlice(x, y);
-            if (i != hovered_) { hovered_ = i; RequestRepaint(); }
+            // 只有"按下后"才算拖动；否则常态移动会被误判为拖动 → 悬停永远不更新（原 bug）
+            if (isDown_ && !dragged_ && (fabs(x - downX_) + fabs(y - downY_) > 4.0f)) dragged_ = true;
+            if (!(isDown_ && dragged_)) {
+                int i = HitSlice(x, y);
+                if (i != hovered_) { hovered_ = i; RequestRepaint(); }
+            }
+            ChartBase::OnMouseMove(x, y);   // 平移（基类内部同样有 4px 阈值）
         }
         void OnMouseLeave() override { if (hovered_ != -1) { hovered_ = -1; RequestRepaint(); } }
-        void OnMouseDown(float x, float y) override { int i = HitSlice(x, y); if (i >= 0) SliceClicked(i); }
-        bool OnMouseWheel(float, float dy) override { zoom_ = clamp(zoom_ * (1.0f + dy * 0.12f), 0.4f, 4.0f); RequestRepaint(); return true; }
+        void OnMouseDown(float x, float y) override {
+            sliceDown_ = HitSlice(x, y);
+            downX_ = x; downY_ = y; dragged_ = false; isDown_ = true;
+            ChartBase::OnMouseDown(x, y);
+        }
+        void OnMouseUp(float x, float y) override {
+            if (isDown_ && !dragged_ && sliceDown_ >= 0 && HitSlice(x, y) == sliceDown_) SliceClicked(sliceDown_);
+            sliceDown_ = -1; dragged_ = false; isDown_ = false;
+            ChartBase::OnMouseUp(x, y);   // 饼图 series_ 为空 → 基类的 PointClicked/CategoryClicked 不会误发
+        }
+        bool OnMouseWheel(float dx, float dy) override {
+            (void)dx;
+            // 需求：Ctrl+滚轮 = 缩放；普通滚轮 = 只平移（不缩放）。
+            //   PieChart 有自己的 zoom_（遮蔽了 ChartBase::zoom_），所以缩放必须走 SetZoom；
+            //   若直接委派基类，改的是基类那份 zoom_，饼图根本不看 → "Ctrl+滚轮没反应"。
+            if (GetKeyState(VK_CONTROL) & 0x8000) { SetZoom(zoom_ * (1.0f + dy * 0.12f)); return true; }
+            if (GetKeyState(VK_SHIFT) & 0x8000) {
+                if (maxScrollX_ <= 0.0f) return false;
+                scrollX_ = clamp(scrollX_ - dy * 40.0f, 0.0f, maxScrollX_);
+                PushScrollToBars(); RequestRepaint(); return true;
+            }
+            if (maxScrollY_ <= 0.0f) return false;
+            scrollY_ = clamp(scrollY_ - dy * 40.0f, 0.0f, maxScrollY_);
+            SyncScrollPositions();   // 关键：滚轮平移必须同步 baseX_/baseY_，否则只改了 scroll_ 而画面不动
+            PushScrollToBars(); RequestRepaint(); return true;
+        }
         std::wstring GetToolTip() const override {
             std::wstring custom = UIElement::GetToolTip(); if (!custom.empty()) return custom;
             if (hovered_ >= 0 && hovered_ < (int)slices_.size()) return slices_[hovered_].label + L": " + fmtVal(hovered_);
@@ -826,13 +901,14 @@ namespace ZufyUI {
                 if (f != t) { f += (t - f) * (1.0f - expf(-dt * 16.0f)); if (fabs(f - t) < 0.01f) f = t; sliceHoverProg_[i] = f; any = true; }
             }
             if (any) RequestRepaint();
+            ChartBase::UpdateAnimation(dt);   // 滚动条的悬停/空闲收缩动画
         }
         bool HasActiveAnimation() const override {
             if (animProg_ < 1.0f) return true;
             for (float f : sliceHoverProg_) if (f > 0.001f && f < 0.999f) return true;
-            return false;
+            return ChartBase::HasActiveAnimation();
         }
-        void ReleaseDeviceResources() override { sliceBrush_.Reset(); textBrush_.Reset(); legendBrush_.Reset(); UIElement::ReleaseDeviceResources(); }
+        void ReleaseDeviceResources() override { sliceBrush_.Reset(); textBrush_.Reset(); legendBrush_.Reset(); ChartBase::ReleaseDeviceResources(); }
 
     private:
         void OnChanged() { animProg_ = animate_ ? 0.0f : 1.0f; InvalidateLayout(); RequestRepaint(); }
@@ -860,11 +936,9 @@ namespace ZufyUI {
             }
         }
         int HitSlice(float x, float y) {
-            const Rect& r = arrangedRect_; double total = 0; for (auto& s : slices_) total += s.value;
+            double total = 0; for (auto& s : slices_) total += s.value;
             if (total <= 0 || slices_.empty()) return -1;
-            float legendH = (showLegend_ && !slices_.empty()) ? (labelFont_.size * 1.9f + 6.0f) : 0.0f;
-            float cx = r.x + r.width * 0.5f, cy = r.y + (r.height - legendH) * 0.5f;
-            float radius = (max(10.0f, min(r.width, r.height - legendH) * 0.5f - 24.0f) * zoom_), ir = radius * donut_;
+            float cx, cy, radius, ir; PieGeometry(cx, cy, radius, ir);
             float dx = x - cx, dy = y - cy, dist = sqrtf(dx * dx + dy * dy);
             if (dist < ir - 2 || dist > radius + 8) return -1;
             float a = atan2f(dy, dx);   // -pi..pi, 0=east
@@ -890,6 +964,9 @@ namespace ZufyUI {
         Color labelColor_ = Color::FromArgb(255, 90, 90, 90);
         float animProg_ = 0.0f; bool animate_ = true; float zoom_ = 1.0f;
         int hovered_ = -1;
+        int sliceDown_ = -1;                       // 按下时命中的扇区（松手且未拖动才发 SliceClicked）
+        float downX_ = 0, downY_ = 0; bool dragged_ = false; bool isDown_ = false;
+        bool recenterScroll_ = false;              // 缩放后把滚动位置重新居中
         std::vector<float> sliceHoverProg_;
         ComPtr<ID2D1SolidColorBrush> sliceBrush_, textBrush_, legendBrush_;
     };
@@ -898,8 +975,9 @@ namespace ZufyUI {
     inline void ApplyThemeToChartTree(UIElement* e, const Theme& t) {
         if (!e) return;
         if (e->IsThemeManaged()) {
-        if (auto* cb = dynamic_cast<ChartBase*>(e)) cb->SetColors(t.Get(ThemeRole::Border), t.Get(ThemeRole::Divider), t.Get(ThemeRole::TextSecondary));
-        else if (auto* pie = dynamic_cast<PieChart*>(e)) pie->SetLabelColor(t.Get(ThemeRole::TextSecondary));
+        // 注意顺序：PieChart 现在派生自 ChartBase，必须先判 PieChart，否则永远进不了它那一支
+        if (auto* pie = dynamic_cast<PieChart*>(e)) { pie->SetLabelColor(t.Get(ThemeRole::TextSecondary)); if (auto* cb = dynamic_cast<ChartBase*>(e)) cb->SetColors(t.Get(ThemeRole::Border), t.Get(ThemeRole::Divider), t.Get(ThemeRole::TextSecondary)); }
+        else if (auto* cb = dynamic_cast<ChartBase*>(e)) cb->SetColors(t.Get(ThemeRole::Border), t.Get(ThemeRole::Divider), t.Get(ThemeRole::TextSecondary));
         }
         const auto& kids = e->GetChildren();
         for (UIElement* c : kids) ApplyThemeToChartTree(c, t);

@@ -338,7 +338,7 @@ namespace ZufyUI {
             auto border = Microsoft::WRL::Make<BorderEffect>();
             border->SetExtendX(D2D1_BORDER_EDGE_MODE_WRAP);
             border->SetExtendY(D2D1_BORDER_EDGE_MODE_WRAP);
-            border->SetInput(static_cast<IGraphicsEffectSource*>(CompositionEffectSource(HStringReference(L"Noice").Get())));
+            border->SetInput(static_cast<IGraphicsEffectSource*>(CompositionEffectSource(HStringReference(L"Noise").Get())));
 
             auto opacity = Microsoft::WRL::Make<OpacityEffect>();
             opacity->SetOpacity(noiseOpacity);
@@ -383,7 +383,7 @@ namespace ZufyUI {
             if (FAILED(compositor->CreateEffectFactory(noiseBlend.Get(), &factory))) return nullptr;
             ComPtr<ICompositionEffectBrush> brush;
             if (FAILED(factory->CreateBrush(&brush))) return nullptr;
-            if (noise) brush->SetSourceParameter(HStringReference(L"Noice").Get(), noise);
+            if (noise) brush->SetSourceParameter(HStringReference(L"Noise").Get(), noise);
             if (backdrop) brush->SetSourceParameter(HStringReference(L"Backdrop").Get(), backdrop);
             ComPtr<ICompositionBrush> out;
             brush.As(&out);
@@ -404,7 +404,7 @@ namespace ZufyUI {
             auto border = Microsoft::WRL::Make<BorderEffect>();
             border->SetExtendX(D2D1_BORDER_EDGE_MODE_WRAP);
             border->SetExtendY(D2D1_BORDER_EDGE_MODE_WRAP);
-            border->SetInput(static_cast<IGraphicsEffectSource*>(CompositionEffectSource(HStringReference(L"Noice").Get())));
+            border->SetInput(static_cast<IGraphicsEffectSource*>(CompositionEffectSource(HStringReference(L"Noise").Get())));
 
             auto opacity = Microsoft::WRL::Make<OpacityEffect>();
             opacity->SetOpacity(noiseOpacity);
@@ -434,7 +434,7 @@ namespace ZufyUI {
             if (FAILED(compositor->CreateEffectFactory(noiseBlend.Get(), &factory))) return nullptr;
             ComPtr<ICompositionEffectBrush> brush;
             if (FAILED(factory->CreateBrush(&brush))) return nullptr;
-            if (noise) brush->SetSourceParameter(HStringReference(L"Noice").Get(), noise);
+            if (noise) brush->SetSourceParameter(HStringReference(L"Noise").Get(), noise);
             brush->SetSourceParameter(HStringReference(L"BlurredWallpaperBackdrop").Get(),
                 reinterpret_cast<ICompositionBrush*>(wallpaper.Get()));
             ComPtr<ICompositionBrush> out;

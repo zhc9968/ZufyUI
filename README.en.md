@@ -192,7 +192,18 @@ A tour of the widgets (first page of the demo):
 
 ## Changelog
 
-> Current version: **1.20.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.21.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-12 — Feedback batch: SplitView collapse, rendering/layout fixes, demo home page + menu/status bar (v1.21.0)
+
+- **New · SplitView collapse**: drag the splitter to within a threshold of one side's edge and a translucent accent overlay plus a direction arrow fades in **on top of that pane's content** (alpha fade, **the content is not changed yet**); the pane only collapses **on release** (its size eases to 0). Once collapsed, a small button appears at that edge (rounded light grey + arrow pointing in the expand direction + hover easing); clicking it eases that side to its **minimum limit**. Turn the whole feature off with `SetCollapseEnabled(false)`; new `CollapsedChanged(int)` signal plus `CollapseFirst/CollapseSecond/Expand/IsFirstCollapsed/IsSecondCollapsed` and friends.
+- **New · one animation convention**: `detail::EaseOutCubic`/`EaseInOutCubic` (duration-driven, stops exactly on time). `ToggleSwitch` now uses ease-in-out (`DefaultAnimationDuration = 0.25s`, and fixes "click/keyboard bypassed `SetOn` so the animation never started = instant snap"); `ProgressBar` values are eased (`DefaultValueAnimDuration = 0.22s`).
+- **Fixes · rendering**: `Card` flashed a blue hover border (the theme set a hover border colour on cards, which cards never had); `ProgressBar`'s inner fill radius no longer matched the outer frame after stretching (track/clip/border still used the construction-time height).
+- **Fixes · layout**: `Button` captions were ellipsized even with room to spare (width was a constant `DefaultWidth`; it now grows to fit, and `AutoSizeToText(false)` opts out).
+- **Fixes · charts**: `PieChart`'s `zoom_` shadowed `ChartBase::zoom_`, so **Ctrl+wheel zoom did nothing** (the pie now handles Ctrl itself); wheel panning "did not move" (the pan path was missing `SyncScrollPositions()`). Semantics are explicit: **Ctrl+wheel = zoom / plain wheel = pan only**.
+- **Docs**: added two pitfalls — "`ColumnBox` arranges a child without an explicit width at the available width (horizontal stretch ignores the weight), so wrap a card in a `Row` to make it hug its content" and "a `SettingsList` inside a `Card`'s built-in `GridLayout` degenerates to zero width"; `ThemeRole::Shadow` (appended at the end of the enum) and `Window::SetBackdrop(Backdrop)` following the theme.
+- **demo**: new **home page** (settings-card navigation that jumps to each page); the **multi-window page** became 7 collapsible cards; the **menu bar** grew to 6 menus (with sub-menus that really change state: jump to page / backdrop / window size / frame-rate limit); the **status bar** became 5 live panels (page / theme / backdrop / DPI·client area / window state, refreshed by theme switches and window signals); every `MessageBoxW` was replaced by the library `MessageBox` with click feedback on all buttons; duplicated boilerplate removed (14 `section` helpers, 7 `accent` helpers, 14 Scroll wrappers → 3 shared helpers).
+- **Self-tests**: `tests/dsl_tests.cpp` 62 → **85** assertions (including regressions for this batch).
 
 ### 2026-10-11 — DSL polish + one-shot build script + null/self-containment fixes (v1.20.0)
 

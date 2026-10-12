@@ -45,6 +45,14 @@ param(
     #   contains non-ASCII, producing fake syntax errors.
     [string[]]$Include = @('*.h', '*.hpp', '*.cpp', '*.cxx', '*.ps1'),
 
+    # File types that carry a BOM by repo convention even when pure ASCII.
+    # Only the Visual Studio project files qualify here -- verified against the
+    # committed versions: ZufyUI.vcxproj(.filters) have a BOM, while ZufyUI.rc
+    # and ZufyUI.slnx do NOT, so they must stay out or every run would add an
+    # unrelated diff. Without this list a project file silently loses its BOM on
+    # edit and VS re-adds it on the next save.
+    [string[]]$AlwaysBom = @('*.vcxproj', '*.vcxproj.filters'),
+
     # Directory names to skip entirely (build output, editor caches, site copy).
     [string[]]$ExcludeDir = @('x64', '.vs', '.git', 'ghpages', 'Debug', 'Release')
 )
@@ -57,7 +65,7 @@ $utf8Strict = New-Object System.Text.UTF8Encoding($false, $true)  # rejects inva
 
 # ---- collect candidate files ----
 $files = @()
-foreach ($pat in $Include) {
+foreach ($pat in ($Include + $AlwaysBom)) {
     $files += Get-ChildItem -LiteralPath $Root -Recurse -File -Filter $pat -ErrorAction SilentlyContinue
 }
 $files = $files | Where-Object {
@@ -71,7 +79,7 @@ if (-not $files) {
     exit 0
 }
 
-$needBom = @()     # has non-ASCII, lacks BOM  -> gets one (the failure mode we prevent)
+$needBom = @()     # has non-ASCII (or is a by-convention BOM type), lacks BOM -> gets one
 $asciiOnly = @()   # pure ASCII, lacks BOM    -> left alone
 $notUtf8 = @()     # not valid UTF-8          -> skipped with a warning
 
@@ -83,7 +91,10 @@ foreach ($f in $files) {
     try { $text = $utf8Strict.GetString($bytes) }
     catch { $notUtf8 += $f.FullName; continue }
 
-    if (-not $All -and $text -notmatch '[^\x00-\x7F]') { $asciiOnly += $f.FullName; continue }
+    $byConvention = ($AlwaysBom | Where-Object { $f.Name -like $_ }).Count -gt 0
+    if (-not $All -and -not $byConvention -and $text -notmatch '[^\x00-\x7F]') {
+        $asciiOnly += $f.FullName; continue
+    }
 
     $needBom += $f.FullName
     if (-not $Check) {
@@ -100,12 +111,12 @@ foreach ($p in $notUtf8) {
 
 if ($needBom.Count -eq 0) {
     $extra = if ($asciiOnly.Count) { " ($($asciiOnly.Count) pure-ASCII file(s) need no BOM)" } else { '' }
-    Write-Host ("ensure_bom: scanned $($files.Count) file(s); every file with non-ASCII already has a BOM.$extra") -ForegroundColor Green
+    Write-Host ("ensure_bom: scanned $($files.Count) file(s); every file that needs a BOM already has one.$extra") -ForegroundColor Green
     exit 0
 }
 
 if ($Check) {
-    Write-Host ("ensure_bom: $($needBom.Count) file(s) with non-ASCII are missing a BOM:") -ForegroundColor Red
+    Write-Host ("ensure_bom: $($needBom.Count) file(s) are missing a BOM:") -ForegroundColor Red
     foreach ($p in $needBom) { Write-Host ("  " + (& $relPath $p)) }
     exit 1
 }

@@ -642,9 +642,11 @@ void SetColors(Color normal, Color hover, Color pressed);   void SetTextColor(Co
 void SetCornerRadius(float);   void SetHoverAnimationSpeed(float);
 void SetCheckable(bool);  void SetChecked(bool);  bool IsChecked() const;
 void SetAutoRepeat(bool enable, float intervalMs=400);   // 长按重复
+void SetAutoSizeToText(bool);   inline static bool AutoSizeToText;   // 默认 true：按文案撑宽
 ```
 - 默认 `120×36`；按下+抬起都在内部才 `Clicked`。
 - **`易错`**：非 checkable 时 `IsChecked()` 无意义。内部 Label 不要手动 parent。
+- **`版本`**：`v1.21.0` 起按钮**默认按文案自动撑宽**（`MeasureOverride` 取 `max(width_, 文案宽 + 2*padding)`），此前宽度恒定 `DefaultWidth`，文案长了会被省略号裁掉；需要固定宽度时 `SetAutoSizeToText(false)` 或给显式宽度。
 
 ## TextBox（单行）
 
@@ -737,8 +739,10 @@ class RadioGroup  { enum class Orientation { Vertical, Horizontal };
 ```cpp
 ZSignal<bool> Toggled;   void SetOn(bool);  bool IsOn() const;
 void SetIndeterminate(bool);   // 半选外观
+inline static float DefaultAnimationDuration;   // 一次完整动画时长(秒)，默认 0.25
 ```
 - 默认 50×24。
+- **`版本`**：`v1.21.0` 起滑块/底色/悬停改为**时长驱动 ease-in-out**（`DefaultAnimationDuration`，默认 0.25s），到点精确结束、不再持续重绘；此前是线性推进（`animSpeed_=9.6` 时 0→1 仅约 0.10s，看起来像瞬变）。`SetAnimationSpeed` 仍保留"越大越快"（换算成时长倍率）。
 
 ## Slider
 
@@ -769,8 +773,10 @@ ZSignal<float> ValueChanged;
 void SetValue(float);          // 归一化到 [0,1]
 void SetRange(float min,float max);  void SetRangeValue(float);   // [min,max]
 void SetIndeterminate(bool);   void SetIndeterminateBlockWidth(float);  void SetIndeterminateSpeed(float);
+inline static float DefaultValueAnimDuration;   // 数值缓动时长(秒)，默认 0.22
 ```
 - **`易错`**：`SetValue` 是 `[0,1]`，`SetRangeValue` 是 `[min,max]`，**别混用**。
+- **`版本`**：`v1.21.0` 起数值变化有**缓动**（内部 `displayValue_` 时长驱动，填充条与 `%` 文字同步，到点即停）；同版本修**拉伸后内填充圆角与外框对不上**（轨道/裁剪/边框原用成员 `height_`，改用 `arrangedRect_.height/2`）。
 
 ## ProgressRing
 
@@ -820,10 +826,16 @@ enum class Orientation { Vertical, Horizontal };   // Vertical = 左右两栏 + 
 ZSignal<float> SplitChanged;   // 新比例 0..1
 void SetFirst/SetSecond(std::shared_ptr<UIElement>);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
+ZSignal<int> CollapsedChanged;   // 0=未折叠 1=第一栏 2=第二栏
+void SetCollapseEnabled(bool);   bool IsCollapseEnabled() const;   void SetCollapseThreshold(float);
+void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/IsSecondCollapsed() const;
+void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
 bool UseCache() const override { return false; }
 ```
 - **`易错`**：`Orientation` 命名反直觉（`Vertical` 指竖直分隔条、水平排列两栏）。
-- **`版本`**：`v1.12.0`；NaN/Inf 守卫 `v1.14.0`。
+- **折叠（`v1.21.0`）**：把分隔条拖到**距某侧边缘 `CollapseThreshold`（默认 28px）内** → 该侧内容**上方**浮出半透明强调色覆盖层 + 指向折叠方向的箭头（alpha 渐入渐出）；**此时不改内容**，**松手**才真正折叠（该侧尺寸带缓动从当前值变为 0）。折叠后该侧边缘出现小按钮（圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后该侧尺寸带缓动从 0 变为**最小极限值**（`SetMinFirst/MinSecond`；未设则回到折叠前比例）。整个功能可 `SetCollapseEnabled(false)` 关闭。
+- **`易错`**：覆盖层与本控件内部的 `Overlay` 子元素有关——它是**最后一个子元素**（框架按子元素顺序绘制），所以天生画在两栏内容**之上**；不要试图在 `SplitView::Draw` 里画这类装饰（会被内容盖住）。
+- **`版本`**：`v1.12.0`；NaN/Inf 守卫 `v1.14.0`；折叠/小按钮 `v1.21.0`。
 
 ## TabView
 
@@ -1335,7 +1347,7 @@ WindowApp App();
 inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 ```
 - 默认**关闭**；开启后目标窗口处理 `WM_COPYDATA`（`dwData` = 命令号，回包 `0x5A554631`）。
-- 命令集（1..22）：
+- 命令集（1..23）：
 
 | 命令 | 作用 | 命令 | 作用 |
 |---|---|---|---|
@@ -1349,12 +1361,12 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 | 8 | FocusElement | 21 | SetMargin("id\tx\ty") |
 | 9 | GetElementInfo | 22 | SetHighlightColor("RRGGBB") |
 | 10 | GetElementAt("x,y" 屏幕→AutomationId) | — | — |
-| 11 | Highlight(id) | — | — |
+| 11 | Highlight(id) | 23 | GetTheme（主题名 + 各 Role 的 AARRGGBB） |
 
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.20.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.21.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1414,6 +1426,19 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **修复**：`ColumnBox`/`RowBox`/`GridLayout::AddChild` 补**空值守卫**——DSL 的 variadic 转发可能送来 `nullptr`，原实现会解引用空指针。
   - **修复**：`ZufyUIWindowTool.h` **自身不完整**——它用到 `Label`/`Button`/`ColumnBox::AddChild` 却未 include `ZufyUIWidgets.h`，一直依赖调用方先包含（`pch.h` 恰好是这个顺序）；已补上，该头现在可单独包含。
   - **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 `C2143/C2259/C2888/C4819`）、`tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1`（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。
+- **v1.21.0**：
+  - **修复**：`Card` 悬停**闪出蓝色边框**——主题套用器给卡片设了 `SetHoverBorderColor(Accent)`，而卡片本没有这个行为；已移除（悬停仍改背景色）。
+  - **修复**：`ProgressBar` **拉伸后内填充圆角与外框对不上**——轨道、裁剪几何、边框三处用的仍是成员 `height_`（初始高度），只有填充用了实际高度；三处统一为 `arrangedRect_.height / 2`。
+  - **修复**：`Button` 文案**有空间却被省略号裁掉**——`MeasureOverride` 直接返回恒定 `width_`（构造时 `DefaultWidth=120`）；改为按文案撑开（`max(width_, 文案宽 + 2*padding)`），新增 `Button::AutoSizeToText`（静态，默认 `true`）与 `SetAutoSizeToText(false)`。**这是布局行为变更**。
+  - **新增**：`ToggleSwitch` 改**时长驱动 ease-in-out** 缓动（`DefaultAnimationDuration=0.25s`，到点精确结束）；修鼠标点击/键盘路径绕过 `SetOn` 导致动画不启动（表现为"瞬间开关"）。
+  - **新增**：`ProgressBar` 数值**缓动**（`DefaultValueAnimDuration=0.22s`，填充条与百分比文字同步）；同版本修 `ProgressBar` 悬停/数值在长空闲后一帧跳到位的观感问题（动画一律时长驱动）。
+  - **新增**：`SplitView` **折叠**能力——拖到边缘阈值内先出"即将折叠"覆盖层（半透明强调色 + 方向箭头，alpha 渐入渐出，**不改内容**），松手才折叠（尺寸带缓动到 0）；折叠后该侧显示小按钮（画在内容**之上**，圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后带缓动展开到最小极限值；`SetCollapseEnabled(false)` 可整体关闭。公开 API：`SetCollapseEnabled/IsCollapseEnabled/SetCollapseThreshold/CollapseFirst/CollapseSecond/Expand/IsFirstCollapsed/IsSecondCollapsed/GetCollapsedSide/IsCollapsing/GetCollapseProgress/SetExpandButtonColors/SetExpandButtonSize` + 信号 `CollapsedChanged(int)`。
+  - **新增**：`detail::EaseOutCubic` / `detail::EaseInOutCubic`（时长驱动缓动，库内动画统一口径）。
+  - **新增**：`ThemeRole::Shadow`（**追加在枚举末尾**，避免改动既有枚举值）+ 浅色/深色/高对比度取值；`UIElement::DefaultShadowColor`/`SetDefaultShadowColor`；`Window::SetBackdrop(Backdrop)` 跟随主题（带 `tint` 的重载表示锁定）+ `ApplyThemeToBackdropParams` 钩子。
+  - **修复**：`PieChart` Ctrl+滚轮**缩放无效**——`PieChart` 自己的 `zoom_` 遮蔽了 `ChartBase::zoom_`（委派基类只改基类那份）；现由饼图自己处理 Ctrl 并走 `SetZoom`。语义明确为 **Ctrl+滚轮 = 缩放 / 普通滚轮 = 只平移**。
+  - **修复**：图表滚轮平移"画面不动"——平移路径缺 `SyncScrollPositions()`（只改了 `scrollX_/scrollY_`，未重算 `baseX_/baseY_`）。
+  - **修复**：`ColumnBox` 会把**没有显式宽度的子元素**按可用宽度摆（横向不吃拉伸权值）→ 文档补充"想让卡片按内容收窄要放进 `Row`"；`SettingsList` 被放进 `Card` 自带 `GridLayout`（自动列给 `FLT_MAX`）时会退化成 0 宽 → 文档补充正确用法（`SetLayout(Col(...))` + `SetFillWidth(true)`）。
+  - **工程**：`tests/dsl_tests.cpp` 62 → **85** 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。
 
 ###chapter: 易错点总表 | 按主题速查
 

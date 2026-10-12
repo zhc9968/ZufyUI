@@ -725,39 +725,43 @@ namespace ZufyUI {
         auto root = GetRootColumnBox();
         if (root) {
             if (userContent_) {
-                root->AddChild(userContent_);   // 全交给用户：不放按钮
+                root->AddChild(userContent_);
+            }
+            else if (contentEl_) {
+                root->AddChild(contentEl_);
             }
             else {
-                if (contentEl_) {
-                    root->AddChild(contentEl_);
-                }
-                else {
-                    auto lbl = std::make_shared<Label>(content_);
-                    lbl->SetTextOverflow(Label::TextOverflow::Wrap);
-                    auto img = iconImage_ ? iconImage_ : StockIcon(iconKind_);
-                    if (img) { lbl->SetImage(img); lbl->SetIconSize(32.0f, 32.0f); }
-                    textLabel_ = lbl;
-                    root->AddChild(lbl);
-                }
+                auto lbl = std::make_shared<Label>(content_);
+                lbl->SetTextOverflow(Label::TextOverflow::Wrap);
+                auto img = iconImage_ ? iconImage_ : StockIcon(iconKind_);
+                if (img) { lbl->SetImage(img); lbl->SetIconSize(32.0f, 32.0f); }
+                textLabel_ = lbl;
+                root->AddChild(lbl);
+            }
+
+            // 按钮行与自适应高度对「自定义内容」同样必须执行：
+            //   原来这两段只在 else 分支里 → 传自定义内容时 FastButton::OK|Cancel 被静默忽略，
+            //   且窗口恒为 Create() 的 180 高 → 内容偏高时底部被裁（"只显示一半"）。
+            if (buttons_ != FastButton::None) {
                 buttonRow_ = std::make_shared<RowBox>();
                 buttonRow_->SetSpacing(8.0f);
                 root->AddChild(buttonRow_);
                 ApplyButtons();
-
-                // 自适应高度：root->Measure() 不含其自身 margin，需手补；宽度用真实客户区
-                Thickness rm = root->GetMargin();
-                RECT wr0, cr0; GetWindowRect(GetHwnd(), &wr0); GetClientRect(GetHwnd(), &cr0);
-                int dpi = (int)GetDpiForWindow(GetHwnd()); if (dpi <= 0) dpi = 96;
-                int frameW = (wr0.right - wr0.left) - (cr0.right - cr0.left);
-                int frameH = (wr0.bottom - wr0.top) - (cr0.bottom - cr0.top);
-                float clientW = (float)(builtWidth_ - MulDiv(frameW, 96, dpi));
-                if (clientW < 60.0f) clientW = 60.0f;
-                Size want = root->Measure(Size(clientW, 0.0f));
-                int clientH = (int)ceil(want.height + rm.top + rm.bottom);
-                if (clientH < 90) clientH = 90;
-                SetSize(builtWidth_, clientH + MulDiv(frameH, 96, dpi));
-                RightAlignButtons();   // 最终尺寸定下来后再摆一次按钮（时机：必须在 SetSize 之后）
             }
+
+            // 自适应高度：root->Measure() 不含其自身 margin，需手补；宽度用真实客户区
+            Thickness rm = root->GetMargin();
+            RECT wr0, cr0; GetWindowRect(GetHwnd(), &wr0); GetClientRect(GetHwnd(), &cr0);
+            int dpi = (int)GetDpiForWindow(GetHwnd()); if (dpi <= 0) dpi = 96;
+            int frameW = (wr0.right - wr0.left) - (cr0.right - cr0.left);
+            int frameH = (wr0.bottom - wr0.top) - (cr0.bottom - cr0.top);
+            float clientW = (float)(builtWidth_ - MulDiv(frameW, 96, dpi));
+            if (clientW < 60.0f) clientW = 60.0f;
+            Size want = root->Measure(Size(clientW, 0.0f));
+            int clientH = (int)ceil(want.height + rm.top + rm.bottom);
+            if (clientH < 90) clientH = 90;
+            SetSize(builtWidth_, clientH + MulDiv(frameH, 96, dpi));
+            if (buttonRow_) RightAlignButtons();   // 最终尺寸定下来后再摆一次按钮（时机：必须在 SetSize 之后）
         }
         built_ = true;
         Show();
@@ -1124,7 +1128,8 @@ namespace ZufyUI {
                 return 0;
             }
             if (msg == kCallbackMsg) {
-                UINT ev = LOWORD(l);
+                UINT ev = LOWORD(w);   // NOTIFYICON_VERSION_4：事件类型在 wParam，lParam 才是屏幕坐标
+                                       // （原为 LOWORD(l) → 把鼠标 X 当事件号 → 单击/双击/悬停/气泡/右键菜单全部静默失效）
 #ifdef ZufyUI_DEBUG
                 { wchar_t b[64]; swprintf(b, 64, L"[ZufyUI] Tray callback ev=0x%04X\n", (unsigned)ev); ZufyUI_DEBUG_LOG_W(b); }
 #endif
@@ -2201,20 +2206,20 @@ namespace ZufyUI {
 
     // ============================ 主题桥接（窗口周边 = 系统外观） ============================
     // 标题栏三件套/标题栏是“系统周边”，跟随“系统”主题，而不是当前窗口主题。
-    inline void ApplySystemThemeToChromeStatics(const Theme& /*winTheme*/) {
-        const Theme& st = ThemeManager::SystemThemeCached();
-        CaptionButton::DefaultHoverColor   = st.isDark ? Color::FromArgb(255, 60, 60, 60) : Color::FromArgb(255, 229, 229, 229);
-        CaptionButton::DefaultPressedColor = st.isDark ? Color::FromArgb(255, 74, 74, 74) : Color::FromArgb(255, 214, 214, 214);
+    inline void ApplySystemThemeToChromeStatics(const Theme& winTheme) {
+        const Theme& st = winTheme;   // 用传入的窗口/应用主题；原实现无视入参、改取"系统主题" → 切应用主题时标题栏不跟随
+        CaptionButton::DefaultHoverColor   = st.Get(ThemeRole::ControlHover);
+        CaptionButton::DefaultPressedColor = st.Get(ThemeRole::ControlPressed);
         CaptionButton::DefaultCloseHoverColor   = st.Get(ThemeRole::Danger);
         CaptionButton::DefaultClosePressedColor = Color::Lerp(st.Get(ThemeRole::Danger), Color::FromArgb(255, 0, 0, 0), 0.15f);
         CaptionButton::DefaultGlyphColor   = st.Get(ThemeRole::Text);
     }
     inline void ApplyThemeToChromeTree(UIElement* e, const Theme& winTheme) {
         if (!e) return;
-        const Theme& st = ThemeManager::SystemThemeCached();
+        const Theme& st = winTheme;   // 同上：不再取系统主题，改为跟随窗口/应用主题
         if (auto* cb = dynamic_cast<CaptionButton*>(e)) {
-            cb->SetHoverColor(st.isDark ? Color::FromArgb(255, 60, 60, 60) : Color::FromArgb(255, 229, 229, 229));
-            cb->SetPressedColor(st.isDark ? Color::FromArgb(255, 74, 74, 74) : Color::FromArgb(255, 214, 214, 214));
+            cb->SetHoverColor(st.Get(ThemeRole::ControlHover));
+            cb->SetPressedColor(st.Get(ThemeRole::ControlPressed));
             cb->SetCloseHoverColor(st.Get(ThemeRole::Danger));
             cb->SetClosePressedColor(Color::Lerp(st.Get(ThemeRole::Danger), Color::FromArgb(255, 0, 0, 0), 0.15f));
             cb->SetGlyphColor(st.Get(ThemeRole::Text));

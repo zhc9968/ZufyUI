@@ -192,7 +192,18 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 
 ## 更新日志
 
-> 当前版本：**1.20.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.21.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-12 — 反馈批次：SplitView 折叠、一批渲染/布局修复、demo 首页与菜单状态栏（v1.21.0）
+
+- **新增 · SplitView 折叠**：把分隔条拖到**距某侧边缘阈值内**，该侧内容**上方**先浮出半透明强调色覆盖层 + 指向折叠方向的箭头（alpha 渐入渐出，**此时不改内容**）；**松手**才真正折叠（该侧尺寸带缓动变为 0）。折叠后该侧边缘出现小按钮（圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后带缓动展开到**最小极限值**。`SetCollapseEnabled(false)` 可整体关闭；新增 `CollapsedChanged(int)` 信号与 `CollapseFirst/CollapseSecond/Expand/IsFirstCollapsed/IsSecondCollapsed` 等。
+- **新增 · 动画口径统一**：`detail::EaseOutCubic`/`EaseInOutCubic`（时长驱动，到点精确结束）。`ToggleSwitch` 改为 ease-in-out（`DefaultAnimationDuration=0.25s`，并修"点击/键盘绕过 `SetOn` 导致动画不启动 = 瞬间开关"）；`ProgressBar` 数值加缓动（`DefaultValueAnimDuration=0.22s`）。
+- **修复 · 渲染**：`Card` 悬停闪出蓝色边框（主题给卡片设了 hover 边框色，卡片本无此行为）；`ProgressBar` 拉伸后内填充圆角与外框对不上（轨道/裁剪/边框仍在用构造时的高度）。
+- **修复 · 布局**：`Button` 文案有空间却被省略号裁掉（宽度恒为 `DefaultWidth`，现按文案撑开，可用 `AutoSizeToText(false)` 关闭）。
+- **修复 · 图表**：`PieChart` 的 `zoom_` 遮蔽了 `ChartBase::zoom_` 导致 **Ctrl+滚轮缩放无效**（现由饼图自己处理）；滚轮平移"画面不动"（平移路径缺 `SyncScrollPositions()`）。语义明确为 **Ctrl+滚轮 = 缩放 / 普通滚轮 = 只平移**。
+- **文档**：补充"`ColumnBox` 会把无显式宽度的子元素按可用宽摆（横向不吃拉伸权值）→ 卡片想按内容收窄要放进 `Row`"、"`SettingsList` 放进 `Card` 自带 `GridLayout` 会退化成 0 宽"两条易错点；`ThemeRole::Shadow`（枚举末尾追加）+ `Window::SetBackdrop(Backdrop)` 跟随主题。
+- **demo**：新增**首页**（设置卡片式导航，点击跳转对应页）；**多窗口页**改为 7 张可折叠卡片；**菜单栏**扩到 6 个菜单（含跳转页面/背景层/窗口尺寸/帧率上限等真改状态的子菜单）；**状态栏**改为 5 个实时面板（页面/主题/背景/DPI·客户区/窗口状态，随主题切换与窗口信号刷新）；全部 `MessageBoxW` 换成库自带 `MessageBox` 并补齐按钮点击反馈；抽掉重复样板（`section` 14 份、`accent` 7 份、Scroll 包装 14 处 → 3 个共用助手）。
+- **自检**：`tests/dsl_tests.cpp` 62 → **85** 项断言（含本批修复的回归断言）。
 
 ### 2026-10-11 — DSL 完善 + 一键构建脚本 + 空值/自洽修复（v1.20.0）
 

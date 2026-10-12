@@ -265,6 +265,160 @@ static void test_factories_and_wrap() {
     CHECK(withImg.ptr() != nullptr);
 }
 
+// ---------------------------------------------------------------------------
+// 8) 编译期：padding() 的适用范围（重排 demo 时踩到）
+//    Ref::padding(float) 与 padding(Thickness) 都要求 T 有 SetPadding ——
+//    ColumnBox / ScrollViewer 根本没有 SetPadding，所以两者都不可用，只能用 .margin(Thickness)。
+// ---------------------------------------------------------------------------
+template<class T, class = void> struct HasSetPaddingF : std::false_type {};
+template<class T> struct HasSetPaddingF<T, std::void_t<decltype(std::declval<T&>().SetPadding(0.0f))>> : std::true_type {};
+static_assert(HasSetPaddingF<Card>::value,          "Card 有 SetPadding(float) → .padding(float) 可用");
+static_assert(!HasSetPaddingF<ColumnBox>::value,    "ColumnBox 没有 SetPadding → .padding(...) 不可用，请用 .margin(Thickness)");
+static_assert(!HasSetPaddingF<ScrollViewer>::value, "ScrollViewer 没有 SetPadding → 同上");
+
+// ---------------------------------------------------------------------------
+// 9) 运行期：重排 demo 时踩到的 DSL 边界（固化防回归）
+// ---------------------------------------------------------------------------
+static void test_dsl_pitfalls() {
+    std::printf("DSL 边界（默认参数 / 同名歧义 / padding / 尺寸工厂）\n");
+
+    // a) Card 可用 padding(float)；Col/Scroll 只能用 margin(Thickness)（见上面的 static_assert）
+    auto cardPad = d::Card().padding(6.0f);
+    CHECK(cardPad.ptr() != nullptr);
+    auto colPad = d::Col().margin(Thickness(4, 4, 4, 4));
+    CHECK(colPad.ptr() != nullptr);
+
+    // b) 有默认参数的成员函数不能用 .with()：成员指针类型包含全部形参，
+    //    with 会按推导出的参数包调用 → 报"参数太少"。必须把默认值也显式写出。
+    //    TreeView::SetCheckable(bool enable, bool recursive = true)
+    auto treeCk = d::Tree().with(&TreeView::SetCheckable, true, true);
+    CHECK(treeCk.ptr() != nullptr);
+
+    // c) 同名工厂当"表达式 / 类型实参"用必须全限定（::ZufyUI::dsl::Slider）；
+    //    而 .with(&Slider::SetRange, ...) 这种"嵌套名限定符"位置不歧义。
+    auto sl = ::ZufyUI::dsl::Slider()
+                  .with(&Slider::SetRange, 0.0f, 100.0f)
+                  .with(&Slider::SetStep, 5.0f)
+                  .with(&Slider::SetSnapToStep, true)
+                  .value(40.0f);
+    CHECK(sl.ptr() != nullptr);
+    CHECK(sl->GetValue() == 40.0f);
+
+    // d) 花括号初始化列表过不了 .with()（转发引用推不出 braced-init-list）→ 用 .apply(...)
+    auto tv = d::Tree().with(&TreeView::SetColumnCount, 2)
+                       .apply([](TreeView& t) { t.SetHeaderLabels({ L"名称", L"类型" }); });
+    CHECK(tv.ptr() != nullptr);
+
+    // e) Grid(Cell(...)) 声明式坐标
+    auto grid = d::Grid(d::Cell(0, 0, d::Lbl(L"A")), d::Cell(1, 1, d::Lbl(L"B"))).spacing(4.0f, 4.0f);
+    grid->RefreshChildren();
+    CHECK(grid->GetChildren().size() == 2);
+
+    // f) items() 批量加项
+    auto combo = d::Combo().items({ L"一", L"二", L"三" });
+    CHECK(combo->GetItemCount() == 3);
+
+    // g) Table 行列 / 表头 / cell 快捷
+    auto tbl = d::Table().rows(3).cols(2).header(0, L"列一").header(1, L"列二").cell(0, 0, L"x").cell(0, 1, L"y");
+    CHECK(tbl->GetRowCount() == 3);
+    CHECK(tbl->GetColumnCount() == 2);
+
+    // h) Ring() 走默认尺寸（工厂无法传尺寸）；要自定义尺寸只能直接构造 ProgressRing(size)
+    auto ring = d::Ring();
+    CHECK(ring.ptr() != nullptr);
+    auto ring36 = std::make_shared<ProgressRing>(36.0f);
+    CHECK(ring36 != nullptr);
+
+    // i) 页面重排的固定写法：Col + add() 分派 + Scroll 包一层
+    auto col = d::Col();
+    col.add(d::Lbl(L"1"));
+    col->RefreshChildren();
+    CHECK(col->GetChildren().size() == 1);
+    col.add(d::Row(d::Lbl(L"a"), d::Lbl(L"b")).shared());
+    col->RefreshChildren();
+    CHECK(col->GetChildren().size() == 2);
+    auto sc = d::Scroll().fill(true).margin(Thickness(8, 8, 8, 8))
+                         .with(&ScrollViewer::SetContent, col.shared());
+    CHECK(sc.ptr() != nullptr);
+}
+
+// ---------------------------------------------------------------------------
+// 10) 运行期：本批修复的行为回归（按钮自动撑宽 / 进度条与开关缓动 / SplitView 折叠）
+// ---------------------------------------------------------------------------
+static void test_fix_regressions() {
+    std::printf("修复回归（Button 撑宽 / 进度条·开关缓动 / SplitView 折叠）\n");
+
+    // ⑧ Button：文案超出默认宽度时应自动撑开，不再被省略号裁掉
+    auto longBtn = d::Btn(L"这是一个非常非常非常非常非常非常非常长的按钮文案，远超默认宽度");
+    longBtn->Measure(Size(1000.0f, 100.0f));
+    CHECK(longBtn->GetDesiredSize().width > Button::DefaultWidth);
+
+    // 关掉自动撑宽 → 回到固定宽度（给需要精确控制布局的场景留后路）
+    auto fixedBtn = d::Btn(L"这是一个非常非常非常非常非常非常非常长的按钮文案，远超默认宽度")
+                        .with(&Button::SetAutoSizeToText, false);
+    fixedBtn->Measure(Size(1000.0f, 100.0f));
+    CHECK(fixedBtn->GetDesiredSize().width == Button::DefaultWidth);
+
+    // ⑥ Label：不设固定宽度时，宽度跟随文本 —— 这正是"后面还有空间却提前省略号"的修复点
+    //    （旧代码是 .width(100.0f)，文本超过 100px 就被省略号裁掉；minWidth 只是给父容器的夹取下限）
+    auto echoLbl = d::Lbl(L"输入：一段不算短的回显文本内容");
+    echoLbl->Measure(Size(1000.0f, 100.0f));
+    CHECK(echoLbl->GetWidth() <= 0.0f);                            // 没有固定宽度
+    CHECK(echoLbl->GetDesiredSize().width > 100.0f);               // 宽度跟随文本
+    CHECK(d::Lbl(L"短").minWidth(160.0f)->GetMinWidth() >= 160.0f); // 快捷方法写入 MinWidth（夹取由父容器负责）
+
+    // ④ ProgressBar：SetValue 后进入"缓动中"，跑约 1 秒后收敛
+    auto pb = d::Progress().value(0.0f);
+    pb->SetValue(1.0f);
+    CHECK(pb->HasActiveAnimation());
+    for (int i = 0; i < 70; ++i) pb->UpdateAnimation(1.0f / 60.0f);
+    CHECK(!pb->HasActiveAnimation());
+    CHECK(pb->GetValue() == 1.0f);
+
+    // ③ ToggleSwitch：一帧走不完（缓动，不是瞬变），足够多帧后收敛到 1
+    auto tg = d::Toggle(false);
+    tg->SetOn(true);
+    tg->UpdateAnimation(1.0f / 60.0f);
+    CHECK(tg->DebugAnimationProgress() > 0.0f);
+    CHECK(tg->DebugAnimationProgress() < 0.5f);          // 若为线性瞬变这里会是 1.0
+    for (int i = 0; i < 70; ++i) tg->UpdateAnimation(1.0f / 60.0f);
+    CHECK(tg->DebugAnimationProgress() >= 0.999f);
+
+    // ⑮⑯ SplitView：折叠后该栏长度为 0；展开回到"最小状态"；信号与开关都生效
+    auto sv = d::Split().size(400.0f, 200.0f);
+    sv->SetMinFirst(100.0f);
+    sv->SetMinSecond(100.0f);
+    sv->SetFirst(d::Lbl(L"左").shared());
+    sv->SetSecond(d::Lbl(L"右").shared());
+    sv->Arrange(Rect(0.0f, 0.0f, 400.0f, 200.0f));
+    CHECK(sv->GetFirst()->GetArrangedRect().width > 1.0f);      // 折叠前左栏有宽度
+
+    int collapsedSignal = -1;
+    sv->CollapsedChanged.connect([&collapsedSignal](int side) { collapsedSignal = side; });
+    sv->CollapseFirst();
+    CHECK(sv->IsFirstCollapsed());                       // 逻辑状态立即生效
+    CHECK(collapsedSignal == 1);
+    for (int i = 0; i < 30; ++i) sv->UpdateAnimation(1.0f / 60.0f);   // 折叠是**动画**的：先跑完 0.2s
+    sv->Arrange(Rect(0.0f, 0.0f, 400.0f, 200.0f));
+    CHECK(sv->GetFirst()->GetArrangedRect().width == 0.0f);     // 折叠后左栏占 0
+    CHECK(sv->GetSecond()->GetArrangedRect().width > 300.0f);   // 右栏吃掉全部
+
+    sv->Expand();                                                // 展开到"最小状态"（min = 100px）
+    CHECK(!sv->IsFirstCollapsed());
+    CHECK(collapsedSignal == 0);
+    for (int i = 0; i < 30; ++i) sv->UpdateAnimation(1.0f / 60.0f);   // 展开同样是动画的
+    sv->Arrange(Rect(0.0f, 0.0f, 400.0f, 200.0f));
+    CHECK(sv->GetFirst()->GetArrangedRect().width >= 99.0f);
+    CHECK(sv->GetFirst()->GetArrangedRect().width <= 101.0f);
+
+    // 折叠功能可整体关闭（⑮ 的"这个东西可以关闭"）
+    sv->SetCollapseEnabled(false);
+    CHECK(!sv->IsCollapseEnabled());
+    sv->SetCollapseEnabled(true);
+    CHECK(sv->IsCollapseEnabled());
+    CHECK(sv->GetCollapseThreshold() > 0.0f);
+}
+
 int main() {
     SetConsoleOutputCP(CP_UTF8);   // 源码是 UTF-8：不改代码页的话中文断言输出在 cmd 里是乱码
     std::printf("=== ZufyUI DSL 自检 ===\n");
@@ -274,6 +428,8 @@ int main() {
     test_grid_coords();
     test_data_views_and_menu();
     test_factories_and_wrap();
+    test_dsl_pitfalls();
+    test_fix_regressions();
     std::printf("\n通过 %d 项，失败 %d 项\n", g_pass, g_fail);
     if (g_fail) { std::printf("结果：FAILED\n"); return 1; }
     std::printf("结果：OK\n");

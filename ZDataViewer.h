@@ -282,6 +282,10 @@ namespace ZufyUI {
         }
         // cmp 返回 true 表示 a 应排在 b 之前
         void SortItems(std::function<bool(const std::wstring&, const std::wstring&)> cmp) {
+            if (virtual_) {   // 虚拟模式数据在 vtext_，items_ 为空：显式忽略，而不是"静默排了个空表"
+                detail::LogWarning(L"ListView", L"SortItems ignored: virtual mode (data lives in vtext_)");
+                return;
+            }
             std::stable_sort(items_.begin(), items_.end(), [&](const std::shared_ptr<Label>& a, const std::shared_ptr<Label>& b) {
                 return cmp(a ? a->GetText() : L"", b ? b->GetText() : L"");
                 });
@@ -310,9 +314,15 @@ namespace ZufyUI {
         }
         void ToggleIndexSelection(int index) {
             if (index < 0 || index >= GetItemCount()) return;
-            if (multiSel_.count(index)) multiSel_.erase(index);
-            else multiSel_.insert(index);
-            selectedIndex_ = index;
+            if (multiSel_.count(index)) {
+                multiSel_.erase(index);
+                // 取消选中后必须清 selectedIndex_：否则 IsIndexSelected 仍因 index==selectedIndex_ 判为选中 → 高亮不消失
+                if (selectedIndex_ == index) selectedIndex_ = -1;
+            }
+            else {
+                multiSel_.insert(index);
+                selectedIndex_ = index;
+            }
             RequestRepaint();
         }
 
@@ -3118,6 +3128,23 @@ namespace ZufyUI {
         inline static D2D1_COLOR_F DefaultScrollTrackColor = D2D1::ColorF(0.9f, 0.9f, 0.9f, 0.8f);
         inline static D2D1_COLOR_F DefaultScrollThumbColor = D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.9f);
         inline static D2D1_COLOR_F DefaultScrollHoverThumbColor = D2D1::ColorF(0.3f, 0.3f, 0.3f, 1.0f);
+        // 供主题钩子调用（TreeView 此前缺这三个静态 setter → 主题切换后"新建"的树仍是硬编码浅色）
+        static void SetDefaultColors(Color bg, Color headerBg, Color text, Color headerText, Color selected, Color hover, Color gridLine, Color border) {
+            DefaultBackgroundColor = bg.ToD2D();
+            DefaultHeaderBackgroundColor = headerBg.ToD2D();
+            DefaultTextColor = text.ToD2D();
+            DefaultHeaderTextColor = headerText.ToD2D();
+            DefaultSelectedColor = selected.ToD2D();
+            DefaultHoverColor = hover.ToD2D();
+            DefaultGridLineColor = gridLine.ToD2D();
+            DefaultBorderColor = border.ToD2D();
+        }
+        static void SetDefaultIndicatorColor(Color color) { DefaultIndicatorColor = color.ToD2D(); }
+        static void SetDefaultScrollBarColors(Color track, Color thumb, Color hoverThumb) {
+            DefaultScrollTrackColor = track.ToD2D();
+            DefaultScrollThumbColor = thumb.ToD2D();
+            DefaultScrollHoverThumbColor = hoverThumb.ToD2D();
+        }
         inline static float DefaultIndicatorWidth = 3.0f;
         inline static float DefaultIndicatorHeightRatio = 0.6f;
         inline static float DefaultIndicatorAnimSpeed = 12.0f;
@@ -5037,6 +5064,21 @@ namespace ZufyUI {
         const auto& kids = e->GetChildren();
         for (UIElement* c : kids) ApplyThemeToDataViewTree(c, t);
     }
+    // 主题钩子（默认值）：SubtreeApplier 只作用于"已存在实例"，主题切换后**新建**的
+    //   ListView/TableView/TreeView 仍会拿到硬编码浅色 → 这里把静态默认值也推一遍。
+    inline void ApplyThemeToDataViewDefaults(const Theme& t) {
+        auto C = [&](ThemeRole r) { return t.Get(r); };
+        ListView::SetDefaultColors(C(ThemeRole::Surface), C(ThemeRole::Text), C(ThemeRole::Selection), C(ThemeRole::ControlHover), C(ThemeRole::Border));
+        ListView::SetDefaultIndicatorColor(C(ThemeRole::Accent));
+        ListView::SetDefaultScrollBarColors(C(ThemeRole::ScrollTrack), C(ThemeRole::ScrollThumb), C(ThemeRole::ScrollThumbHover));
+        TableView::SetDefaultColors(C(ThemeRole::Surface), C(ThemeRole::SurfaceAlt), C(ThemeRole::Text), C(ThemeRole::Text), C(ThemeRole::Selection), C(ThemeRole::ControlHover), C(ThemeRole::Divider), C(ThemeRole::Border));
+        TableView::SetDefaultIndicatorColor(C(ThemeRole::Accent));
+        TableView::SetDefaultScrollBarColors(C(ThemeRole::ScrollTrack), C(ThemeRole::ScrollThumb), C(ThemeRole::ScrollThumbHover));
+        TreeView::SetDefaultColors(C(ThemeRole::Surface), C(ThemeRole::SurfaceAlt), C(ThemeRole::Text), C(ThemeRole::Text), C(ThemeRole::Selection), C(ThemeRole::ControlHover), C(ThemeRole::Divider), C(ThemeRole::Border));
+        TreeView::SetDefaultIndicatorColor(C(ThemeRole::Accent));
+        TreeView::SetDefaultScrollBarColors(C(ThemeRole::ScrollTrack), C(ThemeRole::ScrollThumb), C(ThemeRole::ScrollThumbHover));
+    }
     inline bool _themeDataViewHook = []() { ThemeManager::RegisterSubtreeApplier(ApplyThemeToDataViewTree); return true; }();
+    inline bool _themeDataViewDefaultsHook = []() { ThemeManager::RegisterHook(ApplyThemeToDataViewDefaults); return true; }();
 
 } // namespace ZufyUI

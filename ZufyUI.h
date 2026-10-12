@@ -88,9 +88,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 20
+#define ZufyUI_VERSION_MINOR 21
 #define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.20.0"
+#define ZufyUI_VERSION_STRING L"1.21.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -620,6 +620,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         Border, Divider, FocusRing, Selection,
         ScrollTrack, ScrollThumb, ScrollThumbHover,
         Danger, Warning, Success, Info,
+        Shadow,
         Count
     };
 
@@ -669,6 +670,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         t.Set(ThemeRole::Warning,        Color::FromArgb(255, 224, 152, 20));   // #E09814
         t.Set(ThemeRole::Success,        Color::FromArgb(255, 16, 124, 16));    // #107C10
         t.Set(ThemeRole::Info,           Color::FromArgb(255, 0, 120, 214));
+        t.Set(ThemeRole::Shadow,         Color::FromArgb(56, 0, 0, 0));       // 浅色：淡黑影
         return t;
     }
 
@@ -701,6 +703,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         t.Set(ThemeRole::Warning, Color::FromArgb(255, 255, 185, 0));
         t.Set(ThemeRole::Success, Color::FromArgb(255, 108, 203, 95));
         t.Set(ThemeRole::Info, Color::FromArgb(255, 76, 194, 255));
+        t.Set(ThemeRole::Shadow, Color::FromArgb(150, 0, 0, 0));   // 深色：黑影更重才有层次
         return t;
     }
 
@@ -733,6 +736,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         t.Set(ThemeRole::Warning, Color::FromArgb(255, 255, 255, 0));    // 黄
         t.Set(ThemeRole::Success, Color::FromArgb(255, 128, 255, 128));  // 亮绿
         t.Set(ThemeRole::Info, Color::FromArgb(255, 128, 192, 255));     // 亮蓝
+        t.Set(ThemeRole::Shadow, Color::FromArgb(255, 0, 0, 0));         // 高对比：纯黑实影
         return t;
     }
 
@@ -1091,7 +1095,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             wchar_t b[512];
             swprintf(b, 512, L"theme=%s dark=%d follow=%d force=%d radius=%.1f\n", t.name.c_str(), t.isDark ? 1 : 0, followSystem_ ? 1 : 0, forceEnabled_ ? 1 : 0, t.cornerRadius);
             std::wstring s = b;
-            static const wchar_t* names[] = { L"Text",L"TextSecondary",L"TextDisabled",L"TextOnAccent",L"Surface",L"SurfaceAlt",L"SurfaceRaised",L"Backdrop",L"Overlay",L"Control",L"ControlHover",L"ControlPressed",L"ControlDisabled",L"Accent",L"AccentHover",L"AccentPressed",L"Border",L"Divider",L"FocusRing",L"Selection",L"ScrollTrack",L"ScrollThumb",L"ScrollThumbHover",L"Danger",L"Warning",L"Success",L"Info" };
+            static const wchar_t* names[] = { L"Text",L"TextSecondary",L"TextDisabled",L"TextOnAccent",L"Surface",L"SurfaceAlt",L"SurfaceRaised",L"Backdrop",L"Overlay",L"Control",L"ControlHover",L"ControlPressed",L"ControlDisabled",L"Accent",L"AccentHover",L"AccentPressed",L"Border",L"Divider",L"FocusRing",L"Selection",L"ScrollTrack",L"ScrollThumb",L"ScrollThumbHover",L"Danger",L"Warning",L"Success",L"Info",L"Shadow" };
             for (int i = 0; i < (int)ThemeRole::Count; ++i) {
                 Color c = t.Get((ThemeRole)i);
                 auto q = [](float v) { int x = (int)(v * 255.0f + 0.5f); return (unsigned)(x < 0 ? 0 : (x > 255 ? 255 : x)); };
@@ -1645,7 +1649,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool IsThemeManaged() const { return themeManaged_; }
         void SetThemeManaged(bool on) { themeManaged_ = on; }
         bool HasShadow() const { return shadowEnabled_; }
-        void SetShadowColor(Color c) { shadowColor_ = c.ToD2D(); cacheValid_ = false; RequestRepaint(); }
+        // 阴影色同样由主题管理（ThemeRole::Shadow）；应用显式设过色则不再被主题覆盖
+        inline static D2D1_COLOR_F DefaultShadowColor = D2D1::ColorF(0.0f, 0.0f, 0.02f, 0.42f);
+        static void SetDefaultShadowColor(Color c) { DefaultShadowColor = c.ToD2D(); }
+        void SetShadowColor(Color c) { if (!ThemeManager::IsApplying()) themeManaged_ = false; shadowColor_ = c.ToD2D(); cacheValid_ = false; RequestRepaint(); }
         void SetShadowBlur(float blur) { shadowBlur_ = max(0.0f, blur); cacheValid_ = false; RequestRepaint(); }
         void SetShadowOffset(float x, float y) { shadowOffsetX_ = x; shadowOffsetY_ = y; cacheValid_ = false; RequestRepaint(); }
         void SetShadowCornerRadius(float r) { shadowCornerRadius_ = r; cacheValid_ = false; RequestRepaint(); }
@@ -1668,7 +1675,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         mutable double dbgMeasureMs_ = 0.0, dbgArrangeMs_ = 0.0, dbgDrawMs_ = 0.0;
         bool shadowEnabled_ = false;
         bool themeManaged_ = true;   // 主题是否管理该元素颜色（应用设过色 → false）
-        D2D1_COLOR_F shadowColor_ = D2D1::ColorF(0.0f, 0.0f, 0.02f, 0.42f);
+        D2D1_COLOR_F shadowColor_ = DefaultShadowColor;
         float shadowBlur_ = 10.0f;
         float shadowOffsetX_ = 0.0f;
         float shadowOffsetY_ = 3.0f;
@@ -1818,6 +1825,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void ClearChildren() {
             for (auto& c : children_) if (c) c->SetParent(nullptr);
             children_.clear();
+            childrenView_.clear();   // 立即清视图缓冲：否则在下次 RefreshChildren() 前 GetChildren() 会返回已释放的裸指针
             InvalidateLayout();
         }
         void SetSpacing(float spacing) { spacing_ = spacing; InvalidateLayout(); }
@@ -1937,6 +1945,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void ClearChildren() {
             for (auto& c : children_) if (c) c->SetParent(nullptr);
             children_.clear();
+            childrenView_.clear();   // 立即清视图缓冲（同 ColumnBox）
             InvalidateLayout();
         }
         void SetSpacing(float spacing) { spacing_ = spacing; InvalidateLayout(); }
@@ -3140,6 +3149,57 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     // ========== DComp 亚克力效果封装（移植自 ALTaleX531/Win32Acrylic，MIT） ==========
     // detail_fx（手写 IGraphicsEffect 效果类 + 官方亚克力/云母配方）已移至 ZufyUIAcrylic.h
 
+    // 高斯 CDF 分层的软阴影：让累积 alpha 逼近 targetA*(1-Φ(d/σ))，接近 DWM 质感。
+    //   提取为自由函数：Window（元素/工具提示阴影）与控件（如 ComboBox 下拉列表）共用同一套视觉语言。
+    namespace detail {
+        // 时长驱动的 ease-out（cubic）：u=0→0、u=1→1，且**到点精确结束**。
+        //   比指数收敛好在这里：指数收敛要"爬"好几个时间常数才低于阈值，期间每帧重绘 → 卡。
+        inline float EaseOutCubic(float u) {
+            u = u < 0.0f ? 0.0f : (u > 1.0f ? 1.0f : u);
+            float v = 1.0f - u;
+            return 1.0f - v * v * v;
+        }
+        // 时长驱动的 ease-in-out（cubic）：两端都慢 —— 开关/折叠这类位移用它更自然
+        inline float EaseInOutCubic(float u) {
+            u = u < 0.0f ? 0.0f : (u > 1.0f ? 1.0f : u);
+            return u < 0.5f ? (4.0f * u * u * u) : (1.0f - powf(-2.0f * u + 2.0f, 3.0f) * 0.5f);
+        }
+        inline void DrawSoftShadow(ID2D1RenderTarget* rt, const D2D1_RECT_F& rect, float radius,
+                                   float ox, float oy, float blur, D2D1_COLOR_F col, int steps, float alphaScale = 1.0f) {
+            if (steps < 2) steps = 2;
+            if (steps > 63) steps = 63;
+            if (blur <= 0.0f) blur = 0.001f;
+            col.a *= alphaScale;
+            ComPtr<ID2D1SolidColorBrush> brush;
+            rt->CreateSolidColorBrush(col, brush.GetAddressOf());
+            if (!brush) return;
+
+            float targetA = min(col.a * 2.0f, 0.98f);   // col.a 视为“边缘可见 alpha”
+            float sigma = blur * 0.5f;                  // blur 约等于 2σ
+            float extent = sigma * 3.0f;                // 3σ 覆盖约 99.7%
+
+            auto Phi = [](float x) { return 0.5f * (1.0f + erff(x * 0.70710678f)); };
+            std::array<float, 64> S{};
+            std::array<float, 64> alphas{};
+            for (int k = steps - 1; k >= 0; --k) {
+                float t = (float)k / (float)(steps - 1);
+                float phi = Phi(3.0f * t);
+                S[k] = -logf(max(1e-6f, 1.0f - targetA * (1.0f - phi)));
+            }
+            for (int k = 0; k < steps; ++k) alphas[k] = 1.0f - expf(-(S[k] - S[k + 1]));
+
+            for (int k = steps - 1; k >= 0; --k) {
+                float t = (float)k / (float)(steps - 1);
+                float grow = extent * t;
+                D2D1_COLOR_F c = col; c.a = alphas[k];
+                brush->SetColor(c);
+                D2D1_RECT_F rr = D2D1::RectF(rect.left + ox - grow, rect.top + oy - grow,
+                    rect.right + ox + grow, rect.bottom + oy + grow);
+                rt->FillRoundedRectangle(D2D1::RoundedRect(rr, radius + grow, radius + grow), brush.Get());
+            }
+        }
+    }
+
     // ---------- 窗口 ----------
     class Window {
     public:
@@ -3162,6 +3222,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 云母（源 = 缓存桌面壁纸）；默认 = 调好的比例（模糊 50% / 饱和 75% / 色调 alpha 87.5% / 噪点 5%）
         inline static BackgroundParams MicaParams{ 200.0f, 2.25f,
             D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.875f), D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f), 0.005f };
+        // 云母纱层不透明度（主题深浅自动取；可覆盖）。深色用 1-0.875 才不会被白纱糊住。
+        inline static float MicaVeilAlphaLight = 0.875f;
+        inline static float MicaVeilAlphaDark = 0.125f;
         // ---------- 官方亚克力配方预设 ----------
         enum class AcrylicPreset {
             Legacy,      // Legacy / RS2：无 Luminosity 层（兼容 RS5 及更低）
@@ -3363,11 +3426,23 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void ForgetAccessibleElement(UIElement* e);   // 定义在 ZufyUIWindowTool.h：元素析构时清 provider 缓存
         bool IsInputBlocked() const { return inputBlocked_; }
 
-        // 背景效果：Backdrop=要什么（亚克力/云母/普通/毛玻璃…），tint=ARGB 着色（不需要可省略）
-        void SetBackdrop(Backdrop backdrop, DWORD tint = 0x00000000) {
+        // 背景效果：Backdrop=要什么（亚克力/云母/普通/毛玻璃…），tint=ARGB 着色（不需要就调这个单参重载）
+        // 只选背景模式：叠加底色跟随主题（ThemeRole::Backdrop：浅色白 / 深色黑）。
+        //   alpha 用 backdropFollowAlpha_（= 应用设定的"跟随时的不透明度"），**不能用当前 backdropColor_ 的 alpha**：
+        //   否则一旦显式设过不透明色（如 0xFF202020），再切回跟随就会得到"主题色 + 完全不透明"，把亚克力/云母整个盖住。
+        void SetBackdrop(Backdrop backdrop) {
+            backdrop_ = backdrop;
+            backdropUserTinted_ = false;
+            backdropColor_ = (backdropFollowAlpha_ << 24) | (backdropColor_ & 0x00FFFFFFu);
+            SyncThemeBackdrop();   // 颜色变化时它内部会 ApplyBackdrop()
+            ApplyBackdrop();       // 模式本身变化也要应用
+        }
+        // 显式指定叠加底色 → 锁定，之后不再被主题覆盖（tint 含 0x00000000 = 明确要求全透明，同样算显式）
+        void SetBackdrop(Backdrop backdrop, DWORD tint) {
             backdrop_ = backdrop;
             backdropColor_ = tint;
-            backdropUserTinted_ = true;   // 用户显式指定背景色 → 主题不再改它
+            backdropUserTinted_ = true;
+            backdropFollowAlpha_ = (tint >> 24) & 0xFF;   // 记住这个不透明度，供将来切回"跟随主题"复用
             ApplyBackdrop();
         }
         Backdrop GetBackdrop() const { return backdrop_; }
@@ -3598,6 +3673,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (customTitleBar_) {
                 customTitleBar_->SetParent(nullptr);   // 不进入根布局的父子链
                 customTitleBar_->AttachWindowRecursive(this);
+                themeReapply_ = true;                  // 新装的 chrome 也必须套当前主题（否则"先设主题、再装标题栏"拿不到主题色）
                 // 默认绘制在“正常布局之后、覆盖层之前”（可由控件自行改成 DrawBeforeLayout）
                 if (customTitleBar_->GetLayoutParticipation() == UIElement::LayoutParticipation::Normal)
                     customTitleBar_->SetLayoutParticipation(UIElement::LayoutParticipation::DrawAfterLayout);
@@ -3634,6 +3710,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (menuBar_) {
                 menuBar_->SetParent(nullptr);
                 menuBar_->AttachWindowRecursive(this);
+                themeReapply_ = true;   // 同 SetCustomTitleBar：新装 chrome 要套当前主题
                 if (menuBar_->GetLayoutParticipation() == UIElement::LayoutParticipation::Normal)
                     menuBar_->SetLayoutParticipation(UIElement::LayoutParticipation::DrawAfterLayout);
             }
@@ -3655,6 +3732,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (statusBar_) {
                 statusBar_->SetParent(nullptr);
                 statusBar_->AttachWindowRecursive(this);
+                themeReapply_ = true;   // 同 SetCustomTitleBar：新装 chrome 要套当前主题
                 if (statusBar_->GetLayoutParticipation() == UIElement::LayoutParticipation::Normal)
                     statusBar_->SetLayoutParticipation(UIElement::LayoutParticipation::DrawAfterLayout);
             }
@@ -3673,7 +3751,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void RequestThemeReapply() { themeReapply_ = true; layoutNeeded_ = true; layoutInvalidated_ = true; if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE); }
         // 窗口/背景基色跟随主题（浅色=白、深色=黑），保留原 alpha（None 不透明；Acrylic/Mica 半透）
         void SyncThemeBackdrop() {
-            if (!useAppTheme_ || backdropUserTinted_) return;
+            // 只有"应用显式设过底色"才锁定；窗口级主题（SetTheme）也算主题，故不再看 useAppTheme_
+            if (backdropUserTinted_) return;
             Color b = GetTheme().Get(ThemeRole::Backdrop);
             auto q = [](float v) { int i = (int)(v * 255.0f + 0.5f); return (DWORD)(i < 0 ? 0 : (i > 255 ? 255 : i)); };
             DWORD a = (backdropColor_ >> 24) & 0xFF;
@@ -4969,37 +5048,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 高斯 CDF 分层的软阴影：让累积 alpha 逼近 targetA*(1-Φ(d/σ))，接近 DWM 质感
         void DrawSoftShadow(ID2D1RenderTarget* rt, const D2D1_RECT_F& rect, float radius,
                             float ox, float oy, float blur, D2D1_COLOR_F col, int steps, float alphaScale = 1.0f) {
-            if (steps < 2) steps = 2;
-            if (steps > 63) steps = 63;
-            if (blur <= 0.0f) blur = 0.001f;
-            col.a *= alphaScale;
-            ComPtr<ID2D1SolidColorBrush> brush;
-            rt->CreateSolidColorBrush(col, brush.GetAddressOf());
-            if (!brush) return;
-
-            float targetA = min(col.a * 2.0f, 0.98f);   // col.a 视为“边缘可见 alpha”
-            float sigma = blur * 0.5f;                  // blur 约等于 2σ
-            float extent = sigma * 3.0f;                // 3σ 覆盖约 99.7%
-
-            auto Phi = [](float x) { return 0.5f * (1.0f + erff(x * 0.70710678f)); };
-            std::array<float, 64> S{};
-            std::array<float, 64> alphas{};
-            for (int k = steps - 1; k >= 0; --k) {
-                float t = (float)k / (float)(steps - 1);
-                float phi = Phi(3.0f * t);
-                S[k] = -logf(max(1e-6f, 1.0f - targetA * (1.0f - phi)));
-            }
-            for (int k = 0; k < steps; ++k) alphas[k] = 1.0f - expf(-(S[k] - S[k + 1]));
-
-            for (int k = steps - 1; k >= 0; --k) {
-                float t = (float)k / (float)(steps - 1);
-                float grow = extent * t;
-                D2D1_COLOR_F c = col; c.a = alphas[k];
-                brush->SetColor(c);
-                D2D1_RECT_F rr = D2D1::RectF(rect.left + ox - grow, rect.top + oy - grow,
-                    rect.right + ox + grow, rect.bottom + oy + grow);
-                rt->FillRoundedRectangle(D2D1::RoundedRect(rr, radius + grow, radius + grow), brush.Get());
-            }
+            detail::DrawSoftShadow(rt, rect, radius, ox, oy, blur, col, steps, alphaScale);   // 实现见 detail（控件也复用）
         }
 
         void DrawShadow(ID2D1RenderTarget* rt, UIElement* elem) {
@@ -5134,10 +5183,14 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     if (elem->HasShadow()) DrawShadow(cacheContext_, elem);
                     { const double _d1 = detail::DebugEnabled() ? detail::NowMs() : 0.0; elem->Draw(cacheContext_); if (_d1 > 0.0) elem->DebugRecordDrawTime(detail::NowMs() - _d1); }
                     cacheContext_->SetTransform(D2D1::Matrix3x2F::Identity());
-                    cacheContext_->EndDraw();
+                    // EndDraw 失败（设备丢失 / 显存不足 / 驱动重置）时**不能**标记缓存有效，
+                    //   否则后续帧会直接 blit 一张未完成/损坏的位图；失败就保持 cacheValid_=false 让下帧重试。
+                    HRESULT hrCache = cacheContext_->EndDraw();
                     cacheContext_->SetTarget(nullptr);
-                    elem->cacheValid_ = true;
-                    pendingRepaint_.erase(elem);
+                    if (SUCCEEDED(hrCache)) {
+                        elem->cacheValid_ = true;
+                        pendingRepaint_.erase(elem);
+                    }
                 }
             }
             for (auto* child : elem->GetChildren()) {
@@ -6396,6 +6449,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool  useAppTheme_ = true;
         bool  themeReapply_ = false;    // 下一帧布局后把主题套到可见子树
         bool  backdropUserTinted_ = false;   // 应用显式设过背景 tint → 主题不覆盖
+        DWORD backdropFollowAlpha_ = (DefaultBackdropColor >> 24) & 0xFF;   // "跟随主题"时使用的 alpha
         Connection themeConn_;          // 订阅 UIZSignals::ThemeChanged
         Connection themeReapplyConn_;   // 订阅 UIZSignals::ThemeReapply
         float customTitleBarHeight_ = 0.0f;
@@ -7275,6 +7329,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             CloseActiveMenuWindow();
             detail::CloseAllOpenMenus();
             activeMenuRoot_ = std::make_shared<MenuWindow>(menu, hwnd_, pt.x, pt.y);
+            if (!activeMenuRoot_ || !activeMenuRoot_->WasCreated()) {   // 创建失败（Compositor/D2D/窗口类）→ 不静默（与 Menu::ShowAt 一致）
+                detail::ReportError(L"Window::OnContextMenu: menu window creation FAILED (hwnd=null)");
+                activeMenuRoot_.reset();
+                return;
+            }
             activeMenuRoot_->ShowAtPoint(pt.x, pt.y);
         }
     }
@@ -7403,6 +7462,21 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         if (intervalMs > 0) t->Start(intervalMs);
         return t;
     }
+
+    // ---------- 亚克力 / 云母的「纱层」跟随主题 ----------
+    //   BackgroundParams::tint 是叠在模糊背景**之上**的一层纱（Mica 默认就是"白色 alpha 0.875"，
+    //   并被 BuildWallpaperBitmap 烘进壁纸图层）。它此前完全不受主题影响 → 深色主题下云母照旧糊一层白纱。
+    //   这里让 RGB 跟随 ThemeRole::Backdrop（浅色白 / 深色黑）：
+    //     · 云母：alpha 也按主题取（浅色 0.875 / 深色 1-0.875=0.125），否则深色下白纱依旧糊住壁纸
+    //     · 亚克力：只改 RGB，alpha 保留配方值（默认 0 = 无纱，由预设/应用决定）
+    inline void ApplyThemeToBackdropParams(const Theme& t) {
+        Color b = t.Get(ThemeRole::Backdrop);
+        Window::AcrylicParams.tint.r = b.r; Window::AcrylicParams.tint.g = b.g; Window::AcrylicParams.tint.b = b.b;
+        Window::MicaParams.tint.r = b.r; Window::MicaParams.tint.g = b.g; Window::MicaParams.tint.b = b.b;
+        Window::MicaParams.tint.a = t.isDark ? Window::MicaVeilAlphaDark : Window::MicaVeilAlphaLight;
+        UIZSignals::ReloadAcrylic.Fire();   // 已存在的窗口需要重建背景层才能用上新纱色
+    }
+    inline bool _themeBackdropParamsHook = []() { ThemeManager::RegisterHook(ApplyThemeToBackdropParams); return true; }();
 
 } // namespace ZufyUI
 

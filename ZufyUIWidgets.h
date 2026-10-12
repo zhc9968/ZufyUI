@@ -316,6 +316,7 @@ namespace ZufyUI {
         void ClearChildren() {
             for (auto& c : children_) if (c) { c->SetParent(nullptr); }
             children_.clear();
+            childrenView_.clear();   // 立即清视图缓冲（同 ColumnBox/RowBox），避免 GetChildren() 返回已释放指针
             MarkChildrenDirty();   // 移除子元素：本地标记（SetParent(nullptr) 不会标到旧父）
             InvalidateLayout(); RequestRepaint();
         }
@@ -675,6 +676,8 @@ namespace ZufyUI {
         inline static float DefaultCornerRadius = 4.0f;
         inline static float DefaultWidth = 120.0f;
         inline static float DefaultHeight = 36.0f;
+        // 文案比当前宽度长时自动撑开（否则固定 120 宽会把长文案裁成省略号，即使右侧还有空间）
+        inline static bool AutoSizeToText = true;
         inline static float DefaultFontSize = 16.0f;
         inline static float DefaultHorizontalStretchWeight = 0.2f;
         inline static float DefaultVerticalStretchWeight = 0.0f;
@@ -736,6 +739,7 @@ namespace ZufyUI {
         Color GetPressedColor() const { return pressedColor_; }
         float GetCornerRadius() const { return cornerRadius_; }
         void SetCornerRadius(float radius) { cornerRadius_ = radius; RequestRepaint(); }
+        void SetAutoSizeToText(bool on) { autoSizeToText_ = on; InvalidateLayout(); RequestRepaint(); }
         void SetHoverAnimationSpeed(float speed) { hoverAnimSpeed_ = speed; }
         void SetCheckable(bool checkable) { checkable_ = checkable; if (!checkable) checked_ = false; RequestRepaint(); }
         bool IsCheckable() const { return checkable_; }
@@ -763,7 +767,15 @@ namespace ZufyUI {
             return Button::DefaultFontSpec;
         }
 
-        Size MeasureOverride(const Size& availableSize) override { return Size(width_, height_); }
+        Size MeasureOverride(const Size& availableSize) override {
+            float w = width_, h = height_;
+            if (autoSizeToText_ && label_) {
+                Size ls = label_->Measure(Size(FLT_MAX, h > 0.0f ? h : DefaultHeight));
+                float need = ls.width + padding_ * 2.0f;
+                if (need > w) w = need;               // 放得下就不该省略
+            }
+            return Size(w, h);
+        }
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
@@ -884,6 +896,7 @@ namespace ZufyUI {
         bool checkable_ = false;
         bool checked_ = false;
         float padding_ = 5.0f;
+        bool autoSizeToText_ = AutoSizeToText;
         Label::HAlign hAlign_ = Label::HAlign::Center;
         bool autoRepeat_ = false;
         float autoRepeatInterval_ = 400.0f;
@@ -1817,7 +1830,7 @@ namespace ZufyUI {
         void SetBorderColor(D2D1_COLOR_F color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; borderColor_ = color; RequestRepaint(); }
         void SetIndicatorColor(D2D1_COLOR_F color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; indicatorColor_ = color; RequestRepaint(); }
         void SetIndicatorHeightRatio(float ratio) { indicatorHeightRatio_ = clamp(ratio, 0.1f, 1.0f); RequestRepaint(); }
-        void SetListItemHeight(float height) { listItemHeight_ = height; UpdateIndicatorPosition(); InvalidateLayout(); RequestRepaint(); }
+        void SetListItemHeight(float height) { listItemHeight_ = max(1.0f, height); UpdateIndicatorPosition(); InvalidateLayout(); RequestRepaint(); }   // 夹到 >=1：0 会让 (int)(y/listItemHeight_) 得到 inf/nan → UB
         void SetIndicatorWidth(float width) { indicatorWidth_ = width; RequestRepaint(); }
 
         static void SetDefaultExpandAnimationSpeed(float speed) { DefaultExpandAnimationSpeed = speed; }
@@ -2174,6 +2187,12 @@ namespace ZufyUI {
             if (expandUp_ && listY < 0.0f) listY = 0.0f;
 
             D2D1_RECT_F listRect = D2D1::RectF(arrangedRect_.x, listY, arrangedRect_.x + ListWidth(), listY + currentListHeight);
+
+            // 下拉列表柔和阴影：与元素阴影同一实现（detail::DrawSoftShadow），颜色取主题 Shadow 角色；
+            //   随展开动画淡入（alphaScale = expandProgress_）。列表自身是不透明填充，画在其下即可。
+            if (currentListHeight > 2.0f) {
+                detail::DrawSoftShadow(rt, listRect, 4.0f, 0.0f, 3.0f, min(GetShadowBlur(), 16.0f), GetShadowColor(), 24, expandProgress_);
+            }
 
             ComPtr<ID2D1RoundedRectangleGeometry> clipGeometry;
             ID2D1Factory* factory = nullptr;
@@ -2707,6 +2726,7 @@ namespace ZufyUI {
         void AccessibilityToggle() override { SetOn(!IsOn()); }
         float DebugAnimationProgress() const override { return toggleProgress_; }
         inline static float DefaultAnimationSpeed = 9.6f;
+        inline static float DefaultAnimationDuration = 0.25f;   // 一次完整开关动画时长（秒）
         inline static Color DefaultOnColor = Color::FromArgb(255, 0, 120, 212);
         inline static Color DefaultOffColor = Color::FromArgb(255, 200, 200, 200);
         inline static Color DefaultKnobColor = Color::FromArgb(255, 255, 255, 255);
@@ -2727,6 +2747,7 @@ namespace ZufyUI {
         void SetOn(bool on) {
             if (isOn_ != on) {
                 isOn_ = on;
+                  animFrom_ = toggleProgress_; animT_ = 0.0f;
                 Toggled(isOn_);
                 RequestRepaint();
                 AccessibilityNotifyPropertyChanged();   // UIA Toggle 变化
@@ -2736,7 +2757,7 @@ namespace ZufyUI {
         void SetColors(Color on, Color off, Color knob) { if (!ThemeManager::IsApplying()) themeManaged_ = false; onColor_ = on; offColor_ = off; knobColor_ = knob; trackBrush_.Reset(); knobBrush_.Reset(); RequestRepaint(); }
         void SetAnimationSpeed(float speed) { animSpeed_ = speed; }
         void SetSize(float w, float h) { width_ = w; height_ = h; InvalidateLayout(); RequestRepaint(); }
-        void SetIndeterminate(bool ind) { indeterminate_ = ind; RequestRepaint(); }
+        void SetIndeterminate(bool ind) { indeterminate_ = ind; animFrom_ = toggleProgress_; animT_ = 0.0f; RequestRepaint(); }
         bool IsIndeterminate() const { return indeterminate_; }
         void SetLabel(const std::wstring& text) { label_ = text; InvalidateLayout(); RequestRepaint(); }
         std::wstring GetLabel() const { return label_; }
@@ -2783,7 +2804,9 @@ namespace ZufyUI {
             if (trackBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(tr.ToD2D(), tr.height / 2, tr.height / 2), trackBrush_.Get());
 
             float knobSize = tr.height - 4 + hoverProgress_ * 2.0f;
-            float knobX = tr.x + 2 + (tr.width - 4 - knobSize) * toggleProgress_;
+            // movable 夹到 >=0：窗口很窄（如 SetSize(20,24)）时 (tr.width-4-knobSize) 为负 → knob 会向反方向越界
+            float movable = max(0.0f, tr.width - 4 - knobSize);
+            float knobX = tr.x + 2 + movable * toggleProgress_;
             Rect knobRect(knobX, tr.y + (tr.height - knobSize) / 2, knobSize, knobSize);
 
             if (!knobBrush_) rt->CreateSolidColorBrush(knobColor_.ToD2D(), knobBrush_.GetAddressOf());
@@ -2804,31 +2827,38 @@ namespace ZufyUI {
         }
 
         void UpdateAnimation(float deltaTime) override {
-            float target = indeterminate_ ? 0.5f : (isOn_ ? 1.0f : 0.0f);
-            if (toggleProgress_ < target) { toggleProgress_ += animSpeed_ * deltaTime; if (toggleProgress_ > target) toggleProgress_ = target; }
-            else if (toggleProgress_ > target) { toggleProgress_ -= animSpeed_ * deltaTime; if (toggleProgress_ < target) toggleProgress_ = target; }
-            float hoverTarget = hovered_ ? 1.0f : 0.0f;
-            if (hoverProgress_ < hoverTarget) { hoverProgress_ += animSpeed_ * deltaTime; if (hoverProgress_ > hoverTarget) hoverProgress_ = hoverTarget; }
-            else if (hoverProgress_ > hoverTarget) { hoverProgress_ -= animSpeed_ * deltaTime; if (hoverProgress_ < hoverTarget) hoverProgress_ = hoverTarget; }
-
+            // 时长驱动 ease-out（约 0.16s）：**到点精确结束**，动画一停就不再重绘。
+            //   之前用指数收敛，要爬到阈值以下约需 6.2τ ≈ 0.65s，期间每帧重绘 → 用户反馈"开关好卡"。
+            const float dur = AnimDuration();
+            const float target = indeterminate_ ? 0.5f : (isOn_ ? 1.0f : 0.0f);
+            if (animT_ < dur) {
+                animT_ = min(dur, animT_ + deltaTime);
+                toggleProgress_ = animFrom_ + (target - animFrom_) * detail::EaseInOutCubic(animT_ / dur);
+            }
+            else toggleProgress_ = target;
+            const float hoverTarget = hovered_ ? 1.0f : 0.0f;
+            if (hoverT_ < dur) {
+                hoverT_ = min(dur, hoverT_ + deltaTime);
+                hoverProgress_ = hoverFrom_ + (hoverTarget - hoverFrom_) * detail::EaseOutCubic(hoverT_ / dur);
+            }
+            else hoverProgress_ = hoverTarget;
             if (HasActiveAnimation()) RequestRepaint();
-            ConvergeValue(toggleProgress_, indeterminate_ ? 0.5f : (isOn_ ? 1.0f : 0.0f), 0.001f);
-            ConvergeValue(hoverProgress_, hovered_ ? 1.0f : 0.0f, 0.001f);
         }
+
+        // animSpeed_ 保持"越大越快"的语义：把它换算成时长倍率
+        float AnimDuration() const { return max(0.02f, DefaultAnimationDuration * (DefaultAnimationSpeed / max(0.001f, animSpeed_))); }
 
         bool HasActiveAnimation() const override {
-            const float epsilon = 0.001f;
-            float tk = indeterminate_ ? 0.5f : (isOn_ ? 1.0f : 0.0f);
-            return (fabs(toggleProgress_ - tk) > epsilon) ||
-                (hovered_ ? (hoverProgress_ < 1.0f - epsilon) : (hoverProgress_ > epsilon));
+            const float dur = AnimDuration();
+            return animT_ < dur || hoverT_ < dur;
         }
 
-        void OnMouseEnter() override { if (!IsEffectivelyEnabled()) return; hovered_ = true; RequestRepaint(); MouseEnter.Fire(); }
-        void OnMouseLeave() override { hovered_ = false; RequestRepaint(); MouseLeave.Fire(); }
+        void OnMouseEnter() override { if (!IsEffectivelyEnabled()) return; hovered_ = true; hoverFrom_ = hoverProgress_; hoverT_ = 0.0f; RequestRepaint(); MouseEnter.Fire(); }
+        void OnMouseLeave() override { hovered_ = false; hoverFrom_ = hoverProgress_; hoverT_ = 0.0f; RequestRepaint(); MouseLeave.Fire(); }
         void OnMouseDown(float x, float y) override {
             if (!IsEffectivelyEnabled()) return;
             indeterminate_ = false;
-            isOn_ = !isOn_;
+            isOn_ = !isOn_; animFrom_ = toggleProgress_; animT_ = 0.0f;   // 点击也要走动画（原来直接翻转 → 瞬变）
             Toggled(isOn_);
             RequestRepaint();
             MouseDown.Fire(x, y);
@@ -2836,7 +2866,7 @@ namespace ZufyUI {
         bool IsFocusable() const override { return true; }
         void OnKeyDown(WPARAM key, LPARAM lParam) override {
             if (!IsEffectivelyEnabled()) return;
-            if (key == VK_SPACE || key == VK_RETURN) { indeterminate_ = false; isOn_ = !isOn_; Toggled(isOn_); RequestRepaint(); }
+            if (key == VK_SPACE || key == VK_RETURN) { indeterminate_ = false; isOn_ = !isOn_; animFrom_ = toggleProgress_; animT_ = 0.0f; Toggled(isOn_); RequestRepaint(); }
             KeyDown.Fire(key, lParam);
         }
 
@@ -2852,6 +2882,8 @@ namespace ZufyUI {
         float hoverProgress_, toggleProgress_;
         Color onColor_, offColor_, knobColor_;
         float animSpeed_;
+        float animFrom_ = 0.0f, animT_ = 1e9f;     // 数值动画（起值/已用时长）
+        float hoverFrom_ = 0.0f, hoverT_ = 1e9f;   // 悬停动画
         bool indeterminate_ = false;
         std::wstring label_;
         D2D1_COLOR_F labelColor_ = D2D1::ColorF(0.15f, 0.15f, 0.15f, 1.0f);
@@ -2879,6 +2911,11 @@ namespace ZufyUI {
         inline static D2D1_COLOR_F DefaultThumbColor = D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.9f);
         inline static D2D1_COLOR_F DefaultHoverThumbColor = D2D1::ColorF(0.3f, 0.3f, 0.3f, 1.0f);
         inline static D2D1_COLOR_F DefaultTrackColor = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.06f);
+        // 供主题钩子调用：让"主题切换之后新建"的滚动条也拿到当前主题色
+        //   （否则它们仍是上面这套浅色默认值——深色主题下轨道几乎不可见）
+        static void SetDefaultColors(D2D1_COLOR_F thumb, D2D1_COLOR_F hoverThumb, D2D1_COLOR_F track) {
+            DefaultThumbColor = thumb; DefaultHoverThumbColor = hoverThumb; DefaultTrackColor = track;
+        }
 
         std::function<void(float, bool animate)> ValueChanged;   // 用户拖动/点轨道 → (新值, 是否平滑)
 
@@ -3600,13 +3637,14 @@ namespace ZufyUI {
         inline static D2D1_COLOR_F DefaultFillColor = D2D1::ColorF(0.0f, 0.47f, 0.84f, 1.0f);
         inline static D2D1_COLOR_F DefaultBorderColor = D2D1::ColorF(0.6f, 0.6f, 0.6f, 1.0f);
         inline static float DefaultIndeterminateSpeed = 100.0f;
+        inline static float DefaultValueAnimDuration = 0.22f;   // 数值缓动时长（秒）；到点即停，不持续重绘
         inline static float DefaultIndeterminateBlockWidth = 40.0f;
         inline static float DefaultHorizontalStretchWeight = 1.0f;
         inline static float DefaultVerticalStretchWeight = 0.0f;
 
         ZSignal<float> ValueChanged;
 
-        ProgressBar() : value_(0.0f), indeterminate_(false),
+        ProgressBar() : value_(0.0f), displayValue_(0.0f), indeterminate_(false),
             indeterminatePos_(-40.0f),
             indeterminateSpeed_(DefaultIndeterminateSpeed),
             trackColor_(DefaultTrackColor), fillColor_(DefaultFillColor), borderColor_(DefaultBorderColor),
@@ -3616,19 +3654,26 @@ namespace ZufyUI {
 
         void SetValue(float value) {
             float v = clamp(value, 0.0f, 1.0f);
-            if (v == value_ && !indeterminate_) return;   // 值未变且非 indeterminate，不重复触发
-            value_ = v; indeterminate_ = false; ValueChanged(GetRangeValue()); RequestRepaint();
+            if (v == value_ && !indeterminate_) return;   // 值未变且非 indeterminate，不重复触发（也就不会重启动画）
+            value_ = v; indeterminate_ = false;
+            valueAnimFrom_ = displayValue_; valueAnimT_ = 0.0f;   // 时长驱动缓动：从当前显示值出发
+            ValueChanged(GetRangeValue()); RequestRepaint();
         }
         float GetValue() const { return value_; }
         void SetRange(float min, float max) { if (max > min) { min_ = min; max_ = max; } else { min_ = min; max_ = min + 1.0f; } RequestRepaint(); }
         float GetMin() const { return min_; }
         float GetMax() const { return max_; }
-        void SetRangeValue(float v) { value_ = clamp((v - min_) / (max_ - min_), 0.0f, 1.0f); indeterminate_ = false; ValueChanged(GetRangeValue()); RequestRepaint(); }
+        void SetRangeValue(float v) { value_ = clamp((v - min_) / (max_ - min_), 0.0f, 1.0f); indeterminate_ = false; valueAnimFrom_ = displayValue_; valueAnimT_ = 0.0f; ValueChanged(GetRangeValue()); RequestRepaint(); }
         float GetRangeValue() const { return min_ + value_ * (max_ - min_); }
         void SetShowText(bool show) { showText_ = show; RequestRepaint(); }
         bool IsShowText() const { return showText_; }
         void SetTextColor(Color c) { if (!ThemeManager::IsApplying()) themeManaged_ = false; textColor_ = c.ToD2D(); textBrush_.Reset(); RequestRepaint(); }
-        void SetIndeterminate(bool indeterminate) { indeterminate_ = indeterminate; if (indeterminate_) { value_ = 0.0f; indeterminatePos_ = -indeterminateBlockWidth_; } RequestRepaint(); }
+        void SetIndeterminate(bool indeterminate) {
+            indeterminate_ = indeterminate;
+            valueAnimFrom_ = displayValue_; valueAnimT_ = 0.0f;
+            if (indeterminate_) { value_ = 0.0f; indeterminatePos_ = -indeterminateBlockWidth_; }
+            RequestRepaint();
+        }
         bool IsIndeterminate() const { return indeterminate_; }
         void SetTrackColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; trackColor_ = color.ToD2D(); trackBrush_.Reset(); RequestRepaint(); }
         void SetFillColor(Color color) { if (!ThemeManager::IsApplying()) themeManaged_ = false; fillColor_ = color.ToD2D(); fillBrush_.Reset(); RequestRepaint(); }
@@ -3660,17 +3705,18 @@ namespace ZufyUI {
 
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_) return;
+            if (!valueInit_) { displayValue_ = value_; valueInit_ = true; }   // 首帧直接就位：避免启动时从 0 涨上来
 
             if (!trackBrush_) rt->CreateSolidColorBrush(trackColor_, trackBrush_.GetAddressOf());
             else trackBrush_->SetColor(trackColor_);
-            if (trackBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(arrangedRect_.ToD2D(), height_ / 2, height_ / 2), trackBrush_.Get());
+            if (trackBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(arrangedRect_.ToD2D(), arrangedRect_.height / 2, arrangedRect_.height / 2), trackBrush_.Get());
 
             ID2D1Factory* factory = nullptr;
             rt->GetFactory(&factory);
             if (!factory) { DrawFillContent(rt); DrawBorder(rt); return; }
 
             ComPtr<ID2D1RoundedRectangleGeometry> clipGeometry;
-            HRESULT hr = factory->CreateRoundedRectangleGeometry(D2D1::RoundedRect(arrangedRect_.ToD2D(), height_ / 2, height_ / 2), clipGeometry.GetAddressOf());
+            HRESULT hr = factory->CreateRoundedRectangleGeometry(D2D1::RoundedRect(arrangedRect_.ToD2D(), arrangedRect_.height / 2, arrangedRect_.height / 2), clipGeometry.GetAddressOf());
             factory->Release();
 
             if (FAILED(hr) || !clipGeometry) { DrawFillContent(rt); DrawBorder(rt); return; }
@@ -3685,7 +3731,7 @@ namespace ZufyUI {
                 auto fmt = FontManager::Instance().GetFormat(GetEffectiveFontSpec());
                 if (fmt) {
                     wchar_t buf[32];
-                    int pct = (int)std::round(value_ * 100.0f);
+                    int pct = (int)std::round(displayValue_ * 100.0f);
                     swprintf(buf, 32, L"%d%%", pct);
                     if (!textBrush_) rt->CreateSolidColorBrush(textColor_, textBrush_.GetAddressOf());
                     else textBrush_->SetColor(textColor_);
@@ -3707,10 +3753,18 @@ namespace ZufyUI {
                 }
                 RequestRepaint();
             }
+            // 数值缓动：填充条与百分比文字一起平滑过渡（时长驱动，到点即停）
+            const float dur = DefaultValueAnimDuration;
+            if (valueAnimT_ < dur) {
+                valueAnimT_ = min(dur, valueAnimT_ + deltaTime);
+                displayValue_ = valueAnimFrom_ + (value_ - valueAnimFrom_) * detail::EaseOutCubic(valueAnimT_ / dur);
+            }
+            else displayValue_ = value_;
+            if (HasActiveAnimation()) RequestRepaint();
         }
 
         bool HasActiveAnimation() const override {
-            return indeterminate_;
+            return indeterminate_ || valueAnimT_ < DefaultValueAnimDuration;
         }
 
         void ReleaseDeviceResources() override {
@@ -3732,9 +3786,9 @@ namespace ZufyUI {
                 if (fillBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(blockRect, radius, radius), fillBrush_.Get());
             }
             else {
-                float fillWidth = arrangedRect_.width * value_;
+                float fillWidth = arrangedRect_.width * displayValue_;
                 if (fillWidth > 0.0f) {
-                    float radius = height_ / 2.0f;
+                    float radius = arrangedRect_.height / 2.0f;   // 用实际布局高度（原用成员 height_：被拉伸/压缩时圆角与矩形半高不符）
                     D2D1_RECT_F fillRect = D2D1::RectF(arrangedRect_.x, arrangedRect_.y, arrangedRect_.x + fillWidth, arrangedRect_.y + arrangedRect_.height);
                     D2D1_COLOR_F fc = IsEffectivelyEnabled() ? fillColor_ : D2D1::ColorF(0.68f, 0.68f, 0.68f, 1.0f);
                     if (!fillBrush_) rt->CreateSolidColorBrush(fc, fillBrush_.GetAddressOf());
@@ -3746,10 +3800,13 @@ namespace ZufyUI {
         void DrawBorder(ID2D1RenderTarget* rt) {
             if (!borderBrush_) rt->CreateSolidColorBrush(borderColor_, borderBrush_.GetAddressOf());
             else borderBrush_->SetColor(borderColor_);
-            if (borderBrush_) rt->DrawRoundedRectangle(D2D1::RoundedRect(arrangedRect_.ToD2D(), height_ / 2, height_ / 2), borderBrush_.Get(), 1.0f);
+            if (borderBrush_) rt->DrawRoundedRectangle(D2D1::RoundedRect(arrangedRect_.ToD2D(), arrangedRect_.height / 2, arrangedRect_.height / 2), borderBrush_.Get(), 1.0f);
         }
 
-        float value_;
+        float value_;                       // 逻辑值（0..1）
+        float displayValue_ = 0.0f;         // 缓动后的显示值
+        bool  valueInit_ = false;           // 首帧直接就位（不缓动）
+        float valueAnimFrom_ = 0.0f, valueAnimT_ = 1e9f;   // 时长驱动动画（起值 / 已用时长）
         bool indeterminate_;
         float min_ = 0.0f, max_ = 1.0f;
         bool showText_ = false;
@@ -3790,7 +3847,7 @@ namespace ZufyUI {
         ZSignal<float> ValueChanged;
         ZSignal<float> SliderReleased;   // 拖动结束
 
-        Slider() : min_(0.0f), max_(100.0f), value_(0.0f),
+        Slider() : min_(0.0f), max_(100.0f), value_(0.0f), displayValue_(0.0f),
             isDragging_(false), hovered_(false), hoverProgress_(0.0f),
             trackHeight_(DefaultTrackHeight), thumbSize_(DefaultThumbSize),
             trackColor_(DefaultTrackColor), fillColor_(DefaultFillColor),
@@ -3801,7 +3858,7 @@ namespace ZufyUI {
             bleed_ = 15.0f;
         }
 
-        void SetRange(float min, float max) { if (max > min) { min_ = min; max_ = max; } value_ = clamp(value_, min_, max_); RequestRepaint(); }
+        void SetRange(float min, float max) { if (max > min) { min_ = min; max_ = max; } value_ = clamp(value_, min_, max_); displayValue_ = clamp(displayValue_, min_, max_); RequestRepaint(); }
         void SetValue(float value) {
             float snapped = SnapValue(clamp(value, min_, max_));
             if (snapped == value_) return;   // 值未变不触发 ValueChanged
@@ -3853,7 +3910,8 @@ namespace ZufyUI {
             else trackBrush_->SetColor(tcol);
             if (trackBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(arrangedRect_.x, trackY, arrangedRect_.x + trackWidth, trackY + trackHeight_), trackHeight_ / 2, trackHeight_ / 2), trackBrush_.Get());
 
-            float fillRatio = (value_ - min_) / (max_ - min_);
+            if (!valueInit_) { displayValue_ = value_; valueInit_ = true; }   // 首帧直接就位：避免启动时从 0 滑过去
+            float fillRatio = (displayValue_ - min_) / (max_ - min_);
             float fillWidth = trackWidth * fillRatio;
             if (fillWidth > 0) {
                 float radius = min(trackHeight_ / 2.0f, fillWidth / 2.0f);
@@ -3888,16 +3946,26 @@ namespace ZufyUI {
             if (thumbBorderBrush_) rt->DrawEllipse(thumbEllipse, thumbBorderBrush_.Get(), 1.0f);
         }
 
+        // 值缓动的终止容差：按量程缩放（0~100 与 0~1 都合适）
+        float valueEpsilon() const { return max(1e-4f, fabs(max_ - min_) * 1e-4f); }
+
         void UpdateAnimation(float deltaTime) override {
             float target = (hovered_ || isDragging_) ? 1.0f : 0.0f;
             if (hoverProgress_ < target) { hoverProgress_ += animSpeed_ * deltaTime; if (hoverProgress_ > target) hoverProgress_ = target; }
             else if (hoverProgress_ > target) { hoverProgress_ -= animSpeed_ * deltaTime; if (hoverProgress_ < target) hoverProgress_ = target; }
+            // 值缓动：显示值追赶逻辑值（拖动跨步进同样缓动）。按比例收敛 → 与数值量程无关。
+            if (displayValue_ != value_) {
+                float k = clamp(animSpeed_ * deltaTime, 0.0f, 1.0f);
+                displayValue_ += (value_ - displayValue_) * k;
+                if (fabs(value_ - displayValue_) < valueEpsilon()) displayValue_ = value_;
+            }
             if (HasActiveAnimation()) RequestRepaint();
             ConvergeValue(hoverProgress_, (hovered_ || isDragging_) ? 1.0f : 0.0f, 0.001f);
         }
 
         bool HasActiveAnimation() const override {
             const float epsilon = 0.001f;
+            if (fabs(displayValue_ - value_) > valueEpsilon()) return true;
             return (hovered_ ? (hoverProgress_ < 1.0f - epsilon) : (hoverProgress_ > epsilon));
         }
 
@@ -3953,7 +4021,9 @@ namespace ZufyUI {
             return clamp(min_ + std::round((v - min_) / step_) * step_, min_, max_);
         }
 
-        float min_, max_, value_;
+        float min_, max_, value_;   // value_ = 逻辑值（GetValue/信号）；displayValue_ = 缓动后的显示值
+        float displayValue_ = 0.0f;
+        bool  valueInit_ = false;   // 首帧直接就位（不缓动）
         float step_ = 0.0f;
         bool snapToStep_ = false;
         bool isDragging_;
@@ -3986,6 +4056,10 @@ namespace ZufyUI {
         inline static D2D1_COLOR_F DefaultBoxColor = D2D1::ColorF(0.0f, 0.47f, 0.84f, 1.0f);      // 蓝
         inline static D2D1_COLOR_F DefaultBorderColor = D2D1::ColorF(0.62f, 0.62f, 0.62f, 1.0f);
         inline static D2D1_COLOR_F DefaultCheckColor = D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f);
+        // 供主题钩子调用（此前只有静态量、没有 setter → 主题切换后"新建"的 CheckBox 仍是硬编码浅色）
+        static void SetDefaultColors(Color box, Color border, Color check) {
+            DefaultBoxColor = box.ToD2D(); DefaultBorderColor = border.ToD2D(); DefaultCheckColor = check.ToD2D();
+        }
         inline static float DefaultAnimationSpeed = 9.0f;
 
         ZSignal<bool> Toggled;            // 选中/取消（Checked 为 true）
@@ -4221,6 +4295,9 @@ namespace ZufyUI {
         inline static D2D1_COLOR_F DefaultAccentColor = D2D1::ColorF(0.0f, 0.47f, 0.84f, 1.0f);
         inline static D2D1_COLOR_F DefaultBorderColor = D2D1::ColorF(0.62f, 0.62f, 0.62f, 1.0f);
         inline static D2D1_COLOR_F DefaultLabelColor = D2D1::ColorF(0.15f, 0.15f, 0.15f, 1.0f);
+        // "选中整行"高亮底色（原先硬编码 #D6E8FB，深色主题下依旧是浅蓝 → 现纳入主题）
+        inline static D2D1_COLOR_F DefaultRowHighlightColor = D2D1::ColorF(0.839f, 0.910f, 0.984f, 1.0f);
+        static void SetDefaultRowHighlightColor(Color c) { DefaultRowHighlightColor = c.ToD2D(); }
 
         ZSignal<bool> CheckedChanged;   // 自身勾选态变化
         ZSignal<> Clicked;              // 被点击（无论是否已是选中）
@@ -4231,7 +4308,7 @@ namespace ZufyUI {
             accentColor_(DefaultAccentColor), borderColor_(DefaultBorderColor), labelColor_(DefaultLabelColor) {
             size_ = DefaultSize; bleed_ = 4.0f;
             hoverColor_ = D2D1::ColorF(accentColor_.r, accentColor_.g, accentColor_.b, 0.15f);
-            highlightColor_ = D2D1::ColorF(0.839f, 0.910f, 0.984f, 1.0f);   // 选中整行浅蓝 #D6E8FB
+            highlightColor_ = DefaultRowHighlightColor;   // 选中整行底色（主题可覆盖）
         }
         explicit RadioButton(const std::wstring& text, bool checked = false) : RadioButton(checked) { label_ = text; }
 
@@ -4255,7 +4332,7 @@ namespace ZufyUI {
         // 选中整行高亮（浅蓝底 + 可选左侧竖条）；由 RadioGroup 自动开启
         void SetRowHighlight(bool on) { rowHighlight_ = on; RequestRepaint(); }
         bool GetRowHighlight() const { return rowHighlight_; }
-        void SetRowHighlightColor(Color c) { highlightColor_ = c.ToD2D(); RequestRepaint(); }
+        void SetRowHighlightColor(Color c) { if (!ThemeManager::IsApplying()) themeManaged_ = false; highlightColor_ = c.ToD2D(); RequestRepaint(); }
         void SetAccentBar(bool on) { accentBar_ = on; RequestRepaint(); }
 
         // 由 RadioGroup 注入（组内互斥）
@@ -5719,6 +5796,14 @@ namespace ZufyUI {
 
     // ============================================================================
     // SplitView：两栏 + 可拖动分隔条（左右 / 上下）
+    //   * 拖动时指针进入距边缘 CollapseThreshold 内 → 在该侧内容**之上**叠一层半透明强调色 +
+    //     指向折叠方向的箭头（alpha 渐入渐出，见 Overlay）。
+    //   * 松手后：覆盖层出场，该侧尺寸带缓动地从当前值变为 0。
+    //   * 折叠后：该侧边缘显示小按钮（画在子内容**之上**），点击后该侧尺寸带缓动地从 0 变为最小极限值。
+    //   * 整个折叠功能可用 SetCollapseEnabled(false) 关闭。
+    //
+    //   实现要点：覆盖层（Overlay）是 SplitView 的**最后一个子元素** —— 框架按子元素顺序绘制，
+    //   所以它天然画在两栏内容之上，不需要任何"预留条"或层级 API。
     // ============================================================================
     class SplitView : public UIElement {
     public:
@@ -5726,10 +5811,47 @@ namespace ZufyUI {
         inline static float DefaultSplitterWidth = 6.0f;
         inline static Color DefaultSplitterColor = Color(0, 0, 0, 0.06f);
         inline static Color DefaultHoverColor = Color(0.0f, 0.47f, 0.84f, 0.35f);
+        inline static float DefaultCollapseThreshold = 28.0f;
+        inline static float DefaultHintDuration = 0.16f;
+        inline static float DefaultCollapseDuration = 0.22f;
+        inline static float DefaultExpandBtnHoverDuration = 0.12f;
+        inline static float DefaultExpandBtnWidth = 14.0f;
+        inline static float DefaultExpandBtnHeight = 44.0f;
+        inline static Color DefaultExpandBtnColor = Color(0.93f, 0.93f, 0.93f, 1.0f);
+        inline static Color DefaultExpandBtnHoverColor = Color(0.84f, 0.84f, 0.84f, 1.0f);
+        inline static Color DefaultExpandArrowColor = Color(0.33f, 0.33f, 0.33f, 1.0f);
 
-        ZSignal<float> SplitChanged;   // 新比例 0..1
+        ZSignal<float> SplitChanged;      // 新比例 0..1
+        ZSignal<int>   CollapsedChanged;  // 0=未折叠，1=第一栏折叠，2=第二栏折叠
 
-        SplitView() { width_ = 0; height_ = 0; fillWidth_ = true; fillHeight_ = true; splitterColor_ = DefaultSplitterColor; hoverColor_ = DefaultHoverColor; }
+        // ---- 覆盖层：作为最后一个子元素参与绘制/命中，因此画在两栏内容之上 ----
+        class Overlay : public UIElement {
+        public:
+            explicit Overlay(SplitView* o) : owner_(o) { visible_ = true; }
+            bool UseCache() const override { return false; }
+            Size MeasureOverride(const Size& avail) override { return Size(avail.width, avail.height); }
+            void Draw(ID2D1RenderTarget* rt) override { if (owner_) owner_->DrawOverlay(rt); }
+            UIElement* HitTest(float x, float y) override {
+                if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
+                return (owner_ && owner_->OverlayWantsMouse(x, y)) ? this : nullptr;
+            }
+            void OnMouseMove(float x, float y) override { if (owner_) owner_->OverlayMouseMove(x, y); }
+            void OnMouseLeave() override { if (owner_) owner_->OverlayMouseLeave(); }
+            void OnMouseDown(float x, float y) override { if (owner_) owner_->OverlayMouseDown(x, y); }
+            void OnMouseUp(float, float) override {}
+        private:
+            SplitView* owner_ = nullptr;
+        };
+
+        SplitView() {
+            width_ = 0; height_ = 0; fillWidth_ = true; fillHeight_ = true;
+            splitterColor_ = DefaultSplitterColor; hoverColor_ = DefaultHoverColor;
+            expandBtnColor_ = DefaultExpandBtnColor; expandBtnHoverColor_ = DefaultExpandBtnHoverColor;
+            expandArrowColor_ = DefaultExpandArrowColor;
+            overlay_ = std::make_shared<Overlay>(this);
+            overlay_->SetParent(this);
+            MarkChildrenDirty();
+        }
 
         void SetOrientation(Orientation o) { if (o != orientation_) { orientation_ = o; InvalidateLayout(); RequestRepaint(); } }
         Orientation GetOrientation() const { return orientation_; }
@@ -5754,15 +5876,58 @@ namespace ZufyUI {
         void SetSplitterColor(Color c) { splitterColor_ = c; RequestRepaint(); }
         void SetHoverColor(Color c) { if (!ThemeManager::IsApplying()) themeManaged_ = false; hoverColor_ = c; RequestRepaint(); }
 
+        // ---- 折叠开关 / 阈值 ----
+        void SetCollapseEnabled(bool on) {
+            collapseEnabled_ = on;
+            if (!on) { collapseHint_ = 0; hintT_ = DefaultHintDuration; hintProgress_ = 0.0f; }
+            RequestRepaint();
+        }
+        bool IsCollapseEnabled() const { return collapseEnabled_; }
+        void SetCollapseThreshold(float px) { collapseThreshold_ = max(1.0f, px); }
+        float GetCollapseThreshold() const { return collapseThreshold_; }
+
+        // ---- 折叠 / 展开 ----
+        bool IsFirstCollapsed() const { return collapsedFirst_; }
+        bool IsSecondCollapsed() const { return collapsedSecond_; }
+        int  GetCollapsedSide() const { return collapsedFirst_ ? 1 : (collapsedSecond_ ? 2 : 0); }
+        bool IsCollapsing() const { return collapseT_ < DefaultCollapseDuration; }
+        float GetCollapseProgress() const { return collapseProg_; }
+
+        void CollapseFirst()  { if (!collapsedFirst_)  { savedRatio_ = ratio_; collapsedFirst_ = true;  collapsedSecond_ = false; collapseHint_ = 0; hintProgress_ = 0.0f; hintT_ = DefaultHintDuration; StartCollapseAnim(); CollapsedChanged(1); } }
+        void CollapseSecond() { if (!collapsedSecond_) { savedRatio_ = ratio_; collapsedSecond_ = true; collapsedFirst_ = false; collapseHint_ = 0; hintProgress_ = 0.0f; hintT_ = DefaultHintDuration; StartCollapseAnim(); CollapsedChanged(2); } }
+        // 展开：该侧尺寸从 0 带缓动地回到"最小极限值"（min；没设 min 则回到折叠前比例）
+        void Expand() {
+            if (!collapsedFirst_ && !collapsedSecond_) return;
+            const int side = collapsedFirst_ ? 1 : 2;
+            collapsedFirst_ = collapsedSecond_ = false;
+            bool vert = (orientation_ == Orientation::Vertical);
+            float total = vert ? arrangedRect_.width : arrangedRect_.height;
+            float usable = max(1.0f, total - splitterW_);
+            float r = savedRatio_;
+            if (side == 1 && minFirst_ > 0.0f) r = minFirst_ / usable;                 // 第一栏展开到 minFirst_
+            if (side == 2 && minSecond_ > 0.0f) r = (usable - minSecond_) / usable;    // 第二栏展开到 minSecond_（不是压第一栏）
+            ratio_ = clamp(r, 0.0f, 1.0f);
+            StartCollapseAnim();
+            CollapsedChanged(0);
+        }
+        void SetExpandButtonColors(Color normal, Color hover, Color arrow) {
+            expandBtnColor_ = normal; expandBtnHoverColor_ = hover; expandArrowColor_ = arrow;
+            expandBtnBrush_.Reset(); expandArrowBrush_.Reset(); RequestRepaint();
+        }
+        void SetExpandButtonSize(float w, float h) { expandBtnW_ = max(6.0f, w); expandBtnH_ = max(6.0f, h); RequestRepaint(); }
+        static void SetDefaultColors(Color splitter, Color hover) { DefaultSplitterColor = splitter; DefaultHoverColor = hover; }
+        static void SetDefaultExpandButtonColors(Color normal, Color hover, Color arrow) {
+            DefaultExpandBtnColor = normal; DefaultExpandBtnHoverColor = hover; DefaultExpandArrowColor = arrow;
+        }
+
         bool UseCache() const override { return false; }
 
         Size MeasureOverride(const Size& availableSize) override {
             float w = width_ > 0 ? width_ : (availableSize.width != FLT_MAX ? availableSize.width : 200.0f);
             float h = height_ > 0 ? height_ : (availableSize.height != FLT_MAX ? availableSize.height : 200.0f);
             bool vert = (orientation_ == Orientation::Vertical);
-            float usable = max(0.0f, (vert ? w : h) - splitterW_);
-            float firstLen = clamp(ratio_ * usable, minFirst_, max(0.0f, usable - minSecond_));
-            float secondLen = max(0.0f, usable - firstLen);
+            float firstLen = 0.0f, secondLen = 0.0f;
+            PaneLengths(vert ? w : h, firstLen, secondLen);
             if (vert) {
                 if (first_) first_->Measure(Size(firstLen, h));
                 if (second_) second_->Measure(Size(secondLen, h));
@@ -5771,37 +5936,36 @@ namespace ZufyUI {
                 if (first_) first_->Measure(Size(w, firstLen));
                 if (second_) second_->Measure(Size(w, secondLen));
             }
+            if (overlay_) overlay_->Measure(Size(w, h));
             return Size(w, h);
         }
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
             ApplyArrange(finalRect);
         }
+        // 分隔条由 SplitView 自己画（两栏内容之上由 Overlay 负责）
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_ || !rt) return;
             if (!(std::isfinite(arrangedRect_.x) && std::isfinite(arrangedRect_.y) &&
-                  std::isfinite(arrangedRect_.width) && std::isfinite(arrangedRect_.height))) return;   // NaN/Inf 守卫
+                  std::isfinite(arrangedRect_.width) && std::isfinite(arrangedRect_.height))) return;
+            if (collapseProg_ > 0.98f) return;   // 完全折叠：分隔条也收起来
+            bool vert = (orientation_ == Orientation::Vertical);
+            bool hot = hovered_ || dragging_ || (collapseEnabled_ && collapseHint_ != 0);
             if (!splitterBrush_) rt->CreateSolidColorBrush(splitterColor_.ToD2D(), splitterBrush_.GetAddressOf());
-            else splitterBrush_->SetColor((hovered_ || dragging_) ? hoverColor_.ToD2D() : splitterColor_.ToD2D());
+            else splitterBrush_->SetColor(hot ? hoverColor_.ToD2D() : splitterColor_.ToD2D());
             if (splitterBrush_) {
-                bool vert = (orientation_ == Orientation::Vertical);
-                float ins = 2.0f;   // 内缩一点 + 圆角（不再方角贴边）
+                float ins = 2.0f;
                 D2D1_RECT_F sr = D2D1::RectF(splitterRect_.x + (vert ? ins : 0.0f), splitterRect_.y + (vert ? 0.0f : ins),
                     splitterRect_.x + splitterRect_.width - (vert ? ins : 0.0f), splitterRect_.y + splitterRect_.height - (vert ? 0.0f : ins));
                 float rad = min(sr.right - sr.left, sr.bottom - sr.top) * 0.5f;
-                rt->FillRoundedRectangle(D2D1::RoundedRect(sr, rad, rad), splitterBrush_.Get());
+                if (rad > 0.0f) rt->FillRoundedRectangle(D2D1::RoundedRect(sr, rad, rad), splitterBrush_.Get());
             }
-            // 中间的小握把线
             if (!gripBrush_) rt->CreateSolidColorBrush(Color(1, 1, 1, 0.9f).ToD2D(), gripBrush_.GetAddressOf());
             if (gripBrush_) {
                 float cx = splitterRect_.x + splitterRect_.width * 0.5f;
                 float cy = splitterRect_.y + splitterRect_.height * 0.5f;
-                if (orientation_ == Orientation::Vertical) {
-                    rt->DrawLine(D2D1::Point2F(cx, cy - 10.0f), D2D1::Point2F(cx, cy + 10.0f), gripBrush_.Get(), 1.0f);
-                }
-                else {
-                    rt->DrawLine(D2D1::Point2F(cx - 10.0f, cy), D2D1::Point2F(cx + 10.0f, cy), gripBrush_.Get(), 1.0f);
-                }
+                if (vert) rt->DrawLine(D2D1::Point2F(cx, cy - 10.0f), D2D1::Point2F(cx, cy + 10.0f), gripBrush_.Get(), 1.0f);
+                else      rt->DrawLine(D2D1::Point2F(cx - 10.0f, cy), D2D1::Point2F(cx + 10.0f, cy), gripBrush_.Get(), 1.0f);
             }
         }
         void RefreshChildren() override {
@@ -5810,53 +5974,194 @@ namespace ZufyUI {
             childrenView_.clear();
             if (first_) childrenView_.push_back(first_.get());
             if (second_) childrenView_.push_back(second_.get());
+            if (overlay_) childrenView_.push_back(overlay_.get());   // 最后 → 画在内容之上
         }
         const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
         void AttachWindowRecursive(Window* w) override {
             windowId_ = WindowIdOf(w);
             if (first_) first_->AttachWindowRecursive(w);
             if (second_) second_->AttachWindowRecursive(w);
+            if (overlay_) overlay_->AttachWindowRecursive(w);
         }
-        // 关键：容器必须把 UpdateAnimation / HasActiveAnimation 递归给子控件，否则子控件的动画（悬停/翻页）不会跑
         void UpdateAnimation(float dt) override {
             if (first_) first_->UpdateAnimation(dt);
             if (second_) second_->UpdateAnimation(dt);
+            // 提示覆盖层：alpha 渐入渐出
+            const float hintTarget = (collapseEnabled_ && collapseHint_ != 0) ? 1.0f : 0.0f;
+            if (hintTarget != hintTarget_) { hintTarget_ = hintTarget; hintFrom_ = hintProgress_; hintT_ = 0.0f; }
+            if (hintT_ < DefaultHintDuration) {
+                hintT_ = min(DefaultHintDuration, hintT_ + dt);
+                hintProgress_ = hintFrom_ + (hintTarget_ - hintFrom_) * detail::EaseOutCubic(hintT_ / DefaultHintDuration);
+            }
+            else hintProgress_ = hintTarget_;
+            // 折叠/展开：该侧尺寸带缓动地从当前值到 0 / 从 0 到最小极限值
+            const float colTarget = (collapsedFirst_ || collapsedSecond_) ? 1.0f : 0.0f;
+            if (collapseT_ < DefaultCollapseDuration) {
+                collapseT_ = min(DefaultCollapseDuration, collapseT_ + dt);
+                collapseProg_ = collapseFrom_ + (colTarget - collapseFrom_) * detail::EaseInOutCubic(collapseT_ / DefaultCollapseDuration);
+                ApplyArrange(arrangedRect_);
+                if (first_) first_->InvalidateLayout();
+                if (second_) second_->InvalidateLayout();
+            }
+            else collapseProg_ = colTarget;
+            // 小按钮悬停
+            const float btnTarget = hoverExpand_ ? 1.0f : 0.0f;
+            if (btnTarget != btnTarget_) { btnTarget_ = btnTarget; btnFrom_ = expandBtnHover_; btnT_ = 0.0f; }
+            if (btnT_ < DefaultExpandBtnHoverDuration) {
+                btnT_ = min(DefaultExpandBtnHoverDuration, btnT_ + dt);
+                expandBtnHover_ = btnFrom_ + (btnTarget_ - btnFrom_) * detail::EaseOutCubic(btnT_ / DefaultExpandBtnHoverDuration);
+            }
+            else expandBtnHover_ = btnTarget_;
+            if (HasActiveAnimation()) RequestRepaint();
         }
         bool HasActiveAnimation() const override {
+            if (hintT_ < DefaultHintDuration) return true;
+            if (collapseT_ < DefaultCollapseDuration) return true;
+            if (btnT_ < DefaultExpandBtnHoverDuration) return true;
             return (first_ && first_->HasActiveAnimation()) || (second_ && second_->HasActiveAnimation());
         }
         UIElement* HitTest(float x, float y) override {
             if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
-            // 分隔条带（含一点额外命中区，方便拖动）
+            // 覆盖层优先（折叠后的小按钮必须能点到，哪怕它压着内容）
+            if (overlay_) { if (UIElement* h = overlay_->HitTest(x, y)) return h; }
             Rect hit(splitterRect_.x - 3.0f, splitterRect_.y - 3.0f, splitterRect_.width + 6.0f, splitterRect_.height + 6.0f);
-            if (hit.Contains(x, y)) return this;
+            if (!collapseActive() && hit.Contains(x, y)) return this;
             if (first_) { if (UIElement* h = first_->HitTest(x, y)) return h; }
             if (second_) { if (UIElement* h = second_->HitTest(x, y)) return h; }
             return this;
         }
         void OnMouseMove(float x, float y) override {
+            lastX_ = x; lastY_ = y;
             if (dragging_) { UpdateDrag(x, y); return; }
+            if (collapseActive()) { hovered_ = false; return; }   // 折叠期间只有小按钮要悬停
             Rect hit(splitterRect_.x - 3.0f, splitterRect_.y - 3.0f, splitterRect_.width + 6.0f, splitterRect_.height + 6.0f);
             bool h = hit.Contains(x, y);
             if (h != hovered_) { hovered_ = h; RequestRepaint(); }
         }
-        void OnMouseLeave() override { if (hovered_) { hovered_ = false; RequestRepaint(); } }
+        void OnMouseLeave() { if (hovered_) { hovered_ = false; RequestRepaint(); } }
         void OnMouseDown(float x, float y) override {
             Rect hit(splitterRect_.x - 3.0f, splitterRect_.y - 3.0f, splitterRect_.width + 6.0f, splitterRect_.height + 6.0f);
-            if (hit.Contains(x, y)) { dragging_ = true; RequestRepaint(); }
+            if (!collapseActive() && hit.Contains(x, y)) { dragging_ = true; pressX_ = x; pressY_ = y; RequestRepaint(); }
         }
-        void OnMouseUp(float, float) override { if (dragging_) { dragging_ = false; RequestRepaint(); } }
+        void OnMouseUp(float, float) override {
+            if (!dragging_) return;
+            dragging_ = false;
+            // 松手这一刻才真正折叠：该侧尺寸随后带缓动地从当前值变为 0
+            if (collapseEnabled_ && collapseHint_ == 1) { CollapseFirst(); return; }
+            if (collapseEnabled_ && collapseHint_ == 2) { CollapseSecond(); return; }
+            collapseHint_ = 0;
+            RequestRepaint();
+        }
 
     private:
+        bool collapseActive() const { return collapseProg_ > 0.02f || collapsedFirst_ || collapsedSecond_; }
+
+        // 覆盖层要接管鼠标：折叠（或正在折叠）时，光标在小按钮上
+        bool OverlayWantsMouse(float x, float y) const {
+            if (collapseProg_ <= 0.05f) return false;
+            return expandBtnRect_.width > 1.0f && expandBtnRect_.Contains(x, y);
+        }
+        void OverlayMouseMove(float x, float y) {
+            bool h = OverlayWantsMouse(x, y);
+            if (h != hoverExpand_) { hoverExpand_ = h; RequestRepaint(); }
+        }
+        void OverlayMouseLeave() { if (hoverExpand_) { hoverExpand_ = false; RequestRepaint(); } }
+        void OverlayMouseDown(float x, float y) {
+            if (OverlayWantsMouse(x, y)) {
+                hoverExpand_ = false;
+                Expand();            // 该侧尺寸从 0 带缓动地回到最小极限值
+            }
+        }
+        void StartCollapseAnim() { collapseFrom_ = collapseProg_; collapseT_ = 0.0f; InvalidateLayout(); RequestRepaint(); }
+
+        void DrawOverlay(ID2D1RenderTarget* rt) {
+            if (!rt) return;
+            const Rect& fr = arrangedRect_;
+            bool vert = (orientation_ == Orientation::Vertical);
+
+            // (1)(2) 拖动到边缘附近的"即将折叠"覆盖层：半透明强调色 + 指向折叠方向的箭头，画在内容之上
+            if (collapseEnabled_ && collapseHint_ != 0 && hintProgress_ > 0.01f) {
+                Rect pane = (collapseHint_ == 1)
+                    ? (vert ? Rect(fr.x, fr.y, max(0.0f, splitterRect_.x - fr.x), fr.height)
+                            : Rect(fr.x, fr.y, fr.width, max(0.0f, splitterRect_.y - fr.y)))
+                    : (vert ? Rect(splitterRect_.x + splitterRect_.width, fr.y, max(0.0f, fr.x + fr.width - (splitterRect_.x + splitterRect_.width)), fr.height)
+                            : Rect(fr.x, splitterRect_.y + splitterRect_.height, fr.width, max(0.0f, fr.y + fr.height - (splitterRect_.y + splitterRect_.height))));
+                if (pane.width > 0.5f && pane.height > 0.5f) {
+                    D2D1_COLOR_F oc = hoverColor_.ToD2D();
+                    oc.a = min(0.65f, oc.a * 2.4f) * hintProgress_;
+                    if (!hintBrush_) rt->CreateSolidColorBrush(oc, hintBrush_.GetAddressOf());
+                    else hintBrush_->SetColor(oc);
+                    if (hintBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(pane.ToD2D(), 4.0f, 4.0f), hintBrush_.Get());
+                    if (!expandArrowBrush_) rt->CreateSolidColorBrush(expandArrowColor_.ToD2D(), expandArrowBrush_.GetAddressOf());
+                    else expandArrowBrush_->SetColor(expandArrowColor_.ToD2D());
+                    if (expandArrowBrush_) {
+                        float arm = max(7.0f, min(pane.width, pane.height) * 0.10f);
+                        DrawChevron(rt, expandArrowBrush_.Get(), pane.x + pane.width * 0.5f, pane.y + pane.height * 0.5f, arm,
+                                    collapseHint_ == 1 ? (vert ? -1 : -2) : (vert ? 1 : 2), hintProgress_);
+                    }
+                }
+            }
+
+            // (4)(5) 折叠后的小按钮：圆角浅灰 + 箭头指展开方向 + 悬停缓动，同样画在内容之上
+            float fade = clamp(collapseProg_, 0.0f, 1.0f);
+            if (collapseActive() && fade > 0.02f && expandBtnRect_.width > 1.0f) {
+                D2D1_COLOR_F bc = D2D1::ColorF(
+                    expandBtnColor_.r + (expandBtnHoverColor_.r - expandBtnColor_.r) * expandBtnHover_,
+                    expandBtnColor_.g + (expandBtnHoverColor_.g - expandBtnColor_.g) * expandBtnHover_,
+                    expandBtnColor_.b + (expandBtnHoverColor_.b - expandBtnColor_.b) * expandBtnHover_,
+                    (expandBtnColor_.a + (expandBtnHoverColor_.a - expandBtnColor_.a) * expandBtnHover_) * fade);
+                if (!expandBtnBrush_) rt->CreateSolidColorBrush(bc, expandBtnBrush_.GetAddressOf());
+                else expandBtnBrush_->SetColor(bc);
+                float rad = min(expandBtnRect_.width, expandBtnRect_.height) * 0.5f;
+                if (expandBtnBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(expandBtnRect_.ToD2D(), rad, rad), expandBtnBrush_.Get());
+                D2D1_COLOR_F bd = splitterColor_.ToD2D(); bd.a *= fade;
+                if (!btnBorderBrush_) rt->CreateSolidColorBrush(bd, btnBorderBrush_.GetAddressOf());
+                else btnBorderBrush_->SetColor(bd);
+                if (btnBorderBrush_) rt->DrawRoundedRectangle(D2D1::RoundedRect(expandBtnRect_.ToD2D(), rad, rad), btnBorderBrush_.Get(), 1.0f);
+                if (!expandArrowBrush_) rt->CreateSolidColorBrush(expandArrowColor_.ToD2D(), expandArrowBrush_.GetAddressOf());
+                else expandArrowBrush_->SetColor(expandArrowColor_.ToD2D());
+                if (expandArrowBrush_) {
+                    DrawChevron(rt, expandArrowBrush_.Get(),
+                                expandBtnRect_.x + expandBtnRect_.width * 0.5f,
+                                expandBtnRect_.y + expandBtnRect_.height * 0.5f, 4.5f,
+                                collapsedFirst_ ? (vert ? 1 : 2) : (vert ? -1 : -2), fade);
+                }
+            }
+        }
+        // dir: -2=上 -1=左 1=右 2=下；alphaScale 用于淡入淡出
+        void DrawChevron(ID2D1RenderTarget* rt, ID2D1SolidColorBrush* br, float cx, float cy, float e, int dir, float alphaScale) {
+            if (!br) return;
+            D2D1_COLOR_F c = br->GetColor();
+            c.a *= clamp(alphaScale, 0.0f, 1.0f);
+            br->SetColor(c);
+            const float k = 0.72f;
+            if (dir == -1)      { rt->DrawLine(D2D1::Point2F(cx + e * k, cy - e), D2D1::Point2F(cx - e * k, cy), br, 2.0f);
+                                  rt->DrawLine(D2D1::Point2F(cx - e * k, cy), D2D1::Point2F(cx + e * k, cy + e), br, 2.0f); }
+            else if (dir == 1)  { rt->DrawLine(D2D1::Point2F(cx - e * k, cy - e), D2D1::Point2F(cx + e * k, cy), br, 2.0f);
+                                  rt->DrawLine(D2D1::Point2F(cx + e * k, cy), D2D1::Point2F(cx - e * k, cy + e), br, 2.0f); }
+            else if (dir == -2) { rt->DrawLine(D2D1::Point2F(cx - e, cy + e * k), D2D1::Point2F(cx, cy - e * k), br, 2.0f);
+                                  rt->DrawLine(D2D1::Point2F(cx, cy - e * k), D2D1::Point2F(cx + e, cy + e * k), br, 2.0f); }
+            else                { rt->DrawLine(D2D1::Point2F(cx - e, cy - e * k), D2D1::Point2F(cx, cy + e * k), br, 2.0f);
+                                  rt->DrawLine(D2D1::Point2F(cx, cy + e * k), D2D1::Point2F(cx + e, cy - e * k), br, 2.0f); }
+        }
+        // 两栏像素长度：折叠进度 p 让对应那一侧从当前值线性收敛到 0
+        void PaneLengths(float total, float& firstLen, float& secondLen) const {
+            float usable = max(0.0f, total - splitterW_);
+            const float nf = clamp(ratio_ * usable, minFirst_, max(0.0f, usable - minSecond_));
+            const float ns = max(0.0f, usable - nf);
+            const float p = clamp(collapseProg_, 0.0f, 1.0f);
+            if (collapsedFirst_)  { firstLen = max(0.0f, nf * (1.0f - p)); secondLen = max(0.0f, usable - firstLen); return; }
+            if (collapsedSecond_) { secondLen = max(0.0f, ns * (1.0f - p)); firstLen  = max(0.0f, usable - secondLen); return; }
+            firstLen = nf; secondLen = ns;
+        }
         void ApplyArrange(const Rect& fr) {
             bool vert = (orientation_ == Orientation::Vertical);
             float total = (vert ? fr.width : fr.height);
-            float usable = max(0.0f, total - splitterW_);
-            float firstLen = clamp(ratio_ * usable, minFirst_, max(0.0f, usable - minSecond_));
-            float secondLen = max(0.0f, usable - firstLen);
+            float firstLen = 0.0f, secondLen = 0.0f;
+            PaneLengths(total, firstLen, secondLen);
             auto clipTo = [](UIElement* e, const Rect& r) {
                 float b = e->GetBleed();
-                e->SetClipRect(Rect(r.x - b, r.y - b, r.width + b * 2, r.height + b * 2));   // 保留出血（阴影/边框）不被裁
+                e->SetClipRect(Rect(r.x - b, r.y - b, r.width + b * 2, r.height + b * 2));
             };
             if (vert) {
                 if (first_) { Rect r(fr.x, fr.y, firstLen, fr.height); first_->Arrange(r); clipTo(first_.get(), r); }
@@ -5868,6 +6173,21 @@ namespace ZufyUI {
                 splitterRect_ = Rect(fr.x, fr.y + firstLen, fr.width, splitterW_);
                 if (second_) { Rect r(fr.x, fr.y + firstLen + splitterW_, fr.width, secondLen); second_->Arrange(r); clipTo(second_.get(), r); }
             }
+            if (overlay_) overlay_->Arrange(fr);   // 覆盖整块 → 画在两栏之上
+            // 小按钮位置：贴着被折叠那一侧的外边缘，沿另一轴居中
+            if (collapseActive()) {
+                if (vert) {
+                    float by = fr.y + (fr.height - expandBtnH_) * 0.5f;
+                    expandBtnRect_ = collapsedFirst_ ? Rect(fr.x + 3.0f, by, expandBtnW_, expandBtnH_)
+                                                     : Rect(fr.x + fr.width - expandBtnW_ - 3.0f, by, expandBtnW_, expandBtnH_);
+                }
+                else {
+                    float bx = fr.x + (fr.width - expandBtnW_) * 0.5f;
+                    expandBtnRect_ = collapsedFirst_ ? Rect(bx, fr.y + 3.0f, expandBtnW_, expandBtnH_)
+                                                     : Rect(bx, fr.y + fr.height - expandBtnH_ - 3.0f, expandBtnW_, expandBtnH_);
+                }
+            }
+            else expandBtnRect_ = Rect(0, 0, 0, 0);
         }
         void UpdateDrag(float x, float y) {
             bool vert = (orientation_ == Orientation::Vertical);
@@ -5877,22 +6197,45 @@ namespace ZufyUI {
             float r = clamp(pos / usable, 0.0f, 1.0f);
             if (r != ratio_) {
                 ratio_ = r;
-                ApplyArrange(arrangedRect_);             // 立即摆位（跟手）
-                if (first_) first_->InvalidateLayout();  // 变的是"子控件"的尺寸 → 标记子控件（不是重排整个 SplitView）
+                ApplyArrange(arrangedRect_);
+                if (first_) first_->InvalidateLayout();
                 if (second_) second_->InvalidateLayout();
                 SplitChanged(ratio_);
                 RequestRepaint();
             }
+            // (1)(2) 提示判据：**指针离该侧边缘的距离**进入阈值 → 该侧"即将折叠"（此时不改内容）
+            int hint = 0;
+            if (collapseEnabled_) {
+                float along = (vert ? x : y) - (vert ? arrangedRect_.x : arrangedRect_.y);
+                float span = vert ? arrangedRect_.width : arrangedRect_.height;
+                if (along <= collapseThreshold_) hint = 1;
+                else if (span - along <= collapseThreshold_) hint = 2;
+            }
+            if (hint != collapseHint_) { collapseHint_ = hint; RequestRepaint(); }
         }
 
         Orientation orientation_ = Orientation::Vertical;
         std::shared_ptr<UIElement> first_, second_;
+        std::shared_ptr<Overlay> overlay_;
         float ratio_ = 0.35f, splitterW_ = DefaultSplitterWidth;
         float minFirst_ = 0.0f, minSecond_ = 0.0f;
         bool dragging_ = false, hovered_ = false;
-        Rect splitterRect_{};
+        float lastX_ = 0.0f, lastY_ = 0.0f, pressX_ = 0.0f, pressY_ = 0.0f;
+        bool collapseEnabled_ = true;
+        float collapseThreshold_ = DefaultCollapseThreshold;
+        int   collapseHint_ = 0;
+        bool  collapsedFirst_ = false, collapsedSecond_ = false;
+        float savedRatio_ = 0.35f;
+        float collapseProg_ = 0.0f, collapseFrom_ = 0.0f, collapseT_ = 1e9f;
+        float hintProgress_ = 0.0f, hintFrom_ = 0.0f, hintT_ = 1e9f, hintTarget_ = 0.0f;
+        float expandBtnHover_ = 0.0f, btnFrom_ = 0.0f, btnT_ = 1e9f, btnTarget_ = 0.0f;
+        bool  hoverExpand_ = false;
+        float expandBtnW_ = DefaultExpandBtnWidth, expandBtnH_ = DefaultExpandBtnHeight;
+        Rect  expandBtnRect_{};
+        Rect  splitterRect_{};
         Color splitterColor_, hoverColor_;
-        ComPtr<ID2D1SolidColorBrush> splitterBrush_, gripBrush_;
+        Color expandBtnColor_, expandBtnHoverColor_, expandArrowColor_;
+        ComPtr<ID2D1SolidColorBrush> splitterBrush_, gripBrush_, hintBrush_, expandBtnBrush_, btnBorderBrush_, expandArrowBrush_;
     };
 
     // ============================================================================
@@ -6302,8 +6645,9 @@ namespace ZufyUI {
                 float lh = (l < (int)lineCache_.size() && lineCache_[l].rowH > 0 ? lineCache_[l].rowH : LineH());   // 单视觉行高，别用整段高
                 float cx = floorf(c.x + (hasComposition_ ? CompositionPrefixW() : 0.0f)) + 0.5f;   // 组合时光标落在组合串内
                 float cy = floorf(c.y);
-                cursorBrush_.Reset();
-                rt->CreateSolidColorBrush(cursorColor_.ToD2D(), cursorBrush_.GetAddressOf());
+                // 复用 brush（与 TextBox/Label 同款）：每帧 Reset+Create 会持续分配/回收 D2D 资源
+                if (!cursorBrush_) rt->CreateSolidColorBrush(cursorColor_.ToD2D(), cursorBrush_.GetAddressOf());
+                else cursorBrush_->SetColor(cursorColor_.ToD2D());
                 if (cursorBrush_) rt->DrawLine(D2D1::Point2F(cx, cy), D2D1::Point2F(cx, cy + lh), cursorBrush_.Get(), 1.0f);
             }
             // 源端拖动：在保留原选区的同时，于落点显示预览光标
@@ -6312,8 +6656,9 @@ namespace ZufyUI {
                 int l = LineOfPos(dropPos_);
                 float lh = (l < (int)lineCache_.size() && lineCache_[l].rowH > 0 ? lineCache_[l].rowH : LineH());
                 float cx = floorf(c.x) + 0.5f, cy = floorf(c.y);
-                cursorBrush_.Reset();
-                rt->CreateSolidColorBrush(cursorColor_.ToD2D(), cursorBrush_.GetAddressOf());
+                // 复用 brush（与 TextBox/Label 同款）：每帧 Reset+Create 会持续分配/回收 D2D 资源
+                if (!cursorBrush_) rt->CreateSolidColorBrush(cursorColor_.ToD2D(), cursorBrush_.GetAddressOf());
+                else cursorBrush_->SetColor(cursorColor_.ToD2D());
                 if (cursorBrush_) rt->DrawLine(D2D1::Point2F(cx, cy), D2D1::Point2F(cx, cy + lh), cursorBrush_.Get(), 1.0f);
             }
             // 组合文本（IME）：下划线 + 组合内光标（可在组合串中间移动）
@@ -6687,7 +7032,9 @@ namespace ZufyUI {
             EnsureMetrics();
             int n = LineCount(); if (n == 0) return 0;
             float ly = y - arrangedRect_.y - 2.0f + scrollY_;
-            int l = 0; while (l < n - 1 && lineY_[l + 1] <= ly) ++l;
+            // 二分定位行：原为线性扫描，行数大时每次点击/拖选都要遍历全部行 → 拖动卡顿
+            int l = (int)(std::upper_bound(lineY_.begin(), lineY_.end(), ly) - lineY_.begin()) - 1;
+            if (l < 0) l = 0; else if (l > n - 1) l = n - 1;
             IDWriteTextLayout* lay = BuildLine(l); if (!lay) return LineStart(l);
             float lx = x - ContentLeft() + scrollX_;
             BOOL trail = FALSE, inside = FALSE; DWRITE_HIT_TEST_METRICS hm{};
@@ -7274,6 +7621,16 @@ namespace ZufyUI {
         StatusBar::SetDefaultColors(C(ThemeRole::SurfaceAlt), C(ThemeRole::Divider), C(ThemeRole::TextSecondary));
         Card::SetDefaultBgColor(C(ThemeRole::SurfaceRaised));
         Card::SetDefaultBorderColor(C(ThemeRole::Border));
+        // —— 此前遗漏的三项（新建实例拿不到主题色）——
+        ScrollBar::SetDefaultColors(D(ThemeRole::ScrollThumb), D(ThemeRole::ScrollThumbHover), D(ThemeRole::ScrollTrack));
+        RadioButton::SetDefaultRowHighlightColor(C(ThemeRole::Selection));
+        UIElement::SetDefaultShadowColor(C(ThemeRole::Shadow));
+        {   // SplitView 的默认色（分隔条/悬停/展开按钮）此前没被主题覆盖过
+            Color hov = C(ThemeRole::Accent); hov.a = 0.35f;
+            SplitView::SetDefaultColors(C(ThemeRole::Divider), hov);
+            SplitView::SetDefaultExpandButtonColors(C(ThemeRole::Control), C(ThemeRole::ControlHover), C(ThemeRole::Text));
+        }
+        CheckBox::SetDefaultColors(C(ThemeRole::Accent), C(ThemeRole::Border), C(ThemeRole::TextOnAccent));
         Expander::Bg = C(ThemeRole::SurfaceRaised);
         Expander::Border = C(ThemeRole::Border);
         Expander::TitleCol = C(ThemeRole::Text);
@@ -7284,9 +7641,10 @@ namespace ZufyUI {
     inline void ApplyThemeToWidgetTree(UIElement* e, const Theme& t) {
         if (!e) return;
         if (e->IsThemeManaged()) {   // 应用显式设过色的实例不动（实例优先）
+        e->SetShadowColor(t.Get(ThemeRole::Shadow));   // 阴影是元素级属性，所有元素都要套
         if (auto* l = dynamic_cast<Label*>(e)) { l->SetTextColor(t.Get(ThemeRole::Text)); }
         else if (auto* b = dynamic_cast<Button*>(e)) { b->SetColors(t.Get(ThemeRole::Accent), t.Get(ThemeRole::AccentHover), t.Get(ThemeRole::AccentPressed)); b->SetTextColor(t.Get(ThemeRole::TextOnAccent)); }
-        else if (auto* tb = dynamic_cast<TextBox*>(e)) { tb->SetBackgroundColor(t.Get(ThemeRole::SurfaceAlt)); tb->SetBorderColor(t.Get(ThemeRole::Border)); tb->SetTextColor(t.Get(ThemeRole::Text)); tb->SetSelectionColor(t.Get(ThemeRole::Selection)); tb->SetIndicatorColor(t.Get(ThemeRole::Accent)); }
+        else if (auto* tb = dynamic_cast<TextBox*>(e)) { tb->SetBackgroundColor(t.Get(ThemeRole::SurfaceAlt)); tb->SetBorderColor(t.Get(ThemeRole::Border)); tb->SetTextColor(t.Get(ThemeRole::Text)); tb->SetSelectionColor(t.Get(ThemeRole::Selection)); tb->SetIndicatorColor(t.Get(ThemeRole::Accent)); tb->SetHoverBackgroundColor(t.Get(ThemeRole::Surface)); tb->SetHoverBorderColor(t.Get(ThemeRole::Accent)); }
         else if (auto* cb = dynamic_cast<ComboBox*>(e)) { cb->SetNormalBgColor(t.Get(ThemeRole::Control).ToD2D()); cb->SetHoverBgColor(t.Get(ThemeRole::ControlHover).ToD2D()); cb->SetBorderColor(t.Get(ThemeRole::Border).ToD2D()); cb->SetIndicatorColor(t.Get(ThemeRole::Accent).ToD2D()); cb->SetHoverItemColor(t.Get(ThemeRole::ControlHover).ToD2D()); }
         else if (auto* sw = dynamic_cast<ToggleSwitch*>(e)) { sw->SetColors(t.Get(ThemeRole::Accent), t.Get(ThemeRole::ControlHover), t.Get(ThemeRole::Surface)); sw->SetLabelColor(t.Get(ThemeRole::TextSecondary)); }
         else if (auto* sb = dynamic_cast<ScrollBar*>(e)) { sb->SetColors(t.Get(ThemeRole::ScrollThumb).ToD2D(), t.Get(ThemeRole::ScrollThumbHover).ToD2D(), t.Get(ThemeRole::ScrollTrack).ToD2D()); }
@@ -7295,10 +7653,11 @@ namespace ZufyUI {
         else if (auto* pb = dynamic_cast<ProgressBar*>(e)) { pb->SetTrackColor(t.Get(ThemeRole::SurfaceAlt)); pb->SetFillColor(t.Get(ThemeRole::Accent)); pb->SetTextColor(t.Get(ThemeRole::TextSecondary)); }
         else if (auto* pr = dynamic_cast<ProgressRing*>(e)) { pr->SetColor(t.Get(ThemeRole::Accent)); pr->SetTrackColor(t.Get(ThemeRole::Control)); }
         else if (auto* chk = dynamic_cast<CheckBox*>(e)) { chk->SetBoxColor(t.Get(ThemeRole::Accent)); chk->SetLabelColor(t.Get(ThemeRole::Text)); { Color hv = t.Get(ThemeRole::Accent); hv.a = 0.15f; chk->SetHoverBoxColor(hv); } }
-        else if (auto* rb = dynamic_cast<RadioButton*>(e)) { rb->SetAccentColor(t.Get(ThemeRole::Accent)); rb->SetBorderColor(t.Get(ThemeRole::Border)); rb->SetLabelColor(t.Get(ThemeRole::Text)); }
+        else if (auto* rb = dynamic_cast<RadioButton*>(e)) { rb->SetAccentColor(t.Get(ThemeRole::Accent)); rb->SetBorderColor(t.Get(ThemeRole::Border)); rb->SetLabelColor(t.Get(ThemeRole::Text)); rb->SetRowHighlightColor(t.Get(ThemeRole::Selection)); }
         else if (auto* nb = dynamic_cast<NumberBox*>(e)) { nb->SetColors(t.Get(ThemeRole::SurfaceAlt), t.Get(ThemeRole::TextSecondary), t.Get(ThemeRole::Accent)); { Color hv = t.Get(ThemeRole::Text); hv.a = 0.12f; nb->SetHoverColors(hv, t.Get(ThemeRole::Danger)); } }
         else if (auto* tv = dynamic_cast<TabView*>(e)) { tv->SetBackgroundColor(t.Get(ThemeRole::Surface)); tv->SetContentColor(t.Get(ThemeRole::Surface)); tv->SetIndicatorColor(t.Get(ThemeRole::Accent)); tv->SetTextColor(t.Get(ThemeRole::TextSecondary), t.Get(ThemeRole::Text)); tv->SetSelectedTabColor(t.Get(ThemeRole::Control)); { Color hv = t.Get(ThemeRole::Text); hv.a = 0.08f; tv->SetHoverColor(hv); } }
-        else if (auto* card = dynamic_cast<Card*>(e)) { card->SetBackgroundColor(t.Get(ThemeRole::SurfaceRaised)); card->SetHoverBackgroundColor(t.Get(ThemeRole::SurfaceAlt)); card->SetBorderColor(t.Get(ThemeRole::Border)); card->SetHoverBorderColor(t.Get(ThemeRole::Accent)); }
+        else if (auto* card = dynamic_cast<Card*>(e)) { card->SetBackgroundColor(t.Get(ThemeRole::SurfaceRaised)); card->SetHoverBackgroundColor(t.Get(ThemeRole::SurfaceAlt)); card->SetBorderColor(t.Get(ThemeRole::Border)); /* 悬停不改边框色：原设 Accent → 卡片一悬停就闪蓝框 */ }
+        else if (auto* sv = dynamic_cast<SplitView*>(e)) { Color hv = t.Get(ThemeRole::Accent); hv.a = 0.35f; sv->SetSplitterColor(t.Get(ThemeRole::Divider)); sv->SetHoverColor(hv); sv->SetExpandButtonColors(t.Get(ThemeRole::Control), t.Get(ThemeRole::ControlHover), t.Get(ThemeRole::Text)); }
         else if (auto* mb = dynamic_cast<MenuBar*>(e)) { mb->SetTextColor(t.Get(ThemeRole::Text)); mb->SetHoverColor(t.Get(ThemeRole::ControlHover)); mb->SetOpenColor(t.Get(ThemeRole::ControlPressed)); }
         else if (auto* stb = dynamic_cast<StatusBar*>(e)) { stb->SetColors(t.Get(ThemeRole::SurfaceAlt), t.Get(ThemeRole::Divider), t.Get(ThemeRole::TextSecondary)); }
         else if (auto* ex = dynamic_cast<Expander*>(e)) { ex->SetColors(t.Get(ThemeRole::SurfaceRaised), t.Get(ThemeRole::Border), t.Get(ThemeRole::Text), t.Get(ThemeRole::TextSecondary), t.Get(ThemeRole::ControlHover)); }
