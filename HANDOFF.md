@@ -1,8 +1,8 @@
 # ZufyUI 交接文档（HANDOFF）
 
 > 给**下一位接手者 / AI 智能体**：读这一份即可上手。配套：`AGENTS.md`（硬规则）、`TODO.md`（待办）、`docs/API.md`（API 参考）、`docs/API.en.md`（英文）、`README.md`（构建/快速开始）。
-> 版本基线：`1.20.0`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**
-> ⚠️ **有一批工作全部停在「工作区未提交」状态**（13 个文件，+2411/−1590）：见 **§10**。接手前必须先读 §10，否则你会以为代码就是 v1.20.0 的样子。
+> 版本基线：`1.21.0`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**
+> ⚠️ **一批反馈工作已随 `v1.21.0` 发布**（commit `cf78c54`，tag `v1.21.0`，已推 gitee/github；gh-pages 站点同步）：逐项记录与**尚未解决**的问题见 **§10**，接手前先读 §10（尤其 §10.4 未决项）。
 
 ---
 
@@ -201,12 +201,12 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
 
 ---
 
-## 10. 当前未提交的工作（用户反馈批次，基线 `v1.20.0`）
+## 10. 反馈批次的实施记录（已随 `v1.21.0` 发布）
 
-> **状态：全部停在「工作区未提交」，未 commit、未发版、未改版本号。**
-> `git diff --stat`：**13 个文件，+2411 / −1590**（`ZufyUI.cpp` 2316→2321 行属正常改动，**不是**换行符翻搅：该文件全 CRLF）。
-> 最近一次全量验证：`tools/build.ps1` **exit 0**；DSL 自检 **85/85**（起点 62）；`python tools/check_api_parity.py` OK；`tools/ensure_bom.ps1 -Check` OK。
-> **§10.2 是已改的，§10.4 是没解决的 —— 接手请直接从 §10.4 开始。**
+> **状态：已发版** —— commit `cf78c54`、tag `v1.21.0`，已推 `origin`(gitee) 与 `github`（master + tag 均已核对）；gh-pages 站点同版本已发布（站点仓库 commit `7aaf42a`，两远端已推）。
+> 版本号 `1.20.0` → **`1.21.0`**（`ZufyUI.h` 单一来源）；`docs/API*.md`、`README*.md`、`HANDOFF.md` 已同步。提交规模 **16 文件 / +2595 −1599**。
+> 发布时验证：`tools/build.ps1` **exit 0**；DSL 自检 **85/85**（起点 62）；`python tools/check_api_parity.py` OK；`tools/ensure_bom.ps1 -Check` OK。
+> **§10.2 是已发布的内容，§10.4 是仍未解决的 —— 接手请直接从 §10.4 开始。**
 
 ### 10.1 两批工作概览
 
@@ -277,11 +277,14 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
    - `PieChart::zoom_` 遮蔽 `ChartBase::zoom_` 是**代码味道**（建议后续统一成一个成员 + 统一 0.4~4 的缩放区间，当前基类钳 0.4~3、饼图 `SetZoom` 钳 0.4~4）。
 6. **A 批评审报告里"真问题"但本轮未修的**（用户当时只让修确认过的）：`N3` TextBox undo 栈污染且无上限、`N4` TreeView 勾选命中 vs `GetFirstColDecor`、`N7` `IconFormat` DPI 缓存、`N9` MessageBox HWND owner 时序、`N10` `SetAppIcon`/`RegisterApp` HICON 泄漏、`N12` RenderHost 设备丢失时丢批次、`N13/N14` TreeView/TableView 虚拟化、`N16` ComboBox 过滤 O(N)。
 
-### 10.5 提交/发版前的建议顺序
+### 10.5 发版流程（`v1.21.0` 已按此执行，供下次照做）
 
-1. 先让用户**目视验收 §10.4 的 1~3**（尤其 SplitView 与弹窗穿透）；
+1. 先让用户**目视验收 §10.4**（尤其 SplitView 与弹窗穿透）—— 本次发布**在未完成目视验收前就发了**，用户知情；
 2. 跑 `tools/build.ps1`（含 DSL 自检）+ `python tools/check_api_parity.py` + `tools/ensure_bom.ps1 -Check`；
-3. 再走 §7 的发版流程（版本号、`docs/API*.md`、`README*.md` changelog）；
-4. **必须获得用户明确同意**才 `git commit` / `git push`（含 gh-pages）。
+3. 按 §7 的发版流程：改 `ZufyUI.h` 版本号 → `docs/API*.md`（章节内容 + 版本摘录章标题与条目）→ `README*.md`（当前版本 + changelog 条目）→ HANDOFF；
+4. `git add -A` → commit（消息格式：`vX.Y.Z: <中文长摘要>`）→ `git tag -a vX.Y.Z`；
+5. 推 `origin`(gitee) 与 `github` 的 **master + tag**（github 偶发超时，重试）；
+6. gh-pages 站点：在主仓 `ghpages` 分支工作副本里 `Copy-Item` 四个 md → `python C:\project\md2html\mdapi2html.py docs/API.md docs/API.html --toc-depth 3 --lang zh`（en/README 同理）→ 改 `index.html` 章节树里带版本号的那几行 → commit → 推两个远端的 `gh-pages`；
+7. **必须获得用户明确同意**才 `git commit` / `git push`（含 gh-pages）。
 
 > 注：本轮**没有**更新 `TODO.md`（§9 指向它）；如果要继续，把 §10.4 的条目搬进 `TODO.md` 更符合本仓库约定。
