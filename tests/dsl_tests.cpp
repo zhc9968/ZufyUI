@@ -288,10 +288,10 @@ static void test_dsl_pitfalls() {
     auto colPad = d::Col().margin(Thickness(4, 4, 4, 4));
     CHECK(colPad.ptr() != nullptr);
 
-    // b) 有默认参数的成员函数不能用 .with()：成员指针类型包含全部形参，
-    //    with 会按推导出的参数包调用 → 报"参数太少"。必须把默认值也显式写出。
-    //    TreeView::SetCheckable(bool enable, bool recursive = true)
-    auto treeCk = d::Tree().with(&TreeView::SetCheckable, true, true);
+    // b) 单参、无默认参数的成员函数可安全用于 .with()。
+    //    历史坑：带默认参数的成员函数（如旧的 SetCheckable(bool,bool)）成员指针含全部形参，
+    //    .with 会按推导参数包调用 → 报"参数太少"。P0-1 已把这类函数拆成无默认参数的重载。
+    auto treeCk = d::Tree().with(&TreeView::SetCheckable, true);
     CHECK(treeCk.ptr() != nullptr);
 
     // c) 同名工厂当"表达式 / 类型实参"用必须全限定（::ZufyUI::dsl::Slider）；

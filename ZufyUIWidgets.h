@@ -3468,13 +3468,18 @@ namespace ZufyUI {
             bool overVertical = (vScrollBar_ && vScrollBar_->IsVisible() && vScrollBar_->HitTest(lastMouseX_, lastMouseY_));
             bool overHorizontal = (hScrollBar_ && hScrollBar_->IsVisible() && hScrollBar_->HitTest(lastMouseX_, lastMouseY_));
             bool handled = false;
+            // 滚轮归属：内容还能滚就自己消费；**已经到该方向的边界**时返回 false，
+            //   让消息沿父链冒泡给外层滚动容器（标准“滚动链”行为）。
+            //   否则内层一滚到顶/底仍吞掉滚轮 → 外层页面永远滚不动。
             if (deltaY != 0 && allowVerticalScroll_ && maxScrollY_ > 0 && !overHorizontal) {
-                targetScrollOffsetY_ = clamp(targetScrollOffsetY_ - deltaY * scrollWheelStep_, 0.0f, maxScrollY_);
-                handled = true;
+                float before = targetScrollOffsetY_;
+                targetScrollOffsetY_ = clamp(before - deltaY * scrollWheelStep_, 0.0f, maxScrollY_);
+                if (targetScrollOffsetY_ != before) handled = true;
             }
             if (deltaX != 0 && allowHorizontalScroll_ && maxScrollX_ > 0 && !overVertical) {
-                targetScrollOffsetX_ = clamp(targetScrollOffsetX_ - deltaX * scrollWheelStep_, 0.0f, maxScrollX_);
-                handled = true;
+                float before = targetScrollOffsetX_;
+                targetScrollOffsetX_ = clamp(before - deltaX * scrollWheelStep_, 0.0f, maxScrollX_);
+                if (targetScrollOffsetX_ != before) handled = true;
             }
             if (handled) {
                 RequestRepaint();
@@ -4509,10 +4514,14 @@ namespace ZufyUI {
         void SetMutualExclusion(bool on) { mutualExclusion_ = on; }
         bool GetMutualExclusion() const { return mutualExclusion_; }
 
-        int AddItem(const std::wstring& text, bool selected = false) {
-            return AddButton(std::make_shared<RadioButton>(text), selected);
+        int AddItem(const std::wstring& text) {
+            return AddButtonSelected(std::make_shared<RadioButton>(text), false);
         }
-        int AddButton(std::shared_ptr<RadioButton> rb, bool selected = false) {
+        int AddItemSelected(const std::wstring& text, bool selected) {
+            return AddButtonSelected(std::make_shared<RadioButton>(text), selected);
+        }
+        int AddButton(std::shared_ptr<RadioButton> rb) { return AddButtonSelected(std::move(rb), false); }
+        int AddButtonSelected(std::shared_ptr<RadioButton> rb, bool selected) {
             if (!rb) return -1;
             rb->SetGroup(this);
             rb->SetRowHighlight(true);   // 选中整行浅蓝
@@ -5893,13 +5902,14 @@ namespace ZufyUI {
         bool IsCollapsing() const { return collapseT_ < DefaultCollapseDuration; }
         float GetCollapseProgress() const { return collapseProg_; }
 
-        void CollapseFirst()  { if (!collapsedFirst_)  { savedRatio_ = ratio_; collapsedFirst_ = true;  collapsedSecond_ = false; collapseHint_ = 0; hintProgress_ = 0.0f; hintT_ = DefaultHintDuration; StartCollapseAnim(); CollapsedChanged(1); } }
-        void CollapseSecond() { if (!collapsedSecond_) { savedRatio_ = ratio_; collapsedSecond_ = true; collapsedFirst_ = false; collapseHint_ = 0; hintProgress_ = 0.0f; hintT_ = DefaultHintDuration; StartCollapseAnim(); CollapsedChanged(2); } }
+        void CollapseFirst()  { if (!collapsedFirst_)  { savedRatio_ = ratio_; collapsedFirst_ = true;  collapsedSecond_ = false; collapseSide_ = 1; collapseHint_ = 0; hintProgress_ = 0.0f; hintT_ = DefaultHintDuration; StartCollapseAnim(); CollapsedChanged(1); } }
+        void CollapseSecond() { if (!collapsedSecond_) { savedRatio_ = ratio_; collapsedSecond_ = true; collapsedFirst_ = false; collapseSide_ = 2; collapseHint_ = 0; hintProgress_ = 0.0f; hintT_ = DefaultHintDuration; StartCollapseAnim(); CollapsedChanged(2); } }
         // 展开：该侧尺寸从 0 带缓动地回到"最小极限值"（min；没设 min 则回到折叠前比例）
+        //   注意：**只有到动画收尾才清 collapseSide_** —— 它驱动 PaneLengths 的折叠插值，
+        //   若提前清掉（旧实现直接在开头清 collapsedFirst_），展开会瞬间跳到最小值、没有缓动。
         void Expand() {
             if (!collapsedFirst_ && !collapsedSecond_) return;
             const int side = collapsedFirst_ ? 1 : 2;
-            collapsedFirst_ = collapsedSecond_ = false;
             bool vert = (orientation_ == Orientation::Vertical);
             float total = vert ? arrangedRect_.width : arrangedRect_.height;
             float usable = max(1.0f, total - splitterW_);
@@ -5907,6 +5917,8 @@ namespace ZufyUI {
             if (side == 1 && minFirst_ > 0.0f) r = minFirst_ / usable;                 // 第一栏展开到 minFirst_
             if (side == 2 && minSecond_ > 0.0f) r = (usable - minSecond_) / usable;    // 第二栏展开到 minSecond_（不是压第一栏）
             ratio_ = clamp(r, 0.0f, 1.0f);
+            collapseSide_ = side;              // 保持该侧参与 PaneLengths，直到动画收尾
+            collapsedFirst_ = collapsedSecond_ = false;
             StartCollapseAnim();
             CollapsedChanged(0);
         }
@@ -6004,6 +6016,7 @@ namespace ZufyUI {
                 if (second_) second_->InvalidateLayout();
             }
             else collapseProg_ = colTarget;
+            if (colTarget <= 0.0f && collapseT_ >= DefaultCollapseDuration) collapseSide_ = 0;   // 展开收尾：恢复正常分栏
             // 小按钮悬停
             const float btnTarget = hoverExpand_ ? 1.0f : 0.0f;
             if (btnTarget != btnTarget_) { btnTarget_ = btnTarget; btnFrom_ = expandBtnHover_; btnT_ = 0.0f; }
@@ -6038,7 +6051,7 @@ namespace ZufyUI {
             bool h = hit.Contains(x, y);
             if (h != hovered_) { hovered_ = h; RequestRepaint(); }
         }
-        void OnMouseLeave() { if (hovered_) { hovered_ = false; RequestRepaint(); } }
+        void OnMouseLeave() override { if (hovered_) { hovered_ = false; RequestRepaint(); } }
         void OnMouseDown(float x, float y) override {
             Rect hit(splitterRect_.x - 3.0f, splitterRect_.y - 3.0f, splitterRect_.width + 6.0f, splitterRect_.height + 6.0f);
             if (!collapseActive() && hit.Contains(x, y)) { dragging_ = true; pressX_ = x; pressY_ = y; RequestRepaint(); }
@@ -6124,7 +6137,7 @@ namespace ZufyUI {
                     DrawChevron(rt, expandArrowBrush_.Get(),
                                 expandBtnRect_.x + expandBtnRect_.width * 0.5f,
                                 expandBtnRect_.y + expandBtnRect_.height * 0.5f, 4.5f,
-                                collapsedFirst_ ? (vert ? 1 : 2) : (vert ? -1 : -2), fade);
+                                (collapseSide_ == 1) ? (vert ? 1 : 2) : (vert ? -1 : -2), fade);
                 }
             }
         }
@@ -6144,14 +6157,15 @@ namespace ZufyUI {
             else                { rt->DrawLine(D2D1::Point2F(cx - e, cy - e * k), D2D1::Point2F(cx, cy + e * k), br, 2.0f);
                                   rt->DrawLine(D2D1::Point2F(cx, cy + e * k), D2D1::Point2F(cx + e, cy - e * k), br, 2.0f); }
         }
-        // 两栏像素长度：折叠进度 p 让对应那一侧从当前值线性收敛到 0
+        // 两栏像素长度：折叠进度 p 让对应那一侧从当前值线性收敛到 0（折叠 p:0→1 / 展开 p:1→0）
+        //   collapseSide_ 在折叠与展开两个方向都保持有效，这样展开才有缓动。
         void PaneLengths(float total, float& firstLen, float& secondLen) const {
             float usable = max(0.0f, total - splitterW_);
             const float nf = clamp(ratio_ * usable, minFirst_, max(0.0f, usable - minSecond_));
             const float ns = max(0.0f, usable - nf);
             const float p = clamp(collapseProg_, 0.0f, 1.0f);
-            if (collapsedFirst_)  { firstLen = max(0.0f, nf * (1.0f - p)); secondLen = max(0.0f, usable - firstLen); return; }
-            if (collapsedSecond_) { secondLen = max(0.0f, ns * (1.0f - p)); firstLen  = max(0.0f, usable - secondLen); return; }
+            if (collapseSide_ == 1) { firstLen = max(0.0f, nf * (1.0f - p)); secondLen = max(0.0f, usable - firstLen); return; }
+            if (collapseSide_ == 2) { secondLen = max(0.0f, ns * (1.0f - p)); firstLen  = max(0.0f, usable - secondLen); return; }
             firstLen = nf; secondLen = ns;
         }
         void ApplyArrange(const Rect& fr) {
@@ -6174,17 +6188,17 @@ namespace ZufyUI {
                 if (second_) { Rect r(fr.x, fr.y + firstLen + splitterW_, fr.width, secondLen); second_->Arrange(r); clipTo(second_.get(), r); }
             }
             if (overlay_) overlay_->Arrange(fr);   // 覆盖整块 → 画在两栏之上
-            // 小按钮位置：贴着被折叠那一侧的外边缘，沿另一轴居中
+            // 小按钮位置：贴着被折叠那一侧的外边缘，沿另一轴居中（按 collapseSide_，折叠/展开都停在同一侧）
             if (collapseActive()) {
                 if (vert) {
                     float by = fr.y + (fr.height - expandBtnH_) * 0.5f;
-                    expandBtnRect_ = collapsedFirst_ ? Rect(fr.x + 3.0f, by, expandBtnW_, expandBtnH_)
-                                                     : Rect(fr.x + fr.width - expandBtnW_ - 3.0f, by, expandBtnW_, expandBtnH_);
+                    expandBtnRect_ = (collapseSide_ == 1) ? Rect(fr.x + 3.0f, by, expandBtnW_, expandBtnH_)
+                                                          : Rect(fr.x + fr.width - expandBtnW_ - 3.0f, by, expandBtnW_, expandBtnH_);
                 }
                 else {
                     float bx = fr.x + (fr.width - expandBtnW_) * 0.5f;
-                    expandBtnRect_ = collapsedFirst_ ? Rect(bx, fr.y + 3.0f, expandBtnW_, expandBtnH_)
-                                                     : Rect(bx, fr.y + fr.height - expandBtnH_ - 3.0f, expandBtnW_, expandBtnH_);
+                    expandBtnRect_ = (collapseSide_ == 1) ? Rect(bx, fr.y + 3.0f, expandBtnW_, expandBtnH_)
+                                                          : Rect(bx, fr.y + fr.height - expandBtnH_ - 3.0f, expandBtnW_, expandBtnH_);
                 }
             }
             else expandBtnRect_ = Rect(0, 0, 0, 0);
@@ -6225,6 +6239,7 @@ namespace ZufyUI {
         float collapseThreshold_ = DefaultCollapseThreshold;
         int   collapseHint_ = 0;
         bool  collapsedFirst_ = false, collapsedSecond_ = false;
+        int   collapseSide_ = 0;    // 正在折叠/展开动画的那一侧（1/2），驱动 PaneLengths；0=无
         float savedRatio_ = 0.35f;
         float collapseProg_ = 0.0f, collapseFrom_ = 0.0f, collapseT_ = 1e9f;
         float hintProgress_ = 0.0f, hintFrom_ = 0.0f, hintT_ = 1e9f, hintTarget_ = 0.0f;
@@ -7666,9 +7681,21 @@ namespace ZufyUI {
         for (UIElement* c : kids) ApplyThemeToWidgetTree(c, t);
     }
     inline bool _themeWidgetHooks = []() {
-        ThemeManager::RegisterHook(ApplyThemeToWidgets);
-        ThemeManager::RegisterSubtreeApplier(ApplyThemeToWidgetTree);
+        ThemeManager::RegisterHookPermanent(ApplyThemeToWidgets);
+        ThemeManager::RegisterSubtreeApplierPermanent(ApplyThemeToWidgetTree);
         return true;
     }();
+
+    // Page::SetScrollableContent —— 一行把整页内容套进可滚动容器（外框 GridLayout + ScrollViewer(fill)）
+    inline void Page::SetScrollableContent(std::shared_ptr<UIElement> content) {
+        if (!content) return;
+        auto outer = std::make_shared<GridLayout>();
+        auto sv = std::make_shared<ScrollViewer>();
+        sv->SetFillWidth(true); sv->SetFillHeight(true);
+        sv->SetContentMargin(Thickness(8, 8, 8, 8));
+        sv->SetContent(content);
+        outer->AddChild(sv, 0, 0);
+        SetLayout(outer);
+    }
 
 } // namespace ZufyUI

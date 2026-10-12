@@ -2231,8 +2231,8 @@ namespace ZufyUI {
         for (UIElement* c : kids) ApplyThemeToChromeTree(c, winTheme);
     }
     inline bool _themeChromeHook = []() {
-        ThemeManager::RegisterHook(ApplySystemThemeToChromeStatics);
-        ThemeManager::RegisterSubtreeApplier(ApplyThemeToChromeTree);
+        ThemeManager::RegisterHookPermanent(ApplySystemThemeToChromeStatics);
+        ThemeManager::RegisterSubtreeApplierPermanent(ApplyThemeToChromeTree);
         return true;
     }();
 

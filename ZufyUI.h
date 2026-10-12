@@ -88,9 +88,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 21
+#define ZufyUI_VERSION_MINOR 22
 #define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.21.0"
+#define ZufyUI_VERSION_STRING L"1.22.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -1017,7 +1017,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         static void SetAppTheme(const Theme& t) {
             AppTheme() = t;
             bool prev = applyingTheme_; applyingTheme_ = true;   // Hook 里若碰实例颜色，不误标“用户设色”
-            for (auto& h : Hooks()) if (h) h(AppTheme());        // 把主题推给各控件的默认值
+            for (auto& h : HookList()) if (h.second) h.second(AppTheme());   // 把主题推给各控件的默认值
             applyingTheme_ = prev;
             UIZSignals::ThemeChanged.Fire(nullptr);              // 应用级：所有窗口刷新
         }
@@ -1025,18 +1025,57 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         static void SetDarkAppTheme()  { SetAppTheme(Theme::Dark()); }
         static bool IsDark() { return AppTheme().isDark; }
 
-        // 各控件头文件自查注册“把主题应用到自己的默认值”的钩子
-        static std::vector<std::function<void(const Theme&)>>& Hooks() { static std::vector<std::function<void(const Theme&)>> v; return v; }
-        static void RegisterHook(std::function<void(const Theme&)> fn) { if (fn) Hooks().push_back(std::move(fn)); }
+        // 各控件头文件自查注册“把主题应用到自己的默认值”的钩子。
+        //   返回 HookHandle：**析构时自动断开**（RAII）。想让它一直有效就持有这个句柄；
+        //   库内部的固定钩子用 RegisterHookPermanent（句柄存库内，不随局部变量销毁）。
+        class HookHandle {
+        public:
+            HookHandle() = default;
+            ~HookHandle() { Reset(); }
+            HookHandle(HookHandle&& o) noexcept : fn_(std::move(o.fn_)) {}
+            HookHandle& operator=(HookHandle&& o) noexcept { Reset(); fn_ = std::move(o.fn_); return *this; }
+            HookHandle(const HookHandle&) = delete;
+            HookHandle& operator=(const HookHandle&) = delete;
+            void Disconnect() { Reset(); }
+            bool Valid() const { return (bool)fn_; }
+        private:
+            friend class ThemeManager;
+            explicit HookHandle(std::function<void()> fn) : fn_(std::move(fn)) {}
+            void Reset() { if (fn_) { auto f = std::move(fn_); fn_ = nullptr; f(); } }
+            std::function<void()> fn_;
+        };
+        static std::vector<std::pair<uint64_t, std::function<void(const Theme&)>>>& HookList() { static std::vector<std::pair<uint64_t, std::function<void(const Theme&)>>> v; return v; }
+        static uint64_t& NextHookId() { static uint64_t n = 0; return n; }
+        static std::vector<HookHandle>& PermanentHooks() { static std::vector<HookHandle> v; return v; }
+        static HookHandle RegisterHook(std::function<void(const Theme&)> fn) {
+            if (!fn) return HookHandle();
+            uint64_t id = ++NextHookId();
+            HookList().push_back({ id, std::move(fn) });
+            return HookHandle([id]() {
+                auto& v = HookList();
+                for (auto it = v.begin(); it != v.end(); ++it) if (it->first == id) { v.erase(it); return; }
+                });
+        }
+        static void RegisterHookPermanent(std::function<void(const Theme&)> fn) { HookHandle h = RegisterHook(std::move(fn)); if (h.Valid()) PermanentHooks().push_back(std::move(h)); }
 
-        // 子树应用器：切换主题时对“已存在的控件实例”逐个套用颜色（递归子树）
-        static std::vector<std::function<void(UIElement*, const Theme&)>>& SubtreeAppliers() { static std::vector<std::function<void(UIElement*, const Theme&)>> v; return v; }
-        static void RegisterSubtreeApplier(std::function<void(UIElement*, const Theme&)> fn) { if (fn) SubtreeAppliers().push_back(std::move(fn)); }
+        // 子树应用器：切换主题时对“已存在的控件实例”逐个套用颜色（递归子树）。同样返回可断开的 HookHandle。
+        static std::vector<std::pair<uint64_t, std::function<void(UIElement*, const Theme&)>>>& SubtreeApplierList() { static std::vector<std::pair<uint64_t, std::function<void(UIElement*, const Theme&)>>> v; return v; }
+        static std::vector<HookHandle>& PermanentAppliers() { static std::vector<HookHandle> v; return v; }
+        static HookHandle RegisterSubtreeApplier(std::function<void(UIElement*, const Theme&)> fn) {
+            if (!fn) return HookHandle();
+            uint64_t id = ++NextHookId();
+            SubtreeApplierList().push_back({ id, std::move(fn) });
+            return HookHandle([id]() {
+                auto& v = SubtreeApplierList();
+                for (auto it = v.begin(); it != v.end(); ++it) if (it->first == id) { v.erase(it); return; }
+                });
+        }
+        static void RegisterSubtreeApplierPermanent(std::function<void(UIElement*, const Theme&)> fn) { HookHandle h = RegisterSubtreeApplier(std::move(fn)); if (h.Valid()) PermanentAppliers().push_back(std::move(h)); }
         static bool IsApplying() { return applyingTheme_; }   // 主题套用中（控件设色接口据此区分“用户设色”）
         static void ApplyToSubtree(UIElement* root, const Theme& t) {
             struct Guard { bool& flag; bool prev; ~Guard() { flag = prev; } } g{ applyingTheme_, applyingTheme_ };
             applyingTheme_ = true;
-            for (auto& applier : SubtreeAppliers()) if (applier) applier(root, t);
+            for (auto& applier : SubtreeApplierList()) if (applier.second) applier.second(root, t);
         }
 
         // 色差重映射：任意硬编码色 → 主题色（精确表；未命中原样返回，保留原 alpha）
@@ -2504,6 +2543,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         void SetPadding(float padding) { padding_ = padding; InvalidateLayout(); }
         void SetBackgroundColor(Color color) { backgroundColor_ = color; bgBrush_.Reset(); RequestRepaint(); }
+        // 一行让整页可滚动：内容套进 ScrollViewer（fill）+ 8px 内容边距，作为本页布局。
+        //   定义在 ZufyUIWidgets.h（需要 ScrollViewer 完整类型）。
+        void SetScrollableContent(std::shared_ptr<UIElement> content);
 
         static void SetDefaultPadding(float padding) { DefaultPadding = padding; }
         static void SetDefaultStretchWeights(float horizontal, float vertical) {
@@ -2914,8 +2956,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             items.push_back(item);
         }
         // 勾选/单选项；onToggle 收到切换后的状态
-        void AddCheckItem(const std::wstring& text, bool checked,
-                          std::function<void(bool)> onToggle = nullptr, int id = 0, bool radio = false) {
+        void AddCheckItem(const std::wstring& text, bool checked) { AddCheckItemImpl(text, checked, nullptr, 0, false); }
+        void AddCheckItemCb(const std::wstring& text, bool checked, std::function<void(bool)> onToggle) { AddCheckItemImpl(text, checked, std::move(onToggle), 0, false); }
+        void AddCheckItemRadio(const std::wstring& text, bool checked, std::function<void(bool)> onToggle) { AddCheckItemImpl(text, checked, std::move(onToggle), 0, true); }
+        void AddCheckItemImpl(const std::wstring& text, bool checked,
+                          std::function<void(bool)> onToggle, int id, bool radio) {
             auto item = std::make_shared<MenuItem>();
             item->type = MenuItem::Type::Normal;
             item->text = text;
@@ -4136,6 +4181,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 点击被禁用的所有者时，系统会自行给出提示（蜂鸣/闪烁），不需要任何钩子。
         int RunModal(Window* owner = nullptr) {
             if (!hwnd_) return 0;
+            // 关键：进入模态前放弃本线程可能仍持有的鼠标捕获（Win32 SetCapture）。
+            //   典型场景：按钮点击在 Window::OnMouseUp 里触发 → 槽里 new MessageBox 并 RunModal；
+            //   此刻 Window::OnMouseUp 尚未执行到末尾的 ReleaseCapture()（被这里的嵌套模态循环挡住），
+            //   主窗口仍持有捕获 → 系统把鼠标消息优先路由给捕获窗口，表现为“弹窗第一次点击**穿透**到
+            //   后面的主窗口”，且那次点击让主窗口自己释放捕获，所以只有第一次坏。
+            //   先释放即可根治；Capture 属于本线程时才有效，跨线程不会乱动。
+            if (GetCapture()) ReleaseCapture();
             Window* ow = owner ? owner : owner_;
             HWND ownerHwnd = ow ? ow->hwnd_ : nullptr;
             if (!ownerHwnd) ownerHwnd = GetActiveWindow();
@@ -7476,7 +7528,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         Window::MicaParams.tint.a = t.isDark ? Window::MicaVeilAlphaDark : Window::MicaVeilAlphaLight;
         UIZSignals::ReloadAcrylic.Fire();   // 已存在的窗口需要重建背景层才能用上新纱色
     }
-    inline bool _themeBackdropParamsHook = []() { ThemeManager::RegisterHook(ApplyThemeToBackdropParams); return true; }();
+    inline bool _themeBackdropParamsHook = []() { ThemeManager::RegisterHookPermanent(ApplyThemeToBackdropParams); return true; }();
 
 } // namespace ZufyUI
 

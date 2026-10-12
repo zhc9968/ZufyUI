@@ -26,17 +26,9 @@ namespace {
         col->AddChild(lbl);
     }
     inline Color ThemeColor(ThemeRole r) { return ThemeManager::AppTheme().Get(r); }
-    // 整页纵向滚动包装：外层 GridLayout + ScrollViewer(fill) + 8px 内容边距
+    // 整页纵向滚动包装：现在直接调用 Page::SetScrollableContent（一行）。
     inline void SetScrollablePage(const std::shared_ptr<Page>& page, const std::shared_ptr<UIElement>& content) {
-        if (!page || !content) return;
-        auto outer = page->GetLayoutAs<GridLayout>();
-        if (!outer) return;
-        auto sv = std::make_shared<ScrollViewer>();
-        sv->SetFillWidth(true); sv->SetFillHeight(true);
-
-        sv->SetContentMargin(Thickness(8, 8, 8, 8));
-        sv->SetContent(content);
-        outer->AddChild(sv, 0, 0);
+        if (page) page->SetScrollableContent(content);
     }
 
     struct DemoStatus {
@@ -219,8 +211,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         win.SetStatusBar(statusBar);
         status->Refresh();
 
-        // 主题变化（无论来自菜单、主题页还是跟随系统）→ 刷新
-        ThemeManager::RegisterHook([status](const Theme&) { status->Refresh(); });
+        // 主题变化（无论来自菜单、主题页还是跟随系统）→ 刷新。
+        //   注册返回 RAII 句柄：存成 static 让它在整个程序生命周期内有效（局部丢弃 = 立即自动断开）。
+        static auto demoStatusThemeHook = ThemeManager::RegisterHook([status](const Theme&) { status->Refresh(); });
         // 窗口状态信号 → 刷新第 5 个面板（"窗口某些状态变化时也跟着变"）
         win.Activated.connect([status]() { status->state = L"活动"; status->Refresh(); });
         win.Deactivated.connect([status]() { status->state = L"非活动"; status->Refresh(); });
@@ -258,13 +251,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         // 视图：内容联动的核心菜单（页面跳转 / 背景层 / 尺寸 / 帧率 / 窗口开关）
         auto mView = std::make_shared<Menu>();
-        mView->AddCheckItem(L"显示状态栏", true, [status](bool on) {
+        mView->AddCheckItemCb(L"显示状态栏", true, [status](bool on) {
             if (auto sb = status->win->GetStatusBar()) sb->SetVisible(on);
             status->state = on ? L"状态栏: 显示" : L"状态栏: 隐藏"; status->Refresh(); });
-        mView->AddCheckItem(L"自定义标题栏", true, [&win, titleBar, status](bool on) {
+        mView->AddCheckItemCb(L"自定义标题栏", true, [&win, titleBar, status](bool on) {
             win.SetCustomTitleBar(on ? std::static_pointer_cast<UIElement>(titleBar) : nullptr);
             status->state = on ? L"自定义标题栏: 开" : L"自定义标题栏: 关"; status->Refresh(); });
-        mView->AddCheckItem(L"可调整大小", true, [&win, status](bool on) {
+        mView->AddCheckItemCb(L"可调整大小", true, [&win, status](bool on) {
             win.SetResizable(on); status->state = on ? L"可调整大小: 开" : L"可调整大小: 关"; status->Refresh(); });
         mView->AddSeparator();
         {
@@ -298,7 +291,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         // 主题
         auto mTheme = std::make_shared<Menu>();
-        mTheme->AddCheckItem(L"跟随系统主题", true, [](bool on) { ThemeManager::SetFollowSystem(on); });
+        mTheme->AddCheckItemCb(L"跟随系统主题", true, [](bool on) { ThemeManager::SetFollowSystem(on); });
         mTheme->AddSeparator();
         mTheme->AddItem(L"浅色", []() { ThemeManager::SetLightAppTheme(); });
         mTheme->AddItem(L"深色", []() { ThemeManager::SetDarkAppTheme(); });
@@ -311,7 +304,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         // 工具：调试通道（与"多窗口"页的调试按钮同源）
         auto mTools = std::make_shared<Menu>();
-        mTools->AddCheckItem(L"调试通道", false, [](bool on) { ZufyUI::SetDebugEnabled(on); });
+        mTools->AddCheckItemCb(L"调试通道", false, [](bool on) { ZufyUI::SetDebugEnabled(on); });
         mTools->AddItem(L"导出元素树", [&win]() {
             std::wstring t = detail::DumpWindowTree(&win);
             ZufyUI_DEBUG_LOG_W(t.c_str());
@@ -350,7 +343,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             //   而 SettingsList::MeasureOverride 在 avail.width==FLT_MAX 时会退回 width_（=0），
             //   结果每行文字区被压成 0 宽，只剩图标和箭头（首页"看不到内容"就是这么来的）。
             //   改成 SetLayout(Col)：SettingsList 能拿到父级给的有限宽度并 fillWidth 撑满。
-            auto card = ::ZufyUI::dsl::Card().padding(10.0f).with(&::ZufyUI::Card::SetShadow, true);
+            auto card = make_card().padding(10.0f).with(&::ZufyUI::Card::SetShadow, true);
             auto list = Settings().fillWidth(true);
             for (auto& r : rows)   // AddRow 有默认参数 → 不能走 .with，直接调用
                 list->AddRow(r.icon, r.title, r.sub, [go, idx = r.page]() { go(idx); });
@@ -433,9 +426,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         AddSection(col, L"滑块与进度");
         auto progress = Progress().value(0.4f).with(&ProgressBar::SetShowText, true).shared();
         col->AddChild(Row(
-            // 注意：dsl::Slider / dsl::Card 等与 ZufyUI 的类同名，本文件顶部有 using namespace ZufyUI，
-            //   所以这些必须用 ::ZufyUI::dsl:: 全限定（否则 C2872 歧义）。
-            ::ZufyUI::dsl::Slider().width(240.0f).with(&::ZufyUI::Slider::SetRange, 0.0f, 1.0f).value(0.4f)
+            // 与类同名的短工厂（Slider/Card/Page/Expander…）在本文件（using namespace ZufyUI）
+            //   下裸用会 C2872；统一改用无歧义别名 make_slider / make_card / make_page / make_expander…
+            make_slider().width(240.0f).with(&::ZufyUI::Slider::SetRange, 0.0f, 1.0f).value(0.4f)
                      .with(&::ZufyUI::Slider::SetStep, 0.1f).with(&::ZufyUI::Slider::SetSnapToStep, true)
                      .on<&::ZufyUI::Slider::ValueChanged>([progress](float v) { progress->SetValue(v); }),
             progress
@@ -458,7 +451,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                             .placeholder(L"输入过滤...").shared());
 
         AddSection(col, L"卡片与阴影");
-        auto cardShadow = ::ZufyUI::dsl::Card().padding(12.0f)
+        auto cardShadow = make_card().padding(12.0f)
                                .with(&::ZufyUI::Card::SetShadow, true)          // 阴影颜色不设 → 跟随主题
                                .with(&::ZufyUI::Card::SetShadowBlur, 12.0f)
                                .with(&::ZufyUI::Card::SetShadowOffset, 0.0f, 3.0f)
@@ -614,10 +607,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 
         // ---- 子页 A：滑块 ↔ 进度条 ----
-        auto sliderA = ::ZufyUI::dsl::Slider().with(&::ZufyUI::Slider::SetRange, 0.0f, 100.0f).value(50.0f).fillWidth(true);
+        auto sliderA = make_slider().with(&::ZufyUI::Slider::SetRange, 0.0f, 100.0f).value(50.0f).fillWidth(true);
         auto progressA = Progress().value(0.5f).fillWidth(true);
         sliderA.on<&::ZufyUI::Slider::ValueChanged>([progressA](float v) { progressA->SetValue(v / 100.0f); });
-        auto nestedPageA = ::ZufyUI::dsl::Page();
+        auto nestedPageA = make_page();
         nestedPageA->SetLayout(Col().spacing(8.0f).margin(Thickness(12, 12, 12, 12))
             .add(Lbl(L"嵌套 A：滑块控制进度条"))
             .add(Row(sliderA, progressA).spacing(10.0f).shared())
@@ -634,7 +627,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                                      : name == L"绿色" ? ThemeColor(ThemeRole::Success)
                                                        : ThemeColor(ThemeRole::Accent));
         });
-        auto nestedPageB = ::ZufyUI::dsl::Page();
+        auto nestedPageB = make_page();
         nestedPageB->SetLayout(Col().spacing(8.0f).margin(Thickness(12, 12, 12, 12))
             .add(Lbl(L"嵌套 B：下拉框控制标签"))
             .add(Row(comboB, displayLabel).spacing(10.0f).shared())
@@ -646,7 +639,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         auto clickB = []() { ZuiInfo(L"提示", L"按钮B被点击"); };
         auto clickC = []() { ZuiInfo(L"提示", L"按钮C被点击"); };
         auto clickD = []() { ZuiInfo(L"提示", L"按钮D被点击"); };
-        auto nestedPageC = ::ZufyUI::dsl::Page();
+        auto nestedPageC = make_page();
         nestedPageC->SetLayout(Scroll().fill(true).margin(Thickness(8, 8, 8, 8)).with(&ScrollViewer::SetContent,
             Grid(
                 Cell(0, 0, Lbl(L"密集交叉测试：多个下拉框与控件混合"), 1, 4),
@@ -656,7 +649,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 Cell(1, 3, Lbl(L"状态1")),
                 Cell(2, 0, Lbl(L"固定文本")),
                 Cell(2, 1, Combo().items({ L"选项3-A", L"选项3-B", L"选项3-C" })),
-                Cell(2, 2, ::ZufyUI::dsl::Slider().with(&::ZufyUI::Slider::SetRange, 0.0f, 100.0f).value(50.0f)),
+                Cell(2, 2, make_slider().with(&::ZufyUI::Slider::SetRange, 0.0f, 100.0f).value(50.0f)),
                 Cell(2, 3, Btn(L"按钮B").on<&Button::Clicked>(clickB)),
                 Cell(3, 0, Progress().value(0.7f)),
                 Cell(3, 1, Combo().items({ L"选项4-A", L"选项4-B", L"选项4-C" })),
@@ -748,7 +741,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 auto rich = Lbl(L"富项 ").textColor(ThemeColor(ThemeRole::Accent));
                 auto inner = Lbl(L"[内嵌]").textColor(ThemeColor(ThemeRole::Danger));
                 rich->AddChild(inner.shared());          // 内嵌 Label → 走 Window 合成递归画出
-                lv->AddItem(rich.shared()); })),
+                lv->AddItemWidget(rich.shared()); })),
             Cell(1, 2, Btn(L"虚拟 20万").on<&Button::Clicked>([lv]() {
                 lv->SetItemCount(200000);
                 for (int i = 0; i < 200000; ++i)
@@ -925,9 +918,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                          .with(&TreeView::SetColumnWidth, 2, 120.0f)
                          .with(&TreeView::SetSelectionMode, TreeView::SelectionMode::Extended)
                          .with(&TreeView::SetAlternatingRowColors, true)
-                         // 注意：SetCheckable(bool enable, bool recursive = true) 有默认参数 →
-                         //   有默认参数的成员函数不能用 .with()（成员指针类型含全部形参，会报"参数太少"），必须把两个都写上。
-                         .with(&TreeView::SetCheckable, true, true);
+                         // SetCheckable 已拆成单参（无默认参数）→ `.with` 直接可用；
+                         //   旧的“只设视图级开关、不动节点”用 SetCheckableShallow。
+                         .with(&TreeView::SetCheckable, true);
 
         auto proj = tree->AddRoot(std::vector<std::wstring>{ L"我的项目", L"", L"文件夹" });
         proj->icon = L"\u25A0";
@@ -1233,13 +1226,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         tmenuBtn->Connect(tmenuBtn->Clicked, [mbResult]() {
             auto menu = std::make_shared<::ZufyUI::Menu>();
             static bool showIcon = true;
-            menu->AddCheckItem(L"显示图标", showIcon, [mbResult](bool on) {
+            menu->AddCheckItemCb(L"显示图标", showIcon, [mbResult](bool on) {
                 showIcon = on;
                 if (mbResult) mbResult->SetText(on ? L"菜单：显示图标 = 勾选" : L"菜单：显示图标 = 取消");
                 });
             static int viewMode = 0;   // 0 列表 / 1 网格（单选）
-            menu->AddCheckItem(L"列表视图", viewMode == 0, [mbResult](bool) { viewMode = 0; if (mbResult) mbResult->SetText(L"菜单：列表视图"); }, 0, true);
-            menu->AddCheckItem(L"网格视图", viewMode == 1, [mbResult](bool) { viewMode = 1; if (mbResult) mbResult->SetText(L"菜单：网格视图"); }, 0, true);
+            menu->AddCheckItemRadio(L"列表视图", viewMode == 0, [mbResult](bool) { viewMode = 0; if (mbResult) mbResult->SetText(L"菜单：列表视图"); });
+            menu->AddCheckItemRadio(L"网格视图", viewMode == 1, [mbResult](bool) { viewMode = 1; if (mbResult) mbResult->SetText(L"菜单：网格视图"); });
             menu->AddSeparator();
             menu->AddItem(L"菜单项 A", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：菜单项 A"); }, 101);
             menu->AddItem(L"默认项(回车)", [mbResult]() { if (mbResult) mbResult->SetText(L"独立菜单：默认项"); }, 102);
@@ -1448,7 +1441,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         // ---- 按功能分节改成多张可折叠卡片（原来是一大块平铺，看着很乱）----
         auto addCard = [&col](const std::wstring& title, const std::wstring& sub, bool expanded, const Ref<ColumnBox>& body) {
-            col->AddChild(::ZufyUI::dsl::Expander(title, sub).fillWidth(true)
+            col->AddChild(make_expander(title, sub).fillWidth(true)
                               .with(&Expander::SetExpanded, expanded)
                               .with(&Expander::SetContent, body.shared()).shared());
         };
@@ -1558,16 +1551,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         AddSection(col, L"亚克力 / 云母参数（选对应背景层才显示该卡片）");
         // 一个参数项 = 「名称 + 滑条」的 DSL Row
         auto addSlider = [](const std::wstring& name, float lo, float hi, float step, float init, std::function<void(float)> apply) {
-            auto s = ::ZufyUI::dsl::Slider().fillWidth(true)
+            auto s = make_slider().fillWidth(true)
                            .with(&::ZufyUI::Slider::SetRange, lo, hi)
                            .with(&::ZufyUI::Slider::SetStep, step)
                            .with(&::ZufyUI::Slider::SetSnapToStep, true)
                            .value(init);
             s.on<&::ZufyUI::Slider::ValueChanged>([apply](float v) { apply(v); });
-            return Row(Lbl(name).width(90.0f), s).spacing(10.0f);
+            return Row(Lbl(name).minWidth(90.0f), s).spacing(10.0f);   // 名字列 minWidth（原固定 width(90) 会把长名字省略号裁掉）
         };
 
-        auto acrylicCard = ::ZufyUI::dsl::Card().padding(10.0f).with(&::ZufyUI::Card::SetShadow, true);
+        auto acrylicCard = make_card().padding(10.0f).with(&::ZufyUI::Card::SetShadow, true);
         if (auto g = acrylicCard->GetLayoutAs<GridLayout>()) {
             g->SetSpacing(8, 8);
             g->SetColumnStretch(1, 1.0f);   // 滑条列吃掉剩余宽度（原来只占自然宽 → 卡片右侧大片空白）
@@ -1584,7 +1577,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         }
         col->AddChild(acrylicCard.shared());
 
-        auto micaCard = ::ZufyUI::dsl::Card().padding(10.0f).with(&::ZufyUI::Card::SetShadow, true);
+        auto micaCard = make_card().padding(10.0f).with(&::ZufyUI::Card::SetShadow, true);
         if (auto g = micaCard->GetLayoutAs<GridLayout>()) {
             g->SetSpacing(8, 8);
             g->SetColumnStretch(1, 1.0f);   // 滑条列吃掉剩余宽度（原来只占自然宽 → 卡片右侧大片空白）
@@ -1638,17 +1631,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         AddSection(col, L"RadioGroup：纵向（含禁用项） / 横向");
         // RadioGroup 与类同名 → 工厂必须全限定
-        auto radios = ::ZufyUI::dsl::RadioGroup();
-        radios->AddItem(L"单选 A（默认选中）", true);   // AddItem 有默认参数 → 不能用 .with，直接调
+        auto radios = make_radio_group();
+        radios->AddItemSelected(L"单选 A（默认选中）", true);
         radios->AddItem(L"单选 B");
         radios->AddItem(L"单选 C");
         radios->AddItem(L"单选 D（禁用）");
         if (auto d = radios->GetButton(3)) d->SetEnabled(false);
         col->AddChild(radios.shared());
 
-        auto radiosH = ::ZufyUI::dsl::RadioGroup()
+        auto radiosH = make_radio_group()
             .with(&::ZufyUI::RadioGroup::SetOrientation, ::ZufyUI::RadioGroup::Orientation::Horizontal);
-        radiosH->AddItem(L"甲", true);
+        radiosH->AddItemSelected(L"甲", true);
         radiosH->AddItem(L"乙");
         radiosH->AddItem(L"丙");
         col->AddChild(radiosH.shared());
@@ -1676,14 +1669,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         auto nested = Pages().height(120.0f);
         auto navRow = Row().spacing(6.0f);
         for (int i = 1; i <= 3; ++i) {
-            auto pg = ::ZufyUI::dsl::Page();
+            auto pg = make_page();
             pg->SetLayout(Lbl(L"交叉页 " + std::to_wstring(i)).margin(Thickness(8, 8, 8, 8)).shared());
             nested->AddPage(pg.shared());
             navRow.add(Btn(L"页" + std::to_wstring(i)).size(44.0f, 26.0f)
                        .on<&Button::Clicked>([n = nested.shared(), i]() { n->NavigateTo(i - 1); }));
         }
 
-        auto leftPane = ::ZufyUI::dsl::Card();
+        auto leftPane = make_card();
         if (auto lg = leftPane->GetLayoutAs<GridLayout>()) {
             lg->AddChild(navRow.shared(), 0, 0);
             lg->AddChild(nested.shared(), 1, 0);
@@ -1710,7 +1703,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 splitRef->SetCollapseEnabled(on);
                 splitState->SetText(on ? L"状态：折叠功能已开启（拖到边缘会先出现提示）" : L"状态：折叠功能已关闭（拖到边缘不再提示/折叠）"); }),
             Lbl(L"阈值").width(44.0f).margin(Thickness(16, 0, 0, 0)),
-            ::ZufyUI::dsl::Slider().width(140.0f)
+            make_slider().width(140.0f)
                 .with(&::ZufyUI::Slider::SetRange, 8.0f, 80.0f)
                 .with(&::ZufyUI::Slider::SetStep, 4.0f)
                 .with(&::ZufyUI::Slider::SetSnapToStep, true)
@@ -2011,14 +2004,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         list1->AddRow(Icon::View, L"屏幕", L"亮度、颜色、夜间模式", [] {});
         list1->AddRow(Icon::Settings, L"电源和电池", L"睡眠、节电模式、电池使用情况", [] {});
         list1->AddRow(Icon::Folder, L"安装的应用", L"卸载、默认应用、可选功能", [] {});
-        auto card1 = ::ZufyUI::dsl::Expander(L"推荐设置", L"最近使用的和常用的设置")
+        auto card1 = make_expander(L"推荐设置", L"最近使用的和常用的设置")
                          .fillWidth(true).with(&Expander::SetContent, list1.shared());
 
         auto list2 = Settings().fillWidth(true);
         list2->AddRow(Icon::View, L"显示", L"监视器、亮度、缩放", [] {});
         list2->AddRow(Icon::Volume, L"声音", L"音量、输出、输入", [] {});
         list2->AddRow(Icon::Settings, L"通知", L"来自应用和系统的通知", [] {});
-        auto card2 = ::ZufyUI::dsl::Expander(L"系统", L"显示、声音、通知、电源")
+        auto card2 = make_expander(L"系统", L"显示、声音、通知、电源")
                          .fillWidth(true).with(&Expander::SetContent, list2.shared());
 
         // 任意内容的折叠卡片（内容本身也是 DSL 构建）
@@ -2027,7 +2020,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                             .add(Btn(L"按钮 A").on<&Button::Clicked>([]() { ZuiInfo(L"提示", L"卡片内按钮 A"); }))
                             .add(Btn(L"按钮 B").on<&Button::Clicked>([]() { ZuiInfo(L"提示", L"卡片内按钮 B"); }))
                             .add(Toggle(false));
-        auto card3 = ::ZufyUI::dsl::Expander(L"任意内容", L"里面放按钮 / 开关等真实控件")
+        auto card3 = make_expander(L"任意内容", L"里面放按钮 / 开关等真实控件")
                          .fillWidth(true).with(&Expander::SetContent, content.shared());
 
         auto col = Col().spacing(12.0f).margin(Thickness(10, 10, 10, 10));
@@ -2132,7 +2125,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         AddSection(col, L"Expander / 输入回显 / 进度");
         col->AddChild(
-            ::ZufyUI::dsl::Expander(L"DSL 折叠卡片", L"内容也是 DSL 构建")
+            make_expander(L"DSL 折叠卡片", L"内容也是 DSL 构建")
                 .with(&Expander::SetExpanded, true)
                 .with(&Expander::SetContent,
                       Col(Lbl(L"展开内容 1"), Btn(L"卡片内按钮").size(120.0f, 30.0f).on<&Button::Clicked>([]() { ZuiInfo(L"提示", L"DSL 折叠卡片内的按钮"); }).shared()).shared())
@@ -2238,7 +2231,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         auto deep = Tabs().height(210.0f).fillWidth(true);
         auto host2 = Pages().height(120.0f);
         for (int i = 1; i <= 2; ++i) {
-            auto pg = ::ZufyUI::dsl::Page();
+            auto pg = make_page();
             pg->SetLayout(Col().spacing(6.0f).margin(Thickness(8, 8, 8, 8))
                 .add(Lbl(L"页中页 " + std::to_wstring(i) + L"：再套一层 PageHost"))
                 .add(Row(Btn(L"按钮").on<&Button::Clicked>([]() { ZuiInfo(L"提示", L"页中页里的按钮"); }), Check(L"勾选"), Toggle(true), Progress().value(0.3f * i).width(120.0f)).spacing(10.0f).shared())
@@ -2247,7 +2240,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         }
         deep->AddTab(Lbl(L"页中页").shared(), host2.shared(), false);
         deep->AddTab(Lbl(L"卡片套列表").shared(),
-            ::ZufyUI::dsl::Expander(L"卡片里的列表", L"Expander → ListView")
+            make_expander(L"卡片里的列表", L"Expander → ListView")
                 .with(&Expander::SetExpanded, true)
                 .with(&Expander::SetContent,
                       List().height(90.0f).fillWidth(true).items({ L"嵌套甲", L"嵌套乙", L"嵌套丙" }).shared())
@@ -2264,10 +2257,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             Cell(0, 3, Combo().items({ L"下拉 A", L"下拉 B" })),
             Cell(1, 0, Check(L"复选").checked(true)), Cell(1, 1, Radio(L"单选")),
             Cell(1, 2, Toggle(true)),
-            Cell(1, 3, ::ZufyUI::dsl::Slider().width(120.0f).with(&::ZufyUI::Slider::SetRange, 0.0f, 1.0f).value(0.4f)),
+            Cell(1, 3, make_slider().width(120.0f).with(&::ZufyUI::Slider::SetRange, 0.0f, 1.0f).value(0.4f)),
             Cell(2, 0, Progress().value(0.6f).width(120.0f)), Cell(2, 1, Ring().value(0.7f)),
             Cell(2, 2, Btn(L"禁用按钮").enabled(false)), Cell(2, 3, Txt(L"只读").with(&TextBox::SetReadOnly, true).width(120.0f)),
-            Cell(3, 0, ::ZufyUI::dsl::Card().padding(8.0f).with(&::ZufyUI::Card::SetShadow, true)
+            Cell(3, 0, make_card().padding(8.0f).with(&::ZufyUI::Card::SetShadow, true)
                            .apply([](::ZufyUI::Card& c) {
                                if (auto g = c.GetLayoutAs<GridLayout>()) g->AddChild(std::make_shared<Label>(L"带阴影卡片"), 0, 0); })),
             Cell(3, 1, List().height(70.0f).items({ L"列表 1", L"列表 2" })),

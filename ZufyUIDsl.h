@@ -289,6 +289,19 @@ namespace dsl {
     inline Ref<FontIcon> Glyph(Icon icon, float size = FontIcon::DefaultSize){ return Make<FontIcon>(icon, size); }
     inline Ref<FontIcon> Glyph(Icon icon, float size, Color color){ return Make<FontIcon>(icon, size, color); }
 
+    // ---- 无歧义别名 make_*：短工厂名与类名相同的那些（Slider/Card/Page/Menu/MenuBar/
+    //      StatusBar/RadioGroup/ScrollBar/Expander），在同时 `using namespace ZufyUI;`
+    //      + `using namespace ZufyUI::dsl;` 时会产生 C2872 二义。用 make_* 从源头避开。----
+    inline Ref<ZufyUI::Slider>     make_slider(){ return Slider(); }
+    inline Ref<ZufyUI::Card>       make_card(){ return Card(); }
+    inline Ref<ZufyUI::Page>       make_page(){ return Page(); }
+    inline Ref<ZufyUI::Menu>       make_menu(){ return Menu(); }
+    inline Ref<ZufyUI::MenuBar>    make_menu_bar(){ return MenuBar(); }
+    inline Ref<ZufyUI::StatusBar>  make_status_bar(){ return StatusBar(); }
+    inline Ref<ZufyUI::RadioGroup> make_radio_group(){ return RadioGroup(); }
+    inline Ref<ZufyUI::ScrollBar>  make_scroll_bar(bool vertical = true){ return ScrollBar(vertical); }
+    inline Ref<ZufyUI::Expander>   make_expander(const std::wstring& title = L"", const std::wstring& sub = L""){ return Expander(title, sub); }
+
     // ---------- 窗口构建器（链式配置 + run）----------
     //   auto app = dsl::App();  app.title(...).size(...).backdrop(...).root(Col(...)).run();
     class WindowApp {

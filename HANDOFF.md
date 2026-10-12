@@ -1,7 +1,7 @@
 # ZufyUI 交接文档（HANDOFF）
 
 > 给**下一位接手者 / AI 智能体**：读这一份即可上手。配套：`AGENTS.md`（硬规则）、`TODO.md`（待办）、`docs/API.md`（API 参考）、`docs/API.en.md`（英文）、`README.md`（构建/快速开始）。
-> 版本基线：`1.21.0`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**
+> 版本基线：`1.22.0`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
 > ⚠️ **一批反馈工作已随 `v1.21.0` 发布**（commit `cf78c54`，tag `v1.21.0`，已推 gitee/github；gh-pages 站点同步）：逐项记录与**尚未解决**的问题见 **§10**，接手前先读 §10（尤其 §10.4 未决项）。
 
 ---
@@ -36,6 +36,7 @@
 | `ZufyUIDsl.h` | 可选**链式构造 DSL**（`dsl::`：`Ref<T>`/`Make`/`Col`/`Row`/`Grid`/短工厂/`App()` 窗口构建器） |
 | `ZufyUI.cpp` | demo（左侧导航 + 多测试页），同时充当冒烟测试 |
 | `docs/API.md` / `API.en.md` | API 参考（中/英，**按使用分类**，非按头文件） |
+| `docs/pitfalls.md` | **易错点总表**（DSL 用法 / 布局 / 缓存 / 生命周期 / 主题 / 平台 / 明确不做）——改库前先扫 |
 | `tools/` | `check_api_parity.py`（双语文档校验）、`colorscan.py`（硬编码色审计）、`color_inventory.md`（审计快照） |
 | `TODO.md` | 唯一权威待办（合并了旧计划） |
 | `AGENTS.md` | 硬规则（含“先找根源再修”） |

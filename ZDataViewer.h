@@ -93,7 +93,7 @@ namespace ZufyUI {
             lb->SetAlignment(Label::HAlign::Left, Label::VAlign::Center);
             lb->SetPadding(0.0f);
         }
-        void AddItem(std::shared_ptr<Label> label) {
+        void AddItemWidget(std::shared_ptr<Label> label) {
             if (!label) return;
             auto _rg = RenderGuard();
             viewDirty_ = true;
@@ -119,7 +119,7 @@ namespace ZufyUI {
             }
             auto label = std::make_shared<Label>(text);
             label->SetTextColor(Color(textColor_.r, textColor_.g, textColor_.b, textColor_.a));
-            AddItem(label);
+            AddItemWidget(label);
         }
         void InsertItem(int index, std::shared_ptr<Label> label) {
             auto _rg = RenderGuard();
@@ -1217,7 +1217,7 @@ namespace ZufyUI {
         }
         std::wstring TextAtVisible(int vi) const { return SourceText(SourceOfVisible(vi)); }
 
-        // 虚拟源（纯文本行；不再"一源行一个 Label"）。富项仍可用 AddItem(shared_ptr<Label>)。
+        // 虚拟源（纯文本行；不再"一源行一个 Label"）。富项仍可用 AddItemWidget(shared_ptr<Label>)。
         void SetItemCount(int n) {
             auto _rg = RenderGuard();
             virtual_ = true;
@@ -3480,47 +3480,55 @@ namespace ZufyUI {
         }
 
         // ==================== 扩展：三态勾选 ====================
-        void SetNodeCheckable(std::shared_ptr<TreeNode> node, bool checkable, bool recursive = false) {
+        void SetNodeCheckable(std::shared_ptr<TreeNode> node, bool checkable) {
             if (!node) return;
             node->checkable = checkable;
             if (!checkable) node->checkState = TreeNode::CheckState::Unchecked;
-            if (recursive) for (auto& c : node->children) SetNodeCheckable(c, checkable, true);
             RequestRepaint();
+        }
+        void SetNodeCheckableRecursive(std::shared_ptr<TreeNode> node, bool checkable) {
+            if (!node) return;
+            SetNodeCheckable(node, checkable);
+            for (auto& c : node->children) SetNodeCheckableRecursive(c, checkable);
         }
         bool IsNodeCheckable(std::shared_ptr<TreeNode> node) const { return node && node->checkable; }
         TreeNode::CheckState GetNodeCheckState(std::shared_ptr<TreeNode> node) const {
             return node ? node->checkState : TreeNode::CheckState::Unchecked;
         }
-        void SetNodeCheckState(std::shared_ptr<TreeNode> node, TreeNode::CheckState state,
-                               bool updateChildren = true, bool updateParent = true) {
+        void SetNodeCheckStateFull(std::shared_ptr<TreeNode> node, TreeNode::CheckState state,
+            bool updateChildren, bool updateParent) {
             if (!node) return;
             if (checkMode_ == CheckMode::Independent) { updateChildren = false; updateParent = false; state = (state == TreeNode::CheckState::Unchecked) ? TreeNode::CheckState::Unchecked : TreeNode::CheckState::Checked; }
             node->checkState = state;
             EnsureCheckAnim(node);
             if (updateChildren && state != TreeNode::CheckState::PartiallyChecked) {
-                for (auto& c : node->children) SetNodeCheckState(c, state, true, false);
+                for (auto& c : node->children) SetNodeCheckStateFull(c, state, true, false);
             }
             if (updateParent) UpdateParentCheckState(node);
             ItemCheckStateChanged(node, node->checkState);
             RequestRepaint();
         }
+        // 设某节点勾选态（默认向子/父传播）
+        void SetNodeCheckState(std::shared_ptr<TreeNode> node, TreeNode::CheckState state) {
+            SetNodeCheckStateFull(node, state, true, true);
+        }
         bool IsNodeChecked(std::shared_ptr<TreeNode> node) const {
             return node && node->checkState == TreeNode::CheckState::Checked;
         }
-        // 视图级开关：让所有节点（含之后新增的）都显示勾选框
-        void SetCheckable(bool enable, bool recursive = true) {
+        // 视图级开关：让所有节点（含之后新增的）都显示勾选框（默认**递归**设置现有节点）
+        void SetCheckable(bool enable) {
             checkableMode_ = enable;
-            if (recursive) {
-                std::function<void(std::shared_ptr<TreeNode>)> f = [&](std::shared_ptr<TreeNode> n) {
-                    if (!n) return;
-                    n->checkable = enable;
-                    if (!enable) n->checkState = TreeNode::CheckState::Unchecked;
-                    for (auto& c : n->children) f(c);
-                    };
-                for (auto& r : roots_) f(r);
-            }
+            std::function<void(std::shared_ptr<TreeNode>)> f = [&](std::shared_ptr<TreeNode> n) {
+                if (!n) return;
+                n->checkable = enable;
+                if (!enable) n->checkState = TreeNode::CheckState::Unchecked;
+                for (auto& c : n->children) f(c);
+                };
+            for (auto& r : roots_) f(r);
             RequestRepaint();
         }
+        // 只设“视图级开关”，不改动现有节点（对应旧签名 recursive=false）
+        void SetCheckableShallow(bool enable) { checkableMode_ = enable; RequestRepaint(); }
         bool IsCheckable() const { return checkableMode_; }
 
         // 勾选关联模式：Linked=父子三态联动；Independent=每项独立（仅选中/未选，适合进程列表等）
@@ -3541,11 +3549,15 @@ namespace ZufyUI {
         CheckMode GetCheckMode() const { return checkMode_; }
         void SetCheckBoxColor(Color c) { checkBoxColor_ = c.ToD2D(); RequestRepaint(); }
         void SetCheckMarkColor(Color c) { checkMarkColor_ = c.ToD2D(); RequestRepaint(); }
-        void SetNodeEnabled(std::shared_ptr<TreeNode> node, bool enabled, bool recursive = false) {
+        void SetNodeEnabled(std::shared_ptr<TreeNode> node, bool enabled) {
             if (!node) return;
             node->enabled = enabled;
-            if (recursive) for (auto& c : node->children) SetNodeEnabled(c, enabled, true);
             RequestRepaint();
+        }
+        void SetNodeEnabledRecursive(std::shared_ptr<TreeNode> node, bool enabled) {
+            if (!node) return;
+            SetNodeEnabled(node, enabled);
+            for (auto& c : node->children) SetNodeEnabledRecursive(c, enabled);
         }
 
         // ==================== 扩展：插入 / 移动 / 排序 / 删除 ====================
@@ -5078,7 +5090,7 @@ namespace ZufyUI {
         TreeView::SetDefaultIndicatorColor(C(ThemeRole::Accent));
         TreeView::SetDefaultScrollBarColors(C(ThemeRole::ScrollTrack), C(ThemeRole::ScrollThumb), C(ThemeRole::ScrollThumbHover));
     }
-    inline bool _themeDataViewHook = []() { ThemeManager::RegisterSubtreeApplier(ApplyThemeToDataViewTree); return true; }();
-    inline bool _themeDataViewDefaultsHook = []() { ThemeManager::RegisterHook(ApplyThemeToDataViewDefaults); return true; }();
+    inline bool _themeDataViewHook = []() { ThemeManager::RegisterSubtreeApplierPermanent(ApplyThemeToDataViewTree); return true; }();
+    inline bool _themeDataViewDefaultsHook = []() { ThemeManager::RegisterHookPermanent(ApplyThemeToDataViewDefaults); return true; }();
 
 } // namespace ZufyUI

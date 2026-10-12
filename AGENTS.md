@@ -23,6 +23,18 @@
 - 所有与窗口相关的全局信号（`UIZSignals::*`）都携带 `Window*`；订阅者必须用 `GetWindow()` 过滤，禁止跨窗口处理。
 - 数据视图（List/Table/Tree）的按项/按行元数据要么绑定到项目对象、要么在排序/增删时重映射，禁止用会失效的下标或裸指针悬挂。
 
+## 链式构造 / API 约定（保持调用侧一致，别让用户猜）
+
+- **`.with(&T::Method, args...)`**：只用于**无默认参数、无重载、非初始化列表**的成员函数。
+  - 带默认参数的成员函数，成员指针含全部形参 → `.with(&X::F, a)` 报“参数太少”。**不要**再往库里加这种函数；新函数若需要可选行为，拆成**两个无默认参数的重载**（如 `SetCheckable(bool)` + `SetCheckableShallow(bool)`）。
+  - 需要显式给非默认值时用拆分后的具名重载（如 `...Recursive` / `...Selected` / `...Radio` / `...Full` / `...Impl`）。
+- **`.apply([](T& x){ ... })`**：逃生舱 —— 仅用于初始化列表、重载歧义、或多步条件逻辑。不要当主写法。
+- **`->SetXxx(...)`**：在 DSL 链中尽量不用；需要时用 `.with`；确实不行才 `->`。
+- **与类同名的短工厂**（`Slider`/`Card`/`Page`/`Menu`/`MenuBar`/`StatusBar`/`RadioGroup`/`ScrollBar`/`Expander`）在 `using namespace` 同时命中 `ZufyUI` 与 `ZufyUI::dsl` 时二义 → **用无歧义别名 `make_slider` / `make_card` / `make_page` / `make_radio_group` / `make_expander` …**（见 `ZufyUIDsl.h` 的 `make_*`）。
+- **主题钩子**：`ThemeManager::RegisterHook/RegisterSubtreeApplier` 返回 RAII `HookHandle`（析构自动断开）；想长期有效就**持有**它；库内部固定钩子用 `RegisterHookPermanent`。
+- **整页滚动**：`page->SetScrollableContent(content)` 一行搞定（别再手写 `GridLayout + ScrollViewer` 样板）。
+- 更完整的易错点集中在 **`docs/pitfalls.md`**（改库前先扫一遍）。
+
 ## 双语文档规则（API.md / API.en.md）
 
 - 两版**同一章节的代码块必须逐行对齐**：**行数相同、顺序相同**（函数签名集合也自然一致）。叙述、注释、示例的**文字**可以各自不同，但**代码块的行数与顺序必须一致**——**行数不匹配 = 一定有一边漏了**。

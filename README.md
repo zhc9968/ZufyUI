@@ -81,7 +81,8 @@ ZufyUI/
 ├── TODO.md               # 唯一权威待办清单
 ├── docs/
 │   ├── API.md            # 完整 API 文档（中文）
-│   └── API.en.md         # 完整 API 文档（English）
+│   ├── API.en.md         # 完整 API 文档（English）
+│   └── pitfalls.md       # 易错点总表
 ├── tests/
 │   └── dsl_tests.cpp     # DSL 自检（编译期 + 运行期断言，不建窗口）
 └── tools/
@@ -192,7 +193,18 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 
 ## 更新日志
 
-> 当前版本：**1.21.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.22.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-12 — API 债整理（P0~P3）：`.with` 可用性、无歧义工厂、RAII 主题钩子、整页滚动（v1.22.0）
+
+- **破坏性 · 带默认参数的成员函数拆成无默认参数重载**（让 `.with()` 真正可用）：`TreeView::SetCheckable(bool)` + `SetCheckableShallow(bool)`；`SetNodeCheckable` + `SetNodeCheckableRecursive`；`SetNodeEnabled` + `SetNodeEnabledRecursive`；`SetNodeCheckState` + `SetNodeCheckStateFull`；`ListView::AddItem(text)` 与富项 **`AddItemWidget(shared_ptr<Label>)`**；`RadioGroup::AddItem` / **`AddItemSelected`** / `AddButton` / **`AddButtonSelected`**；`Menu::AddCheckItem` / **`AddCheckItemCb`** / **`AddCheckItemRadio`**。
+- **新增 · 同名 dsl 工厂无歧义别名**：`make_slider` / `make_card` / `make_page` / `make_menu` / `make_menu_bar` / `make_status_bar` / `make_radio_group` / `make_scroll_bar` / `make_expander`（避开 `using namespace` 同时命中两类时的 C2872）。
+- **新增 · `Page::SetScrollableContent(content)`**：一行把整页内容套进 `ScrollViewer` + 边距。
+- **新增 · `ThemeManager::RegisterHook`/`RegisterSubtreeApplier` 返回 RAII `HookHandle`**（析构自动断开）；库内部固定钩子改用 `RegisterHookPermanent`。
+- **新增 · `docs/pitfalls.md`**（易错点总表）；`AGENTS.md` 增补「链式构造 / API 约定」。
+- **修复**：`MessageBox`（及模态框）**首次点击穿透**（`RunModal` 进入前 `ReleaseCapture`）；`ScrollViewer` **滚动链**（到边界不再吞滚轮）；`SplitView` **展开无缓动 + 小按钮跳侧**。
+- **文档**：`docs/API.md`/`API.en.md` 同步（版本摘录、`make_*`、`SetScrollableContent`、`HookHandle`、`AddItemWidget` 等）。
+
 
 ### 2026-10-12 — 反馈批次：SplitView 折叠、一批渲染/布局修复、demo 首页与菜单状态栏（v1.21.0）
 

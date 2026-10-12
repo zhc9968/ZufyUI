@@ -428,6 +428,7 @@ void SetHorizontalAlignment(Alignment);         void SetVerticalAlignment(Alignm
 class LayoutHost : public UIElement { std::shared_ptr<UIElement> GetLayout() const; void SetLayout(...); };
 class Card : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
 class Page : public LayoutHost { DefaultPadding=10; ... };
+void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // one line: wrap in ScrollViewer(fill)+8px
 ```
 - `LayoutHost` is a single-slot container; `Card` is a rounded/bordered/hover card; `Page` is the page container for `TabView`/`PageHost`.
 - `Card::UseCache()` = `HasShadow()`; `Page::UseCache()` = false.
@@ -715,7 +716,9 @@ class RadioButton { ZSignal<bool> CheckedChanged; ZSignal<> Clicked; void SetChe
 class RadioGroup  { enum class Orientation { Vertical, Horizontal };
                     ZSignal<int> SelectionChanged;
                     std::function<bool(int newIdx, int oldIdx)> SelectionChanging;   // false vetoes
-                    int AddItem(const std::wstring&, bool selected=false); std::shared_ptr<RadioButton> GetButton(int index) const; int GetItemCount() const; void SetSelectedIndex(int); ... };
+                    int AddItem(const std::wstring&);   int AddItemSelected(const std::wstring&, bool selected);
+                    int AddButton(std::shared_ptr<RadioButton>);   int AddButtonSelected(std::shared_ptr<RadioButton>, bool selected);
+                    std::shared_ptr<RadioButton> GetButton(int index) const; int GetItemCount() const; void SetSelectedIndex(int); ... };
 ```
 - **`Pitfall`**: a lone `RadioButton` does not enforce exclusion — `RadioGroup` does.
 - **`Version`**: `v1.11.0`.
@@ -856,7 +859,9 @@ std::shared_ptr<Label> icon;
 
 ```cpp
 void AddItem(const std::wstring& text, std::function<void()> cb = nullptr, int id = 0);
-void AddCheckItem(const std::wstring& text, bool checked, std::function<void(bool)> onToggle = nullptr, int id=0, bool radio=false);
+void AddCheckItem(const std::wstring& text, bool checked);
+void AddCheckItemCb(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
+void AddCheckItemRadio(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
 void AddSeparator();   void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id=0);
 std::vector<std::shared_ptr<MenuItem>> items;
 std::function<void(Menu&)> onOpening;   ZSignal<int> ItemSelected;
@@ -928,7 +933,7 @@ enum class SelectionMode { Single, Extended, Multi, None };
 ZSignal<int> SelectionChanged, ItemClicked, ItemDoubleClicked, ItemRightClicked;
 ZSignal<std::vector<int>> SelectionChangedMulti;   ZSignal<int,bool> ItemCheckStateChanged;
 float ContentToLocalX/Y(float) const;   float LocalToContentX/Y(float) const;   // v1.10.0
-void AddItem(const std::wstring&);   void SetItem(int, const std::wstring&);
+void AddItem(const std::wstring&);   void AddItemWidget(std::shared_ptr<Label> rich);   void SetItem(int, const std::wstring&);
 std::wstring GetItemText(int) const;   int GetItemCount() const;
 void SortItems(std::function<bool(const std::wstring&,const std::wstring&)>);   void ScrollToItem(int);
 void BeginUpdate();   void EndUpdate();
@@ -998,8 +1003,11 @@ void ExpandNode(node,bool);  void ExpandAll();  void CollapseAll();  void Expand
 void SetDefaultExpandDepth(int);                             // affects only future inserts
 void SetFilter(std::function<bool(const std::shared_ptr<TreeNode>&)>);   void Search(const std::wstring&);
 void SetSelectionMode(SelectionMode);  void SetSelectedNode(node);  std::vector<std::shared_ptr<TreeNode>> GetSelectedNodes() const;
-void SetCheckable(bool enable, bool recursive=true);  void SetCheckMode(CheckMode);
-void SetNodeCheckState(node, TreeNode::CheckState, bool updateChildren=true, bool updateParent=true);
+void SetCheckable(bool enable);  void SetCheckableShallow(bool enable);  void SetCheckMode(CheckMode);
+void SetNodeCheckable(node, bool);   void SetNodeCheckableRecursive(node, bool);
+void SetNodeEnabled(node, bool);     void SetNodeEnabledRecursive(node, bool);
+void SetNodeCheckState(node, TreeNode::CheckState);
+void SetNodeCheckStateFull(node, TreeNode::CheckState, bool updateChildren, bool updateParent);
 float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToNode(node);   // v1.17.0
 ```
 - **`Pitfall`**: `Search` keeps a hit node **plus its ancestor chain**; `SetDefaultExpandDepth` affects only **future** inserts; `CheckMode::Linked` auto-computes `PartiallyChecked`.
@@ -1214,7 +1222,7 @@ enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
     Accent, AccentHover, AccentPressed,
     Border, Divider, FocusRing, Selection,
     ScrollTrack, ScrollThumb, ScrollThumbHover,
-    Danger, Warning, Success, Info, Count };
+    Danger, Warning, Success, Info, Shadow, Count };
 struct Theme { Color colors[(int)ThemeRole::Count]; FontSpec font, fontCaption, fontMono;
     float cornerRadius; bool isDark; std::wstring name;
     Color Get(ThemeRole) const;   void Set(ThemeRole, Color);
@@ -1230,6 +1238,9 @@ bool ThemeManager::SystemPrefersDark();   Color ThemeManager::SystemAccent();   
 void ThemeManager::DebugForceSystemTheme(bool enable, bool dark, bool highContrast);
 // color remap: any hard-coded color → theme color (exact table; passthrough + keeps alpha on miss)
 void ThemeManager::SetColorMap(std::unordered_map<uint32_t, Color>);   Color ThemeManager::Map(Color);
+// Hook registration: returns a RAII HookHandle (auto-disconnect on destruction); own fixed hooks use RegisterHookPermanent.
+HookHandle ThemeManager::RegisterHook(std::function<void(const Theme&)>);
+HookHandle ThemeManager::RegisterSubtreeApplier(std::function<void(UIElement*, const Theme&)>);
 // debug: theme name + each Role as AARRGGBB (debug channel cmd 23 GetTheme)
 std::wstring ThemeManager::Dump();
 
@@ -1284,6 +1295,8 @@ using Align = GridLayout::Alignment;                        // used by Ref::alig
 // short factories: Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
 //                  Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
 //                  RadioGroup ScrollBar Glyph
+// unambiguous aliases for (name-colliding) factories (avoids C2872 under two using-directives):
+//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander
 class WindowApp {                                  // dsl::App()
     WindowApp& size(int,int);   WindowApp& title(const std::wstring&);
     WindowApp& resizable(bool=true);   WindowApp& corner(Window::WindowCorner);
@@ -1301,8 +1314,8 @@ class WindowApp {                                  // dsl::App()
 WindowApp App();
 }
 ```
-- Usage: `using namespace ZufyUI::dsl;` then `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`. Do **not** also `using namespace ZufyUI;` (`Slider/Card/Expander/MenuBar/StatusBar` factories clash with class names) — or qualify with `dsl::`.
-- **`Pitfall`**: `with(&T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast<...>(&T::SetX)`; functions with **default arguments** (e.g. `ListView::AddItem`) can't be called via a member pointer with defaults → use `->AddItem(...)`.
+- Usage: `using namespace ZufyUI::dsl;` then `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`. When combined with `using namespace ZufyUI;`, use the **collision-free aliases** for name-clashing factories: `make_slider` / `make_card` / `make_page` / `make_menu` / `make_menu_bar` / `make_status_bar` / `make_radio_group` / `make_scroll_bar` / `make_expander` (or qualify with `dsl::`).
+- **`Pitfall`**: `with(&T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast<...>(&T::SetX)`. A function with **default arguments** can't be used with `with` (the pointer carries every parameter → "too few arguments"); since **v1.22.0** such functions are split into **non-defaulted overloads** (e.g. `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`, `ListView::AddItem(text)` / `AddItemWidget(shared_ptr<Label>)`, `RadioGroup::AddItem` / `AddItemSelected`, `Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`).
 - **`Pitfall`**: anything `with` can't express (multi-step, conditional, needs iteration) goes through `apply(lambda)` so the chain doesn't break. It also silences a conversion warning: `.with(&TextBox::SetWidth, 220)` passes an `int` and trips `C4244` — prefer `.width(220.0f)`.
 - **`add()` dispatches on the container's real API**: `ColumnBox`/`RowBox`/`Label` → `AddChild`; `PageHost` → `AddPage` (non-`Page` arguments are skipped); `GridLayout` needs coordinates, so use `.cell(row,col,child[,rowSpan,colSpan])` or `dsl::Cell(...)`. Null children (`nullptr` / empty `Ref`) are always ignored — no null dereference.
 - **Grid coordinates**: `Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))` places cells explicitly; bare children are still accepted (old behaviour: `(i,0)` in order), so existing code is unaffected.
@@ -1344,7 +1357,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.21.0
+###chapter: Version digest | v1.15.0 → v1.22.0
 
 > Only the changes that affect your code are listed.
 
@@ -1417,6 +1430,16 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Fix**: chart wheel panning "did not move" — the wheel path was missing `SyncScrollPositions()` (it changed `scrollX_/scrollY_` but never recomputed `baseX_/baseY_`).
   - **Fix**: documented that `ColumnBox` arranges a child **without an explicit width** at the available width (horizontal stretch ignores the weight) — so "make a card hug its content" means wrapping it in a `Row`; and that a `SettingsList` placed in a `Card`'s built-in `GridLayout` (auto columns pass `FLT_MAX`) degenerates to zero width — use `SetLayout(Col(...))` + `SetFillWidth(true)`.
   - **Tooling**: `tests/dsl_tests.cpp` 62 → **85** assertions (regressions for this batch: button auto-size on/off, label width follows text, progress/toggle easing convergence, SplitView collapse and expand-to-minimum).
+- **v1.22.0** (**contains breaking API changes**):
+  - **Fix**: `MessageBox` (and any modal) **first click falling through to the window behind** — when a modal is opened from inside `Window::OnMouseUp`'s slot, that function's trailing `ReleaseCapture()` only runs after the modal loop ends, so the main window keeps `SetCapture` for the whole modal and Windows routes mouse input to the capture window; `Window::RunModal` now does `if (GetCapture()) ReleaseCapture();` before entering the loop.
+  - **Fix**: `ScrollViewer` **scroll chaining** — it no longer swallows the wheel at the top/bottom (returns `false` to bubble up the parent chain when that axis can't scroll further), so the outer page keeps scrolling.
+  - **Fix**: `SplitView` **expand had no easing + expand button jumped sides** — the old `Expand()` cleared the collapsed flags before starting the animation, but `PaneLengths` keyed off them; now a single `collapseSide_` drives both directions and is cleared only when the animation finishes.
+  - **Breaking · P0-1**: member functions with **default arguments split into non-defaulted overloads** (so `.with()` works): `TreeView::SetCheckable(bool)` + `SetCheckableShallow(bool)`; `SetNodeCheckable(node,bool)` + `SetNodeCheckableRecursive`; `SetNodeEnabled(node,bool)` + `SetNodeEnabledRecursive`; `SetNodeCheckState(node,state)` + `SetNodeCheckStateFull(...,updateChildren,updateParent)`; `ListView::AddItem(text)` and rich-item **`AddItemWidget(shared_ptr<Label>)`** (old name dropped); `RadioGroup::AddItem` / **`AddItemSelected`** / `AddButton` / **`AddButtonSelected`**; `Menu::AddCheckItem(text,checked)` / **`AddCheckItemCb`** / **`AddCheckItemRadio`**.
+  - **New · P0-2**: collision-free aliases `make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander`.
+  - **New · P1-2**: `Page::SetScrollableContent(content)` — one line wraps the whole page in a `ScrollViewer` + margin.
+  - **New · P1-4**: `ThemeManager::RegisterHook` / `RegisterSubtreeApplier` return a **RAII `HookHandle`** (auto-disconnect on destruction); the library's own fixed hooks use `RegisterHookPermanent` / `RegisterSubtreeApplierPermanent`.
+  - **Docs · P3**: added `docs/pitfalls.md`; `AGENTS.md` gained a "chaining / API conventions" section.
+
 
 ###chapter: Pitfall index | Quick lookup by topic
 

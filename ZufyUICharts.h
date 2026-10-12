@@ -982,6 +982,6 @@ namespace ZufyUI {
         const auto& kids = e->GetChildren();
         for (UIElement* c : kids) ApplyThemeToChartTree(c, t);
     }
-    inline bool _themeChartHook = []() { ThemeManager::RegisterSubtreeApplier(ApplyThemeToChartTree); return true; }();
+    inline bool _themeChartHook = []() { ThemeManager::RegisterSubtreeApplierPermanent(ApplyThemeToChartTree); return true; }();
 
 } // namespace ZufyUI
