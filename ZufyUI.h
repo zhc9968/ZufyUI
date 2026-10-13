@@ -89,8 +89,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 22
-#define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.22.0"
+#define ZufyUI_VERSION_PATCH 1
+#define ZufyUI_VERSION_STRING L"1.22.1"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -348,6 +348,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 PostMessage(g_uiDispatcherWindow, WM_UI_TASK, 0, (LPARAM)task);
             }
         }
+
+        // UTF-16 代理对判定（emoji / 超 BMP 字符；文本控件用它把一对码元当“一个字符”处理）
+        inline bool IsHighSurrogate(wchar_t c) { return c >= 0xD800 && c <= 0xDBFF; }
+        inline bool IsLowSurrogate(wchar_t c)  { return c >= 0xDC00 && c <= 0xDFFF; }
+        inline bool IsSurrogatePair(wchar_t hi, wchar_t lo) { return IsHighSurrogate(hi) && IsLowSurrogate(lo); }
 
         // A3：单调高精度时刻（毫秒，QPC）。帧率上限用它做时基，避免 GetTickCount64 的 ~15.6ms 粗粒度。
         inline double NowMs() {
@@ -1614,12 +1619,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void SetAutomationId(const std::wstring& id) { automationId_ = id; }
         const std::wstring& GetAutomationId() const { return automationId_; }
         // 每个元素都有可区分的 AutomationId：应用设置优先，否则自动分配（如 "e123"），便于自动化/调试定位
-        std::wstring GetAutomationIdOrAuto() const {
-            if (!automationId_.empty()) return automationId_;
-            if (!accessibleAutoId_) { static std::atomic<unsigned> c{ 0 }; accessibleAutoId_ = ++c; }
-            wchar_t b[32]; swprintf(b, 32, L"e%u", accessibleAutoId_);
-            return b;
-        }
+        // 每个元素都有可读的 AutomationId；未显式设置则按所属窗口自动编号（"e123"）。
+        // 定义在文件后部（需要 Window 完整类型，才能取每窗口计数器）。
+        std::wstring GetAutomationIdOrAuto() const;
         void SetAccessibleRole(AccessibleRole r) { accessRole_ = r; }
         virtual AccessibleRole GetAccessibleRole() const { return accessRole_ != AccessibleRole::None ? accessRole_ : DefaultAccessibleRole(); }
         virtual std::wstring DefaultAccessibleName() const { return std::wstring(); }     // 子类覆写：默认名称
@@ -1687,11 +1689,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 主题：该元素颜色是否由主题管理。应用调用任何“设颜色”接口后置 false → 主题套用会跳过它（实例显式色优先）。
         bool IsThemeManaged() const { return themeManaged_; }
         void SetThemeManaged(bool on) { themeManaged_ = on; }
+        // “用户显式设色”统一入口：在各 Set*Color 里调用。主题正在套用时不视为用户设色（否则会被自己的套用误标）。
+        void MarkUserColor() { if (!ThemeManager::IsApplying()) themeManaged_ = false; }
         bool HasShadow() const { return shadowEnabled_; }
         // 阴影色同样由主题管理（ThemeRole::Shadow）；应用显式设过色则不再被主题覆盖
         inline static D2D1_COLOR_F DefaultShadowColor = D2D1::ColorF(0.0f, 0.0f, 0.02f, 0.42f);
         static void SetDefaultShadowColor(Color c) { DefaultShadowColor = c.ToD2D(); }
-        void SetShadowColor(Color c) { if (!ThemeManager::IsApplying()) themeManaged_ = false; shadowColor_ = c.ToD2D(); cacheValid_ = false; RequestRepaint(); }
+        void SetShadowColor(Color c) { MarkUserColor(); shadowColor_ = c.ToD2D(); cacheValid_ = false; RequestRepaint(); }
         void SetShadowBlur(float blur) { shadowBlur_ = max(0.0f, blur); cacheValid_ = false; RequestRepaint(); }
         void SetShadowOffset(float x, float y) { shadowOffsetX_ = x; shadowOffsetY_ = y; cacheValid_ = false; RequestRepaint(); }
         void SetShadowCornerRadius(float r) { shadowCornerRadius_ = r; cacheValid_ = false; RequestRepaint(); }
@@ -1880,6 +1884,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 if (!child->IsVisible() || !child->ParticipatesInLayout()) continue;
                 Thickness m = child->GetMargin();
                 float availW = availableSize.width - m.left - m.right;
+                // 易错：没有显式宽度(width_<=0)的子元素按**可用宽**测量/摆放 → 会被“隐式拉满”。
+                //   想按内容收窄：放进 Row，或显式 SetWidth；想拉满：可继续依赖此行为或显式 SetFillWidth(true)。
                 float childW = child->GetWidth() > 0 ? child->GetWidth() : availW;
                 if (child->GetFillWidth()) childW = availW;
                 childW = clamp(childW, child->GetMinWidth(), child->GetMaxWidth());
@@ -1907,6 +1913,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 if (child->GetFillWidth()) childW = availW;
                 childW = clamp(childW, child->GetMinWidth(), child->GetMaxWidth());
                 float base = child->GetHeight() > 0 ? child->GetHeight() : child->GetDesiredSize().height;
+                base = clamp(base, child->GetMinHeight(), child->GetMaxHeight());   // 先夹到 min/max 再算 leftover（否则 minHeight+拉伸子元素会溢出）
                 float raw = child->GetVerticalStretchWeightRaw();
                 float weight = (child->GetFillHeight() || raw > 0.0f) ? (raw > 0.0f ? raw : 1.0f) : 0.0f;
                 its.push_back({ child.get(), base, weight, m.top, m.bottom, m.left, childW });
@@ -1916,13 +1923,16 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             float leftover = finalRect.height - totalBase;
             float totalWeight = 0.0f;
             for (auto& it : its) totalWeight += it.weight;
+            // 桌面 UI 不“缩小”内容：空间不足即溢出（由外层 ScrollViewer 滚动）；这里只把多余空间分给拉伸子元素
             float y = finalRect.y;
-            for (auto& it : its) {
+            for (size_t i = 0; i < its.size(); ++i) {
+                auto& it = its[i];
                 float h = it.base;
                 if (leftover > 0.0f && totalWeight > 0.0f) h += leftover * (it.weight / totalWeight);
                 h = clamp(h, it.c->GetMinHeight(), it.c->GetMaxHeight());
                 it.c->Arrange(Rect(finalRect.x + it.ml, y + it.mt, it.w, h));
-                y += it.mt + h + it.mb + spacing_;
+                y += it.mt + h + it.mb;
+                if (i + 1 < its.size()) y += spacing_;   // 末尾不再多余累加一个 spacing
             }
         }
 
@@ -2027,6 +2037,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 if (child->GetFillHeight()) childH = availH;
                 childH = clamp(childH, child->GetMinHeight(), child->GetMaxHeight());
                 float base = child->GetWidth() > 0 ? child->GetWidth() : child->GetDesiredSize().width;
+                base = clamp(base, child->GetMinWidth(), child->GetMaxWidth());   // 先夹到 min/max 再算 leftover（否则 minWidth+拉伸子元素会溢出）
                 float raw = child->GetHorizontalStretchWeightRaw();
                 float weight = (child->GetFillWidth() || raw > 0.0f) ? (raw > 0.0f ? raw : 1.0f) : 0.0f;
                 its.push_back({ child.get(), base, weight, m.left, m.right, m.top, childH });
@@ -2036,13 +2047,16 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             float leftover = finalRect.width - totalBase;
             float totalWeight = 0.0f;
             for (auto& it : its) totalWeight += it.weight;
+            // 桌面 UI 不“缩小”内容：空间不足即溢出（由外层 ScrollViewer 滚动）
             float x = finalRect.x;
-            for (auto& it : its) {
+            for (size_t i = 0; i < its.size(); ++i) {
+                auto& it = its[i];
                 float w = it.base;
                 if (leftover > 0.0f && totalWeight > 0.0f) w += leftover * (it.weight / totalWeight);
                 w = clamp(w, it.c->GetMinWidth(), it.c->GetMaxWidth());
                 it.c->Arrange(Rect(x + it.ml, finalRect.y + it.mt, w, it.h));
-                x += it.ml + w + it.mr + spacing_;
+                x += it.ml + w + it.mr;
+                if (i + 1 < its.size()) x += spacing_;   // 末尾不再多余累加一个 spacing
             }
         }
 
@@ -2246,10 +2260,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     }
                 }
             }
-            else if (minTotalHeight > 0) {
-                float scale = finalRect.height / minTotalHeight;
-                for (auto& h : rowHeights) h *= scale;
-            }
+            // 桌面 UI 不“缩小”：行高不足即溢出（交给外层 ScrollViewer），不再等比压缩
 
             if (extraWidth > 0 && std::isfinite(extraWidth)) {
                 float totalWeight = 0.0f;
@@ -2261,20 +2272,19 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     }
                 }
             }
-            else if (minTotalWidth > 0 && std::isfinite(finalRect.width)) {
-                float scale = finalRect.width / minTotalWidth;
-                for (auto& w : colWidths) if (std::isfinite(w)) w *= scale;
-            }
+            // 同上：列宽不足即溢出，不压缩
 
             float offsetX = 0.0f, offsetY = 0.0f;
-            if (extraWidth > 0 && colStretchWeights.empty() && maxCol > 1) {
+            // 只有“没有任何列/行带拉伸权值”时才用 Alignment 分配多余空间（原先写成 .empty() → 恒 false，对齐永不生效）
+            auto allZero = [](const std::vector<float>& v) { for (float x : v) if (x != 0.0f) return false; return true; };
+            if (extraWidth > 0 && allZero(colStretchWeights) && maxCol > 1) {
                 switch (horizontalAlignment_) {
                 case Alignment::Start: offsetX = 0.0f; break;
                 case Alignment::Center: offsetX = extraWidth / 2.0f; break;
                 case Alignment::End: offsetX = extraWidth; break;
                 }
             }
-            if (extraHeight > 0 && rowStretchWeights.empty() && maxRow > 1) {
+            if (extraHeight > 0 && allZero(rowStretchWeights) && maxRow > 1) {
                 switch (verticalAlignment_) {
                 case Alignment::Start: offsetY = 0.0f; break;
                 case Alignment::Center: offsetY = extraHeight / 2.0f; break;
@@ -3462,6 +3472,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void SetInputBlocked(bool on) { inputBlocked_ = on; }
         void SetAccessibilityEnabled(bool on) { accessibilityEnabled_ = on; }   // 无障碍（UIA）默认开启
         bool IsAccessibilityEnabled() const { return accessibilityEnabled_; }
+        // 每窗口一个自动化 ID 计数器（未显式设 AutomationId 的元素自动编号 e1/e2…）；避免多窗口/多根全局撞号
+        unsigned NextAccessibleAutoId() { return ++accessibleAutoIdCounter_; }
         UIElement* GetFocusedElement() const { return focusedElement_; }
         UIElement* GetHoveredElement() const { return currentHovered_; }
         UIElement* GetPressedElement() const { return pressedElement_; }
@@ -4267,7 +4279,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             RECT rc; GetClientRect(hwnd_, &rc);
             float w = (rc.right - rc.left) * 96.0f / dpi_;
             float h = (rc.bottom - rc.top) * 96.0f / dpi_;
-            // 最大化时禁用边框调整（最大化窗口不可调整；分屏/普通状态仍保留）
+            // 1) 自定义标题栏按钮**优先**：否则顶部 8px 缩放边框会把“最大化按钮所在角落”抢成 HTTOPRIGHT
+            //    → Win11 Snap Layouts 不弹。按钮命中报告 HTMIN/HTMAX/HTCLOSE，交给系统做原生行为。
+            if (customTitleBar_) {
+                int nc = customTitleBar_->NonClientHitTest(x, y);
+                if (nc) return nc;
+            }
+            // 2) 缩放边框（最大化时禁用）
             if (resizable_ && !IsZoomed(hwnd_)) {
                 const float b = 8.0f;   // 缩放热区（DIP）
                 bool L = x < b, R = x >= w - b, T = y < b, B = y >= h - b;
@@ -4279,12 +4297,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 if (R) return HTRIGHT;
                 if (T) return HTTOP;
                 if (B) return HTBOTTOM;
-            }
-            // 自定义标题栏按钮 → 报告为系统按钮码（HTMINBUTTON/HTMAXBUTTON/HTCLOSE），
-            // 让系统提供原生行为（尤其“最大化按钮悬浮的 Snap Layouts”由资源管理器渲染）。
-            if (customTitleBar_) {
-                int nc = customTitleBar_->NonClientHitTest(x, y);
-                if (nc) return nc;
             }
             UIElement* hit = HitTestElement(x, y);
             int ht;
@@ -4369,6 +4381,16 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             else {
                 ImmAssociateContext(hwnd_, NULL);
             }
+        }
+        // 焦点离开文本控件时调用：取消当前 IME 组合（“程序输入法状态”复位）+ 清窗口侧组合缓存。
+        //   约定：需要输入法的控件在**失去焦点**时，自己清组合态（见 TextBox/TextEdit::OnBlur），
+        //   由窗口统一取消 IME 组合，避免残留未上屏串/下划线。
+        void ResetImeState() {
+            if (hwnd_) {
+                HIMC imc = ImmGetContext(hwnd_);
+                if (imc) { ImmNotifyIME(imc, NI_COMPOSITIONSTR, CPS_CANCEL, 0); ImmReleaseContext(hwnd_, imc); }
+            }
+            hasComposition_ = false; compositionText_.clear(); compositionCursorPos_ = 0;
         }
 
 #ifdef ZufyUI_DEBUG
@@ -4784,6 +4806,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 UpdateTimerState();
                 detail::CloseAllOpenMenus();
                 if (focusedElement_) focusedElement_->OnBlur();
+                ResetImeState();                         // 清组合 + 取消 IME 组合
                 ImmAssociateContext(hwnd_, NULL);
                 return 0;
             case WM_KEYDOWN:
@@ -5115,8 +5138,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (showFocusRing_ && focusedElement_ && focusedElement_->IsVisible() && focusedElement_->IsEffectivelyEnabled()) {
                 Rect fr = focusedElement_->GetArrangedRect();
                 ComPtr<ID2D1SolidColorBrush> fb;
-                rt->CreateSolidColorBrush(D2D1::ColorF(0.0f, 0.47f, 0.84f, 0.9f), fb.GetAddressOf());
-                if (fb) rt->DrawRoundedRectangle(D2D1::RoundedRect(fr.ToD2D(), 4, 4), fb.Get(), 2.0f);
+                Color fc = GetTheme().Get(ThemeRole::FocusRing); fc.a = min(fc.a, 0.9f);   // 焦点框色走主题角色（原来硬编码蓝）
+                rt->CreateSolidColorBrush(fc.ToD2D(), fb.GetAddressOf());
+                float rad = (GetTheme().cornerRadius > 0.0f) ? GetTheme().cornerRadius : 4.0f;   // 圆角跟随主题
+                if (fb) rt->DrawRoundedRectangle(D2D1::RoundedRect(fr.ToD2D(), rad, rad), fb.Get(), 2.0f);
             }
             if (tooltipTarget_ && tooltipProgress_ > 0.001f) {
                 std::wstring tip = tooltipTarget_->GetToolTip();
@@ -5199,7 +5224,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void SetFocusElement(UIElement* e, bool showRing = false) {
             showFocusRing_ = showRing;
             if (focusedElement_ == e) { focusDirty_ = true; return; }
+            bool leftText = (focusedElement_ && focusedElement_->IsTextInput());
             if (focusedElement_) focusedElement_->OnBlur();
+            if (leftText) ResetImeState();   // 离开文本控件：取消 IME 组合（程序侧输入法状态复位）
             focusedElement_ = e;
             if (focusedElement_) { focusedElement_->OnFocus(); focusedElement_->AccessibilityNotifyFocus(); }
             UpdateIMEAssociation();
@@ -6409,6 +6436,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         HWND hwnd_;
         detail::AppCore* core_ = nullptr;
         int id_ = 0;
+        std::atomic<unsigned> accessibleAutoIdCounter_{ 0 };   // 每窗口自动化 ID 计数（GetAutomationIdOrAuto 用）
         ID2D1Factory* d2dFactory_;
         ID2D1DeviceContext* renderTarget_;      // D2D 1.1 设备上下文（替代 HwndRenderTarget）
         ID2D1DeviceContext* cacheContext_ = nullptr;   // 第二个 DC：专画元素缓存到 ID2D1Bitmap1(TARGET)
@@ -6558,6 +6586,15 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     inline int UIElement::WindowIdOf(Window* w) { return w ? w->GetId() : 0; }
     inline Window* UIElement::GetWindow() const {
         return detail::AppCore::Instance().GetWindowById(windowId_.load());
+    }
+    inline std::wstring UIElement::GetAutomationIdOrAuto() const {
+        if (!automationId_.empty()) return automationId_;
+        if (!accessibleAutoId_) {
+            if (Window* w = GetWindow()) accessibleAutoId_ = w->NextAccessibleAutoId();   // 每窗口一个计数器（多窗口/多根不撞号）
+            else { static std::atomic<unsigned> c{ 0 }; accessibleAutoId_ = ++c; }         // 未挂窗口的兜底
+        }
+        wchar_t b[32]; swprintf(b, 32, L"e%u", accessibleAutoId_);
+        return b;
     }
     inline void UIElement::RequestRepaint() {
         if (detail::DebugEnabled()) dbgRepaintCount_.fetch_add(1, std::memory_order_relaxed);

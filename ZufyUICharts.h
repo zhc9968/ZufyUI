@@ -64,8 +64,8 @@ namespace ZufyUI {
         void SetShowValues(bool on) { showValues_ = on; RequestRepaint(); }
         void SetShowCategoryLabels(bool on) { showCategoryLabels_ = on; InvalidateLayout(); RequestRepaint(); }
         void SetLabelFont(const FontSpec& f) { labelFont_ = f; valueFont_ = f; InvalidateLayout(); RequestRepaint(); }
-        void SetColors(Color axis, Color grid, Color label) { if (!ThemeManager::IsApplying()) themeManaged_ = false; axisColor_ = axis; gridColor_ = grid; labelColor_ = label; RequestRepaint(); }
-        void SetBackgroundColor(Color c) { if (!ThemeManager::IsApplying()) themeManaged_ = false; bgColor_ = c; RequestRepaint(); }
+        void SetColors(Color axis, Color grid, Color label) { MarkUserColor(); axisColor_ = axis; gridColor_ = grid; labelColor_ = label; RequestRepaint(); }
+        void SetBackgroundColor(Color c) { MarkUserColor(); bgColor_ = c; RequestRepaint(); }
         void SetStickyAxes(bool on) { stickyAxes_ = on; RequestRepaint(); }
         void SetAnimationEnabled(bool on) { animate_ = on; if (!on) animProg_ = 1.0f; RequestRepaint(); }   // 关掉进场动画
         void SetAnimationDuration(float seconds) { animSeconds_ = max(0.01f, seconds); }
@@ -735,7 +735,7 @@ namespace ZufyUI {
         void SetLabelMode(LabelMode m) { labelMode_ = m; InvalidateLayout(); RequestRepaint(); }
         void SetShowLegend(bool on) { showLegend_ = on; InvalidateLayout(); RequestRepaint(); }
         void SetZoom(float z) { zoom_ = clamp(z, 0.4f, 4.0f); recenterScroll_ = true; InvalidateLayout(); RequestRepaint(); }
-        void SetLabelColor(Color c) { if (!ThemeManager::IsApplying()) themeManaged_ = false; labelColor_ = c; RequestRepaint(); }
+        void SetLabelColor(Color c) { MarkUserColor(); labelColor_ = c; RequestRepaint(); }
         float GetZoom() const { return zoom_; }
         void SetAnimationEnabled(bool on) { animate_ = on; if (!on) animProg_ = 1.0f; RequestRepaint(); }
         void SetPalette(const std::vector<Color>& p) { if (!p.empty()) { palette_ = p; for (size_t i = 0; i < slices_.size(); ++i) slices_[i].color = palette_[i % palette_.size()]; RequestRepaint(); } }
@@ -915,7 +915,7 @@ namespace ZufyUI {
         std::wstring fmtLabel(int i) const { return slices_[i].label; }
         std::wstring fmtVal(int i) const { wchar_t b[64]; swprintf(b, 64, L"%.0f", slices_[i].value); return b; }
         std::wstring fmtPct(int i, double total) const { wchar_t b[32]; swprintf(b, 32, L"%.0f%%", total > 0 ? slices_[i].value / total * 100.0 : 0); return b; }
-        float MeasureTextW(const std::wstring& s, IDWriteTextFormat* f) { if (!f || s.empty()) return 0; IDWriteFactory* dw = FontManager::Instance().GetFactory(); if (!dw) return 0; ComPtr<IDWriteTextLayout> l; if (FAILED(dw->CreateTextLayout(s.c_str(), (UINT32)s.size(), f, 1e5f, 1e5f, &l)) || !l) return 0; DWRITE_TEXT_METRICS m{}; l->GetMetrics(&m); return m.width; }
+        // MeasureTextW 直接用基类 ChartBase 的（protected，签名一致）——原先这里重复实现了一份
         void DrawText(ID2D1RenderTarget* rt, const std::wstring& s, const Rect& rect, Color col, int align, const FontSpec& fs) {   // align: 0=左 1=右
             if (s.empty()) return; IDWriteTextFormat* fmt_ = FontManager::Instance().GetFormat(fs); if (!fmt_) return; IDWriteFactory* dw = FontManager::Instance().GetFactory(); if (!dw) return;
             ComPtr<IDWriteTextLayout> l; if (FAILED(dw->CreateTextLayout(s.c_str(), (UINT32)s.size(), fmt_, max(1.0f, rect.width), max(1.0f, rect.height), &l)) || !l) return;
@@ -976,7 +976,7 @@ namespace ZufyUI {
         if (!e) return;
         if (e->IsThemeManaged()) {
         // 注意顺序：PieChart 现在派生自 ChartBase，必须先判 PieChart，否则永远进不了它那一支
-        if (auto* pie = dynamic_cast<PieChart*>(e)) { pie->SetLabelColor(t.Get(ThemeRole::TextSecondary)); if (auto* cb = dynamic_cast<ChartBase*>(e)) cb->SetColors(t.Get(ThemeRole::Border), t.Get(ThemeRole::Divider), t.Get(ThemeRole::TextSecondary)); }
+        if (auto* pie = dynamic_cast<PieChart*>(e)) { pie->SetLabelColor(t.Get(ThemeRole::TextSecondary)); pie->SetColors(t.Get(ThemeRole::Border), t.Get(ThemeRole::Divider), t.Get(ThemeRole::TextSecondary)); }   // PieChart 已继承 ChartBase，直接调基类方法
         else if (auto* cb = dynamic_cast<ChartBase*>(e)) cb->SetColors(t.Get(ThemeRole::Border), t.Get(ThemeRole::Divider), t.Get(ThemeRole::TextSecondary));
         }
         const auto& kids = e->GetChildren();

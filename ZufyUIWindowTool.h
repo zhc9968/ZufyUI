@@ -1756,6 +1756,16 @@ namespace ZufyUI {
                 ScreenToClient(h, &pt);
                 float dx = pt.x * 96.0f / dpi, dy = pt.y * 96.0f / dpi;
                 UIElement* target = ctx_->window->HitTestElementDIP(dx, dy);
+                // 先子后父：命中元素本身若还有“包含该点、且可见”的后代，继续下潜
+                //   （Label 内嵌 Button/图标等命中不冒泡的情形，自动化应拿到最深的那个）
+                while (target) {
+                    UIElement* next = nullptr;
+                    for (UIElement* c : target->GetChildren()) {
+                        if (c && c->IsVisible() && c->GetArrangedRect().Contains(dx, dy)) { next = c; break; }
+                    }
+                    if (!next) break;
+                    target = next;
+                }
                 while (target && target->IsAccessibilityIgnored()) target = target->GetParent();
                 if (!target) return S_OK;
                 ZufyUIElementProvider* prov = EnsureElementProvider(ctx_, target);

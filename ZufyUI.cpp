@@ -1512,7 +1512,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             L"白色不透明 0xFFFFFFFF（纯白，盖住背景）",
             L"白色 50%  0x80FFFFFF（半透明白 + 背景）",
             L"红色 50%  0x80FF0000（半透明红 + 背景）",
-            L"深灰不透明 0xFF202020" });
+            L"深灰不透明 0xFF202020" }).fillWidth(true);
         colorCombo->SetSelectedIndex(0);
         colorCombo->Connect(colorCombo->SelectionChanged, [w = &win, backdropState, tintState, followTheme](int idx) {
             static const DWORD kColors[] = { 0x00000000u, 0xFFFFFFFFu, 0x80FFFFFFu, 0x80FF0000u, 0xFF202020u };

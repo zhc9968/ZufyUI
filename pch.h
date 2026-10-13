@@ -74,11 +74,6 @@
 #include <utility>
 #include <vector>
 
-// ---- 本库头（放最后，依赖上面的系统头/STL）----
-#include "ZufyUI.h"
-#include "ZufyUIWidgets.h"
-#include "ZufyUIAcrylic.h"
-#include "ZufyUIImages.h"
-#include "ZufyUIWindowTool.h"
-#include "ZDataViewer.h"
-#include "ZufyUIIcons.h"
+// 说明：本库头**不再放进 PCH** —— 它们是变化最频繁的部分，塞进来会让 PCH 每改一次库头就整份重建，
+//   反而丧失 PCH「稳定复用」的意义。各 .cpp 自行 #include 所需库头（它们都带 #pragma once）。
+
