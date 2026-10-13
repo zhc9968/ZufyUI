@@ -1357,7 +1357,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.22.0
+###chapter: Version digest | v1.15.0 → v1.22.1
 
 > Only the changes that affect your code are listed.
 
@@ -1439,6 +1439,15 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · P1-2**: `Page::SetScrollableContent(content)` — one line wraps the whole page in a `ScrollViewer` + margin.
   - **New · P1-4**: `ThemeManager::RegisterHook` / `RegisterSubtreeApplier` return a **RAII `HookHandle`** (auto-disconnect on destruction); the library's own fixed hooks use `RegisterHookPermanent` / `RegisterSubtreeApplierPermanent`.
   - **Docs · P3**: added `docs/pitfalls.md`; `AGENTS.md` gained a "chaining / API conventions" section.
+- **v1.22.1**:
+  - **Fix (layout)**: `RowBox` / `ColumnBox` `ArrangeOverride` did not clamp each child's `base` to its min/max before distributing leftover → a child with `SetMinWidth/Height` pushed its extra space onto a stretching sibling, **overflowing the row/column** (classic case: a `SetMinWidth` label + `SetFillWidth` slider → the slider grew too long and spilled outside its card). Now `base = clamp(base, min, max)` before computing leftover.
+  - **Behaviour**: `ColumnBox` / `RowBox` / `GridLayout` **no longer shrink content** — insufficient space now **overflows** and is left to an outer `ScrollViewer` (desktop UI does not compress content). `GridLayout` dropped its proportional row/column compression on overflow.
+  - **Fix (alignment)**: `GridLayout`'s `SetHorizontalAlignment/SetVerticalAlignment` never took effect because the test `colStretchWeights.empty()` was always false; now it checks "all zero", so `Center/End` work (only when no column/row stretch weight is set).
+  - **Fix (text/IME)**: `TextBox` / `TextEdit` now merge **UTF-16 surrogate pairs** (emoji / beyond-BMP) and insert them as one unit; `←/→`, `Backspace`, `Delete` move/delete across the whole pair. **On losing focus** the control clears its own composition state and the `Window` cancels the IME composition (`ResetImeState()`) — both control and program IME state reset. `TextBox::SetImeEnabled(false)` also clears composition.
+  - **Fix (accessibility)**: `GetAutomationIdOrAuto()` now uses a **per-window** counter (`Window::NextAccessibleAutoId()`), so multi-window/multi-root ids no longer collide; `ElementProviderFromPoint` descends **child-before-parent** to the deepest hit (e.g. a Button embedded in a Label).
+  - **Fix**: data view item/cell placement `bleedY` is read from each element's `GetBleed()` (no longer a fixed `3.0f`), so shadows/bleed aren't clipped; `indicatorY_` is initialised to `-1` so the selection indicator snaps on the first frame.
+  - **Fix (visual)**: the focus ring uses `ThemeRole::FocusRing` and `Theme::cornerRadius` (was a hard-coded blue + fixed 4); in `WM_NCHITTEST` the custom title-bar buttons take priority over the resize border (the maximize-button corner is no longer taken by `HTTOPRIGHT` → Win11 Snap Layouts can appear).
+  - **Engineering**: `pch.h` no longer includes the library headers (editing a lib header no longer rebuilds the whole PCH); added `UIElement::MarkUserColor()` centralising 40+ "user colour" markers; removed dead code `ListView::FindEnabledFrom`.
 
 
 ###chapter: Pitfall index | Quick lookup by topic

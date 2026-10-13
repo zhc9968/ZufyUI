@@ -193,7 +193,19 @@ A tour of the widgets (first page of the demo):
 
 ## Changelog
 
-> Current version: **1.22.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.22.1** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-13 — Tier 0 fixes: layout overflow/alignment, IME, accessibility, visuals/engineering (v1.22.1)
+
+- **Fix (layout)**: `RowBox`/`ColumnBox` didn't clamp each child's `base` to min/max → a child with `SetMinWidth/Height` pushed its extra space onto a stretching sibling and overflowed the row/column (the slider spilling outside its card). Now `base = clamp(base, min, max)`.
+- **Behaviour**: `ColumnBox`/`RowBox`/`GridLayout` **no longer shrink content** — overflow is left to an outer `ScrollViewer`.
+- **Fix (alignment)**: `GridLayout`'s `SetHorizontalAlignment/SetVerticalAlignment` used `.empty()` (always false) → never applied; now checks "all zero", so `Center/End` work.
+- **Fix (text/IME)**: `TextBox`/`TextEdit` merge **UTF-16 surrogate pairs** (emoji / beyond-BMP) and insert them as one unit; cursor/backspace/delete span the whole pair; **on losing focus** the control clears its own composition state and `Window::ResetImeState()` cancels the program-side IME composition. `SetImeEnabled(false)` also clears composition.
+- **Fix (accessibility)**: `GetAutomationIdOrAuto()` now uses a **per-window** counter (no cross-window collisions); `ElementProviderFromPoint` descends child-before-parent to the deepest hit.
+- **Fix**: data view item/cell `bleedY` reads each element's `GetBleed()`; `indicatorY_` initialised to `-1` (indicator snaps on frame 1); focus ring uses `ThemeRole::FocusRing` + `Theme::cornerRadius`; title-bar buttons take priority over the resize border in `WM_NCHITTEST` (Snap Layouts can appear).
+- **Engineering**: `pch.h` no longer includes the library headers; added `UIElement::MarkUserColor()`; removed dead `ListView::FindEnabledFrom`.
+- **Docs**: `docs/API.md`/`API.en.md`, `docs/pitfalls.md`, `AGENTS.md` synced.
+
 
 ### 2026-10-12 — API debt cleanup (P0–P3): `.with` usability, collision-free factories, RAII theme hooks, one-line scrollable page (v1.22.0)
 

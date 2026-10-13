@@ -1379,7 +1379,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.22.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.22.1
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1461,6 +1461,16 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **新增 · P1-2**：`Page::SetScrollableContent(content)`——一行把整页内容套进 `ScrollViewer` + 边距。
   - **新增 · P1-4**：`ThemeManager::RegisterHook` / `RegisterSubtreeApplier` 返回 **RAII `HookHandle`**（析构自动断开）；库内部固定钩子改用 `RegisterHookPermanent` / `RegisterSubtreeApplierPermanent`。
   - **文档 · P3**：新增 `docs/pitfalls.md`（易错点总表）；`AGENTS.md` 增补「链式构造 / API 约定」。
+- **v1.22.1**：
+  - **修复（布局）**：`RowBox` / `ColumnBox` 的 `ArrangeOverride` 里子元素 `base` **未先夹到 min/max** → 带 `SetMinWidth/Height` 的子元素会把多余空间错误地分给拉伸兄弟，导致整行/列**溢出容器**（典型：标签 `SetMinWidth` + 滑条 `SetFillWidth` → 滑条超长、越出卡片）。现 `base = clamp(base, min, max)` 后再算 leftover。
+  - **行为**：`ColumnBox` / `RowBox` / `GridLayout` **不再“缩小”内容**——空间不足即**溢出**，交由外层 `ScrollViewer` 滚动（桌面 UI 不压缩内容）。`GridLayout` 移除了行高/列宽不足时的等比压缩。
+  - **修复（对齐）**：`GridLayout` 的 `SetHorizontalAlignment/SetVerticalAlignment` 此前因判据 `colStretchWeights.empty()` 恒为空而**永不生效**；改为判“全为 0”，`Center/End` 现在生效（仅在无列/行拉伸权值时）。
+  - **修复（文本/IME）**：`TextBox` / `TextEdit` 合并 **UTF-16 代理对**（emoji/超 BMP）后整段插入；光标 `←/→`、`Backspace`、`Delete` 跨整对。**失焦时**控件清自身组合态，`Window` 统一取消 IME 组合（`ResetImeState()`）——程序/控件两侧输入法状态一起复位。`TextBox::SetImeEnabled(false)` 也清组合态。
+  - **修复（无障碍）**：`GetAutomationIdOrAuto()` 自动编号改为**每窗口**计数（`Window::NextAccessibleAutoId()`），多窗口/多根不再撞号；`ElementProviderFromPoint` **先子后父**下潜到最深命中后代（Label 内嵌控件也能拿到）。
+  - **修复**：数据视图 ListView/TableView/TreeView 的项/单元格摆放 `bleedY` 由固定 `3.0f` 改为读元素自身 `GetBleed()`（阴影/出血不再被切）；`indicatorY_` 初始化改为 `-1`，首帧选中指示条直接就位。
+  - **修复（外观）**：焦点框颜色改用 `ThemeRole::FocusRing`、圆角改用 `Theme::cornerRadius`（原硬编码蓝 + 固定 4）；`WM_NCHITTEST` 里自定义标题栏按钮**优先于缩放边框**（最大化按钮角落不再被 `HTTOPRIGHT` 抢走 → Win11 Snap Layouts 可弹）。
+  - **工程**：`pch.h` 不再包含本库头（改库头不再整份重建 PCH）；新增 `UIElement::MarkUserColor()` 统一 40+ 处“用户设色”标记；删除死代码 `ListView::FindEnabledFrom`。
+  - **文档**：`docs/pitfalls.md` / `AGENTS.md` 持续维护。
 
 ###chapter: 易错点总表 | 按主题速查
 

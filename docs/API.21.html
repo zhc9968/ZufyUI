@@ -245,7 +245,7 @@ pre { line-height: 125%; }
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.22.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.22.1`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
@@ -279,9 +279,19 @@ pre { line-height: 125%; }
   - **新增 · P0-2**：同名 dsl 工厂的**无歧义别名** `make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander`（避开 `using namespace` 同时命中两类时的 C2872）。
   - **新增 · P1-2**：`Page::SetScrollableContent(content)`——一行把整页内容套进 `ScrollViewer` + 边距。
   - **新增 · P1-4**：`ThemeManager::RegisterHook` / `RegisterSubtreeApplier` 返回 **RAII `HookHandle`**（析构自动断开）；库内部固定钩子改用 `RegisterHookPermanent` / `RegisterSubtreeApplierPermanent`。
-  - **文档 · P3**：新增 `docs/pitfalls.md`（易错点总表）；`AGENTS.md` 增补「链式构造 / API 约定」。</pre></div></div>
+  - **文档 · P3**：新增 `docs/pitfalls.md`（易错点总表）；`AGENTS.md` 增补「链式构造 / API 约定」。
+- **v1.22.1**：
+  - **修复（布局）**：`RowBox` / `ColumnBox` 的 `ArrangeOverride` 里子元素 `base` **未先夹到 min/max** → 带 `SetMinWidth/Height` 的子元素会把多余空间错误地分给拉伸兄弟，导致整行/列**溢出容器**（典型：标签 `SetMinWidth` + 滑条 `SetFillWidth` → 滑条超长、越出卡片）。现 `base = clamp(base, min, max)` 后再算 leftover。
+  - **行为**：`ColumnBox` / `RowBox` / `GridLayout` **不再“缩小”内容**——空间不足即**溢出**，交由外层 `ScrollViewer` 滚动（桌面 UI 不压缩内容）。`GridLayout` 移除了行高/列宽不足时的等比压缩。
+  - **修复（对齐）**：`GridLayout` 的 `SetHorizontalAlignment/SetVerticalAlignment` 此前因判据 `colStretchWeights.empty()` 恒为空而**永不生效**；改为判“全为 0”，`Center/End` 现在生效（仅在无列/行拉伸权值时）。
+  - **修复（文本/IME）**：`TextBox` / `TextEdit` 合并 **UTF-16 代理对**（emoji/超 BMP）后整段插入；光标 `←/→`、`Backspace`、`Delete` 跨整对。**失焦时**控件清自身组合态，`Window` 统一取消 IME 组合（`ResetImeState()`）——程序/控件两侧输入法状态一起复位。`TextBox::SetImeEnabled(false)` 也清组合态。
+  - **修复（无障碍）**：`GetAutomationIdOrAuto()` 自动编号改为**每窗口**计数（`Window::NextAccessibleAutoId()`），多窗口/多根不再撞号；`ElementProviderFromPoint` **先子后父**下潜到最深命中后代（Label 内嵌控件也能拿到）。
+  - **修复**：数据视图 ListView/TableView/TreeView 的项/单元格摆放 `bleedY` 由固定 `3.0f` 改为读元素自身 `GetBleed()`（阴影/出血不再被切）；`indicatorY_` 初始化改为 `-1`，首帧选中指示条直接就位。
+  - **修复（外观）**：焦点框颜色改用 `ThemeRole::FocusRing`、圆角改用 `Theme::cornerRadius`（原硬编码蓝 + 固定 4）；`WM_NCHITTEST` 里自定义标题栏按钮**优先于缩放边框**（最大化按钮角落不再被 `HTTOPRIGHT` 抢走 → Win11 Snap Layouts 可弹）。
+  - **工程**：`pch.h` 不再包含本库头（改库头不再整份重建 PCH）；新增 `UIElement::MarkUserColor()` 统一 40+ 处“用户设色”标记；删除死代码 `ListView::FindEnabledFrom`。
+  - **文档**：`docs/pitfalls.md` / `AGENTS.md` 持续维护。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 21 章 · 版本变化摘录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.22.0</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.22.1</p></header><blockquote>
 <p>只列<strong>对你写代码有影响</strong>的显著变化。</p>
 </blockquote>
 <ul>
@@ -328,7 +338,7 @@ pre { line-height: 125%; }
 <li><strong>v1.19.6</strong>：</li>
 <li>修复：<code>ListView</code> 按钮模式下勾选框<strong>命中位置少偏移 4px</strong>（与绘制/子元素左边界对齐）。</li>
 <li>修复：<code>Label::MeasureOverride</code> 的 Wrap 分支<strong>漏算内联子控件宽度</strong>（带 <code>AddChild</code> 的换行 Label 文本会挤压/溢出）。</li>
-<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.22.0</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
+<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.22.1</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
 <li><strong>v1.19.7</strong>：</li>
 <li>修复：<code>ChartBase</code> 横/纵滚动条占位写反（<code>viewW</code> 用竖条、<code>viewH</code> 用横条）→ 最右/最底滚不到；<code>NumberBox</code> 滚轮焦点判断（焦点在内部 <code>TextBox</code>）；<code>lastActiveAnimElements_</code> 悬垂（析构时从动画集合擦除，防随机崩溃）；<code>Menu::ShowAt</code> 非 <code>shared_ptr</code> 时抛 <code>bad_weak_ptr</code>；<code>ChildrenSig</code> 缺 <code>EnsureView</code>；<code>TreeView::SetDefaultExpandDepth</code> 对 <code>AddRoot</code>/<code>AddChild</code> 不生效。</li>
 <li>修复：<code>ColumnBox</code>/<code>RowBox</code> spacing 按“参与布局的子元素数”算；<code>GridLayout</code> 行列数过滤不可见元素；<code>Label</code> 换行漏算子控件宽度 / 多算一个间距；<code>ListView</code>/<code>TableView</code> 释放 Label 前清 <code>childrenView_</code>、补释放池化/富项/单元格 Label；<code>Window::defaultIMC_</code> 改 <code>ImmAssociateContext</code>；<code>DragData::GetFiles</code> 缓冲 <code>len+1</code>；<code>TextEdit</code> 清选区补发 <code>SelectionChanged</code>；<code>MessageBox</code> 默认标题本地化。</li>
@@ -363,6 +373,16 @@ pre { line-height: 125%; }
 <li><strong>新增 · P1-2</strong>：<code>Page::SetScrollableContent(content)</code>——一行把整页内容套进 <code>ScrollViewer</code> + 边距。</li>
 <li><strong>新增 · P1-4</strong>：<code>ThemeManager::RegisterHook</code> / <code>RegisterSubtreeApplier</code> 返回 <strong>RAII <code>HookHandle</code></strong>（析构自动断开）；库内部固定钩子改用 <code>RegisterHookPermanent</code> / <code>RegisterSubtreeApplierPermanent</code>。</li>
 <li><strong>文档 · P3</strong>：新增 <code>docs/pitfalls.md</code>（易错点总表）；<code>AGENTS.md</code> 增补「链式构造 / API 约定」。</li>
+<li><strong>v1.22.1</strong>：</li>
+<li><strong>修复（布局）</strong>：<code>RowBox</code> / <code>ColumnBox</code> 的 <code>ArrangeOverride</code> 里子元素 <code>base</code> <strong>未先夹到 min/max</strong> → 带 <code>SetMinWidth/Height</code> 的子元素会把多余空间错误地分给拉伸兄弟，导致整行/列<strong>溢出容器</strong>（典型：标签 <code>SetMinWidth</code> + 滑条 <code>SetFillWidth</code> → 滑条超长、越出卡片）。现 <code>base = clamp(base, min, max)</code> 后再算 leftover。</li>
+<li><strong>行为</strong>：<code>ColumnBox</code> / <code>RowBox</code> / <code>GridLayout</code> <strong>不再“缩小”内容</strong>——空间不足即<strong>溢出</strong>，交由外层 <code>ScrollViewer</code> 滚动（桌面 UI 不压缩内容）。<code>GridLayout</code> 移除了行高/列宽不足时的等比压缩。</li>
+<li><strong>修复（对齐）</strong>：<code>GridLayout</code> 的 <code>SetHorizontalAlignment/SetVerticalAlignment</code> 此前因判据 <code>colStretchWeights.empty()</code> 恒为空而<strong>永不生效</strong>；改为判“全为 0”，<code>Center/End</code> 现在生效（仅在无列/行拉伸权值时）。</li>
+<li><strong>修复（文本/IME）</strong>：<code>TextBox</code> / <code>TextEdit</code> 合并 <strong>UTF-16 代理对</strong>（emoji/超 BMP）后整段插入；光标 <code>←/→</code>、<code>Backspace</code>、<code>Delete</code> 跨整对。<strong>失焦时</strong>控件清自身组合态，<code>Window</code> 统一取消 IME 组合（<code>ResetImeState()</code>）——程序/控件两侧输入法状态一起复位。<code>TextBox::SetImeEnabled(false)</code> 也清组合态。</li>
+<li><strong>修复（无障碍）</strong>：<code>GetAutomationIdOrAuto()</code> 自动编号改为<strong>每窗口</strong>计数（<code>Window::NextAccessibleAutoId()</code>），多窗口/多根不再撞号；<code>ElementProviderFromPoint</code> <strong>先子后父</strong>下潜到最深命中后代（Label 内嵌控件也能拿到）。</li>
+<li><strong>修复</strong>：数据视图 ListView/TableView/TreeView 的项/单元格摆放 <code>bleedY</code> 由固定 <code>3.0f</code> 改为读元素自身 <code>GetBleed()</code>（阴影/出血不再被切）；<code>indicatorY_</code> 初始化改为 <code>-1</code>，首帧选中指示条直接就位。</li>
+<li><strong>修复（外观）</strong>：焦点框颜色改用 <code>ThemeRole::FocusRing</code>、圆角改用 <code>Theme::cornerRadius</code>（原硬编码蓝 + 固定 4）；<code>WM_NCHITTEST</code> 里自定义标题栏按钮<strong>优先于缩放边框</strong>（最大化按钮角落不再被 <code>HTTOPRIGHT</code> 抢走 → Win11 Snap Layouts 可弹）。</li>
+<li><strong>工程</strong>：<code>pch.h</code> 不再包含本库头（改库头不再整份重建 PCH）；新增 <code>UIElement::MarkUserColor()</code> 统一 40+ 处“用户设色”标记；删除死代码 <code>ListView::FindEnabledFrom</code>。</li>
+<li><strong>文档</strong>：<code>docs/pitfalls.md</code> / <code>AGENTS.md</code> 持续维护。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.20.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a><a class="next" href="API.22.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">易错点总表</span><span class="nav-desc">按主题速查</span></a></nav>
         </main>

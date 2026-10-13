@@ -193,7 +193,19 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 
 ## 更新日志
 
-> 当前版本：**1.22.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.22.1**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-13 — Tier 0 修复：布局溢出/对齐、IME、无障碍、外观/工程（v1.22.1）
+
+- **修复（布局）**：`RowBox`/`ColumnBox` 里子元素 `base` 未夹到 min/max → 带 `SetMinWidth/Height` 的子元素把多余空间错误分给拉伸兄弟、整行/列溢出（滑条超出卡片就是这个）。现 `base` 先 `clamp(base,min,max)`。
+- **行为**：`ColumnBox`/`RowBox`/`GridLayout` **不再缩小内容**，空间不足即溢出、交给外层 `ScrollViewer`。
+- **修复（对齐）**：`GridLayout` 的 `SetHorizontalAlignment/SetVerticalAlignment` 判据写错（`.empty()` 恒假）→ 永不生效；改为“全为 0”判断，`Center/End` 生效。
+- **修复（文本/IME）**：`TextBox`/`TextEdit` 合并 **UTF-16 代理对**（emoji/超 BMP）整段插入，光标/退格/删除跨整对；**失焦时**控件清自身组合态 + `Window::ResetImeState()` 取消程序侧 IME 组合。`SetImeEnabled(false)` 也清组合态。
+- **修复（无障碍）**：`GetAutomationIdOrAuto()` 改**每窗口**计数（不再跨窗口撞号）；`ElementProviderFromPoint` 先子后父下潜到最深命中。
+- **修复**：数据视图项/单元格 `bleedY` 读元素自身 `GetBleed()`；`indicatorY_` 初始化 `-1`（首帧指示条就位）；焦点框用 `ThemeRole::FocusRing` + `Theme::cornerRadius`；`WM_NCHITTEST` 里标题栏按钮优先于缩放边框（Snap Layouts 可弹）。
+- **工程**：`pch.h` 不再含库头；新增 `UIElement::MarkUserColor()`；删死代码 `ListView::FindEnabledFrom`。
+- **文档**：`docs/API.md`/`API.en.md` 版本摘录、`docs/pitfalls.md`、`AGENTS.md` 同步。
+
 
 ### 2026-10-12 — API 债整理（P0~P3）：`.with` 可用性、无歧义工厂、RAII 主题钩子、整页滚动（v1.22.0）
 
