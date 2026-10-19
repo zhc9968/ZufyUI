@@ -1172,6 +1172,45 @@ bool RegisterApp(const AppInfo&);     // 或 Application::Instance().RegisterApp
 ```
 - 默认只设 AUMID（零文件/注册表副作用）；定义 `ZUFYUI_ALLOW_APP_REGISTRATION` 才会写 `%LOCALAPPDATA%\ZufyUI\AppReg\...` 与 `HKCU\...\AppUserModelId`（让 Win10/11 toast 显示应用名/图标），退出自动清理。
 
+## 原生窗口宿主 — `HwndView`（v1.23.0）
+
+> 头文件 `ZufyUIHwndView.h`（`ZufyUIWindowTool.h` 末尾会包含）。用于把 WebView2 的 HWND controller、摄像头/采集窗口、第三方原生控件、进程外窗口嵌进 ZufyUI 布局。
+
+```cpp
+class HwndView : public UIElement {
+public:
+    explicit HwndView(HWND owner, bool activate = false);
+    HWND GetHostHwnd() const;
+    void SetContentHwnd(HWND external, bool own = false);
+    HWND GetContentHwnd() const;
+    void SetObscured(bool on);
+    bool IsObscured() const;
+    void SetOnBoundsChanged(std::function<void(HWND, int, int)>);
+};
+```
+
+- 实现：创建一个**普通 Win32 顶层 owned 弹窗**作为宿主；`SetContentHwnd` 会把外部 HWND `SetParent` 成它的 `WS_CHILD`（可跨线程/跨进程）并显式显示。移动/缩放宿主时子窗口由系统一起走；宿主客户区负责裁剪，再叠加 `SetWindowRgn`（元素矩形 ∩ 主窗口客户区 ∩ 所有祖先 `GetClipRect`，含 `ScrollViewer` 视口）。
+- **`易错`**：主窗口是 `WS_EX_NOREDIRECTIONBITMAP + DComp`，**子 HWND 不会被合成**，不能用普通子控件；`HwndView` 是 **airspace 浮窗**——永远在主窗口内容之上、窗口内自绘的下拉/ToolTip 压不住它（菜单是独立顶层窗口，不受影响）。
+- **`约定`**：需要“内容进合成、无 airspace”的网页/视频 → 用下面的 `CreateExternalVisual` / WebView2 `CompositionController`。
+
+## 外部视觉挂载 — `Window::CreateExternalVisual`（v1.23.0）
+
+适合 WebView2 CompositionController、视频/采集等**能渲染进 DComp** 的内容。
+
+```cpp
+IUnknown* Window::CreateExternalVisual();
+void Window::SetExternalVisualBounds(IUnknown* visual, float x, float y, float w, float h);
+void Window::RemoveExternalVisual(IUnknown* visual);
+int  Window::AddOverlaySync(std::function<void()>);
+void Window::RemoveOverlaySync(int id);
+void Window::SyncOverlays();
+```
+
+- 返回一个 WinRT `ContainerVisual`（已插到根视觉最上层），交给 `controller->put_RootVisualTarget(visual)`；元素 `Arrange` 时用 `SetExternalVisualBounds` 设位置/尺寸（DIP，内部换算物理像素）。
+- `AddOverlaySync/RemoveOverlaySync/SyncOverlays` 供 `HwndView` 等“外部窗口宿主”注册同步回调，一般无需直接调用。
+- **`易错`**：设备丢失/重建后视觉树会重建 → 监听 `Window::DeviceLost`，重新 `CreateExternalVisual` 并重挂。
+
+
 ###chapter: 拖放与卡片组件 | Drag & Drop、Expander、SettingsList（v1.19.0）
 
 > 拖放由 `ZufyUIDragDrop.h` 提供（`ZufyUI.h` 末尾已包含）。应用内默认 MOVE，跨应用 COPY。
@@ -1379,7 +1418,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.22.1
+###chapter: 版本变化摘录 | v1.15.0 → v1.23.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1471,6 +1510,13 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **修复（外观）**：焦点框颜色改用 `ThemeRole::FocusRing`、圆角改用 `Theme::cornerRadius`（原硬编码蓝 + 固定 4）；`WM_NCHITTEST` 里自定义标题栏按钮**优先于缩放边框**（最大化按钮角落不再被 `HTTOPRIGHT` 抢走 → Win11 Snap Layouts 可弹）。
   - **工程**：`pch.h` 不再包含本库头（改库头不再整份重建 PCH）；新增 `UIElement::MarkUserColor()` 统一 40+ 处“用户设色”标记；删除死代码 `ListView::FindEnabledFrom`。
   - **文档**：`docs/pitfalls.md` / `AGENTS.md` 持续维护。
+- **v1.23.0**：
+  - **新增 · `ZufyUIHwndView.h`（`HwndView`）**：原生 HWND 内容宿主。主窗口是 NRB+DComp（子 HWND 不合成），故用**顶层 owned 弹窗**作宿主；`SetContentHwnd` 把外部窗口 `SetParent` 成宿主的 `WS_CHILD`（可跨进程）并显式显示。宿主移动时子窗口由系统一起走；裁剪 = 宿主客户区 + `SetWindowRgn`（元素矩形 ∩ 主窗口 ∩ 祖先 `GetClipRect`，含 `ScrollViewer` 视口）。支持 `SetObscured`、`SetOnBoundsChanged`、`SetFill*`。
+  - **新增 · `Window` 外部视觉挂载**：`CreateExternalVisual()`（WinRT `ContainerVisual`，插根视觉最上层，供 WebView2 `put_RootVisualTarget`）、`SetExternalVisualBounds`（DIP→物理像素）、`RemoveExternalVisual`；`AddOverlaySync/RemoveOverlaySync/SyncOverlays`（浮窗统一同步）。
+  - **性能**：浮窗同步改为**窗口级单点**（`WM_MOVE/WM_SIZE/WM_DPICHANGED` 立即同步 + 共享 16ms 兜底），去掉每实例定时器；缓存 DPI/客户区；跳过冗余 `SetWindowPos`、按变化带 `SWP_NOSIZE/NOMOVE`；demo 全色图静态部分缓存 DIB。
+  - **修复 · `NumberBox`**：空文本错误态在文本恢复为**合法数值**时清除；`ResetToDefault` 在通知应用后强制清错误；步进/清除按钮改为**按下即触发**（不再用会变化的矩形二次判定，修复点 × 后仍红）。
+  - **修复 · 数据视图填充**：`ListView`/`TableView`/`TreeView` 的 `MeasureOverride` 认 `SetFillWidth/SetFillHeight`（与图表一致），不再固定返回默认 200/400。
+  - **demo**：新增「原生HWND」页（GDI 全色图 + Card/Grid/Column/ScrollViewer 多布局 + 进程外 `--outproc` 生产者窗口托管）。
 
 ###chapter: 易错点总表 | 按主题速查
 

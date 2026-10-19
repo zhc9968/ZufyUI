@@ -88,9 +88,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 22
-#define ZufyUI_VERSION_PATCH 1
-#define ZufyUI_VERSION_STRING L"1.22.1"
+#define ZufyUI_VERSION_MINOR 23
+#define ZufyUI_VERSION_PATCH 0
+#define ZufyUI_VERSION_STRING L"1.23.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -1887,7 +1887,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 // 易错：没有显式宽度(width_<=0)的子元素按**可用宽**测量/摆放 → 会被“隐式拉满”。
                 //   想按内容收窄：放进 Row，或显式 SetWidth；想拉满：可继续依赖此行为或显式 SetFillWidth(true)。
                 float childW = child->GetWidth() > 0 ? child->GetWidth() : availW;
-                if (child->GetFillWidth()) childW = availW;
+                if (child->GetFillWidth() || child->GetHorizontalStretchWeightRaw() > 0.0f) childW = availW;   // 交叉轴也认拉伸权值
                 childW = clamp(childW, child->GetMinWidth(), child->GetMaxWidth());
                 Size childSize = child->Measure(Size(childW, FLT_MAX));   // 与 Arrange 同一约束，使 GetDesiredSize 可信
                 totalHeight += childSize.height;
@@ -1910,7 +1910,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 Thickness m = child->GetMargin();
                 float availW = finalRect.width - m.left - m.right;
                 float childW = child->GetWidth() > 0 ? child->GetWidth() : availW;
-                if (child->GetFillWidth()) childW = availW;
+                if (child->GetFillWidth() || child->GetHorizontalStretchWeightRaw() > 0.0f) childW = availW;   // 交叉轴也认拉伸权值
                 childW = clamp(childW, child->GetMinWidth(), child->GetMaxWidth());
                 float base = child->GetHeight() > 0 ? child->GetHeight() : child->GetDesiredSize().height;
                 base = clamp(base, child->GetMinHeight(), child->GetMaxHeight());   // 先夹到 min/max 再算 leftover（否则 minHeight+拉伸子元素会溢出）
@@ -2011,7 +2011,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 Thickness m = child->GetMargin();
                 float availH = availableSize.height - m.top - m.bottom;
                 float childH = child->GetHeight() > 0 ? child->GetHeight() : availH;
-                if (child->GetFillHeight()) childH = availH;
+                if (child->GetFillHeight() || child->GetVerticalStretchWeightRaw() > 0.0f) childH = availH;   // 交叉轴也认拉伸权值
                 childH = clamp(childH, child->GetMinHeight(), child->GetMaxHeight());
                 Size childSize = child->Measure(Size(FLT_MAX, childH));   // 与 Arrange 同一约束
                 totalWidth += childSize.width;
@@ -2034,7 +2034,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 Thickness m = child->GetMargin();
                 float availH = finalRect.height - m.top - m.bottom;
                 float childH = child->GetHeight() > 0 ? child->GetHeight() : availH;
-                if (child->GetFillHeight()) childH = availH;
+                if (child->GetFillHeight() || child->GetVerticalStretchWeightRaw() > 0.0f) childH = availH;   // 交叉轴也认拉伸权值
                 childH = clamp(childH, child->GetMinHeight(), child->GetMaxHeight());
                 float base = child->GetWidth() > 0 ? child->GetWidth() : child->GetDesiredSize().width;
                 base = clamp(base, child->GetMinWidth(), child->GetMaxWidth());   // 先夹到 min/max 再算 leftover（否则 minWidth+拉伸子元素会溢出）
@@ -3410,6 +3410,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void ClearFrameworkTimers();
         std::unordered_map<UINT_PTR, Timer*> frameworkTimers_;
         UINT_PTR nextFrameworkTimerId_ = 0x7F00;   // 框架定时器 id 段（避开库内部 1/应用自定义）
+        std::vector<std::pair<int, std::function<void()>>> overlaySync_;   // 外部浮窗同步回调（HwndView）
+        int nextOverlaySyncId_ = 0;
+        inline static constexpr UINT_PTR kOverlaySyncTimer = 0x7E01;
     public:
 
         // 窗口尺寸变化钩子（WM_SIZE）；用于依赖客户区宽度的收尾布局（如弹窗按钮靠右）
@@ -3474,6 +3477,62 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool IsAccessibilityEnabled() const { return accessibilityEnabled_; }
         // 每窗口一个自动化 ID 计数器（未显式设 AutomationId 的元素自动编号 e1/e2…）；避免多窗口/多根全局撞号
         unsigned NextAccessibleAutoId() { return ++accessibleAutoIdCounter_; }
+
+        void SyncOverlays() { for (auto& e : overlaySync_) if (e.second) e.second(); }
+        // 外部浮窗同步注册（HwndView 用）：由 WM_MOVE/WM_SIZE/WM_DPICHANGED 及兜底定时器统一驱动
+        int AddOverlaySync(std::function<void()> fn) {
+            if (!fn) return 0;
+            int id = ++nextOverlaySyncId_;
+            overlaySync_.push_back({ id, std::move(fn) });
+            if (hwnd_ && overlaySync_.size() == 1) SetTimer(hwnd_, kOverlaySyncTimer, 16, nullptr);
+            return id;
+        }
+        void RemoveOverlaySync(int id) {
+            overlaySync_.erase(std::remove_if(overlaySync_.begin(), overlaySync_.end(),
+                [id](const std::pair<int, std::function<void()>>& e) { return e.first == id; }), overlaySync_.end());
+            if (hwnd_ && overlaySync_.empty()) KillTimer(hwnd_, kOverlaySyncTimer);
+        }
+
+        // ---- 外部视觉挂载（给 WebView2 CompositionController / 视频等“渲染进 DComp 树”的内容）----
+        //   返回一个 WinRT ContainerVisual（IUnknown*，已作为根视觉的子级插在最上层），
+        //   交给外部（如 ICoreWebView2CompositionController::put_RootVisualTarget）即可。
+        //   注意：①坐标按**物理像素**处理（DIP * dpi/96 由 SetExternalVisualBounds 完成）；
+        //        ②设备丢失/重建后视觉树会被重建，需要重新创建并重新挂载（监听 Window::DeviceLost）；
+        //        ③它属于 DComp 视觉，会盖在 ZufyUI 自绘内容之上（菜单/下拉是独立窗口，不受影响）。
+        IUnknown* CreateExternalVisual() {
+            if (!compositor_ || !rootVisual_) return nullptr;
+            Microsoft::WRL::ComPtr<IContainerVisual> cv;
+            if (FAILED(compositor_->CreateContainerVisual(&cv)) || !cv) return nullptr;
+            Microsoft::WRL::ComPtr<IVisual> v;
+            if (FAILED(cv.As(&v))) return nullptr;
+            Microsoft::WRL::ComPtr<IContainerVisual> rootc;
+            if (FAILED(rootVisual_->QueryInterface(IID_PPV_ARGS(&rootc)))) return nullptr;
+            Microsoft::WRL::ComPtr<IVisualCollection> children;
+            if (FAILED(rootc->get_Children(&children))) return nullptr;
+            children->InsertAtTop(v.Get());
+            IUnknown* out = nullptr;
+            v->QueryInterface(IID_PPV_ARGS(&out));
+            return out;   // 调用方负责 Release
+        }
+        // 用元素矩形（客户区 DIP）设置外部视觉的位置/尺寸（内部换算物理像素）
+        void SetExternalVisualBounds(IUnknown* visual, float xDip, float yDip, float wDip, float hDip) {
+            if (!visual) return;
+            Microsoft::WRL::ComPtr<IVisual> v;
+            if (FAILED(visual->QueryInterface(IID_PPV_ARGS(&v)))) return;
+            float s = (dpi_ > 0) ? (dpi_ / 96.0f) : 1.0f;
+            v->put_Offset({ xDip * s, yDip * s, 0.0f });
+            v->put_Size({ max(1.0f, wDip * s), max(1.0f, hDip * s) });
+        }
+        void RemoveExternalVisual(IUnknown* visual) {
+            if (!visual || !rootVisual_) return;
+            Microsoft::WRL::ComPtr<IVisual> v;
+            if (FAILED(visual->QueryInterface(IID_PPV_ARGS(&v)))) return;
+            Microsoft::WRL::ComPtr<IContainerVisual> rootc;
+            if (FAILED(rootVisual_->QueryInterface(IID_PPV_ARGS(&rootc)))) return;
+            Microsoft::WRL::ComPtr<IVisualCollection> children;
+            if (FAILED(rootc->get_Children(&children))) return;
+            children->Remove(v.Get());
+        }
         UIElement* GetFocusedElement() const { return focusedElement_; }
         UIElement* GetHoveredElement() const { return currentHovered_; }
         UIElement* GetPressedElement() const { return pressedElement_; }
@@ -4608,6 +4667,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 break;   // 交给 DefWindowProc 真正设置窗口标题
             case WM_MOVE:
                 UpdateWallpaperLayer();   // 手动背景：只挪图层 Offset，不重画 -> 实时跟手
+                SyncOverlays();           // 外部浮窗立即跟随窗口移动（不再等 16ms 定时器）
                 return 0;
             case WM_SIZE:
                 UpdateTimerState();
@@ -4630,8 +4690,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 }
                 if (IsIconic(hwnd_)) {
                     if (currentHovered_) { currentHovered_->OnMouseLeave(); currentHovered_ = nullptr; }
+                    SyncOverlays();               // 最小化时让浮窗自行隐藏
                     return 0;
                 }
+                SyncOverlays();                   // 尺寸变化 → 浮窗立即跟随
                 {
                     RECT rc; GetClientRect(hwnd_, &rc);
                     UINT nw = (UINT)(rc.right - rc.left), nh = (UINT)(rc.bottom - rc.top);
@@ -4713,6 +4775,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 layoutNeeded_ = true;
                 layoutInvalidated_ = true;
                 InvalidateRect(hwnd_, nullptr, FALSE);
+                SyncOverlays();           // DPI 变化 → 浮窗按新 DPI 重新定位
                 return 0;
             }
             case WM_DISPLAYCHANGE: InvalidateRect(hwnd_, nullptr, FALSE); UpdateTimerState(); return 0;
@@ -4728,6 +4791,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
 #endif
             case WM_TIMER:
+                if (wParam == kOverlaySyncTimer) { SyncOverlays(); return 0; }   // 浮窗兜底同步（16ms）
                 if (OnWindowTimer((int)wParam)) return 0;
                 if (frameworkTimers_.count((UINT_PTR)wParam)) { FireFrameworkTimer((UINT_PTR)wParam); return 0; }
                 if (wParam == 1) {

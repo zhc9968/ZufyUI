@@ -5510,9 +5510,10 @@ namespace ZufyUI {
             text_->Connect(text_->TextChanged, [this](const std::wstring& s) {
                 if (updating_) return;                        // 程序性同步不触发校验
                 edited_ = true;
-                // 空文本 = 空集，不属于任何数值（也超出范围）→ 控件层面直接标错误
+                // 空文本 = 空集，不属于任何数值（也超出范围）→ 控件层面直接标错误；
+                // 合法数值则**清掉**“空/非法”错误（否则空过一次、之后变合法仍一直红）
                 if (s.empty()) { text_->SetError(true); }
-                else { wchar_t* e = nullptr; wcstod(s.c_str(), &e); if (!e || *e != L'\0') text_->SetError(true); }
+                else { wchar_t* e = nullptr; wcstod(s.c_str(), &e); text_->SetError(!e || *e != L'\0'); }
                 InvalidateLayout();   // 重置按钮显隐会改变按钮区宽度 → 叠加层需重排
                 RequestRepaint();
                 TextChanged(s);
@@ -5539,7 +5540,10 @@ namespace ZufyUI {
             void OnMouseEnter() override { hover_ = true; RequestRepaint(); }
             void OnMouseLeave() override { hover_ = false; pressed_ = false; RequestRepaint(); }
             void OnMouseDown(float, float) override { pressed_ = true; }
-            void OnMouseUp(float x, float y) override { if (pressed_ && arrangedRect_.Contains(x, y) && owner) owner->OnSpinButton(kind); pressed_ = false; }
+            // 松手即触发（只要按下过）。**不再**用 arrangedRect_.Contains 二次判定 ——
+            //   点“清除×”时按下会使输入框失焦并 CommitText，可能让 × 立刻隐藏、矩形归零，
+            //   导致这里判定失败、ResetToDefault 不执行（错误态清不掉）。拖离取消由 OnMouseLeave 负责。
+            void OnMouseUp(float, float) override { bool fire = pressed_; pressed_ = false; if (fire && owner) owner->OnSpinButton(kind); }
             void UpdateAnimation(float dt) override {
                 float t = hover_ ? 1.0f : 0.0f;
                 if (fabs(t - hoverProg_) > 0.001f) {
@@ -5634,9 +5638,9 @@ namespace ZufyUI {
         double GetDefaultValue() const { return default_; }
         void ResetToDefault() {
             SetValue(default_);
-            if (text_) text_->SetError(false);   // 恢复默认后必须清错误态，否则一直红着
             std::wstring t = text_ ? text_->GetText() : std::wstring();
-            TextChanged(t);                      // 通知应用重新校验
+            TextChanged(t);                      // 先通知应用重新校验
+            if (text_) text_->SetError(false);   // 放最后强制清：恢复默认一定是合法值 → 必须不红（压过任何残留错误态）
         }
         bool IsDefaultValue() const { return fabs(value_ - default_) < 1e-9; }
         // 重置按钮是否显示：按"当前输入框文本"实时判断（不是已提交的缓存值），所以输入过程中就会显示

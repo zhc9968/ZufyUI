@@ -527,7 +527,13 @@ namespace ZufyUI {
         float GetDefaultVerticalStretchWeight() const override { return DefaultVerticalStretchWeight; }
         bool IsFocusable() const override { return true; }
 
-        Size MeasureOverride(const Size& availableSize) override { return Size(width_, height_); }
+        Size MeasureOverride(const Size& availableSize) override {
+            // 与图表一致：认 SetFillWidth/Height，有有限可用空间就填满；否则用显式/默认尺寸。
+            // （原来直接 return Size(width_,height_) → 自身不填充，只能靠父容器拉伸权值撑大）
+            float w = (GetFillWidth()  && availableSize.width  != FLT_MAX && availableSize.width  > 0.0f) ? availableSize.width  : width_;
+            float h = (GetFillHeight() && availableSize.height != FLT_MAX && availableSize.height > 0.0f) ? availableSize.height : height_;
+            return Size(w, h);
+        }
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
@@ -1956,7 +1962,13 @@ namespace ZufyUI {
         float GetDefaultVerticalStretchWeight() const override { return DefaultVerticalStretchWeight; }
         bool IsFocusable() const override { return true; }
 
-        Size MeasureOverride(const Size& availableSize) override { return Size(width_, height_); }
+        Size MeasureOverride(const Size& availableSize) override {
+            // 与图表一致：认 SetFillWidth/Height，有有限可用空间就填满；否则用显式/默认尺寸。
+            // （原来直接 return Size(width_,height_) → 自身不填充，只能靠父容器拉伸权值撑大）
+            float w = (GetFillWidth()  && availableSize.width  != FLT_MAX && availableSize.width  > 0.0f) ? availableSize.width  : width_;
+            float h = (GetFillHeight() && availableSize.height != FLT_MAX && availableSize.height > 0.0f) ? availableSize.height : height_;
+            return Size(w, h);
+        }
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
@@ -3809,7 +3821,10 @@ namespace ZufyUI {
         bool IsFocusable() const override { return true; }
 
         Size MeasureOverride(const Size& availableSize) override {
-            return Size(width_, height_);
+            // 同 ListView/TableView：认 fill，有有限可用空间就填满
+            float w = (GetFillWidth()  && availableSize.width  != FLT_MAX && availableSize.width  > 0.0f) ? availableSize.width  : width_;
+            float h = (GetFillHeight() && availableSize.height != FLT_MAX && availableSize.height > 0.0f) ? availableSize.height : height_;
+            return Size(w, h);
         }
 
         void ArrangeOverride(const Rect& finalRect) override {

@@ -14,7 +14,7 @@ namespace {
     inline const wchar_t* kPageNames[] = {
         L"首页", L"基础控件", L"输入与滚动", L"嵌套与联动", L"列表视图", L"表格视图",
         L"树形视图", L"树形增强", L"图像", L"多窗口", L"窗口属性", L"新控件A", L"新控件B",
-        L"多行文本", L"条形图", L"折线图", L"饼图", L"拖放", L"设置卡片", L"主题", L"DSL", L"环境组合"
+        L"多行文本", L"条形图", L"折线图", L"饼图", L"拖放", L"设置卡片", L"主题", L"DSL", L"环境组合", L"原生HWND"
     };
     inline constexpr int kPageCount = (int)(sizeof(kPageNames) / sizeof(kPageNames[0]));
 
@@ -66,6 +66,158 @@ namespace {
         else       { MessageBox box(title, text, MessageBox::Icon::None, FastButton::OK); }
     }
 
+    // ---- 原生 HWND 测试：GDI 画「全色条 + 彩虹渐变 + 移动扫描线」；静态部分缓存到 DIB，每帧只 BitBlt ----
+    struct NativeHostPaint {
+        int tick = 0; HFONT font = nullptr; int seed = 0; bool quitOnDestroy = false;
+        HDC memDC = nullptr; HBITMAP memBmp = nullptr; HGDIOBJ oldBmp = nullptr;
+        int bw = 0, bh = 0; bool patternValid = false;
+    };
+
+    inline void HsvToRgb(float h, int& r, int& g, int& b) {   // h in [0,1)
+        float s = 1.0f, v = 1.0f;
+        float c = v * s, x = c * (1 - fabsf(fmodf(h * 6.0f, 2.0f) - 1)), m = v - c;
+        float rr = 0, gg = 0, bb = 0;
+        int i = (int)(h * 6.0f) % 6;
+        switch (i) {
+        case 0: rr = c; gg = x; break;
+        case 1: rr = x; gg = c; break;
+        case 2: gg = c; bb = x; break;
+        case 3: gg = x; bb = c; break;
+        case 4: rr = x; bb = c; break;
+        default: rr = c; bb = x; break;
+        }
+        r = (int)((rr + m) * 255); g = (int)((gg + m) * 255); b = (int)((bb + m) * 255);
+    }
+
+    inline LRESULT CALLBACK NativeHostProc(HWND h, UINT m, WPARAM w, LPARAM l) {
+        auto* st = reinterpret_cast<NativeHostPaint*>(GetWindowLongPtrW(h, GWLP_USERDATA));
+        switch (m) {
+        case WM_PAINT: {
+            PAINTSTRUCT ps; HDC dc = BeginPaint(h, &ps);
+            RECT rc; GetClientRect(h, &rc);
+            if (st && rc.right > 0 && rc.bottom > 0) {
+                if (!st->memDC) { HDC sdc = GetDC(h); st->memDC = CreateCompatibleDC(sdc); ReleaseDC(h, sdc); }
+                if (st->bw != rc.right || st->bh != rc.bottom) {   // 尺寸变 → 重建缓存位图
+                    if (st->oldBmp) { SelectObject(st->memDC, st->oldBmp); st->oldBmp = nullptr; }
+                    if (st->memBmp) { DeleteObject(st->memBmp); st->memBmp = nullptr; }
+                    BITMAPINFO bmi{};
+                    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+                    bmi.bmiHeader.biWidth = rc.right;
+                    bmi.bmiHeader.biHeight = -rc.bottom;   // top-down
+                    bmi.bmiHeader.biPlanes = 1;
+                    bmi.bmiHeader.biBitCount = 32;
+                    bmi.bmiHeader.biCompression = BI_RGB;
+                    void* bits = nullptr;
+                    st->memBmp = CreateDIBSection(st->memDC, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
+                    if (st->memBmp) st->oldBmp = SelectObject(st->memDC, st->memBmp);
+                    st->bw = rc.right; st->bh = rc.bottom; st->patternValid = false;
+                }
+                if (st->bw > 0 && st->bh > 0) {
+                    if (!st->patternValid) {   // 静态图案只画一次（全色条 + 彩虹渐变）
+                        static const COLORREF kCols[8] = { RGB(255,0,0), RGB(0,255,0), RGB(0,0,255), RGB(0,255,255),
+                                                           RGB(255,0,255), RGB(255,255,0), RGB(255,255,255), RGB(0,0,0) };
+                        int topH = st->bh * 2 / 3, barW = (st->bw + 7) / 8;
+                        for (int i = 0; i < 8; ++i) {
+                            HBRUSH b = CreateSolidBrush(kCols[(i + st->seed) & 7]);
+                            RECT r{ i * barW, 0, min(st->bw, (i + 1) * barW), topH };
+                            FillRect(st->memDC, &r, b); DeleteObject(b);
+                        }
+                        int gh = max(1, st->bh - topH);
+                        for (int y = topH; y < st->bh; ++y) {
+                            int rr, gg, bb; HsvToRgb((float)(y - topH) / gh, rr, gg, bb);
+                            HBRUSH b = CreateSolidBrush(RGB(rr, gg, bb));
+                            RECT r{ 0, y, st->bw, y + 1 };
+                            FillRect(st->memDC, &r, b); DeleteObject(b);
+                        }
+                        st->patternValid = true;
+                    }
+                    if (st->memBmp) BitBlt(dc, 0, 0, st->bw, st->bh, st->memDC, 0, 0, SRCCOPY);
+                }
+                // 动态部分：移动扫描线 + tick 文本
+                int sx = (st->tick * 5 + st->seed * 41) % max(1, rc.right);
+                HPEN pen = CreatePen(PS_SOLID, 3, RGB(255, 255, 255));
+                HGDIOBJ old = SelectObject(dc, pen);
+                MoveToEx(dc, sx, 0, nullptr); LineTo(dc, sx, rc.bottom);
+                SelectObject(dc, old); DeleteObject(pen);
+                if (st->font) {
+                    SelectObject(dc, st->font); SetBkMode(dc, TRANSPARENT); SetTextColor(dc, RGB(0, 0, 0));
+                    wchar_t buf[160];
+                    swprintf(buf, 160, L"HWND #%d   %d×%d px   tick=%d", st->seed, rc.right, rc.bottom, st->tick);
+                    DrawTextW(dc, buf, -1, &rc, DT_LEFT | DT_TOP | DT_SINGLELINE);
+                }
+            }
+            EndPaint(h, &ps);
+            return 0;
+        }
+        case WM_ERASEBKGND: return 1;
+        case WM_TIMER: if (st) { st->tick++; InvalidateRect(h, nullptr, FALSE); } return 0;
+        case WM_DESTROY: if (st && st->quitOnDestroy) PostQuitMessage(0); break;
+        case WM_NCDESTROY:
+            if (st) {
+                if (st->oldBmp) { SelectObject(st->memDC, st->oldBmp); st->oldBmp = nullptr; }
+                if (st->memBmp) { DeleteObject(st->memBmp); st->memBmp = nullptr; }
+                if (st->memDC) { DeleteDC(st->memDC); st->memDC = nullptr; }
+                if (st->font) DeleteObject(st->font);
+                delete st;
+                SetWindowLongPtrW(h, GWLP_USERDATA, 0);
+            }
+            break;
+        }
+        return DefWindowProcW(h, m, w, l);
+    }
+
+    // 建一个自绘的全色图窗口（顶层 popup），交给 HwndView 定位托管（不改 HwndView 的 WNDPROC）
+    inline HWND CreateNativePaintWindow(HWND owner, int seed) {
+        static const wchar_t* kClass = L"ZufyUI_NativePaint";
+        static bool registered = false;
+        if (!registered) {
+            WNDCLASSEXW wc{};
+            wc.cbSize = sizeof(wc);
+            wc.lpfnWndProc = NativeHostProc;
+            wc.hInstance = GetModuleHandle(nullptr);
+            wc.lpszClassName = kClass;
+            wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+            RegisterClassExW(&wc);
+            registered = true;
+        }
+        HWND h = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, kClass, L"", WS_POPUP,
+            0, 0, 1, 1, owner, nullptr, GetModuleHandle(nullptr), nullptr);
+        if (!h) return nullptr;
+        auto* st = new NativeHostPaint();
+        st->seed = seed;
+        st->font = CreateFontW(-15, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+        SetWindowLongPtrW(h, GWLP_USERDATA, (LONG_PTR)st);
+        SetTimer(h, 1, 100, nullptr);
+        return h;
+    }
+
+    // 进程外生产者：由同一个 exe 的 --outproc 分支启动，创建独立进程里的窗口（自己画全色图）。
+    inline int RunOutProcProducer() {
+        WNDCLASSEXW wc{};
+        wc.cbSize = sizeof(wc);
+        wc.lpfnWndProc = NativeHostProc;
+        wc.hInstance = GetModuleHandle(nullptr);
+        wc.lpszClassName = L"ZufyUI_OutProcProducer";
+        wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+        RegisterClassExW(&wc);
+        // 先不显示：等主进程的 HwndView 定位/显示它
+        HWND h = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, L"ZufyUI_OutProcProducer", L"", WS_POPUP,
+            200, 200, 360, 240, nullptr, nullptr, GetModuleHandle(nullptr), nullptr);
+        if (!h) return 1;
+        auto* st = new NativeHostPaint();
+        st->seed = 9;
+        st->quitOnDestroy = true;
+        st->font = CreateFontW(-15, 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+        SetWindowLongPtrW(h, GWLP_USERDATA, (LONG_PTR)st);
+        SetTimer(h, 1, 100, nullptr);
+        MSG msg;
+        while (GetMessageW(&msg, nullptr, 0, 0)) { TranslateMessage(&msg); DispatchMessageW(&msg); }
+        return 0;
+    }
+
+
     // 主题色卡：按 ThemeRole 顺序画出当前应用主题的每个角色（色块 + 名称 + 十六进制），随主题变化刷新
     struct ThemeSwatch : public UIElement {
         Size MeasureOverride(const Size& avail) override {
@@ -101,6 +253,8 @@ namespace {
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    // 进程外测试：--outproc 分支只创建一个独立窗口（自己画全色图），给主进程的 HwndView 托管
+    if (lpCmdLine && strstr(lpCmdLine, "--outproc")) return RunOutProcProducer();
     // 应用身份（名称 + 图标）统一在开头设置一次：
     //   图标打进 exe（资源 IDI_APPICON，见 ZufyUI.rc），运行时 Image::FromResource 从资源加载，不依赖外部 .ico 文件。
     //   RegisterApp 需在包含本库头文件前 #define ZUFYUI_ALLOW_APP_REGISTRATION 授权；授权后自动写注册表 + 缓存图标，退出清缓存。
@@ -187,6 +341,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     navList->AddItem(L"主题");
     navList->AddItem(L"DSL");
     navList->AddItem(L"环境组合");
+    navList->AddItem(L"原生HWND");
     navList->SetSelectedIndex(0);
     mainRow->AddChild(navList);
 
@@ -2286,6 +2441,96 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         SetScrollablePage(pageEnv, col.shared());
     }
     mainHost->AddPage(pageEnv);
+
+    // ---------- 页面：原生 HWND 子控件（HwndView）—— 全色图 + 复杂布局测试 ----------
+    auto pageHwnd = std::make_shared<Page>();
+    {
+        using namespace ::ZufyUI::dsl;
+        auto views = std::make_shared<std::vector<std::shared_ptr<ZufyUI::HwndView>>>();
+
+        auto mkView = [&win, views](int seed) {
+            auto v = std::make_shared<ZufyUI::HwndView>(win.GetHwnd());
+            v->SetFillWidth(true);
+            v->SetFillHeight(true);
+            if (HWND w = CreateNativePaintWindow(win.GetHwnd(), seed)) v->SetContentHwnd(w, true);
+            views->push_back(v);
+            return v;
+        };
+
+        auto col = Col().spacing(10.0f).margin(Thickness(12, 12, 12, 12));
+        auto tip = Lbl(L"原生 HWND 子控件（HwndView）复杂布局测试：GDI 实时画「全色条 + 彩虹渐变 + 移动扫描线」。\n放入 Card / Grid / 嵌套 Column / ScrollViewer；注意 airspace：HWND 盖在 ZufyUI 内容之上、不随 ScrollViewer 裁剪。");
+        tip->SetTextOverflow(Label::TextOverflow::Wrap);
+        col->AddChild(tip.shared());
+
+        // 左：Card 内 2 列 Grid（A 无 margin / B 带 margin）
+        auto card = make_card().padding(10.0f).with(&ZufyUI::Card::SetShadow, true);
+        if (auto g = card->GetLayoutAs<GridLayout>()) {
+            g->SetSpacing(8.0f, 8.0f);
+            g->SetColumnStretch(0, 1.0f); g->SetColumnStretch(1, 1.0f); g->SetRowStretch(1, 1.0f);
+            g->AddChild(Lbl(L"Card / Grid：A（左） + B（右，带 margin）").shared(), 0, 0, 1, 2);
+            auto a = mkView(0);
+            auto b = mkView(1); b->SetMargin(Thickness(10, 10, 10, 10));
+            g->AddChild(a, 1, 0, 1, 1);
+            g->AddChild(b, 1, 1, 1, 1);
+        }
+        card->SetHorizontalStretchWeight(1.0f);
+        card->SetVerticalStretchWeight(1.0f);
+
+        // 右：嵌套 Column + 固定高 HWND + ScrollViewer（里面再放一个 HWND，滚出去看裁剪/位置）
+        auto right = std::make_shared<ColumnBox>();
+        right->SetSpacing(8.0f);
+        right->SetHorizontalStretchWeight(1.0f);
+        right->SetVerticalStretchWeight(1.0f);
+        right->AddChild(std::make_shared<Label>(L"Column + ScrollViewer（滚出去观察裁剪/位置）"));
+        auto c = mkView(2); c->SetHeight(110.0f); right->AddChild(c);
+        auto sv = std::make_shared<ScrollViewer>();
+        sv->SetFillWidth(true);
+        sv->SetVerticalStretchWeight(1.0f);
+        auto tall = std::make_shared<ColumnBox>();
+        tall->SetSpacing(6.0f);
+        for (int i = 0; i < 12; ++i) tall->AddChild(std::make_shared<Label>(L"滚动占位行 " + std::to_wstring(i + 1)));
+        auto d = mkView(3); d->SetHeight(150.0f); tall->AddChild(d);
+        for (int i = 0; i < 12; ++i) tall->AddChild(std::make_shared<Label>(L"滚动占位行 " + std::to_wstring(i + 13)));
+        sv->SetContent(tall);
+        right->AddChild(sv);
+
+        auto mainRow = Row(card.shared(), right).spacing(12.0f);
+        mainRow->SetVerticalStretchWeight(1.0f);
+        col->AddChild(mainRow.shared());
+
+        // 进程外：启动独立进程里的窗口（--outproc 生产者），由 HwndView 定位/托管
+        col->AddChild(Lbl(L"进程外：独立进程的窗口（--outproc 生产者），由 HwndView 定位").shared());
+        auto outView = std::make_shared<ZufyUI::HwndView>(win.GetHwnd());
+        outView->SetFillWidth(true);
+        outView->SetHeight(150.0f);
+        {
+            wchar_t exe[MAX_PATH]{};
+            GetModuleFileNameW(nullptr, exe, MAX_PATH);
+            std::wstring cmd = L"\"" + std::wstring(exe) + L"\" --outproc";
+            STARTUPINFOW si{}; si.cb = sizeof(si);
+            PROCESS_INFORMATION pi{};
+            if (CreateProcessW(exe, cmd.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) {
+                CloseHandle(pi.hThread);
+                HANDLE prodProc = pi.hProcess;   // 窗口关闭时兜底结束生产者进程
+                win.Closed.connect([prodProc]() { TerminateProcess(prodProc, 0); CloseHandle(prodProc); });
+                HWND prod = nullptr;
+                for (int i = 0; i < 100 && !prod; ++i) { prod = FindWindowW(L"ZufyUI_OutProcProducer", nullptr); if (!prod) Sleep(20); }
+                if (prod) outView->SetContentHwnd(prod, true);
+            }
+        }
+        views->push_back(outView);
+        col->AddChild(outView);
+
+        col->AddChild(Row(
+            Btn(L"隐藏全部").on<&Button::Clicked>([views]() { for (auto& v : *views) v->SetVisible(false); }),
+            Btn(L"显示全部").on<&Button::Clicked>([views]() { for (auto& v : *views) v->SetVisible(true); }),
+            Btn(L"遮挡 SetObscured(true)").on<&Button::Clicked>([views]() { for (auto& v : *views) v->SetObscured(true); }),
+            Btn(L"取消遮挡").on<&Button::Clicked>([views]() { for (auto& v : *views) v->SetObscured(false); })
+        ).spacing(8.0f).shared());
+
+        pageHwnd->SetLayout(col.shared());
+    }
+    mainHost->AddPage(pageHwnd);
 
     // 主页面导航：记录当前索引，根据相对位置设置上下方向
     auto currentMainIndex = std::make_shared<int>(0);

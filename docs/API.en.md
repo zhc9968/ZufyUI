@@ -1151,6 +1151,45 @@ bool RegisterApp(const AppInfo&);    // or Application::Instance().RegisterApp(i
 ```
 - By default only sets the AUMID (zero file/registry side effects); defining `ZUFYUI_ALLOW_APP_REGISTRATION` writes `%LOCALAPPDATA%\ZufyUI\AppReg\...` and `HKCU\...\AppUserModelId` (so Win10/11 toasts show the app name/icon); auto-cleans on exit.
 
+## Native window host — `HwndView` (v1.23.0)
+
+> Header `ZufyUIHwndView.h` (auto-included at the end of `ZufyUIWindowTool.h`). Embeds a WebView2 HWND controller, camera/capture window, third-party native control, or an out-of-process window into the ZufyUI layout.
+
+```cpp
+class HwndView : public UIElement {
+public:
+    explicit HwndView(HWND owner, bool activate = false);
+    HWND GetHostHwnd() const;
+    void SetContentHwnd(HWND external, bool own = false);
+    HWND GetContentHwnd() const;
+    void SetObscured(bool on);
+    bool IsObscured() const;
+    void SetOnBoundsChanged(std::function<void(HWND, int, int)>);
+};
+```
+
+- Implementation: creates a **normal Win32 top-level owned popup** as the host; `SetContentHwnd` re-parents the external HWND as its `WS_CHILD` (cross-thread/cross-process allowed) and shows it explicitly. Moving/resizing the host moves the child natively; the host client clips it, plus `SetWindowRgn` (element rect ∩ window client ∩ every ancestor `GetClipRect`, incl. the `ScrollViewer` viewport).
+- **`Pitfall`**: the main window is `WS_EX_NOREDIRECTIONBITMAP + DComp`, so **child HWNDs are not composited**; do not use a normal child control. `HwndView` is an **airspace overlay** — always above the window content; in-window dropdowns/tooltips cannot cover it (menus are separate top-level windows and are unaffected).
+- **`Convention`**: for "content goes into composition, no airspace" (web/video) use `CreateExternalVisual` below / WebView2 `CompositionController`.
+
+## External visual attachment — `Window::CreateExternalVisual` (v1.23.0)
+
+For WebView2 CompositionController, video/capture, or anything that **renders into DComp**.
+
+```cpp
+IUnknown* Window::CreateExternalVisual();
+void Window::SetExternalVisualBounds(IUnknown* visual, float x, float y, float w, float h);
+void Window::RemoveExternalVisual(IUnknown* visual);
+int  Window::AddOverlaySync(std::function<void()>);
+void Window::RemoveOverlaySync(int id);
+void Window::SyncOverlays();
+```
+
+- Returns a WinRT `ContainerVisual` (inserted at the top of the root visual) to pass to `controller->put_RootVisualTarget(visual)`; set its position/size in `Arrange` via `SetExternalVisualBounds` (DIP, converted to physical pixels internally).
+- `AddOverlaySync/RemoveOverlaySync/SyncOverlays` let external-window hosts (e.g. `HwndView`) register a sync callback; usually not called directly.
+- **`Pitfall`**: on device loss/rebuild the visual tree is recreated → listen to `Window::DeviceLost`, call `CreateExternalVisual` again and re-attach.
+
+
 ###chapter: Drag & Drop, cards | Drag & Drop, Expander, SettingsList (v1.19.0)
 
 > Drag & drop comes from `ZufyUIDragDrop.h` (already included at the end of `ZufyUI.h`). In-app default is MOVE, cross-app is COPY.
@@ -1357,7 +1396,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.22.1
+###chapter: Version digest | v1.15.0 → v1.23.0
 
 > Only the changes that affect your code are listed.
 
@@ -1448,6 +1487,13 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Fix**: data view item/cell placement `bleedY` is read from each element's `GetBleed()` (no longer a fixed `3.0f`), so shadows/bleed aren't clipped; `indicatorY_` is initialised to `-1` so the selection indicator snaps on the first frame.
   - **Fix (visual)**: the focus ring uses `ThemeRole::FocusRing` and `Theme::cornerRadius` (was a hard-coded blue + fixed 4); in `WM_NCHITTEST` the custom title-bar buttons take priority over the resize border (the maximize-button corner is no longer taken by `HTTOPRIGHT` → Win11 Snap Layouts can appear).
   - **Engineering**: `pch.h` no longer includes the library headers (editing a lib header no longer rebuilds the whole PCH); added `UIElement::MarkUserColor()` centralising 40+ "user colour" markers; removed dead code `ListView::FindEnabledFrom`.
+- **v1.23.0**:
+  - **New · `ZufyUIHwndView.h` (`HwndView`)**: native HWND content host. Because the main window is NRB+DComp (child HWNDs are not composited), it uses a **top-level owned popup** as the host; `SetContentHwnd` re-parents the external window as its `WS_CHILD` (cross-process allowed) and shows it. Moving the host moves the child natively; clipping = host client + `SetWindowRgn` (element rect ∩ window client ∩ ancestor `GetClipRect`, incl. the `ScrollViewer` viewport). Supports `SetObscured`, `SetOnBoundsChanged`, `SetFill*`.
+  - **New · `Window` external-visual attachment**: `CreateExternalVisual()` (WinRT `ContainerVisual` inserted atop the root visual, for WebView2 `put_RootVisualTarget`), `SetExternalVisualBounds` (DIP→physical px), `RemoveExternalVisual`; `AddOverlaySync/RemoveOverlaySync/SyncOverlays` (unified overlay sync).
+  - **Performance**: overlay sync is now a **single window-level point** (`WM_MOVE/WM_SIZE/WM_DPICHANGED` immediate + one shared 16ms fallback timer) instead of a per-instance timer; DPI/client cached; redundant `SetWindowPos` skipped and `SWP_NOSIZE/NOMOVE` used as appropriate; the demo's color pattern is cached into a DIB.
+  - **Fix · `NumberBox`**: the empty-text error clears once the text becomes a **valid number**; `ResetToDefault` force-clears the error after notifying the app; step/clear buttons fire **on press** (no re-check against the moving rect; fixes staying red after the × button).
+  - **Fix · data-view fill**: `ListView`/`TableView`/`TreeView` `MeasureOverride` honours `SetFillWidth/SetFillHeight` (like charts) instead of always returning the default 200/400.
+  - **Demo**: new "Native HWND" page (GDI color pattern + Card/Grid/Column/ScrollViewer layouts + an out-of-process `--outproc` producer window hosted by `HwndView`).
 
 
 ###chapter: Pitfall index | Quick lookup by topic

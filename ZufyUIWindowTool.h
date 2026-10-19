@@ -2247,3 +2247,6 @@ namespace ZufyUI {
     }();
 
 } // namespace ZufyUI
+
+// 原生 HWND 宿主控件（把 WebView2 / 摄像头 / 任意子 HWND 当普通子控件嵌入）
+#include "ZufyUIHwndView.h"
