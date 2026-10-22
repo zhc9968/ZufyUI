@@ -1,7 +1,7 @@
 # ZufyUI API 参考
 
 > 本文档覆盖 ZufyUI 框架的全部公开 API，**按“使用分类”组织**（不是按代码/头文件顺序）。
-> 配套阅读：[项目说明与构建](../README.md)。
+> 配套阅读：[项目说明与构建](../../README.md)。
 
 > **阅读方式**：本文不是“签名清单”，而是按“它是什么 → 框架内部怎么处理 → 你需要注意什么”来写。
 > 每个类先讲整体行为，再逐函数讲副作用、默认值与易混点。**没有读过源码也能据此正确使用。**
@@ -23,7 +23,8 @@
   - `ZufyUICharts.h`：**图表（BarChart/LineChart/PieChart）**，依赖 `ZufyUI.h`。
   - `ZufyUIImages.h`：`Image` / `ImageManager`（图片加载与设备缓存）。
   - `ZufyUIIcons.h`：`FontIcon` 字形控件（`Icon` 枚举本身在 `ZufyUIWidgets.h`）。
-  - `ZufyUIWindowTool.h`：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）；**自 v1.20.0 起自身包含 `ZufyUIWidgets.h`**，可单独包含。
+  - `ZufyUIWindowTool.h`：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）；**自 v1.20.0 起自身包含 `ZufyUIWidgets.h`**，可单独包含；末尾包含 `ZufyUIHwndView.h`。
+  - `ZufyUIHwndView.h`：原生 HWND 宿主 `HwndView`（WebView2 / 摄像头 / 第三方 / 进程外窗口）。
   - `ZufyUIDragDrop.h`：拖放（由 `ZufyUI.h` 末尾包含）。
   - `ZufyUIDsl.h`：可选**链式构造 DSL**（纯附加，不修改任何现有控件）。
 - 全部是**纯头文件**；`#pragma comment(lib, ...)` 会自动链接 `d2d1 / dwrite / dwmapi / imm32 / winmm`。
@@ -450,7 +451,8 @@ int GetCurrentIndex() const;  std::shared_ptr<Page> GetCurrentPage() const;
 ```
 - 过渡期间**同时**把源页与目标页作为可见子元素返回；`UpdateAnimation` 每页只更新一次（否则动画速度翻倍）。
 - **`易错`**：`NavigateTo` 是**异步**的（动画结束才真正切到目标），`GetCurrentPage()`/`GetCurrentIndex()` 在动画期间可能还是旧值。
-- **`版本`**：缓动 `v1.8.1`；**隐藏页缓存延迟释放（约 1.2s，整棵子树递归）** = `v1.18.0`——解决快速切页内存抖动式增长。
+- **`版本`**：缓动 `v1.8.1`；**隐藏页缓存延迟释放（约 1.2s，整棵子树递归）** = `v1.18.0`——解决快速切页内存抖动式增长；`MeasureOverride` **测量全部页面** = `v1.23.1`——页面内元素运行时显隐（如选择下拉后显示的 `Expander` 卡片）会立即重新布局并参与命中，不再需要改变窗口尺寸来触发。
+- **`易错`**：页面内元素显隐请用 `SetVisible()`（会 `InvalidateLayout()`）；不要直接改内部可见标志，否则既不会重测也不会重绘。
 
 ## TabView（页签）
 
@@ -1418,7 +1420,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.23.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.23.1
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1517,6 +1519,8 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **修复 · `NumberBox`**：空文本错误态在文本恢复为**合法数值**时清除；`ResetToDefault` 在通知应用后强制清错误；步进/清除按钮改为**按下即触发**（不再用会变化的矩形二次判定，修复点 × 后仍红）。
   - **修复 · 数据视图填充**：`ListView`/`TableView`/`TreeView` 的 `MeasureOverride` 认 `SetFillWidth/SetFillHeight`（与图表一致），不再固定返回默认 200/400。
   - **demo**：新增「原生HWND」页（GDI 全色图 + Card/Grid/Column/ScrollViewer 多布局 + 进程外 `--outproc` 生产者窗口托管）。
+- **v1.23.1**：
+  - **修复（布局 / 命中）**：`PageHost::MeasureOverride` **测量所有页面**。此前 `PageHost` 只 `Arrange` 页面，而 `Page::Arrange` 仅在尺寸变化时补测 → 页面内元素由隐藏变可见（如选下拉后 `SetVisible(true)` 的 `Expander` 卡片）不会重测，新元素 `arrangedRect` 为 0（无边框、`HitTest` 点不到），直到窗口尺寸变化才恢复。未变脏的页面命中 `Measure` 缓存，不增加重复测量。
 
 ###chapter: 易错点总表 | 按主题速查
 

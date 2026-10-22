@@ -1,7 +1,7 @@
 # ZufyUI 交接文档（HANDOFF）
 
-> 给**下一位接手者 / AI 智能体**：读这一份即可上手。配套：`AGENTS.md`（硬规则）、`TODO.md`（待办）、`docs/API.md`（API 参考）、`docs/API.en.md`（英文）、`README.md`（构建/快速开始）。
-> 版本基线：`1.23.0`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
+> 给**下一位接手者 / AI 智能体**：读这一份即可上手。配套：`AGENTS.md`（硬规则）、`TODO.md`（本地待办，不发布）、`docs/src/API.md`（API 参考）、`docs/src/API.en.md`（英文）、`README.md`（构建/快速开始）。
+> 版本基线：`1.23.1`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
 > ⚠️ **一批反馈工作已随 `v1.21.0` 发布**（commit `cf78c54`，tag `v1.21.0`，已推 gitee/github；gh-pages 站点同步）：逐项记录与**尚未解决**的问题见 **§10**，接手前先读 §10（尤其 §10.4 未决项）。
 
 ---
@@ -13,7 +13,7 @@
 3. **不擅自 revert**（用户明确要求除外）。
 4. **中文源文件编码**：`.h` / `.cpp` 必须 **UTF-8 带 BOM**（否则 MSVC 按 GBK 解析中文注释会报莫名 `C2143/C2259/C2888`）；`.md` / `.tex` 用 **UTF-8 无 BOM**。
 5. **文档不自动更新**：API / README 只有用户明确要求时才改。
-6. **双语文档逐行对齐**：改动 `docs/API.md` 或 `docs/API.en.md` 后，**同一章节的代码块必须行数一致、顺序一致**，并跑 `python tools/check_api_parity.py`（退出码 0 = 一致）。
+6. **双语文档逐行对齐**：改动 `docs/src/API.md` 或 `docs/src/API.en.md` 后，**同一章节的代码块必须行数一致、顺序一致**，并跑 `python tools/check_api_parity.py`（退出码 0 = 一致）。
 7. **构建前先杀进程**（否则文件占用 / 链接失败）。
 8. 库是公开的 → 行为默认对标系统 / 官方控件（别改约定俗成的默认）。
 
@@ -35,13 +35,13 @@
 | `ZufyUIIcons.h` | 图标字形 |
 | `ZufyUIDsl.h` | 可选**链式构造 DSL**（`dsl::`：`Ref<T>`/`Make`/`Col`/`Row`/`Grid`/短工厂/`App()` 窗口构建器） |
 | `ZufyUI.cpp` | demo（左侧导航 + 多测试页），同时充当冒烟测试 |
-| `docs/API.md` / `API.en.md` | API 参考（中/英，**按使用分类**，非按头文件） |
+| `docs/src/API.md` / `docs/src/API.en.md` | API 参考（中/英，**按使用分类**，非按头文件） |
 | `docs/pitfalls.md` | **易错点总表**（DSL 用法 / 布局 / 缓存 / 生命周期 / 主题 / 平台 / 明确不做）——改库前先扫 |
 | `tools/` | `check_api_parity.py`（双语文档校验）、`colorscan.py`（硬编码色审计）、`color_inventory.md`（审计快照） |
-| `TODO.md` | 唯一权威待办（合并了旧计划） |
+| `TODO.md` | 唯一权威待办（本地，不随仓库发布） |
 | `AGENTS.md` | 硬规则（含“先找根源再修”） |
 
-> 另有独立工程 **`C:\project\ZufyUIDebugger`**（用 ZufyUI 写的调试器；改库要一起构建验证）。
+> 同仓库内置 **`ZufyUIDebugger/`**（用 ZufyUI 写的调试器；改库要一起构建验证）。
 
 ---
 
@@ -63,12 +63,15 @@ powershell -ExecutionPolicy Bypass -File tools/build.ps1
   而 `ensure_bom.ps1` 自己丢了 BOM 时**无法自我修复**）。纯 ASCII 让这条修复链对 BOM 免疫。
   面向人的中文说明放在本文件（`.md` 本来就不该有 BOM）。
 
-手动 MSBuild（VS 18 Community）：
+手动 MSBuild（路径自动探测，不写死）：
 ```powershell
 # 先杀进程
 Get-Process ZufyUI,ZufyUIDebugger -ErrorAction SilentlyContinue | Stop-Process -Force
-& "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe" `
-  "C:\project\ZufyUI\ZufyUI.vcxproj" /p:Configuration=Release /p:Platform=x64 `
+# 用 vswhere 找 MSBuild（或直接把 MSBuild.exe 放在 PATH）
+$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+$vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+& (Join-Path $vs 'MSBuild\Current\Bin\MSBuild.exe') ZufyUI.vcxproj `
+  /p:Configuration=Release /p:Platform=x64 `
   /p:DebugSymbols=false /p:DebugType=None /m /nologo /v:minimal
 ```
 - 工程要点：`/bigobj`、pch（`pch.h`/`pch.cpp`）、`/SUBSYSTEM:WINDOWS` + `wWinMain`。
@@ -181,9 +184,9 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
 ## 7. Git / 发布流程
 
 - 远端：`origin`=gitee `zhc9968/ZufyUI`；`github`=github `zhc9968/ZufyUI`（github 偶发超时/需 VPN，重试若干次）。
-- 发版（用户同意后）：改 `ZufyUI.h` 的 `PATCH`/`STRING` → 更新 `docs/API.md`/`API.en.md`（版本摘要 + 标题 `v… → vX.Y.Z`）+ `README.md`/`README.en.md`（changelog “当前版本”+ 一条）→ `python tools/check_api_parity.py` → 构建 → `git add -A && git commit` → `git tag vX.Y.Z` → `git push origin master` + `git push origin vX.Y.Z` + 同 github。
-- **gh-pages 站点**：本地工作副本在 `C:\project\ZufyUI\ghpages`（分支 `gh-pages`；由旧路径 `%TEMP%\opencode\ghpages` 复制而来，**以后只改这里**，旧路径不再使用）。发布时：把 `docs/API*.md`/`README*.md` 拷过去 → `python C:\project\md2html\mdapi2html.py docs/API.md docs/API.html --toc-depth 3 --lang zh`（en 同理，README 同理）→ **手写 `index.html`** 的章节树/badge 版本号按当前章数更新 → commit + `git push origin gh-pages` + `git push github gh-pages`。
-- 文档工具（`C:\project\md2html\mdapi2html.py`）：`###chapter:` 分章；`{{ZUFYUI_VERSION}}` 占位符会从附近的 `ZufyUI.h` 自动注入（**版本单一来源**）；`--theme auto` 会透传给页面 JS。
+- 发版（用户同意后）：改 `ZufyUI.h` 的 `PATCH`/`STRING` → 更新 `docs/src/API.md`/`docs/src/API.en.md`（版本摘要 + 标题 `v… → vX.Y.Z`）+ `README.md`/`README.en.md`（changelog “当前版本”+ 一条）→ `python tools/check_api_parity.py` → 构建 → `git add -A && git commit` → `git tag vX.Y.Z` → `git push origin master` + `git push origin vX.Y.Z` + 同 github。
+- **gh-pages 站点**：不放进主仓库。发布时在临时目录（如 `%TEMP%\opencode\ghpages`）重新 clone `gh-pages` 分支：`python tools/build_docs.py --out-dir <ghpages>\docs`（默认中英都生成；版本从 `ZufyUI.h` 读取、图标在 `docs/icon.ico`）→ README 用通用转换器 `python ..\md2html\mdapi2html.py README.md <ghpages>\README.html --toc-depth 3 --lang zh --icon docs\icon.ico`（en 同理）→ **手写 `index.html`** 的章节树/badge 版本号按当前章数更新 → commit + `git push origin gh-pages` + `git push github gh-pages`。
+- 文档工具：通用 `..\md2html\mdapi2html.py`（或 `%MD2HTML%`）只管 Markdown→HTML：`###chapter:` 分章、`--var KEY=VALUE` 替换 `{{KEY}}`、`--icon` 设置 favicon、`--theme auto` 透传；**不含任何 ZufyUI 逻辑**。ZufyUI 专用包装 `tools/build_docs.py` 负责读 `ZufyUI.h` 版本并传 `--var ZUFYUI_VERSION=...` 与图标。
 
 ---
 
@@ -282,10 +285,10 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
 
 1. 先让用户**目视验收 §10.4**（尤其 SplitView 与弹窗穿透）—— 本次发布**在未完成目视验收前就发了**，用户知情；
 2. 跑 `tools/build.ps1`（含 DSL 自检）+ `python tools/check_api_parity.py` + `tools/ensure_bom.ps1 -Check`；
-3. 按 §7 的发版流程：改 `ZufyUI.h` 版本号 → `docs/API*.md`（章节内容 + 版本摘录章标题与条目）→ `README*.md`（当前版本 + changelog 条目）→ HANDOFF；
+3. 按 §7 的发版流程：改 `ZufyUI.h` 版本号 → `docs/src/API*.md`（章节内容 + 版本摘录章标题与条目）→ `README*.md`（当前版本 + changelog 条目）→ HANDOFF；
 4. `git add -A` → commit（消息格式：`vX.Y.Z: <中文长摘要>`）→ `git tag -a vX.Y.Z`；
 5. 推 `origin`(gitee) 与 `github` 的 **master + tag**（github 偶发超时，重试）；
-6. gh-pages 站点：在主仓 `ghpages` 分支工作副本里 `Copy-Item` 四个 md → `python C:\project\md2html\mdapi2html.py docs/API.md docs/API.html --toc-depth 3 --lang zh`（en/README 同理）→ 改 `index.html` 章节树里带版本号的那几行 → commit → 推两个远端的 `gh-pages`；
+6. gh-pages 站点：在临时目录重新 clone `gh-pages` 分支 → `python tools/build_docs.py --out-dir <ghpages>\docs`（API，中英都生成）→ README 用通用 `..\md2html\mdapi2html.py README.md <ghpages>\README.html --toc-depth 3 --lang zh --icon docs\icon.ico`（en 同理）→ 改 `index.html` 章节树里带版本号的那几行 → commit → 推两个远端的 `gh-pages`；
 7. **必须获得用户明确同意**才 `git commit` / `git push`（含 gh-pages）。
 
 > 注：本轮**没有**更新 `TODO.md`（§9 指向它）；如果要继续，把 §10.4 的条目搬进 `TODO.md` 更符合本仓库约定。

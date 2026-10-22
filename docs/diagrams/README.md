@@ -18,7 +18,7 @@
 - `textedit.png` ← demo「多行文本」页
 - `charts-pie.png` ← demo「饼图」页（一张代表三种图）
 
-**编译**（把 `C:\project\ZufyUI` 加进包含路径；系统库库内已自动链接）：
+**编译**（把仓库根目录加进包含路径；系统库库内已自动链接）：
 ```bat
 cl /std:c++17 /EHsc /O2 /DUNICODE /D_UNICODE /SUBSYSTEM:WINDOWS screenshots.cpp user32.lib gdi32.lib
 ```

@@ -4,4 +4,5 @@
     <Platform Name="x86" />
   </Configurations>
   <Project Path="ZufyUI.vcxproj" Id="4830f903-064f-4537-8726-f3bcc395416c" />
+  <Project Path="ZufyUIDebugger\ZufyUIDebugger.vcxproj" Id="b7e2a1c4-3f5d-4a9e-8c21-5d6f0e9a2b13" />
 </Solution>

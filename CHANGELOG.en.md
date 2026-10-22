@@ -2,7 +2,15 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.23.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.23.1** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-22 — PageHost page measurement + docs & tooling (v1.23.1)
+
+- **Fix (layout / hit-testing)**: `PageHost` used to only `Arrange` its pages and **never `Measure` them**, while `Page::Arrange` re-measures only when the arranged size changes. When a page element becomes visible at runtime (typically an `Expander` card shown by `SetVisible(true)` after a combo-box selection), the dirty measure never reached the page → the newly shown element kept a zero `desiredSize`/`arrangedRect` → it was drawn but had no border and failed `HitTest`, until the user resized the window (a size change) once. `PageHost::MeasureOverride` now measures every page; clean pages hit the `Measure` cache, so no duplicate work is added.
+- **Docs**: the README first screen now leads with positioning, differentiators, the Release link, a screenshot and a one-line experimental note; the full feature list is collapsed; added issue/PR templates; sources moved to `docs/src/` with a new `docs/README.md`; Chinese and English first screens aligned.
+- **Engineering**: `ZufyUIDebugger` moved into this repository and the solution; `tools/build.ps1` / `run_dsl_tests.ps1` locate Visual Studio via `vswhere` (no hard-coded paths) and map x86 to the Win32 output correctly; added `tools/export_ascii.py` (ASCII-only, BOM-free export), `tools/build_docs.py` (ZufyUI docs wrapper) and `tools/make_icon.py` (icons: `docs/icon.*` plus the app icons `ZufyUI.ico` / `small.ico`).
+- **Docs tooling**: the generic `md2html` no longer probes for ZufyUI; it accepts `--var KEY=VALUE` and `--icon`; ZufyUI version/icon injection lives in `tools/build_docs.py`.
+- **Repo hygiene**: `TODO.md` is no longer published (removed from the index and gitignored); `dist/` build outputs are ignored.
 
 ### 2026-10-13 — Native window host, external visual attachment, overlay sync/performance, NumberBox error state, data-view fill (v1.23.0)
 

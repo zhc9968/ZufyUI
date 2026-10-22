@@ -8,6 +8,8 @@ Release/
 *.pdb
 *.ilk
 *.obj
+*.iobj
+*.ipdb
 *.idb
 *.tlog
 *.log
@@ -35,3 +37,13 @@ ZufyUI_Release_1.5_fontUpdate1/
 
 # gh-pages 站点工作副本（内嵌 git 仓库，仅在本机维护，不纳入主仓库）
 /ghpages/
+
+# ASCII 导出（tools/export_ascii.py 生成，不纳入仓库）
+/dist/
+
+# 内部待办（不发布到 GitHub）
+/TODO.md
+
+# Python cache
+__pycache__/
+*.pyc

@@ -89,8 +89,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 23
-#define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.23.0"
+#define ZufyUI_VERSION_PATCH 1
+#define ZufyUI_VERSION_STRING L"1.23.1"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -2725,6 +2725,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (height_ > 0) result.height = height_;
             else if (availableSize.height != FLT_MAX) result.height = availableSize.height;
             else result.height = max(minHeight_, 0.0f);
+            // 页面由本宿主摆放，必须在这里测量：Page::Arrange 仅在“尺寸变化”时补测，
+            // 内容变化（如卡片由隐藏变可见）若不走 Measure，会留下 0/陈旧的 desiredSize，
+            // 新显示的子元素拿不到 arrangedRect（无边框、点不到），直到窗口尺寸变化才恢复。
+            for (auto& page : pages_) if (page) page->Measure(Size(result.width, result.height));
             return result;
         }
 

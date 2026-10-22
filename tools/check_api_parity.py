@@ -8,7 +8,7 @@ check_api_parity.py — 校验中英两版 API 文档的“代码块”是否一
   2) 代码块非空行数相同  —— “行数不匹配就是漏了”（抓多行声明块：枚举/重载/字段块）。
 
 用法：
-    python tools/check_api_parity.py [docs/API.md] [docs/API.en.md]
+    python tools/check_api_parity.py [docs/src/API.md] [docs/src/API.en.md]
 退出码：0 = 一致；1 = 有差异。
 """
 import re
@@ -16,8 +16,8 @@ import sys
 import os
 import io
 
-CH_ZH = os.path.join("docs", "API.md")
-CH_EN = os.path.join("docs", "API.en.md")
+CH_ZH = os.path.join("docs", "src", "API.md")
+CH_EN = os.path.join("docs", "src", "API.en.md")
 
 
 def read(path):

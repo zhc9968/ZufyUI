@@ -48,6 +48,9 @@
 ## 构建
 
 ```powershell
-  & "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe" "C:\project\ZufyUI\ZufyUI.vcxproj" /p:Configuration=Release /p:Platform=x64 /m /nologo /v:minimal
+powershell -ExecutionPolicy Bypass -File tools/build.ps1
 ```
-（构建前先 `Stop-Process -Name ZufyUI -Force`，否则会因文件占用链接失败。）
+- 脚本通过 `vswhere` 自动探测 Visual Studio / MSBuild，**不写死安装路径**；构建前会杀掉占用进程。
+- 可选：`-Configuration Debug`、`-Platform x86`、`-SkipDebugger`、`-SkipTests`、`-VsRoot <path>`。
+- 纯 ASCII 分发副本：`python tools/export_ascii.py`（输出到 `dist/ascii`，见生成目录的 `README.md`）。
+- 文档站点：`python tools/build_docs.py`（ZufyUI 包装；通用转换器在 `../md2html`，**不要把库专用逻辑写进它**）。

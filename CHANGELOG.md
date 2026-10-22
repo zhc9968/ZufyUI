@@ -2,7 +2,15 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.23.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.23.1**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-22 — PageHost 页面测量 + 文档 / 工程整理（v1.23.1）
+
+- **修复（布局 / 命中）**：`PageHost` 此前只 `Arrange` 页面、**从不 `Measure` 页面**，而 `Page::Arrange` 仅在“尺寸变化”时补测。页面内元素由隐藏变为可见（典型：选择下拉后 `SetVisible(true)` 的 `Expander` 卡片）时，脏的 measure 传不到页面 → 新显示元素的 `desiredSize/arrangedRect` 为 0 → 画面能画出来却没有边框、`HitTest` 命中失败，必须手动改变一次窗口大小才恢复。现 `PageHost::MeasureOverride` 测量所有页面；未变脏的页面命中 `Measure` 缓存，不增加重复测量。
+- **文档**：README 首屏改为“定位 + 差异点 + Release + 截图 + 单行实验提示”；完整功能总览折叠；新增 Issue/PR 模板；文档源移至 `docs/src/` 并新增 `docs/README.md`；中英文首屏对齐。
+- **工程**：`ZufyUIDebugger` 收入本仓库并加入解决方案；`tools/build.ps1` / `run_dsl_tests.ps1` 通过 `vswhere` 自动定位 VS（不再写死路径），并修正 x86→Win32 输出路径；新增 `tools/export_ascii.py`（纯 ASCII 分发，无 BOM）、`tools/build_docs.py`（ZufyUI 专用文档包装）、`tools/make_icon.py`（图标生成：`docs/icon.*` + 应用图标 `ZufyUI.ico` / `small.ico`）。
+- **文档工具**：通用 `md2html` 移除 ZufyUI 专用版本探测，改为 `--var KEY=VALUE`；新增 `--icon` favicon；ZufyUI 的版本注入/图标改由 `tools/build_docs.py` 负责。
+- **仓库卫生**：`TODO.md` 不再随仓库发布（已移出索引并加入 `.gitignore`）；`dist/` 构建产物忽略。
 
 ### 2026-10-13 — 原生窗口宿主、外部视觉挂载、浮窗同步/性能、NumberBox 错误态、数据视图填充（v1.23.0）
 

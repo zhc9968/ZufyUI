@@ -8,7 +8,9 @@
 # USAGE
 #   powershell -ExecutionPolicy Bypass -File tools/build.ps1
 #   ... -Configuration Debug        build Debug|x64
-#   ... -SkipDebugger               do not build the companion ZufyUIDebugger
+#   ... -Platform x86               build x86 (default x64)
+#   ... -VsRoot "C:\path\to\VS"     override Visual Studio auto-detection
+#   ... -SkipDebugger               do not build the in-repo ZufyUIDebugger
 #   ... -SkipTests                  do not run the DSL self-test
 #   ... -SkipBomFix                 skip the BOM step
 #   ... -CheckBomOnly               only verify BOMs (no writes); exit 1 if missing
@@ -27,10 +29,11 @@ param(
     [ValidateSet('Release', 'Debug')] [string]$Configuration = 'Release',
     [string]$Platform = 'x64',
 
-    # Must match the MSBuild path used in AGENTS.md
-    [string]$VsRoot = 'C:\Program Files\Microsoft Visual Studio\18\Community',
+    # Optional: point at a Visual Studio install. Auto-detected via vswhere when omitted.
+    [string]$VsRoot = '',
 
-    [string]$DebuggerProject = 'C:\project\ZufyUIDebugger\ZufyUIDebugger.vcxproj',
+    # Optional: override the in-repo debugger project location.
+    [string]$DebuggerProject = '',
 
     [switch]$SkipBomFix,
     [switch]$CheckBomOnly,
@@ -47,8 +50,17 @@ $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
 $root = Split-Path -Parent $PSScriptRoot
-$msbuild = Join-Path $VsRoot 'MSBuild\Current\Bin\MSBuild.exe'
+if (-not $DebuggerProject) { $DebuggerProject = Join-Path $root 'ZufyUIDebugger\ZufyUIDebugger.vcxproj' }
 $project = Join-Path $root 'ZufyUI.vcxproj'
+
+# The .vcxproj configurations are Win32/x64; the solution calls Win32 "x86".
+$msbuildPlatform = if ($Platform -eq 'x86' -or $Platform -eq 'Win32') { 'Win32' } else { $Platform }
+# MSBuild's default Win32 output has no platform subdirectory.
+$outSubdir = if ($msbuildPlatform -eq 'Win32') { $Configuration } else { "$msbuildPlatform\$Configuration" }
+
+. (Join-Path $PSScriptRoot 'vs_tools.ps1')
+try { $msbuild = Resolve-MSBuild $VsRoot }
+catch { Write-Host $_.Exception.Message -ForegroundColor Red; exit 2 }
 
 function Step([string]$text) { Write-Host "`n=== $text ===" -ForegroundColor Cyan }
 function Ok([string]$text) { Write-Host $text -ForegroundColor Green }
@@ -69,10 +81,6 @@ else {
     Step '1/4 BOM check skipped (-SkipBomFix)'
 }
 
-if (-not (Test-Path -LiteralPath $msbuild)) {
-    Bad "MSBuild not found: $msbuild`nPass -VsRoot to point at your Visual Studio install."
-    exit 2
-}
 if (-not (Test-Path -LiteralPath $project)) { Bad "Project not found: $project"; exit 2 }
 
 # ---------- 2. kill holders ----------
@@ -84,7 +92,7 @@ foreach ($name in $KillProcesses) {
 Write-Host '  done (silent when nothing was running)'
 
 $msbArgs = @(
-    "/p:Configuration=$Configuration", "/p:Platform=$Platform",
+    "/p:Configuration=$Configuration", "/p:Platform=$msbuildPlatform",
     '/p:DebugSymbols=false', '/p:DebugType=None',
     '/m', '/nologo', '/v:minimal'
 )
@@ -93,14 +101,14 @@ $msbArgs = @(
 Step "3/4 build ZufyUI ($Configuration|$Platform)"
 & $msbuild $project @msbArgs
 if ($LASTEXITCODE -ne 0) { Bad "ZufyUI build failed (exit $LASTEXITCODE)."; exit $LASTEXITCODE }
-Ok "  -> $(Join-Path $root "x64\$Configuration\ZufyUI.exe")"
+Ok "  -> $(Join-Path $root "$outSubdir\ZufyUI.exe")"
 
 if (-not $SkipDebugger) {
     if (Test-Path -LiteralPath $DebuggerProject) {
         Step "3b/4 build ZufyUIDebugger ($Configuration|$Platform) -- verify library changes here too"
         & $msbuild $DebuggerProject @msbArgs
         if ($LASTEXITCODE -ne 0) { Bad "ZufyUIDebugger build failed (exit $LASTEXITCODE)."; exit $LASTEXITCODE }
-        $dbgExe = Join-Path (Split-Path -Parent $DebuggerProject) "x64\$Configuration\ZufyUIDebugger.exe"
+        $dbgExe = Join-Path (Split-Path -Parent $DebuggerProject) "$outSubdir\ZufyUIDebugger.exe"
         Ok "  -> $dbgExe"
     }
     else {
@@ -112,7 +120,7 @@ if (-not $SkipDebugger) {
 $testExit = 0
 if (-not $SkipTests) {
     Step '4/4 DSL self-test'
-    & (Join-Path $PSScriptRoot 'run_dsl_tests.ps1') -VsRoot $VsRoot
+    & (Join-Path $PSScriptRoot 'run_dsl_tests.ps1') -VsRoot $VsRoot -Platform $Platform
     $testExit = $LASTEXITCODE
     if ($testExit -ne 0) { Bad "DSL self-test failed (exit $testExit)." }
 }

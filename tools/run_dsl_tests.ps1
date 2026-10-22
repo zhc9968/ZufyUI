@@ -11,8 +11,9 @@
 # ============================================================================
 [CmdletBinding()]
 param(
-    # Must match the MSBuild path used in AGENTS.md
-    [string]$VsRoot = 'C:\Program Files\Microsoft Visual Studio\18\Community'
+    # Optional: point at a Visual Studio install. Auto-detected via vswhere when omitted.
+    [string]$VsRoot = '',
+    [string]$Platform = 'x64'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,10 +28,8 @@ $exe = Join-Path $outDir 'dsl_tests.exe'
 
 if (-not (Test-Path -LiteralPath $src)) { throw "Test source not found: $src" }
 
-$vcvars = Join-Path $VsRoot 'VC\Auxiliary\Build\vcvars64.bat'
-if (-not (Test-Path -LiteralPath $vcvars)) {
-    throw "vcvars64.bat not found: $vcvars`nPass -VsRoot to point at your Visual Studio install."
-}
+. (Join-Path $PSScriptRoot 'vs_tools.ps1')
+$vcvars = Resolve-VcVars $VsRoot $Platform
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 Get-ChildItem -LiteralPath $outDir -Filter '*.obj' -ErrorAction SilentlyContinue | Remove-Item -Force

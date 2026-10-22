@@ -1,7 +1,7 @@
 # ZufyUI API Reference
 
 > This document covers the entire public API of the ZufyUI framework, **organized by usage category** (not by code/header order).
-> Companion reading: [Project README & build](../README.en.md).
+> Companion reading: [Project README & build](../../README.en.md).
 
 > **How to read**: this is not just a signature list — each class first explains overall behavior, then each method's side effects, defaults and pitfalls. **You can use it correctly without reading the source.**
 
@@ -22,7 +22,8 @@
   - `ZufyUICharts.h`: **charts (BarChart/LineChart/PieChart)**, depends on `ZufyUI.h`.
   - `ZufyUIImages.h`: `Image` / `ImageManager` (image loading and device cache).
   - `ZufyUIIcons.h`: the `FontIcon` glyph control (the `Icon` enum itself lives in `ZufyUIWidgets.h`).
-  - `ZufyUIWindowTool.h`: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel); **since v1.20.0 it includes `ZufyUIWidgets.h` itself**, so it can be included on its own.
+  - `ZufyUIWindowTool.h`: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel); **since v1.20.0 it includes `ZufyUIWidgets.h` itself**, so it can be included on its own; it includes `ZufyUIHwndView.h` at the end.
+  - `ZufyUIHwndView.h`: native HWND host `HwndView` (WebView2 / camera / third-party / out-of-process windows).
   - `ZufyUIDragDrop.h`: drag & drop (included at the end of `ZufyUI.h`).
   - `ZufyUIDsl.h`: optional **fluent construction DSL** (purely additive; changes no existing control).
 - All are **header-only**; `#pragma comment(lib, ...)` auto-links `d2d1 / dwrite / dwmapi / imm32 / winmm`.
@@ -445,7 +446,8 @@ int GetCurrentIndex() const;  std::shared_ptr<Page> GetCurrentPage() const;
 ```
 - During a transition it returns **both** source and target pages as visible children; `UpdateAnimation` updates each page only once (otherwise double speed).
 - **`Pitfall`**: `NavigateTo` is **asynchronous** (switches after the animation); `GetCurrentPage()`/`GetCurrentIndex()` may still be old during it.
-- **`Version`**: easing `v1.8.1`; **delayed hidden-page cache release (~1.2 s, recursive)** = `v1.18.0`.
+- **`Version`**: easing `v1.8.1`; **delayed hidden-page cache release (~1.2 s, recursive)** = `v1.18.0`; `MeasureOverride` **measures every page** = `v1.23.1` — page content shown/hidden at runtime (e.g. an `Expander` card revealed after a combo-box selection) re-lays out and hit-tests immediately, with no need to resize the window.
+- **`Pitfall`**: show/hide page content with `SetVisible()` (it calls `InvalidateLayout()`); do not poke the internal visibility flag, or it will be neither re-measured nor repainted.
 
 ## TabView
 
@@ -1396,7 +1398,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.23.0
+###chapter: Version digest | v1.15.0 → v1.23.1
 
 > Only the changes that affect your code are listed.
 
@@ -1494,6 +1496,8 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Fix · `NumberBox`**: the empty-text error clears once the text becomes a **valid number**; `ResetToDefault` force-clears the error after notifying the app; step/clear buttons fire **on press** (no re-check against the moving rect; fixes staying red after the × button).
   - **Fix · data-view fill**: `ListView`/`TableView`/`TreeView` `MeasureOverride` honours `SetFillWidth/SetFillHeight` (like charts) instead of always returning the default 200/400.
   - **Demo**: new "Native HWND" page (GDI color pattern + Card/Grid/Column/ScrollViewer layouts + an out-of-process `--outproc` producer window hosted by `HwndView`).
+- **v1.23.1**:
+  - **Fix (layout / hit-testing)**: `PageHost::MeasureOverride` now **measures every page**. Previously `PageHost` only arranged pages while `Page::Arrange` re-measured solely on a size change, so page content made visible at runtime (e.g. an `Expander` card revealed after a combo-box selection) was never re-measured: the new element kept a zero `arrangedRect` (no border, `HitTest` failed) until the window was resized. Clean pages hit the `Measure` cache, so no duplicate work is added.
 
 
 ###chapter: Pitfall index | Quick lookup by topic
