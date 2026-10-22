@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>约定 · ZufyUI API 参考</title>
+    <link rel="icon" href="icon.ico" type="image/x-icon">
+
     <style>
 
 :root {
@@ -211,7 +213,8 @@ pre { line-height: 125%; }
   - `ZufyUICharts.h`：**图表（BarChart/LineChart/PieChart）**，依赖 `ZufyUI.h`。
   - `ZufyUIImages.h`：`Image` / `ImageManager`（图片加载与设备缓存）。
   - `ZufyUIIcons.h`：`FontIcon` 字形控件（`Icon` 枚举本身在 `ZufyUIWidgets.h`）。
-  - `ZufyUIWindowTool.h`：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）；**自 v1.20.0 起自身包含 `ZufyUIWidgets.h`**，可单独包含。
+  - `ZufyUIWindowTool.h`：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）；**自 v1.20.0 起自身包含 `ZufyUIWidgets.h`**，可单独包含；末尾包含 `ZufyUIHwndView.h`。
+  - `ZufyUIHwndView.h`：原生 HWND 宿主 `HwndView`（WebView2 / 摄像头 / 第三方 / 进程外窗口）。
   - `ZufyUIDragDrop.h`：拖放（由 `ZufyUI.h` 末尾包含）。
   - `ZufyUIDsl.h`：可选**链式构造 DSL**（纯附加，不修改任何现有控件）。
 - 全部是**纯头文件**；`#pragma comment(lib, ...)` 会自动链接 `d2d1 / dwrite / dwmapi / imm32 / winmm`。
@@ -260,7 +263,8 @@ pre { line-height: 125%; }
 <li><code>ZufyUICharts.h</code>：<strong>图表（BarChart/LineChart/PieChart）</strong>，依赖 <code>ZufyUI.h</code>。</li>
 <li><code>ZufyUIImages.h</code>：<code>Image</code> / <code>ImageManager</code>（图片加载与设备缓存）。</li>
 <li><code>ZufyUIIcons.h</code>：<code>FontIcon</code> 字形控件（<code>Icon</code> 枚举本身在 <code>ZufyUIWidgets.h</code>）。</li>
-<li><code>ZufyUIWindowTool.h</code>：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）；<strong>自 v1.20.0 起自身包含 <code>ZufyUIWidgets.h</code></strong>，可单独包含。</li>
+<li><code>ZufyUIWindowTool.h</code>：窗口周边（标题栏 / MessageBox / 托盘 / 系统对话框 / 无障碍提供程序 / 调试通道）；<strong>自 v1.20.0 起自身包含 <code>ZufyUIWidgets.h</code></strong>，可单独包含；末尾包含 <code>ZufyUIHwndView.h</code>。</li>
+<li><code>ZufyUIHwndView.h</code>：原生 HWND 宿主 <code>HwndView</code>（WebView2 / 摄像头 / 第三方 / 进程外窗口）。</li>
 <li><code>ZufyUIDragDrop.h</code>：拖放（由 <code>ZufyUI.h</code> 末尾包含）。</li>
 <li><code>ZufyUIDsl.h</code>：可选<strong>链式构造 DSL</strong>（纯附加，不修改任何现有控件）。</li>
 <li>全部是<strong>纯头文件</strong>；<code>#pragma comment(lib, ...)</code> 会自动链接 <code>d2d1 / dwrite / dwmapi / imm32 / winmm</code>。</li>

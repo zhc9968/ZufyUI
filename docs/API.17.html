@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>拖放与卡片组件 · ZufyUI API 参考</title>
+    <link rel="icon" href="icon.ico" type="image/x-icon">
+
     <style>
 
 :root {
@@ -265,7 +267,7 @@ class SettingsList : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2e2db6d8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-7e15e0da', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// ---- 拖放：载荷 / 事件 ----</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DragData</span><span class="w"> </span><span class="p">{</span><span class="w">                                   </span><span class="c1">// 拖入方只读访问</span>
@@ -314,7 +316,7 @@ class SettingsList : public UIElement {
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">RowClicked</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-2e2db6d8" style="display: none;">// ---- 拖放：载荷 / 事件 ----
+<pre id="code-7e15e0da" style="display: none;">// ---- 拖放：载荷 / 事件 ----
 class DragData {                                   // 拖入方只读访问
     bool HasText() const;   std::wstring GetText() const;
     bool HasFiles() const;  std::vector&lt;std::wstring&gt; GetFiles() const;

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>版本变化摘录 · ZufyUI API 参考</title>
+    <link rel="icon" href="icon.ico" type="image/x-icon">
+
     <style>
 
 :root {
@@ -245,7 +247,7 @@ pre { line-height: 125%; }
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.22.1`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.23.1`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
@@ -289,9 +291,18 @@ pre { line-height: 125%; }
   - **修复**：数据视图 ListView/TableView/TreeView 的项/单元格摆放 `bleedY` 由固定 `3.0f` 改为读元素自身 `GetBleed()`（阴影/出血不再被切）；`indicatorY_` 初始化改为 `-1`，首帧选中指示条直接就位。
   - **修复（外观）**：焦点框颜色改用 `ThemeRole::FocusRing`、圆角改用 `Theme::cornerRadius`（原硬编码蓝 + 固定 4）；`WM_NCHITTEST` 里自定义标题栏按钮**优先于缩放边框**（最大化按钮角落不再被 `HTTOPRIGHT` 抢走 → Win11 Snap Layouts 可弹）。
   - **工程**：`pch.h` 不再包含本库头（改库头不再整份重建 PCH）；新增 `UIElement::MarkUserColor()` 统一 40+ 处“用户设色”标记；删除死代码 `ListView::FindEnabledFrom`。
-  - **文档**：`docs/pitfalls.md` / `AGENTS.md` 持续维护。</pre></div></div>
+  - **文档**：`docs/pitfalls.md` / `AGENTS.md` 持续维护。
+- **v1.23.0**：
+  - **新增 · `ZufyUIHwndView.h`（`HwndView`）**：原生 HWND 内容宿主。主窗口是 NRB+DComp（子 HWND 不合成），故用**顶层 owned 弹窗**作宿主；`SetContentHwnd` 把外部窗口 `SetParent` 成宿主的 `WS_CHILD`（可跨进程）并显式显示。宿主移动时子窗口由系统一起走；裁剪 = 宿主客户区 + `SetWindowRgn`（元素矩形 ∩ 主窗口 ∩ 祖先 `GetClipRect`，含 `ScrollViewer` 视口）。支持 `SetObscured`、`SetOnBoundsChanged`、`SetFill*`。
+  - **新增 · `Window` 外部视觉挂载**：`CreateExternalVisual()`（WinRT `ContainerVisual`，插根视觉最上层，供 WebView2 `put_RootVisualTarget`）、`SetExternalVisualBounds`（DIP→物理像素）、`RemoveExternalVisual`；`AddOverlaySync/RemoveOverlaySync/SyncOverlays`（浮窗统一同步）。
+  - **性能**：浮窗同步改为**窗口级单点**（`WM_MOVE/WM_SIZE/WM_DPICHANGED` 立即同步 + 共享 16ms 兜底），去掉每实例定时器；缓存 DPI/客户区；跳过冗余 `SetWindowPos`、按变化带 `SWP_NOSIZE/NOMOVE`；demo 全色图静态部分缓存 DIB。
+  - **修复 · `NumberBox`**：空文本错误态在文本恢复为**合法数值**时清除；`ResetToDefault` 在通知应用后强制清错误；步进/清除按钮改为**按下即触发**（不再用会变化的矩形二次判定，修复点 × 后仍红）。
+  - **修复 · 数据视图填充**：`ListView`/`TableView`/`TreeView` 的 `MeasureOverride` 认 `SetFillWidth/SetFillHeight`（与图表一致），不再固定返回默认 200/400。
+  - **demo**：新增「原生HWND」页（GDI 全色图 + Card/Grid/Column/ScrollViewer 多布局 + 进程外 `--outproc` 生产者窗口托管）。
+- **v1.23.1**：
+  - **修复（布局 / 命中）**：`PageHost::MeasureOverride` **测量所有页面**。此前 `PageHost` 只 `Arrange` 页面，而 `Page::Arrange` 仅在尺寸变化时补测 → 页面内元素由隐藏变可见（如选下拉后 `SetVisible(true)` 的 `Expander` 卡片）不会重测，新元素 `arrangedRect` 为 0（无边框、`HitTest` 点不到），直到窗口尺寸变化才恢复。未变脏的页面命中 `Measure` 缓存，不增加重复测量。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 21 章 · 版本变化摘录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.22.1</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.23.1</p></header><blockquote>
 <p>只列<strong>对你写代码有影响</strong>的显著变化。</p>
 </blockquote>
 <ul>
@@ -338,7 +349,7 @@ pre { line-height: 125%; }
 <li><strong>v1.19.6</strong>：</li>
 <li>修复：<code>ListView</code> 按钮模式下勾选框<strong>命中位置少偏移 4px</strong>（与绘制/子元素左边界对齐）。</li>
 <li>修复：<code>Label::MeasureOverride</code> 的 Wrap 分支<strong>漏算内联子控件宽度</strong>（带 <code>AddChild</code> 的换行 Label 文本会挤压/溢出）。</li>
-<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.22.1</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
+<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.23.1</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
 <li><strong>v1.19.7</strong>：</li>
 <li>修复：<code>ChartBase</code> 横/纵滚动条占位写反（<code>viewW</code> 用竖条、<code>viewH</code> 用横条）→ 最右/最底滚不到；<code>NumberBox</code> 滚轮焦点判断（焦点在内部 <code>TextBox</code>）；<code>lastActiveAnimElements_</code> 悬垂（析构时从动画集合擦除，防随机崩溃）；<code>Menu::ShowAt</code> 非 <code>shared_ptr</code> 时抛 <code>bad_weak_ptr</code>；<code>ChildrenSig</code> 缺 <code>EnsureView</code>；<code>TreeView::SetDefaultExpandDepth</code> 对 <code>AddRoot</code>/<code>AddChild</code> 不生效。</li>
 <li>修复：<code>ColumnBox</code>/<code>RowBox</code> spacing 按“参与布局的子元素数”算；<code>GridLayout</code> 行列数过滤不可见元素；<code>Label</code> 换行漏算子控件宽度 / 多算一个间距；<code>ListView</code>/<code>TableView</code> 释放 Label 前清 <code>childrenView_</code>、补释放池化/富项/单元格 Label；<code>Window::defaultIMC_</code> 改 <code>ImmAssociateContext</code>；<code>DragData::GetFiles</code> 缓冲 <code>len+1</code>；<code>TextEdit</code> 清选区补发 <code>SelectionChanged</code>；<code>MessageBox</code> 默认标题本地化。</li>
@@ -383,6 +394,15 @@ pre { line-height: 125%; }
 <li><strong>修复（外观）</strong>：焦点框颜色改用 <code>ThemeRole::FocusRing</code>、圆角改用 <code>Theme::cornerRadius</code>（原硬编码蓝 + 固定 4）；<code>WM_NCHITTEST</code> 里自定义标题栏按钮<strong>优先于缩放边框</strong>（最大化按钮角落不再被 <code>HTTOPRIGHT</code> 抢走 → Win11 Snap Layouts 可弹）。</li>
 <li><strong>工程</strong>：<code>pch.h</code> 不再包含本库头（改库头不再整份重建 PCH）；新增 <code>UIElement::MarkUserColor()</code> 统一 40+ 处“用户设色”标记；删除死代码 <code>ListView::FindEnabledFrom</code>。</li>
 <li><strong>文档</strong>：<code>docs/pitfalls.md</code> / <code>AGENTS.md</code> 持续维护。</li>
+<li><strong>v1.23.0</strong>：</li>
+<li><strong>新增 · <code>ZufyUIHwndView.h</code>（<code>HwndView</code>）</strong>：原生 HWND 内容宿主。主窗口是 NRB+DComp（子 HWND 不合成），故用<strong>顶层 owned 弹窗</strong>作宿主；<code>SetContentHwnd</code> 把外部窗口 <code>SetParent</code> 成宿主的 <code>WS_CHILD</code>（可跨进程）并显式显示。宿主移动时子窗口由系统一起走；裁剪 = 宿主客户区 + <code>SetWindowRgn</code>（元素矩形 ∩ 主窗口 ∩ 祖先 <code>GetClipRect</code>，含 <code>ScrollViewer</code> 视口）。支持 <code>SetObscured</code>、<code>SetOnBoundsChanged</code>、<code>SetFill*</code>。</li>
+<li><strong>新增 · <code>Window</code> 外部视觉挂载</strong>：<code>CreateExternalVisual()</code>（WinRT <code>ContainerVisual</code>，插根视觉最上层，供 WebView2 <code>put_RootVisualTarget</code>）、<code>SetExternalVisualBounds</code>（DIP→物理像素）、<code>RemoveExternalVisual</code>；<code>AddOverlaySync/RemoveOverlaySync/SyncOverlays</code>（浮窗统一同步）。</li>
+<li><strong>性能</strong>：浮窗同步改为<strong>窗口级单点</strong>（<code>WM_MOVE/WM_SIZE/WM_DPICHANGED</code> 立即同步 + 共享 16ms 兜底），去掉每实例定时器；缓存 DPI/客户区；跳过冗余 <code>SetWindowPos</code>、按变化带 <code>SWP_NOSIZE/NOMOVE</code>；demo 全色图静态部分缓存 DIB。</li>
+<li><strong>修复 · <code>NumberBox</code></strong>：空文本错误态在文本恢复为<strong>合法数值</strong>时清除；<code>ResetToDefault</code> 在通知应用后强制清错误；步进/清除按钮改为<strong>按下即触发</strong>（不再用会变化的矩形二次判定，修复点 × 后仍红）。</li>
+<li><strong>修复 · 数据视图填充</strong>：<code>ListView</code>/<code>TableView</code>/<code>TreeView</code> 的 <code>MeasureOverride</code> 认 <code>SetFillWidth/SetFillHeight</code>（与图表一致），不再固定返回默认 200/400。</li>
+<li><strong>demo</strong>：新增「原生HWND」页（GDI 全色图 + Card/Grid/Column/ScrollViewer 多布局 + 进程外 <code>--outproc</code> 生产者窗口托管）。</li>
+<li><strong>v1.23.1</strong>：</li>
+<li><strong>修复（布局 / 命中）</strong>：<code>PageHost::MeasureOverride</code> <strong>测量所有页面</strong>。此前 <code>PageHost</code> 只 <code>Arrange</code> 页面，而 <code>Page::Arrange</code> 仅在尺寸变化时补测 → 页面内元素由隐藏变可见（如选下拉后 <code>SetVisible(true)</code> 的 <code>Expander</code> 卡片）不会重测，新元素 <code>arrangedRect</code> 为 0（无边框、<code>HitTest</code> 点不到），直到窗口尺寸变化才恢复。未变脏的页面命中 <code>Measure</code> 缓存，不增加重复测量。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.20.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a><a class="next" href="API.22.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">易错点总表</span><span class="nav-desc">按主题速查</span></a></nav>
         </main>

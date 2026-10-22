@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conventions · ZufyUI API Reference</title>
+    <link rel="icon" href="icon.ico" type="image/x-icon">
+
     <style>
 
 :root {
@@ -211,7 +213,8 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
   - `ZufyUICharts.h`: **charts (BarChart/LineChart/PieChart)**, depends on `ZufyUI.h`.
   - `ZufyUIImages.h`: `Image` / `ImageManager` (image loading and device cache).
   - `ZufyUIIcons.h`: the `FontIcon` glyph control (the `Icon` enum itself lives in `ZufyUIWidgets.h`).
-  - `ZufyUIWindowTool.h`: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel); **since v1.20.0 it includes `ZufyUIWidgets.h` itself**, so it can be included on its own.
+  - `ZufyUIWindowTool.h`: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel); **since v1.20.0 it includes `ZufyUIWidgets.h` itself**, so it can be included on its own; it includes `ZufyUIHwndView.h` at the end.
+  - `ZufyUIHwndView.h`: native HWND host `HwndView` (WebView2 / camera / third-party / out-of-process windows).
   - `ZufyUIDragDrop.h`: drag &amp; drop (included at the end of `ZufyUI.h`).
   - `ZufyUIDsl.h`: optional **fluent construction DSL** (purely additive; changes no existing control).
 - All are **header-only**; `#pragma comment(lib, ...)` auto-links `d2d1 / dwrite / dwmapi / imm32 / winmm`.
@@ -260,7 +263,8 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 <li><code>ZufyUICharts.h</code>: <strong>charts (BarChart/LineChart/PieChart)</strong>, depends on <code>ZufyUI.h</code>.</li>
 <li><code>ZufyUIImages.h</code>: <code>Image</code> / <code>ImageManager</code> (image loading and device cache).</li>
 <li><code>ZufyUIIcons.h</code>: the <code>FontIcon</code> glyph control (the <code>Icon</code> enum itself lives in <code>ZufyUIWidgets.h</code>).</li>
-<li><code>ZufyUIWindowTool.h</code>: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel); <strong>since v1.20.0 it includes <code>ZufyUIWidgets.h</code> itself</strong>, so it can be included on its own.</li>
+<li><code>ZufyUIWindowTool.h</code>: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel); <strong>since v1.20.0 it includes <code>ZufyUIWidgets.h</code> itself</strong>, so it can be included on its own; it includes <code>ZufyUIHwndView.h</code> at the end.</li>
+<li><code>ZufyUIHwndView.h</code>: native HWND host <code>HwndView</code> (WebView2 / camera / third-party / out-of-process windows).</li>
 <li><code>ZufyUIDragDrop.h</code>: drag &amp; drop (included at the end of <code>ZufyUI.h</code>).</li>
 <li><code>ZufyUIDsl.h</code>: optional <strong>fluent construction DSL</strong> (purely additive; changes no existing control).</li>
 <li>All are <strong>header-only</strong>; <code>#pragma comment(lib, ...)</code> auto-links <code>d2d1 / dwrite / dwmapi / imm32 / winmm</code>.</li>
