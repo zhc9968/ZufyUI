@@ -524,9 +524,10 @@ ZufyUI/
 
 ## Version history
 
-&gt; Current version: **1.23.1** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+&gt; Current version: **1.23.2** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 &gt; Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.23.2**: Debug builds now use `/bigobj` (x64/x86); full Release/Debug build matrix passes.
 - **1.23.1**: `PageHost` measures its pages; README/docs layering; Debugger in-repo; build scripts without absolute paths; ASCII export; WinUI 3 / Fluent Design icon and docs.
 - **1.23.0**: `HwndView` native window host; `Window` external visual attachment; overlay sync/performance; `NumberBox` error state; data-view fill.
 - **1.22.1**: layout overflow/alignment; IME/surrogate pairs; accessibility id/hit; focus-ring theme; pch/MarkUserColor.
@@ -602,7 +603,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c58b0d12', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-b29c8a6d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -638,7 +639,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-c58b0d12" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-b29c8a6d" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -687,18 +688,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-cb68c1eb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-39e95d9a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// Mica + fully transparent tint</span>
 </pre></div>
-<pre id="code-cb68c1eb" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
+<pre id="code-39e95d9a" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
 </div>
 <p><img alt="Backdrop: manual Mica" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>Step 3: a custom title bar.</strong> Swap the title bar (plus switch to Mica so it stands out):</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-dbb8282d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-0cfe4959', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar lives here</span>
 
@@ -706,7 +707,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// also switch to Mica</span>
 </pre></div>
-<pre id="code-dbb8282d" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
+<pre id="code-0cfe4959" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);
@@ -910,11 +911,11 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-7eae2128', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-55e979ca', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-7eae2128" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-55e979ca" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own <code>WinMain</code>.</p>
@@ -923,7 +924,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-07e561ec', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-e0018a1a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window / theme
@@ -963,7 +964,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
     ├── vs_tools.ps1      # Auto-detect VS / MSBuild (no hard-coded paths)
     └── colorscan.py      # Hard-coded colour audit
 </pre></div>
-<pre id="code-07e561ec" style="display: none;">ZufyUI/
+<pre id="code-e0018a1a" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window / theme
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / TextEdit / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider / MenuBar / StatusBar …
 ├── ZDataViewer.h         # Data views: ListView / TableView / TreeView
@@ -1003,10 +1004,11 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 </div>
 <h2 id="version-history">Version history</h2>
 <blockquote>
-<p>Current version: <strong>1.23.1</strong> (source of truth: <code>ZUFYUI_VERSION_STRING</code> in <code>ZufyUI.h</code>).
+<p>Current version: <strong>1.23.2</strong> (source of truth: <code>ZUFYUI_VERSION_STRING</code> in <code>ZufyUI.h</code>).
 Only "roughly what changed/fixed" (noun level); full per-item details are in <a href="CHANGELOG.en.html">CHANGELOG.en.md</a>.</p>
 </blockquote>
 <ul>
+<li><strong>1.23.2</strong>: Debug builds now use <code>/bigobj</code> (x64/x86); full Release/Debug build matrix passes.</li>
 <li><strong>1.23.1</strong>: <code>PageHost</code> measures its pages; README/docs layering; Debugger in-repo; build scripts without absolute paths; ASCII export; WinUI 3 / Fluent Design icon and docs.</li>
 <li><strong>1.23.0</strong>: <code>HwndView</code> native window host; <code>Window</code> external visual attachment; overlay sync/performance; <code>NumberBox</code> error state; data-view fill.</li>
 <li><strong>1.22.1</strong>: layout overflow/alignment; IME/surrogate pairs; accessibility id/hit; focus-ring theme; pch/MarkUserColor.</li>

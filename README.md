@@ -320,9 +320,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.23.1**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.23.2**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.23.2**：Debug 配置补 `/bigobj`（x64/x86）；全量 Release/Debug 构建通过。
 - **1.23.1**：`PageHost` 测量页面；README/docs 分层；Debugger 入仓；构建脚本去绝对路径；ASCII 导出；WinUI 3 / Fluent Design 图标与文档。
 - **1.23.0**：`HwndView` 原生窗口宿主；`Window` 外部视觉挂载；浮窗同步/性能；`NumberBox` 错误态；数据视图填充。
 - **1.22.1**：布局溢出/对齐；IME/代理对；无障碍 id/命中；焦点框主题；pch/MarkUserColor。

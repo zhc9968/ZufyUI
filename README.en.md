@@ -320,9 +320,10 @@ ZufyUI/
 
 ## Version history
 
-> Current version: **1.23.1** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+> Current version: **1.23.2** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 > Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.23.2**: Debug builds now use `/bigobj` (x64/x86); full Release/Debug build matrix passes.
 - **1.23.1**: `PageHost` measures its pages; README/docs layering; Debugger in-repo; build scripts without absolute paths; ASCII export; WinUI 3 / Fluent Design icon and docs.
 - **1.23.0**: `HwndView` native window host; `Window` external visual attachment; overlay sync/performance; `NumberBox` error state; data-view fill.
 - **1.22.1**: layout overflow/alignment; IME/surrogate pairs; accessibility id/hit; focus-ring theme; pch/MarkUserColor.
