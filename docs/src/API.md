@@ -28,7 +28,7 @@
   - `ZufyUIDragDrop.h`：拖放（由 `ZufyUI.h` 末尾包含）。
   - `ZufyUIDsl.h`：可选**链式构造 DSL**（纯附加，不修改任何现有控件）。
 - 全部是**纯头文件**；`#pragma comment(lib, ...)` 会自动链接 `d2d1 / dwrite / dwmapi / imm32 / winmm`。
-- **源码编码**：含中文的 `.h` / `.cpp` 必须存为 **UTF-8 带 BOM**（否则 MSVC 按本地代码页解析，报 `C2143/C2259/C2888/C4819`）；`.md` / `.tex` 存为 **UTF-8 无 BOM**。
+- **源码编码**：含中文的 `.h` / `.cpp` 必须存为 **UTF-8 带 BOM**（否则 MSVC 按本地代码页解析，报 `C2143/C2259/C2888/C4819`）；`.md` / `.tex` 存为 **UTF-8 无 BOM**。需要无 BOM / 纯 ASCII 副本时，用 `tools/export_ascii.py` 生成 `dist/ascii`（不提交；详见 README「纯 ASCII 导出」）。
 
 ## 单位
 
@@ -1420,7 +1420,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.23.1
+###chapter: 版本变化摘录 | v1.15.0 → v1.23.2
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1521,6 +1521,8 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **demo**：新增「原生HWND」页（GDI 全色图 + Card/Grid/Column/ScrollViewer 多布局 + 进程外 `--outproc` 生产者窗口托管）。
 - **v1.23.1**：
   - **修复（布局 / 命中）**：`PageHost::MeasureOverride` **测量所有页面**。此前 `PageHost` 只 `Arrange` 页面，而 `Page::Arrange` 仅在尺寸变化时补测 → 页面内元素由隐藏变可见（如选下拉后 `SetVisible(true)` 的 `Expander` 卡片）不会重测，新元素 `arrangedRect` 为 0（无边框、`HitTest` 点不到），直到窗口尺寸变化才恢复。未变脏的页面命中 `Measure` 缓存，不增加重复测量。
+- **v1.23.2**：
+  - **构建**：`ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` 的 **Debug|Win32** / **Debug|x64** 补 `/bigobj`（Release 已有）；全量 Release/Debug 构建通过。
 
 ###chapter: 易错点总表 | 按主题速查
 

@@ -2,7 +2,13 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.23.1** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.23.2** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-22 — Debug builds: add `/bigobj` (v1.23.2)
+
+- **Build**: added `/bigobj` to the **Debug|Win32** and **Debug|x64** configurations of `ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` (Release already had it). Full Debug builds previously failed in `ZufyUI.cpp` / `ZufyUIDebugger.cpp` with `C1128: number of sections exceeded object file format limit`.
+- **Verification**: Release / Debug × x64 / x86 demo + Debugger + DSL self-test all pass.
+- **Docs**: README / AGENTS / API now document the ASCII-only export and the encoding rule; `dist/ascii` is gitignored and never committed.
 
 ### 2026-10-22 — PageHost page measurement + docs & tooling (v1.23.1)
 

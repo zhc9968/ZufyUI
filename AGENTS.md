@@ -43,7 +43,7 @@
   python tools/check_api_parity.py
   ```
   脚本校验“每章代码块的方法名集合 + 非空行数”；任一项不一致即报错。
-- 文档（`.md` / `.tex`）保存为 **UTF-8 无 BOM**；C++ 源文件（`.h`/`.cpp`）保存为 **UTF-8 带 BOM**（中文宽字面量需要）。
+- 文档（`.md` / `.tex`）保存为 **UTF-8 无 BOM**；C++ 源文件（`.h`/`.cpp`）保存为 **UTF-8 带 BOM**（中文宽字面量需要）。需要无 BOM / 纯 ASCII 副本时，用 `tools/export_ascii.py` 生成 `dist/ascii`（不提交）。
 
 ## 构建
 

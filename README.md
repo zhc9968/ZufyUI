@@ -22,6 +22,7 @@
 - 把 `ZufyUI.h`、`ZufyUIWidgets.h`、`ZDataViewer.h`、`ZufyUICharts.h`、`ZufyUIWindowTool.h`、`ZufyUIDragDrop.h` 所在目录加入**包含路径**即可；**不需要编译任何 .cpp**，也不依赖第三方库。
 - 依赖的系统库全部由库内 `#pragma comment(lib, ...)` 自动链接（完整清单见「环境要求」）。
 - GUI 程序入口用 **`wWinMain` + `/SUBSYSTEM:WINDOWS`**。
+- 环境对 BOM / 中文源码不友好时，先运行 [纯 ASCII 导出](#纯-ascii-导出)，用 `dist/ascii` 里的头文件。
 - **⚠ 入口易错**：若坚持写 `int main()`，必须把子系统设成 `/SUBSYSTEM:CONSOLE`，或加 `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")`，否则链接器找不到入口。
 
 **第 1 步：最小窗口 + 一个按钮 + 一个开关**
@@ -251,7 +252,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 | 操作系统 | Windows 10 / 11 |
 | 编译器 | Visual Studio（**任意工具集均可**，需 **C++20** 及以上） |
 | Windows SDK | 10.0 及以上 |
-| 源文件编码 | **UTF-8 带 BOM**（不然 MSVC 会按本地代码页解析中文注释导致编译报错） |
+| 源文件编码 | 仓库源码为 **UTF-8 带 BOM**（中文注释/宽字面量）；需要无 BOM 时使用下方的 [纯 ASCII 导出](#纯-ascii-导出) |
 | 运行库 | 全部为系统自带（完整清单见下方），无需额外安装 |
 | 第三方依赖 | 无 |
 
@@ -275,6 +276,20 @@ msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64
 ```
 
 > `ZufyUI.cpp` 是一个综合演示程序（左侧导航 + 多个测试页），同时也充当框架的“冒烟测试”。真正要做自己的应用时，只需要包含头文件并写自己的 `WinMain`。
+
+### 纯 ASCII 导出
+
+如果你的环境对 UTF-8 BOM / 中文源码不友好（CI、旧工具链、代码审查、某些编辑器），可以生成一份纯 ASCII 副本：
+
+```powershell
+python tools/export_ascii.py --force
+```
+
+- 输出到 `dist/ascii/`（已在 `.gitignore` 中排除，不会提交）。
+- 所有源文件为纯 ASCII、无 BOM；中文注释替换为空格。
+- 字符串/字体里的非 ASCII 用 `\uXXXX`（宽字符）或 UTF-8 八进制转义（窄字符）保留，运行时文本不变。
+- 需要英文/自定义文本：编辑 `tools/ascii_map.json`；`--strings ascii` 把未映射文本替换为 `?`。
+- 详见生成目录的 `README.md` 与 `EXPORT_REPORT.txt`。
 
 ## 项目结构
 
@@ -320,9 +335,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.23.1**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.23.2**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.23.2**：Debug 配置补 `/bigobj`（x64/x86）；全量 Release/Debug 构建通过。
 - **1.23.1**：`PageHost` 测量页面；README/docs 分层；Debugger 入仓；构建脚本去绝对路径；ASCII 导出；WinUI 3 / Fluent Design 图标与文档。
 - **1.23.0**：`HwndView` 原生窗口宿主；`Window` 外部视觉挂载；浮窗同步/性能；`NumberBox` 错误态；数据视图填充。
 - **1.22.1**：布局溢出/对齐；IME/代理对；无障碍 id/命中；焦点框主题；pch/MarkUserColor。

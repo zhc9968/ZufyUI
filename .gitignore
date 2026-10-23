@@ -40,6 +40,7 @@ ZufyUI_Release_1.5_fontUpdate1/
 
 # ASCII 导出（tools/export_ascii.py 生成，不纳入仓库）
 /dist/
+/dist/ascii/
 
 # 内部待办（不发布到 GitHub）
 /TODO.md

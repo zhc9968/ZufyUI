@@ -27,7 +27,7 @@
   - `ZufyUIDragDrop.h`: drag & drop (included at the end of `ZufyUI.h`).
   - `ZufyUIDsl.h`: optional **fluent construction DSL** (purely additive; changes no existing control).
 - All are **header-only**; `#pragma comment(lib, ...)` auto-links `d2d1 / dwrite / dwmapi / imm32 / winmm`.
-- **Source encoding**: `.h` / `.cpp` files containing non-ASCII (e.g. Chinese) must be saved as **UTF-8 with BOM** (otherwise MSVC decodes them with the local code page and reports `C2143/C2259/C2888/C4819`); `.md` / `.tex` are saved as **UTF-8 without BOM**.
+- **Source encoding**: `.h` / `.cpp` files containing non-ASCII (e.g. Chinese) must be saved as **UTF-8 with BOM** (otherwise MSVC decodes them with the local code page and reports `C2143/C2259/C2888/C4819`); `.md` / `.tex` are saved as **UTF-8 without BOM**. For a BOM-free / ASCII-only copy, use `tools/export_ascii.py` (output `dist/ascii`, not committed; see the README's "ASCII-only export").
 
 ## Units
 
@@ -1398,7 +1398,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.23.1
+###chapter: Version digest | v1.15.0 → v1.23.2
 
 > Only the changes that affect your code are listed.
 
@@ -1498,6 +1498,8 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Demo**: new "Native HWND" page (GDI color pattern + Card/Grid/Column/ScrollViewer layouts + an out-of-process `--outproc` producer window hosted by `HwndView`).
 - **v1.23.1**:
   - **Fix (layout / hit-testing)**: `PageHost::MeasureOverride` now **measures every page**. Previously `PageHost` only arranged pages while `Page::Arrange` re-measured solely on a size change, so page content made visible at runtime (e.g. an `Expander` card revealed after a combo-box selection) was never re-measured: the new element kept a zero `arrangedRect` (no border, `HitTest` failed) until the window was resized. Clean pages hit the `Measure` cache, so no duplicate work is added.
+- **v1.23.2**:
+  - **Build**: added `/bigobj` to the **Debug|Win32** / **Debug|x64** configurations of `ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` (Release already had it); the full Release/Debug matrix passes.
 
 
 ###chapter: Pitfall index | Quick lookup by topic

@@ -89,8 +89,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 23
-#define ZufyUI_VERSION_PATCH 1
-#define ZufyUI_VERSION_STRING L"1.23.1"
+#define ZufyUI_VERSION_PATCH 2
+#define ZufyUI_VERSION_STRING L"1.23.2"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入

@@ -2,7 +2,13 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.23.1**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.23.2**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-22 — Debug 构建补 `/bigobj`（v1.23.2）
+
+- **构建**：`ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` 的 **Debug|Win32** 与 **Debug|x64** 补 `/bigobj`（Release 已有）。全量 Debug 构建此前会在 `ZufyUI.cpp` / `ZufyUIDebugger.cpp` 报 `C1128: 节数超过对象文件格式限制`。
+- **验证**：Release / Debug × x64 / x86 的 demo + Debugger + DSL 自检全部通过。
+- **文档**：README / AGENTS / API 补充“纯 ASCII 导出”与编码要求；`dist/ascii` 已加入 `.gitignore`，不会提交。
 
 ### 2026-10-22 — PageHost 页面测量 + 文档 / 工程整理（v1.23.1）
 
