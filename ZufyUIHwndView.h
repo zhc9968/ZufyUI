@@ -3,6 +3,9 @@
 // ZufyUIHwndView.h —— 原生 HWND 内容宿主（顶层 owned 浮窗）
 //   主窗口是 WS_EX_NOREDIRECTIONBITMAP + DComp，子 HWND 不被合成；因此用顶层浮窗跟随元素。
 //   对任意 HWND（WebView2 的 HWND controller、第三方控件、摄像头、进程外窗口）都有效。
+//   ⚠ 跨进程 SetParent 技术合法但不推荐：跨进程父子会串联输入队列（一方卡死拖死另一方）、
+//     部分窗口消息被阻止、可能出现间歇性不稳定，且目标进程可能不知道自己的窗口被重父化。
+//     优先同进程；跨进程仅作最后手段。
 //   ⚠ airspace：浮窗在主窗口之上、不被 ZufyUI 裁剪；完全滚出客户区会自动隐藏。
 //   需要“内容进合成（可裁剪/无 airspace）”的网页/视频，走 Window::CreateExternalVisual /
 //   WebView2 CompositionController。
@@ -21,7 +24,7 @@ public:
     HwndView& operator=(const HwndView&) = delete;
 
     HWND GetHostHwnd() const { return host_; }
-    // 把外部 HWND 嵌进宿主（WS_CHILD + SetParent，可跨线程/跨进程）。
+    // 把外部 HWND 嵌进宿主（WS_CHILD + SetParent）。同进程最稳；跨进程见文件头风险说明。
     //   宿主是普通 Win32 窗口（有重定向表面）→ 子窗口正常合成、被宿主客户区裁剪；
     //   移动/缩放宿主时子窗口自动跟随，不再对目标窗口做跨进程 SetWindowPos。
     void SetContentHwnd(HWND external, bool own = false) {

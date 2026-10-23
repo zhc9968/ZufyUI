@@ -140,7 +140,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 ### Basic controls
 
 - **Label**: multi-line/wrap/ellipsis/max lines, horizontal & vertical alignment, font and colours, inline child controls, leading icon, image + `SetImageFit`, automatic tooltip when elided.
-- **Button**: text/icon, hover/pressed/disabled, `Clicked`; auto-widens to its text (can be disabled); `CaptionButton` for minimize/maximize/close/Pin.
+- **Button**: text/icon, hover/pressed/disabled, `Clicked`; auto-widens to its text (can be disabled); rich/arbitrary content (`GetLabel()->AddChild` / `SetContent`); drop 2x2 (`SetDropWriteBack` x `SetDropOpenOnClick`, single-select menu, `DropSelected` / `DropMenuOpened`); `CaptionButton` for minimize/maximize/close/Pin.
 - **TextBox**: placeholder, password mode, max length, read-only, selection/caret, copy/cut/paste, undo, IME composition & candidate positioning, UTF-16 surrogate pairs, drag & drop, shift+click.
 - **TextEdit**: multi-line editor / read-only viewer, standard undo/redo (restores selection and caret), Tab indentation, scrolling, read-only rich text `TextRun`.
 - **ComboBox**: editable, filtering (`SetFilterEnabled`), source vs visible index, max visible items, disabled items, keyboard navigation, chevron expand animation, lazily connected global `DrawOverlay`.
@@ -231,7 +231,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 - `Ref<T>`: `with / on / add / apply`; `Make / Wrap / Col / Row / Grid`; `Cell(row,col,...)`.
 - Per-control short factories + unambiguous `make_*` aliases; SFINAE-gated sugar for size/weights/colours/spacing/alignment/data views/menus.
 - `dsl::App()` / `WindowApp`: fluent configuration, `hidden`, window signals, automatic `Show()`, `run()`.
-- `tests/dsl_tests.cpp`: 85 compile-time + runtime assertions, no window created.
+- `tests/dsl_tests.cpp`: 111 compile-time + runtime assertions, no window created.
 
 ### Engineering, tools & demo
 
@@ -335,9 +335,10 @@ ZufyUI/
 
 ## Version history
 
-> Current version: **1.23.2** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+> Current version: **1.23.3** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 > Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.23.3**: Button rich content / custom content + drop 2x2 (write-back x open-menu); `SetBackdrop` no longer covers Acrylic/Mica by default; ListView row-height division fix.
 - **1.23.2**: Debug builds now use `/bigobj` (x64/x86); full Release/Debug build matrix passes.
 - **1.23.1**: `PageHost` measures its pages; README/docs layering; Debugger in-repo; build scripts without absolute paths; ASCII export; WinUI 3 / Fluent Design icon and docs.
 - **1.23.0**: `HwndView` native window host; `Window` external visual attachment; overlay sync/performance; `NumberBox` error state; data-view fill.

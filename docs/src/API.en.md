@@ -630,6 +630,7 @@ std::wstring GetToolTip() const override;   // auto full-text tooltip when ellip
 
 ```cpp
 ZSignal<> Clicked;   ZSignal<bool> Toggled;     // Toggled needs SetCheckable(true)
+ZSignal<int> DropSelected;   ZSignal<> DropMenuOpened;   // selected index / menu opened
 Button(const std::wstring& text = L"Button");
 void SetText/SetIcon/SetIconColor(...);
 void SetColors(Color normal, Color hover, Color pressed);   void SetTextColor(Color);
@@ -637,10 +638,15 @@ void SetCornerRadius(float);   void SetHoverAnimationSpeed(float);
 void SetCheckable(bool);  void SetChecked(bool);  bool IsChecked() const;
 void SetAutoRepeat(bool enable, float intervalMs=400);
 void SetAutoSizeToText(bool);   inline static bool AutoSizeToText;   // default true: grow to fit text
+std::shared_ptr<Label> GetLabel();  void SetContent(std::shared_ptr<UIElement>);  void ClearContent();
+void SetDropWriteBack(bool);  void SetDropOpenOnClick(bool);   // two independent switches (2x2)
+void SetDropItems(const std::vector<std::wstring>&, int selected=-1);  void SetDropMenu(std::shared_ptr<Menu>);  void ShowDropMenu();
 ```
-- Default `120×36`; `Clicked` only if press+release are both inside.
-- **`Pitfall`**: `IsChecked()` is meaningless unless checkable. Do not parent the internal Label manually.
-- **`Version`**: since `v1.21.0` a Button **grows to fit its own text by default** (`MeasureOverride` returns `max(width_, textWidth + 2*padding)`); before that the width was a constant `DefaultWidth`, so long captions were truncated with an ellipsis. For a fixed width call `SetAutoSizeToText(false)` or set an explicit width.
+- Default `120×36`; `Clicked` fires whenever press+release are both inside the button (**click always calls back**).
+- **Rich content**: the internal `Label` is a real child now, so `GetLabel()->AddChild(...)` children are laid out/composited/drawn; `SetContent` replaces it with any `UIElement`.
+- **Drop 2x2**: `SetDropWriteBack` controls whether a menu selection writes its text back to the button; `SetDropOpenOnClick` controls whether the button opens the menu after `Clicked`. The menu is **single-select** (the previous choice is marked); selecting fires `DropSelected(index)`, readable via `GetDropSelectedIndex/GetDropSelectedText`. `SetDropItems` is the text-list shortcut; use `SetDropMenu` for custom menus; when `DropOpenOnClick=false`, open it with `ShowDropMenu()`.
+- **`Pitfall`**: `IsChecked()` is meaningless unless checkable; `SetContent` lays out inside the rect left after `padding` and the right arrow.
+- **`Version`**: since `v1.21.0` a Button **grows to fit its own text by default**; `v1.23.3` adds rich content and the drop 2x2 combinations.
 
 ## TextBox (single-line)
 
@@ -1171,6 +1177,7 @@ public:
 ```
 
 - Implementation: creates a **normal Win32 top-level owned popup** as the host; `SetContentHwnd` re-parents the external HWND as its `WS_CHILD` (cross-thread/cross-process allowed) and shows it explicitly. Moving/resizing the host moves the child natively; the host client clips it, plus `SetWindowRgn` (element rect ∩ window client ∩ every ancestor `GetClipRect`, incl. the `ScrollViewer` viewport).
+- **`Cross-process risk`**: cross-process `SetParent` is technically legal but not recommended: it couples the input queues (one stuck process can freeze the other), blocks some window messages, can be intermittently unstable, and the target process may not know its window was re-parented. **Prefer same-process**; use cross-process only as a last resort.
 - **`Pitfall`**: the main window is `WS_EX_NOREDIRECTIONBITMAP + DComp`, so **child HWNDs are not composited**; do not use a normal child control. `HwndView` is an **airspace overlay** — always above the window content; in-window dropdowns/tooltips cannot cover it (menus are separate top-level windows and are unaffected).
 - **`Convention`**: for "content goes into composition, no airspace" (web/video) use `CreateExternalVisual` below / WebView2 `CompositionController`.
 
@@ -1398,7 +1405,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.23.2
+###chapter: Version digest | v1.15.0 → v1.23.3
 
 > Only the changes that affect your code are listed.
 
@@ -1500,6 +1507,11 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Fix (layout / hit-testing)**: `PageHost::MeasureOverride` now **measures every page**. Previously `PageHost` only arranged pages while `Page::Arrange` re-measured solely on a size change, so page content made visible at runtime (e.g. an `Expander` card revealed after a combo-box selection) was never re-measured: the new element kept a zero `arrangedRect` (no border, `HitTest` failed) until the window was resized. Clean pages hit the `Measure` cache, so no duplicate work is added.
 - **v1.23.2**:
   - **Build**: added `/bigobj` to the **Debug|Win32** / **Debug|x64** configurations of `ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` (Release already had it); the full Release/Debug matrix passes.
+- **v1.23.3**:
+  - **Button**: the internal `Label` is a real child now (rich content via `GetLabel()->AddChild` / `SetContent`); added the drop 2x2 switches (`SetDropWriteBack` / `SetDropOpenOnClick`) and a single-select menu (`DropSelected` / `DropMenuOpened`).
+  - **Fix ? drop-menu position**: `GetDpiScale()` returns 96/144 (not 1.0/1.5); the old multiplier sent the menu to the screen bottom-right. Dividing by 96 places it under the button, and the demo no longer shows a MessageBox.
+  - **Fixes**: `SetBackdrop(Acrylic/Mica)` no longer covers the system material with opaque white when no tint is set; `ListView::SetItemHeight` is clamped to >=1px and Draw/hit-testing no longer divide by zero.
+  - **Docs/cleanup**: documented `HwndView` cross-process risks; removed the redundant `WM_ACTIVATE` check, added `<cstring>`, removed the demo's empty callback.
 
 
 ###chapter: Pitfall index | Quick lookup by topic

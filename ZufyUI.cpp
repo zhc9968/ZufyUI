@@ -567,6 +567,51 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             Btn(L"可切换按钮").with(&Button::SetCheckable, true).tooltip(L"可切换按钮：点击切换选中状态")
         ).spacing(8.0f).shared());
 
+        // 富文本按钮 + 右侧下拉（split button）
+        {
+            auto richRow = std::make_shared<RowBox>();
+            richRow->SetSpacing(6.0f);
+            richRow->AddChild(std::make_shared<Label>(L"富文本"));
+            auto badge = std::make_shared<Label>(L"NEW");
+            badge->SetTextColor(Color::FromArgb(255, 255, 255, 255));
+            badge->SetBackgroundColor(Color::FromArgb(255, 210, 60, 60));
+            badge->SetBackgroundCornerRadius(4.0f);
+            badge->SetPadding(Thickness(5, 1, 5, 1));
+            richRow->AddChild(badge);
+
+            auto richBtn = std::make_shared<Button>(L"");
+            richBtn->SetAutoSizeToText(false);
+            richBtn->SetWidth(190.0f);
+            richBtn->SetContent(richRow);
+
+            auto writeOpen = std::make_shared<Button>(L"写回+开菜单");
+            writeOpen->SetDropWriteBack(true);
+            writeOpen->SetDropOpenOnClick(true);
+            writeOpen->SetDropItems({ L"选项 A", L"选项 B" });
+
+            auto noWriteOpen = std::make_shared<Button>(L"不写回+开菜单");
+            noWriteOpen->SetDropWriteBack(false);
+            noWriteOpen->SetDropOpenOnClick(true);
+            noWriteOpen->SetDropItems({ L"选项 A", L"选项 B" });
+
+            auto manualMenu = std::make_shared<Button>(L"只回调");
+            manualMenu->SetDropWriteBack(true);
+            manualMenu->SetDropOpenOnClick(false);
+            manualMenu->SetDropItems({ L"选项 A", L"选项 B" });
+
+            auto openMenuBtn = std::make_shared<Button>(L"手动打开菜单");
+            openMenuBtn->Clicked.connect([manualMenu]() { manualMenu->ShowDropMenu(); });
+
+            auto btnRow = std::make_shared<RowBox>();
+            btnRow->SetSpacing(8.0f);
+            btnRow->AddChild(richBtn);
+            btnRow->AddChild(writeOpen);
+            btnRow->AddChild(noWriteOpen);
+            btnRow->AddChild(manualMenu);
+            btnRow->AddChild(openMenuBtn);
+            col->AddChild(btnRow);
+        }
+
         AddSection(col, L"开关与勾选");
         col->AddChild(Row(
             Toggle(false).on<&ToggleSwitch::Toggled>([lblToggleState](bool on) {
@@ -671,7 +716,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                                  .with(&ScrollViewer::SetVerticalScrollBarVisibility, ScrollViewer::ScrollBarVisibility::Always)
                                  .with(&ScrollViewer::SetContentMargin, Thickness(8, 8, 8, 8))
                                  .with(&ScrollViewer::SetContent, scrollContent.shared());
-        scrollView->Connect(scrollView->ScrollChanged, [](float, float) {});
+
         col->AddChild(scrollView.shared());
 
         AddSection(col, L"TextBox 进阶：输入过滤 / 只读 / 密码显隐 / 占位色");

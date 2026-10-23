@@ -140,7 +140,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 ### 基础控件
 
 - **Label**：多行/换行/省略号/最大行数、水平/垂直对齐、字体与颜色、内联子控件、前导图标、图片 + `SetImageFit`、省略时自动 ToolTip。
-- **Button**：文本/图标、悬停/按下/禁用、`Clicked`；按文案自动撑宽（可关）；`CaptionButton` 提供最小化/最大化/关闭/Pin。
+- **Button**：文本/图标、悬停/按下/禁用、`Clicked`；按文案自动撑宽（可关）；富文本/任意内容（`GetLabel()->AddChild` / `SetContent`）；下拉 2×2（`SetDropWriteBack` × `SetDropOpenOnClick`，单选菜单，`DropSelected` / `DropMenuOpened`）；`CaptionButton` 提供最小化/最大化/关闭/Pin。
 - **TextBox**：placeholder、密码模式、最大长度、只读、选区/光标、复制/剪切/粘贴、撤销、IME 组合输入与候选框定位、UTF-16 代理对、拖放、Shift+点击。
 - **TextEdit**：多行编辑器 / 只读查看器、标准撤销/重做（还原选区与光标）、Tab 缩进、滚动、只读富文本 `TextRun`。
 - **ComboBox**：可编辑、过滤（`SetFilterEnabled`）、源索引与可见索引、最大可见项、禁用项、键盘导航、chevron 展开动画、懒连接全局 `DrawOverlay`。
@@ -231,7 +231,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - `Ref<T>`：`with / on / add / apply`；`Make / Wrap / Col / Row / Grid`；`Cell(row,col,...)` 坐标。
 - 各控件短工厂 + `make_*` 无歧义别名；SFINAE 门控的尺寸/权重/配色/间距/对齐/数据视图/菜单糖。
 - `dsl::App()` / `WindowApp`：链式配置、`hidden`、窗口信号、自动 `Show()`、`run()`。
-- `tests/dsl_tests.cpp`：85 项编译期+运行期断言，不建窗口。
+- `tests/dsl_tests.cpp`：111 项编译期+运行期断言，不建窗口。
 
 ### 工程、工具与示例
 
@@ -335,9 +335,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.23.2**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.23.3**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.23.3**：Button 富文本 / 自定义内容 + 下拉模式（Split / Dropdown / Menu）；`SetBackdrop` 默认不再盖住亚克力/云母；ListView 行高除零修复。
 - **1.23.2**：Debug 配置补 `/bigobj`（x64/x86）；全量 Release/Debug 构建通过。
 - **1.23.1**：`PageHost` 测量页面；README/docs 分层；Debugger 入仓；构建脚本去绝对路径；ASCII 导出；WinUI 3 / Fluent Design 图标与文档。
 - **1.23.0**：`HwndView` 原生窗口宿主；`Window` 外部视觉挂载；浮窗同步/性能；`NumberBox` 错误态；数据视图填充。

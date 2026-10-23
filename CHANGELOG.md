@@ -2,7 +2,17 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.23.2**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.23.3**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-23 — Button 富文本/下拉、SetBackdrop 修复、ListView 除零（v1.23.3）
+
+- **新增 · Button 富文本 / 自定义内容**：内部 `Label` 现在是真正的子元素，`GetLabel()->AddChild(...)` 会正常布局/合成/绘制；新增 `SetContent(shared_ptr<UIElement>)` / `ClearContent()`，可整体替换按钮内容。
+- **新增 · Button 下拉 2×2**：`SetDropWriteBack(bool)` × `SetDropOpenOnClick(bool)`。按钮点击**始终触发 `Clicked`**；开菜单时先回调再弹菜单。菜单为**单选**（上次选中项有标记），选中触发 `DropSelected(index)`，可 `GetDropSelectedIndex/GetDropSelectedText` 读取；`SetDropItems` 建文字列表，`SetDropMenu` 接自定义菜单，`ShowDropMenu()` 可在 `DropOpenOnClick=false` 时手动打开。菜单只在按钮下方弹出，不弹 MessageBox。
+- **?? ? ??????**?`GetDpiScale()` ?? 96/144??? 1.0/1.5?????????????????????? `/96` ??????????demo ??? split ???? MessageBox?
+- **修复 · `SetBackdrop`**：未显式设置 tint 时，`SetBackdrop(Acrylic/Mica)` 不再使用不透明白色叠加层（旧默认 `backdropFollowAlpha_=0xFF` 会盖住系统材质）；`None` 仍保持默认不透明白；显式 tint（含 alpha）保持不变。新增 `GetBackdropColor()` 便于诊断。
+- **修复 · `ListView`**：`SetItemHeight` 夹到 ≥1px；`Draw` / 命中测试补行高 >0 防御，避免 `SetItemHeight(0)` 的浮点除零与 `int` 转换 UB。
+- **文档/清理**：`HwndView` 注释补跨进程 `SetParent` 的输入队列/消息阻止/间歇不稳定风险；删除 `WM_ACTIVATE` 冗余判断；`ZDataViewer.h` 显式包含 `<cstring>`；移除 demo 空 `ScrollChanged` 回调。
+- **demo**：按钮页新增富文本按钮与 split button 示例。
 
 ### 2026-10-22 — Debug 构建补 `/bigobj`（v1.23.2）
 

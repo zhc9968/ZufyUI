@@ -89,8 +89,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 23
-#define ZufyUI_VERSION_PATCH 2
-#define ZufyUI_VERSION_STRING L"1.23.2"
+#define ZufyUI_VERSION_PATCH 3
+#define ZufyUI_VERSION_STRING L"1.23.3"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -3264,6 +3264,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     public:
         inline static Backdrop DefaultBackdrop = Backdrop::None;
         inline static DWORD DefaultBackdropColor = 0xFFFFFFFF;   // 默认纯白背景（Backdrop::None + 不透明白）
+        inline static bool DefaultBackdropTintSet = false;      // 是否通过 SetDefaultBackdrop 显式设过 tint
         // ---------- 手动背景 4 层参数（全部可通过 API 调整）----------
         //   Blur 层       : blurAmount（高斯模糊 σ）
         //   Luminosity 层 : brightness / contrast / saturation（亮度 / 对比度 / 饱和度）
@@ -3335,7 +3336,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             lastTime_(std::chrono::steady_clock::now()), layoutNeeded_(true),
             backdrop_(DefaultBackdrop), backdropColor_(DefaultBackdropColor), backgroundColor_(DefaultBackgroundColor),
             animationTimerActive_(false),
-            layoutInvalidated_(false) {}
+            layoutInvalidated_(false) {
+            backdropAlphaExplicit_ = DefaultBackdropTintSet;
+            if (!backdropAlphaExplicit_ && backdrop_ != Backdrop::None)
+                backdropColor_ &= 0x00FFFFFFu;   // 默认白色是 None 的底色，不能盖住系统材质
+        }
 
         virtual ~Window() {
             // 析构必须在 UI 线程执行。
@@ -3553,7 +3558,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void SetBackdrop(Backdrop backdrop) {
             backdrop_ = backdrop;
             backdropUserTinted_ = false;
-            backdropColor_ = (backdropFollowAlpha_ << 24) | (backdropColor_ & 0x00FFFFFFu);
+            // 没显式设过 tint 时，None 用默认不透明白；Acrylic/Mica 必须透明，
+            // 否则会把系统材质整个盖住（旧默认的 0xFF 就是这个问题）。
+            DWORD alpha = (backdrop == Backdrop::None || backdropAlphaExplicit_) ? backdropFollowAlpha_ : 0;
+            backdropColor_ = (alpha << 24) | (backdropColor_ & 0x00FFFFFFu);
             SyncThemeBackdrop();   // 颜色变化时它内部会 ApplyBackdrop()
             ApplyBackdrop();       // 模式本身变化也要应用
         }
@@ -3562,10 +3570,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             backdrop_ = backdrop;
             backdropColor_ = tint;
             backdropUserTinted_ = true;
+            backdropAlphaExplicit_ = true;
             backdropFollowAlpha_ = (tint >> 24) & 0xFF;   // 记住这个不透明度，供将来切回"跟随主题"复用
             ApplyBackdrop();
         }
         Backdrop GetBackdrop() const { return backdrop_; }
+        DWORD GetBackdropColor() const { return backdropColor_; }   // 供测试/诊断：AARRGGBB
         // 背景实现方式：用什么 API（Auto / System / Accent）
         // 当前是否在用系统材质（Win11 Mica/Acrylic）；false 表示走了 AccentState 路径
         bool IsSystemBackdropActive() const { return systemBackdropActive_; }
@@ -3587,6 +3597,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         static void SetDefaultBackdrop(Backdrop backdrop, DWORD tint = 0x00000000) {
             DefaultBackdrop = backdrop;
             DefaultBackdropColor = tint;
+            DefaultBackdropTintSet = true;
         }
 
         // x/y 为屏幕像素位置；默认 CW_USEDEFAULT（系统决定）。传入具体位置即以此为准；
@@ -4729,7 +4740,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     UIZSignals::WindowActivated(this);
                     ShowOwnedWindows();   // 本窗口重新获得焦点/置顶 → 恢复被隐藏的 owned 子窗口
                     // 激活时（窗口已就绪）再应用一次背景，确保 Mica/Acrylic 稳定生效
-                    if (wParam != WA_INACTIVE && backdrop_ != Backdrop::None) ApplyBackdrop();
+                    if (backdrop_ != Backdrop::None) ApplyBackdrop();
                 }
                 return 0;
             case WM_COMMAND:
@@ -6597,6 +6608,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool  useAppTheme_ = true;
         bool  themeReapply_ = false;    // 下一帧布局后把主题套到可见子树
         bool  backdropUserTinted_ = false;   // 应用显式设过背景 tint → 主题不覆盖
+        bool  backdropAlphaExplicit_ = false; // 是否显式设过叠加色 alpha（SetBackdrop 两参数 / SetDefaultBackdrop）
         DWORD backdropFollowAlpha_ = (DefaultBackdropColor >> 24) & 0xFF;   // "跟随主题"时使用的 alpha
         Connection themeConn_;          // 订阅 UIZSignals::ThemeChanged
         Connection themeReapplyConn_;   // 订阅 UIZSignals::ThemeReapply

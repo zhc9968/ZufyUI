@@ -419,6 +419,70 @@ static void test_fix_regressions() {
     CHECK(sv->GetCollapseThreshold() > 0.0f);
 }
 
+static void test_backdrop_defaults() {
+    Window w;
+    w.SetBackdrop(Backdrop::Acrylic);
+    CHECK(((w.GetBackdropColor() >> 24) & 0xFF) == 0);
+    w.SetBackdrop(Backdrop::Mica);
+    CHECK(((w.GetBackdropColor() >> 24) & 0xFF) == 0);
+    w.SetBackdrop(Backdrop::None);
+    CHECK(((w.GetBackdropColor() >> 24) & 0xFF) == 0xFF);
+    w.SetBackdrop(Backdrop::Acrylic, 0x80FFFFFF);
+    CHECK(((w.GetBackdropColor() >> 24) & 0xFF) == 0x80);
+    w.SetBackdrop(Backdrop::Mica);
+    CHECK(((w.GetBackdropColor() >> 24) & 0xFF) == 0x80);
+}
+
+static void test_button_and_listview_regressions() {
+    Button b(L"x");
+    b.RefreshChildren();
+    CHECK(b.GetChildren().size() == 1);
+    CHECK(b.GetChildren()[0] == b.GetLabel().get());
+
+    auto inlineChild = std::make_shared<Label>(L"inline");
+    b.GetLabel()->AddChild(inlineChild);
+    b.GetLabel()->RefreshChildren();
+    CHECK(b.GetLabel()->GetChildren().size() == 1);
+    CHECK(b.GetLabel()->GetChildren()[0] == inlineChild.get());
+
+    auto content = std::make_shared<Label>(L"content");
+    b.SetContent(content);
+    b.RefreshChildren();
+    CHECK(b.GetChildren().size() == 1);
+    CHECK(b.GetChildren()[0] == content.get());
+
+    b.ClearContent();
+    b.RefreshChildren();
+    CHECK(b.GetChildren().size() == 1);
+    CHECK(b.GetChildren()[0] == b.GetLabel().get());
+
+    b.SetDropWriteBack(true);
+    CHECK(b.GetDropWriteBack());
+    b.SetDropOpenOnClick(true);
+    CHECK(b.GetDropOpenOnClick());
+    b.SetDropItems({ L"one", L"two" }, 1);
+    CHECK(b.GetDropSelectedIndex() == 1);
+    CHECK(b.GetText() == L"two");
+    CHECK(b.GetDropSelectedText() == L"two");
+
+    b.SetDropWriteBack(false);
+    b.SetDropOpenOnClick(false);
+    CHECK(!b.GetDropWriteBack());
+    CHECK(!b.GetDropOpenOnClick());
+    b.SetDropItems({ L"alpha", L"beta" }, 0);
+    CHECK(b.GetDropSelectedIndex() == 0);
+    CHECK(b.GetText() == L"two");   // no write-back
+    CHECK(b.GetDropSelectedText() == L"alpha");
+    b.SetDropWriteBack(true);
+    CHECK(b.GetText() == L"alpha");
+
+    ListView lv;
+    lv.SetItemHeight(0.0f);
+    CHECK(lv.GetItemHeight() >= 1.0f);
+    lv.SetItemHeight(-5.0f);
+    CHECK(lv.GetItemHeight() >= 1.0f);
+}
+
 int main() {
     SetConsoleOutputCP(CP_UTF8);   // 源码是 UTF-8：不改代码页的话中文断言输出在 cmd 里是乱码
     std::printf("=== ZufyUI DSL 自检 ===\n");
@@ -430,6 +494,8 @@ int main() {
     test_factories_and_wrap();
     test_dsl_pitfalls();
     test_fix_regressions();
+    test_button_and_listview_regressions();
+    test_backdrop_defaults();
     std::printf("\n通过 %d 项，失败 %d 项\n", g_pass, g_fail);
     if (g_fail) { std::printf("结果：FAILED\n"); return 1; }
     std::printf("结果：OK\n");

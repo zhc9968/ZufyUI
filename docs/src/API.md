@@ -639,6 +639,7 @@ std::wstring GetToolTip() const override;   // 省略时自动全量 tooltip（v
 
 ```cpp
 ZSignal<> Clicked;   ZSignal<bool> Toggled;     // Toggled 需先 SetCheckable(true)
+ZSignal<int> DropSelected;   ZSignal<> DropMenuOpened;   // 菜单项索引 / 菜单打开
 Button(const std::wstring& text = L"Button");
 void SetText/SetIcon/SetIconColor(...);
 void SetColors(Color normal, Color hover, Color pressed);   void SetTextColor(Color);
@@ -646,10 +647,15 @@ void SetCornerRadius(float);   void SetHoverAnimationSpeed(float);
 void SetCheckable(bool);  void SetChecked(bool);  bool IsChecked() const;
 void SetAutoRepeat(bool enable, float intervalMs=400);   // 长按重复
 void SetAutoSizeToText(bool);   inline static bool AutoSizeToText;   // 默认 true：按文案撑宽
+std::shared_ptr<Label> GetLabel();  void SetContent(std::shared_ptr<UIElement>);  void ClearContent();
+void SetDropWriteBack(bool);  void SetDropOpenOnClick(bool);   // 两个独立开关（2×2）
+void SetDropItems(const std::vector<std::wstring>&, int selected=-1);  void SetDropMenu(std::shared_ptr<Menu>);  void ShowDropMenu();
 ```
-- 默认 `120×36`；按下+抬起都在内部才 `Clicked`。
-- **`易错`**：非 checkable 时 `IsChecked()` 无意义。内部 Label 不要手动 parent。
-- **`版本`**：`v1.21.0` 起按钮**默认按文案自动撑宽**（`MeasureOverride` 取 `max(width_, 文案宽 + 2*padding)`），此前宽度恒定 `DefaultWidth`，文案长了会被省略号裁掉；需要固定宽度时 `SetAutoSizeToText(false)` 或给显式宽度。
+- 默认 `120×36`；按钮按下+抬起都在内部才 `Clicked`（**点击始终回调**）。
+- **富文本**：内部 `Label` 已经是真正的子元素，`GetLabel()->AddChild(...)` 的子元素会被合成/布局/绘制；也可 `SetContent` 换成任意 `UIElement`。
+- **下拉 2×2**：`SetDropWriteBack` 控制菜单选中是否回写按钮文字；`SetDropOpenOnClick` 控制按钮 `Clicked` 之后是否打开菜单。菜单是**单选**（上次选中项有标记）；选中触发 `DropSelected(index)`，可用 `GetDropSelectedIndex/GetDropSelectedText` 读取。`SetDropItems` 是文字列表快捷方式；自定义菜单用 `SetDropMenu`；`DropOpenOnClick=false` 时用 `ShowDropMenu()` 手动打开。
+- **`易错`**：非 checkable 时 `IsChecked()` 无意义；`SetContent` 的内容在扣除 `padding` 和右侧箭头后的矩形内布局。
+- **`版本`**：`v1.21.0` 起按钮**默认按文案自动撑宽**；`v1.23.3` 支持富文本内容与下拉 2×2 组合。
 
 ## TextBox（单行）
 
@@ -1191,7 +1197,8 @@ public:
 };
 ```
 
-- 实现：创建一个**普通 Win32 顶层 owned 弹窗**作为宿主；`SetContentHwnd` 会把外部 HWND `SetParent` 成它的 `WS_CHILD`（可跨线程/跨进程）并显式显示。移动/缩放宿主时子窗口由系统一起走；宿主客户区负责裁剪，再叠加 `SetWindowRgn`（元素矩形 ∩ 主窗口客户区 ∩ 所有祖先 `GetClipRect`，含 `ScrollViewer` 视口）。
+- 实现：创建一个**普通 Win32 顶层 owned 弹窗**作为宿主；`SetContentHwnd` 会把外部 HWND `SetParent` 成它的 `WS_CHILD` 并显式显示。移动/缩放宿主时子窗口由系统一起走；宿主客户区负责裁剪，再叠加 `SetWindowRgn`（元素矩形 ∩ 主窗口客户区 ∩ 所有祖先 `GetClipRect`，含 `ScrollViewer` 视口）。
+- **`跨进程风险`**：跨进程 `SetParent` 技术合法但不推荐——会串联输入队列（一方卡死拖死另一方）、阻止部分窗口消息、可能出现间歇性不稳定，且目标进程可能不知道窗口被重父化。**优先同进程**；跨进程仅作最后手段。
 - **`易错`**：主窗口是 `WS_EX_NOREDIRECTIONBITMAP + DComp`，**子 HWND 不会被合成**，不能用普通子控件；`HwndView` 是 **airspace 浮窗**——永远在主窗口内容之上、窗口内自绘的下拉/ToolTip 压不住它（菜单是独立顶层窗口，不受影响）。
 - **`约定`**：需要“内容进合成、无 airspace”的网页/视频 → 用下面的 `CreateExternalVisual` / WebView2 `CompositionController`。
 
@@ -1420,7 +1427,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.23.2
+###chapter: 版本变化摘录 | v1.15.0 → v1.23.3
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1523,6 +1530,11 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **修复（布局 / 命中）**：`PageHost::MeasureOverride` **测量所有页面**。此前 `PageHost` 只 `Arrange` 页面，而 `Page::Arrange` 仅在尺寸变化时补测 → 页面内元素由隐藏变可见（如选下拉后 `SetVisible(true)` 的 `Expander` 卡片）不会重测，新元素 `arrangedRect` 为 0（无边框、`HitTest` 点不到），直到窗口尺寸变化才恢复。未变脏的页面命中 `Measure` 缓存，不增加重复测量。
 - **v1.23.2**：
   - **构建**：`ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` 的 **Debug|Win32** / **Debug|x64** 补 `/bigobj`（Release 已有）；全量 Release/Debug 构建通过。
+- **v1.23.3**：
+  - **Button**：内部 `Label` 成为真正的子元素（富文本 `GetLabel()->AddChild` / `SetContent`）；新增右侧下拉区 `SplitClicked` / `SetSplitMenu` / `SetSplitButton`。
+  - **?? ? ??????**?`GetDpiScale()` ?? 96/144??? 1.0/1.5?????????????????????? `/96` ??????????demo ??? MessageBox?
+  - **修复**：`SetBackdrop(Acrylic/Mica)` 在未显式设 tint 时不再用不透明白盖住系统材质；`ListView::SetItemHeight` 夹到 ≥1px，Draw/命中不再除零。
+  - **文档/清理**：`HwndView` 跨进程风险说明；`WM_ACTIVATE` 冗余判断、`<cstring>`、demo 空回调清理。
 
 ###chapter: 易错点总表 | 按主题速查
 

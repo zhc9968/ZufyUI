@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "ZufyUI.h"
+#include <cstring>
 #include "ZufyUIWidgets.h"
 
 namespace ZufyUI {
@@ -461,7 +462,11 @@ namespace ZufyUI {
         void SetSortIndicatorColor(Color color) { sortIndicatorColor_ = color.ToD2D(); sortIndicatorBrush_.Reset(); RequestRepaint(); }
 
         // 样式设置
-        void SetItemHeight(float height) { itemHeight_ = height; UpdateScrollInfo(); UpdateIndicatorTarget(); InvalidateLayout(); RequestRepaint(); }
+        void SetItemHeight(float height) {
+            // 行高必须为正：Draw/命中/VisibleRange 都要除以它，0 会触发浮点除零并转 int UB。
+            itemHeight_ = max(1.0f, height);
+            UpdateScrollInfo(); UpdateIndicatorTarget(); InvalidateLayout(); RequestRepaint();
+        }
         float GetItemHeight() const { return itemHeight_; }
         void SetIndicatorWidth(float width) { indicatorWidth_ = width; RequestRepaint(); }
         void SetIndicatorHeightRatio(float ratio) { indicatorHeightRatio_ = clamp(ratio, 0.1f, 1.0f); RequestRepaint(); }
@@ -638,6 +643,7 @@ namespace ZufyUI {
 
             float viewportWidth = arrangedRect_.width - (showScrollBar_ ? scrollBarWidth_ : 0);
             float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
+            if (effectiveRowHeight <= 0.0f) return;   // 防御：行高为 0 时不能做浮点除法
 
             if (!buttonMode_) {
                 if (!bgBrush_) rt->CreateSolidColorBrush(backgroundColor_, bgBrush_.GetAddressOf());
@@ -834,6 +840,7 @@ namespace ZufyUI {
                 return;
             }
             float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
+            if (effectiveRowHeight <= 0.0f) { hoveredIndex_ = -1; return; }
             float relY = LocalToContentY(y);
             int vi = (int)(relY / effectiveRowHeight);
             int src = (vi >= 0 && vi < VisibleCount()) ? SourceOfVisible(vi) : -1;
@@ -855,6 +862,7 @@ namespace ZufyUI {
             lastContextRow_ = -1;
             if (arrangedRect_.Contains(x, y)) {
                 float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
+                if (effectiveRowHeight <= 0.0f) return false;
                 float relY = LocalToContentY(y);
                 int vi = (int)(relY / effectiveRowHeight);
                 if (vi >= 0 && vi < VisibleCount()) {
@@ -891,6 +899,7 @@ namespace ZufyUI {
                 }
             }
             float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
+            if (effectiveRowHeight <= 0.0f) return;
             float relY = LocalToContentY(y);
             int vi = (int)(relY / effectiveRowHeight);
             int idx = (vi >= 0 && vi < VisibleCount()) ? SourceOfVisible(vi) : -1;

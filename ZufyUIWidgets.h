@@ -676,6 +676,7 @@ namespace ZufyUI {
         inline static float DefaultCornerRadius = 4.0f;
         inline static float DefaultWidth = 120.0f;
         inline static float DefaultHeight = 36.0f;
+        inline static float DefaultDropArrowWidth = 24.0f;
         // 文案比当前宽度长时自动撑开（否则固定 120 宽会把长文案裁成省略号，即使右侧还有空间）
         inline static bool AutoSizeToText = true;
         inline static float DefaultFontSize = 16.0f;
@@ -690,8 +691,10 @@ namespace ZufyUI {
             return s;
             }();
 
-        ZSignal<> Clicked;
-        ZSignal<bool> Toggled;   // 开关式按钮
+        ZSignal<> Clicked;        // 按钮点击（始终触发）
+        ZSignal<bool> Toggled;    // 开关式按钮
+        ZSignal<int> DropSelected; // 下拉项被选中（索引）
+        ZSignal<> DropMenuOpened;  // 即将打开下拉菜单
 
         Button(const std::wstring& text = L"Button") : text_(text), hovered_(false), isPressed_(false), hoverProgress_(0.0f),
             normalColor_(DefaultNormalColor), hoverColor_(DefaultHoverColor), pressedColor_(DefaultPressedColor),
@@ -699,6 +702,7 @@ namespace ZufyUI {
             hoverAnimSpeed_(DefaultHoverAnimationSpeed) {
             width_ = DefaultWidth; height_ = DefaultHeight;
             label_ = std::make_shared<Label>(text_);
+            label_->SetParent(this);   // 成为真正的子元素：富文本子元素由合成通道绘制
             label_->SetTextColor(textColor_);
             label_->SetTextOverflow(Label::TextOverflow::Ellipsis);
             label_->SetAlignment(Label::HAlign::Center, Label::VAlign::Center);
@@ -713,6 +717,76 @@ namespace ZufyUI {
             RequestRepaint();
         }
         std::wstring GetText() const { return text_; }
+
+        // ---- 富文本 / 自定义内容 ----
+        // 内部 Label 已是 Button 的子元素，可直接 GetLabel()->AddChild(...) 做富文本。
+        // 也可以整体替换为任意 UIElement。
+        std::shared_ptr<Label> GetLabel() const { return label_; }
+        std::shared_ptr<UIElement> GetContent() const { return content_; }
+        bool HasContent() const { return content_ != nullptr; }
+        void SetContent(std::shared_ptr<UIElement> content) {
+            if (content == content_ || content == label_) return;
+            if (content_) content_->SetParent(nullptr);
+            content_ = std::move(content);
+            if (content_) { content_->SetParent(this); content_->SetVisible(true); }
+            if (label_) label_->SetVisible(content_ == nullptr);
+            childrenDirty_ = true;
+            InvalidateLayout();
+            RequestRepaint();
+        }
+        void ClearContent() { SetContent(nullptr); }
+
+        // ---- 下拉菜单：两个独立开关（2×2 组合）----
+        //   dropWriteBack_  : 菜单项选中后是否把文字写回按钮
+        //   dropOpenOnClick_: 按钮 Clicked 之后是否打开菜单
+        void SetDropMenu(std::shared_ptr<Menu> menu) {
+            dropMenu_ = std::move(menu);
+            InvalidateLayout(); RequestRepaint();
+        }
+        std::shared_ptr<Menu> GetDropMenu() const { return dropMenu_; }
+        void SetDropWriteBack(bool on) {
+            dropWriteBack_ = on;
+            if (on) ApplyDropText();
+            RequestRepaint();
+        }
+        bool GetDropWriteBack() const { return dropWriteBack_; }
+        void SetDropOpenOnClick(bool on) { dropOpenOnClick_ = on; RequestRepaint(); }
+        bool GetDropOpenOnClick() const { return dropOpenOnClick_; }
+        void SetDropArrowWidth(float width) {
+            if (width > 0.0f) { dropArrowWidth_ = max(12.0f, width); InvalidateLayout(); RequestRepaint(); }
+        }
+        float GetDropArrowWidth() const { return dropArrowWidth_; }
+        // 文字列表：单选菜单；选中后更新 selectedDropIndex_、可选回写、触发 DropSelected。
+        void SetDropItems(const std::vector<std::wstring>& items, int selected = -1) {
+            auto menu = std::make_shared<Menu>();
+            for (size_t i = 0; i < items.size(); ++i) {
+                const std::wstring text = items[i];
+                menu->AddCheckItemRadio(text, (int)i == selected, [this, i](bool) {
+                    selectedDropIndex_ = (int)i;
+                    if (dropMenu_) {
+                        for (size_t k = 0; k < dropMenu_->items.size(); ++k)
+                            dropMenu_->items[k]->checked = ((int)k == (int)i);
+                    }
+                    if (dropWriteBack_) ApplyDropText();
+                    DropSelected((int)i);
+                });
+            }
+            menu->onOpening = [this](Menu& m) {
+                for (size_t k = 0; k < m.items.size(); ++k)
+                    m.items[k]->checked = ((int)k == selectedDropIndex_);
+            };
+            dropMenu_ = std::move(menu);
+            if (selected >= 0 && selected < (int)items.size()) selectedDropIndex_ = selected;
+            if (dropWriteBack_) ApplyDropText();
+            InvalidateLayout(); RequestRepaint();
+        }
+        int GetDropSelectedIndex() const { return selectedDropIndex_; }
+        std::wstring GetDropSelectedText() const {
+            if (dropMenu_ && selectedDropIndex_ >= 0 && selectedDropIndex_ < (int)dropMenu_->items.size())
+                return dropMenu_->items[(size_t)selectedDropIndex_]->text;
+            return L"";
+        }
+        void ShowDropMenu() { OpenDropMenuInternal(); }
 
         // 图标（转发给内部 Label）：Button 等基于 Label 的控件因此也支持字体字形图标。
         // 只设图标、不设文本时即为「图标按钮」。
@@ -767,23 +841,41 @@ namespace ZufyUI {
             return Button::DefaultFontSpec;
         }
 
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
+            childrenDirty_ = false;
+            childrenView_.clear();
+            if (content_) childrenView_.push_back(content_.get());
+            else if (label_) childrenView_.push_back(label_.get());
+        }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
+        void AttachWindowRecursive(Window* w) override {
+            windowId_.store(WindowIdOf(w));
+            if (content_) content_->AttachWindowRecursive(w);
+            if (label_) label_->AttachWindowRecursive(w);
+        }
+
         Size MeasureOverride(const Size& availableSize) override {
             float w = width_, h = height_;
-            if (autoSizeToText_ && label_) {
-                Size ls = label_->Measure(Size(FLT_MAX, h > 0.0f ? h : DefaultHeight));
-                float need = ls.width + padding_ * 2.0f;
-                if (need > w) w = need;               // 放得下就不该省略
+            float reserve = dropMenu_ ? dropArrowWidth_ : 0.0f;
+            if (autoSizeToText_) {
+                UIElement* c = content_ ? content_.get() : label_.get();
+                if (c) {
+                    Size ls = c->Measure(Size(FLT_MAX, h > 0.0f ? h : DefaultHeight));
+                    float need = ls.width + padding_ * 2.0f + reserve;
+                    if (need > w) w = need;               // 放得下就不该省略
+                }
             }
             return Size(w, h);
         }
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
-            if (label_) {
-                float padding = padding_;
-                Rect labelRect(finalRect.x + padding, finalRect.y, finalRect.width - padding * 2, finalRect.height);
-                label_->Arrange(labelRect);
-            }
+            float reserve = dropMenu_ ? min(dropArrowWidth_, finalRect.width) : 0.0f;
+            float innerW = max(0.0f, finalRect.width - padding_ * 2.0f - reserve);
+            Rect inner(finalRect.x + padding_, finalRect.y, innerW, finalRect.height);
+            if (content_) content_->Arrange(inner);
+            else if (label_) label_->Arrange(inner);
         }
 
         void Draw(ID2D1RenderTarget* rt) override {
@@ -799,9 +891,16 @@ namespace ZufyUI {
 
             if (bgBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(arrangedRect_.ToD2D(), cornerRadius_, cornerRadius_), bgBrush_.Get());
 
-            if (label_) {
+            if (label_ && !content_)
                 label_->SetTextColor(enabled ? textColor_ : Color::FromArgb(255, 120, 120, 120));
-                label_->Draw(rt);
+
+            if (dropMenu_) {
+                const D2D1_RECT_F rr = arrangedRect_.ToD2D();
+                float ax = max(arrangedRect_.x, arrangedRect_.x + arrangedRect_.width - dropArrowWidth_);
+                FontSpec fi; fi.familyName = IconFontFamily(); fi.size = 12.0f;
+                Color cc = enabled ? textColor_ : Color::FromArgb(255, 120, 120, 120);
+                DrawTextWithEllipsis(rt, IconGlyph(Icon::ChevronDown),
+                    D2D1::RectF(ax, rr.top, rr.right, rr.bottom), cc.ToD2D(), fi, fgBrush_, nullptr, true, TextHAlign::Center);
             }
         }
 
@@ -809,6 +908,8 @@ namespace ZufyUI {
             float target = hovered_ ? 1.0f : 0.0f;
             if (hoverProgress_ < target) { hoverProgress_ += hoverAnimSpeed_ * deltaTime; if (hoverProgress_ > target) hoverProgress_ = target; }
             else if (hoverProgress_ > target) { hoverProgress_ -= hoverAnimSpeed_ * deltaTime; if (hoverProgress_ < target) hoverProgress_ = target; }
+            if (content_) content_->UpdateAnimation(deltaTime);
+            else if (label_) label_->UpdateAnimation(deltaTime);
             if (HasActiveAnimation()) RequestRepaint();
             ConvergeValue(hoverProgress_, hovered_ ? 1.0f : 0.0f, 0.001f);
             if (autoRepeat_ && isPressed_ && autoRepeatInterval_ > 0.0f) {
@@ -819,7 +920,9 @@ namespace ZufyUI {
 
         bool HasActiveAnimation() const override {
             const float epsilon = 0.001f;
-            return hovered_ ? (hoverProgress_ < 1.0f - epsilon) : (hoverProgress_ > epsilon);
+            bool hoverAnim = hovered_ ? (hoverProgress_ < 1.0f - epsilon) : (hoverProgress_ > epsilon);
+            bool childAnim = content_ ? content_->HasActiveAnimation() : (label_ ? label_->HasActiveAnimation() : false);
+            return hoverAnim || childAnim;
         }
 
         void OnMouseEnter() override { if (!IsEffectivelyEnabled()) return; hovered_ = true; RequestRepaint(); MouseEnter.Fire(); }
@@ -843,7 +946,8 @@ namespace ZufyUI {
             if (!IsEffectivelyEnabled()) { dragArm_ = false; return; }
             if (isPressed_ && !dragMoved_) {   // 拖动过就不再触发点击
                 if (checkable_) SetChecked(!checked_);
-                Clicked();
+                Clicked();                     // 按钮点击始终回调
+                if (dropOpenOnClick_ && dropMenu_) ShowDropMenu();
             }
             isPressed_ = false; dragArm_ = false;
             RequestRepaint();
@@ -866,6 +970,7 @@ namespace ZufyUI {
             if ((key == VK_SPACE || key == VK_RETURN) && isPressed_) {
                 if (checkable_) SetChecked(!checked_);
                 Clicked();
+                if (dropOpenOnClick_ && dropMenu_) ShowDropMenu();
                 isPressed_ = false;
                 RequestRepaint();
             }
@@ -880,11 +985,30 @@ namespace ZufyUI {
 
         void ReleaseDeviceResources() override {
             bgBrush_.Reset();
+            fgBrush_.Reset();
             if (label_) label_->ReleaseDeviceResources();
+            if (content_) content_->ReleaseDeviceResources();
             UIElement::ReleaseDeviceResources();
         }
 
     private:
+        void OpenDropMenuInternal() {
+            if (!dropMenu_) return;
+            Window* w = GetWindow();
+            if (!w) return;
+            float s = w->GetDpiScale() / 96.0f;   // GetDpiScale 返回 96/144…，不是 1.0/1.5
+            float anchorDip = arrangedRect_.x + arrangedRect_.width - dropArrowWidth_;
+            POINT pt{ (LONG)(anchorDip * s + 0.5f),
+                      (LONG)((arrangedRect_.y + arrangedRect_.height) * s + 0.5f) };
+            if (HWND h = w->GetHwnd()) ClientToScreen(h, &pt);
+            DropMenuOpened();
+            dropMenu_->ShowAt((int)pt.x, (int)pt.y);
+        }
+        void ApplyDropText() {
+            if (!dropMenu_ || selectedDropIndex_ < 0 || selectedDropIndex_ >= (int)dropMenu_->items.size()) return;
+            SetText(dropMenu_->items[(size_t)selectedDropIndex_]->text);
+        }
+
         std::wstring text_;
         bool hovered_, isPressed_;
         float hoverProgress_;
@@ -892,7 +1016,14 @@ namespace ZufyUI {
         float cornerRadius_;
         float hoverAnimSpeed_;
         std::shared_ptr<Label> label_;
+        std::shared_ptr<UIElement> content_;
+        std::shared_ptr<Menu> dropMenu_;
+        bool dropWriteBack_ = true;
+        bool dropOpenOnClick_ = true;
+        float dropArrowWidth_ = DefaultDropArrowWidth;
+        int selectedDropIndex_ = -1;
         ComPtr<ID2D1SolidColorBrush> bgBrush_;
+        ComPtr<ID2D1SolidColorBrush> fgBrush_;
         bool checkable_ = false;
         bool checked_ = false;
         float padding_ = 5.0f;

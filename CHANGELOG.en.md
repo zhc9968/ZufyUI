@@ -2,7 +2,17 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.23.2** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.23.3** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-23 — Button rich content/split, SetBackdrop fix, ListView division (v1.23.3)
+
+- **New · Button rich content**: the internal `Label` is a real child now, so `GetLabel()->AddChild(...)` is laid out/composited/drawn; `SetContent(shared_ptr<UIElement>)` / `ClearContent()` replace the content entirely.
+- **New · Button drop 2x2**: `SetDropWriteBack(bool)` x `SetDropOpenOnClick(bool)`. A button click **always fires `Clicked`**; when opening, the callback runs first, then the menu appears. The menu is **single-select** (the previous choice is marked); selecting fires `DropSelected(index)`, readable via `GetDropSelectedIndex/GetDropSelectedText`; `SetDropItems` builds a text list, `SetDropMenu` accepts a custom menu, and `ShowDropMenu()` opens it when `DropOpenOnClick=false`. The menu appears below the button without a MessageBox.
+- **Fix ? drop-menu position**: `GetDpiScale()` returns 96/144 (not 1.0/1.5); the old multiplier sent the menu to the screen bottom-right. Dividing by 96 places it under the button, and the demo no longer shows a MessageBox on split click.
+- **Fix · `SetBackdrop`**: with no explicit tint, `SetBackdrop(Acrylic/Mica)` no longer applies an opaque white overlay (the old default `backdropFollowAlpha_=0xFF` covered the system material); `None` keeps the opaque white default, and explicit tints (including alpha) are preserved. Added `GetBackdropColor()` for diagnostics.
+- **Fix · `ListView`**: `SetItemHeight` is clamped to >=1px; `Draw` / hit-testing guard against a non-positive row height, avoiding the `SetItemHeight(0)` divide-by-zero and `int` conversion UB.
+- **Docs/cleanup**: documented the `HwndView` cross-process `SetParent` risks (input queue coupling, blocked messages, intermittent instability); removed the redundant `WM_ACTIVATE` check; added `<cstring>` to `ZDataViewer.h`; removed the demo's empty `ScrollChanged` callback.
+- **Demo**: the buttons page now shows a rich-content button and a split button.
 
 ### 2026-10-22 — Debug builds: add `/bigobj` (v1.23.2)
 
