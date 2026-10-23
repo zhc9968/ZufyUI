@@ -199,7 +199,7 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item has-children" data-toc="zufyui"><div class="toc-row"><a href="#zufyui" data-target="zufyui">ZufyUI</a><button class="toc-caret" data-toc="zufyui" title="Expand / collapse"><span class="arrow">&#9662;</span></button></div><ul class="toc-sublist"><li class="toc-item" data-toc="quick-start"><div class="toc-row"><a href="#quick-start" data-target="quick-start">Quick start</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="feature-overview"><div class="toc-row"><a href="#feature-overview" data-target="feature-overview">Feature overview</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="requirements"><div class="toc-row"><a href="#requirements" data-target="requirements">Requirements</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="build"><div class="toc-row"><a href="#build" data-target="build">Build</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="project-structure"><div class="toc-row"><a href="#project-structure" data-target="project-structure">Project structure</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="version-history"><div class="toc-row"><a href="#version-history" data-target="version-history">Version history</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="roadmap"><div class="toc-row"><a href="#roadmap" data-target="roadmap">Roadmap</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="documentation"><div class="toc-row"><a href="#documentation" data-target="documentation">Documentation</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="about"><div class="toc-row"><a href="#about" data-target="about">About</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="experimental-feature"><div class="toc-row"><a href="#experimental-feature" data-target="experimental-feature">Experimental feature</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="license"><div class="toc-row"><a href="#license" data-target="license">License</a><span class="toc-caret-space"></span></div></li></ul></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item has-children" data-toc="zufyui"><div class="toc-row"><a href="#zufyui" data-target="zufyui">ZufyUI</a><button class="toc-caret" data-toc="zufyui" title="Expand / collapse"><span class="arrow">&#9662;</span></button></div><ul class="toc-sublist"><li class="toc-item" data-toc="quick-start"><div class="toc-row"><a href="#quick-start" data-target="quick-start">Quick start</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="feature-overview"><div class="toc-row"><a href="#feature-overview" data-target="feature-overview">Feature overview</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="requirements"><div class="toc-row"><a href="#requirements" data-target="requirements">Requirements</a><span class="toc-caret-space"></span></div></li><li class="toc-item has-children" data-toc="build"><div class="toc-row"><a href="#build" data-target="build">Build</a><button class="toc-caret" data-toc="build" title="Expand / collapse"><span class="arrow">&#9662;</span></button></div><ul class="toc-sublist"><li class="toc-item" data-toc="ascii-only-export"><div class="toc-row"><a href="#ascii-only-export" data-target="ascii-only-export">ASCII-only export</a><span class="toc-caret-space"></span></div></li></ul></li><li class="toc-item" data-toc="project-structure"><div class="toc-row"><a href="#project-structure" data-target="project-structure">Project structure</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="version-history"><div class="toc-row"><a href="#version-history" data-target="version-history">Version history</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="roadmap"><div class="toc-row"><a href="#roadmap" data-target="roadmap">Roadmap</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="documentation"><div class="toc-row"><a href="#documentation" data-target="documentation">Documentation</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="about"><div class="toc-row"><a href="#about" data-target="about">About</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="experimental-feature"><div class="toc-row"><a href="#experimental-feature" data-target="experimental-feature">Experimental feature</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="license"><div class="toc-row"><a href="#license" data-target="license">License</a><span class="toc-caret-space"></span></div></li></ul></li></ul></div>
         </aside>
         <main class="content">
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre># ZufyUI
@@ -226,6 +226,7 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 - Add the directory containing `ZufyUI.h`, `ZufyUIWidgets.h`, `ZDataViewer.h`, `ZufyUICharts.h`, `ZufyUIWindowTool.h`, `ZufyUIDragDrop.h` to your **include path**; **nothing to compile**, no third-party deps.
 - All required system libs are auto-linked via `#pragma comment(lib, ...)` (complete list under Requirements).
 - GUI entry point: **`wWinMain` + `/SUBSYSTEM:WINDOWS`**.
+- If your environment dislikes BOM / non-ASCII sources, run the [ASCII-only export](#ascii-only-export) and use the headers in `dist/ascii`.
 - **⚠ Entry point pitfall**: if you insist on `int main()`, set `/SUBSYSTEM:CONSOLE`, or add `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")`, otherwise the linker won't find an entry point.
 
 **Step 1: minimal window + a button + a toggle**
@@ -455,7 +456,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 | Operating system | Windows 10 / 11 |
 | Compiler | Visual Studio (**any toolset works**; requires **C++20** or later) |
 | Windows SDK | 10.0 or later |
-| Source encoding | **UTF-8 with BOM** (otherwise MSVC parses Chinese comments in the local code page and fails to compile) |
+| Source encoding | Repository sources are **UTF-8 with BOM** (Chinese comments / wide literals); use the [ASCII-only export](#ascii-only-export) below when BOM-free sources are required |
 | Runtime libraries | All system-provided (full list below); no additional installation required |
 | Third-party dependencies | None |
 
@@ -479,6 +480,20 @@ msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64
 ```
 
 &gt; `ZufyUI.cpp` is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own `WinMain`.
+
+### ASCII-only export
+
+If your environment dislikes UTF-8 BOMs or non-ASCII sources (CI, older toolchains, code review, some editors), generate an ASCII-only copy:
+
+```powershell
+python tools/export_ascii.py --force
+```
+
+- Output goes to `dist/ascii/` (already excluded by `.gitignore`, never committed).
+- Every source file is plain ASCII with no BOM; non-ASCII comments become spaces.
+- Non-ASCII string/font text is preserved with `\uXXXX` (wide) or UTF-8 octal escapes (narrow), so runtime text is unchanged.
+- Add translations in `tools/ascii_map.json`; `--strings ascii` replaces unmapped text with `?`.
+- See the generated `README.md` and `EXPORT_REPORT.txt` for details.
 
 ## Project structure
 
@@ -598,12 +613,13 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 - Add the directory containing <code>ZufyUI.h</code>, <code>ZufyUIWidgets.h</code>, <code>ZDataViewer.h</code>, <code>ZufyUICharts.h</code>, <code>ZufyUIWindowTool.h</code>, <code>ZufyUIDragDrop.h</code> to your <strong>include path</strong>; <strong>nothing to compile</strong>, no third-party deps.
 - All required system libs are auto-linked via <code>#pragma comment(lib, ...)</code> (complete list under Requirements).
 - GUI entry point: <strong><code>wWinMain</code> + <code>/SUBSYSTEM:WINDOWS</code></strong>.
+- If your environment dislikes BOM / non-ASCII sources, run the <a href="#ascii-only-export">ASCII-only export</a> and use the headers in <code>dist/ascii</code>.
 - <strong>⚠ Entry point pitfall</strong>: if you insist on <code>int main()</code>, set <code>/SUBSYSTEM:CONSOLE</code>, or add <code>#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")</code>, otherwise the linker won't find an entry point.</p>
 <p><strong>Step 1: minimal window + a button + a toggle</strong></p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b29c8a6d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-9985abe3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -639,7 +655,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-b29c8a6d" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-9985abe3" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -688,18 +704,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-39e95d9a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-3974c50e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// Mica + fully transparent tint</span>
 </pre></div>
-<pre id="code-39e95d9a" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
+<pre id="code-3974c50e" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
 </div>
 <p><img alt="Backdrop: manual Mica" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>Step 3: a custom title bar.</strong> Swap the title bar (plus switch to Mica so it stands out):</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0cfe4959', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-089407f3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar lives here</span>
 
@@ -707,7 +723,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// also switch to Mica</span>
 </pre></div>
-<pre id="code-0cfe4959" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
+<pre id="code-089407f3" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);
@@ -882,7 +898,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 </tr>
 <tr>
 <td>Source encoding</td>
-<td><strong>UTF-8 with BOM</strong> (otherwise MSVC parses Chinese comments in the local code page and fails to compile)</td>
+<td>Repository sources are <strong>UTF-8 with BOM</strong> (Chinese comments / wide literals); use the <a href="#ascii-only-export">ASCII-only export</a> below when BOM-free sources are required</td>
 </tr>
 <tr>
 <td>Runtime libraries</td>
@@ -911,20 +927,38 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-55e979ca', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-f1e504c8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-55e979ca" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-f1e504c8" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own <code>WinMain</code>.</p>
 </blockquote>
+<h3 id="ascii-only-export">ASCII-only export</h3>
+<p>If your environment dislikes UTF-8 BOMs or non-ASCII sources (CI, older toolchains, code review, some editors), generate an ASCII-only copy:</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">powershell</span>
+<button class="copy-btn" onclick="copyCode('code-31be5d23', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">tools</span><span class="p">/</span><span class="n">export_ascii</span><span class="p">.</span><span class="n">py</span> <span class="p">-</span><span class="n">-force</span>
+</pre></div>
+<pre id="code-31be5d23" style="display: none;">python tools/export_ascii.py --force</pre>
+</div>
+<ul>
+<li>Output goes to <code>dist/ascii/</code> (already excluded by <code>.gitignore</code>, never committed).</li>
+<li>Every source file is plain ASCII with no BOM; non-ASCII comments become spaces.</li>
+<li>Non-ASCII string/font text is preserved with <code>\uXXXX</code> (wide) or UTF-8 octal escapes (narrow), so runtime text is unchanged.</li>
+<li>Add translations in <code>tools/ascii_map.json</code>; <code>--strings ascii</code> replaces unmapped text with <code>?</code>.</li>
+<li>See the generated <code>README.md</code> and <code>EXPORT_REPORT.txt</code> for details.</li>
+</ul>
 <h2 id="project-structure">Project structure</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-e0018a1a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-8762aa04', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window / theme
@@ -964,7 +998,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
     ├── vs_tools.ps1      # Auto-detect VS / MSBuild (no hard-coded paths)
     └── colorscan.py      # Hard-coded colour audit
 </pre></div>
-<pre id="code-e0018a1a" style="display: none;">ZufyUI/
+<pre id="code-8762aa04" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window / theme
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / TextEdit / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider / MenuBar / StatusBar …
 ├── ZDataViewer.h         # Data views: ListView / TableView / TreeView

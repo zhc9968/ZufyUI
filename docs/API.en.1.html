@@ -218,7 +218,7 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
   - `ZufyUIDragDrop.h`: drag &amp; drop (included at the end of `ZufyUI.h`).
   - `ZufyUIDsl.h`: optional **fluent construction DSL** (purely additive; changes no existing control).
 - All are **header-only**; `#pragma comment(lib, ...)` auto-links `d2d1 / dwrite / dwmapi / imm32 / winmm`.
-- **Source encoding**: `.h` / `.cpp` files containing non-ASCII (e.g. Chinese) must be saved as **UTF-8 with BOM** (otherwise MSVC decodes them with the local code page and reports `C2143/C2259/C2888/C4819`); `.md` / `.tex` are saved as **UTF-8 without BOM**.
+- **Source encoding**: `.h` / `.cpp` files containing non-ASCII (e.g. Chinese) must be saved as **UTF-8 with BOM** (otherwise MSVC decodes them with the local code page and reports `C2143/C2259/C2888/C4819`); `.md` / `.tex` are saved as **UTF-8 without BOM**. For a BOM-free / ASCII-only copy, use `tools/export_ascii.py` (output `dist/ascii`, not committed; see the README's "ASCII-only export").
 
 ## Units
 
@@ -268,7 +268,7 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 <li><code>ZufyUIDragDrop.h</code>: drag &amp; drop (included at the end of <code>ZufyUI.h</code>).</li>
 <li><code>ZufyUIDsl.h</code>: optional <strong>fluent construction DSL</strong> (purely additive; changes no existing control).</li>
 <li>All are <strong>header-only</strong>; <code>#pragma comment(lib, ...)</code> auto-links <code>d2d1 / dwrite / dwmapi / imm32 / winmm</code>.</li>
-<li><strong>Source encoding</strong>: <code>.h</code> / <code>.cpp</code> files containing non-ASCII (e.g. Chinese) must be saved as <strong>UTF-8 with BOM</strong> (otherwise MSVC decodes them with the local code page and reports <code>C2143/C2259/C2888/C4819</code>); <code>.md</code> / <code>.tex</code> are saved as <strong>UTF-8 without BOM</strong>.</li>
+<li><strong>Source encoding</strong>: <code>.h</code> / <code>.cpp</code> files containing non-ASCII (e.g. Chinese) must be saved as <strong>UTF-8 with BOM</strong> (otherwise MSVC decodes them with the local code page and reports <code>C2143/C2259/C2888/C4819</code>); <code>.md</code> / <code>.tex</code> are saved as <strong>UTF-8 without BOM</strong>. For a BOM-free / ASCII-only copy, use <code>tools/export_ascii.py</code> (output <code>dist/ascii</code>, not committed; see the README's "ASCII-only export").</li>
 </ul>
 <h2 id="units">Units</h2>
 <ul>

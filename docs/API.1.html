@@ -218,7 +218,7 @@ pre { line-height: 125%; }
   - `ZufyUIDragDrop.h`：拖放（由 `ZufyUI.h` 末尾包含）。
   - `ZufyUIDsl.h`：可选**链式构造 DSL**（纯附加，不修改任何现有控件）。
 - 全部是**纯头文件**；`#pragma comment(lib, ...)` 会自动链接 `d2d1 / dwrite / dwmapi / imm32 / winmm`。
-- **源码编码**：含中文的 `.h` / `.cpp` 必须存为 **UTF-8 带 BOM**（否则 MSVC 按本地代码页解析，报 `C2143/C2259/C2888/C4819`）；`.md` / `.tex` 存为 **UTF-8 无 BOM**。
+- **源码编码**：含中文的 `.h` / `.cpp` 必须存为 **UTF-8 带 BOM**（否则 MSVC 按本地代码页解析，报 `C2143/C2259/C2888/C4819`）；`.md` / `.tex` 存为 **UTF-8 无 BOM**。需要无 BOM / 纯 ASCII 副本时，用 `tools/export_ascii.py` 生成 `dist/ascii`（不提交；详见 README「纯 ASCII 导出」）。
 
 ## 单位
 
@@ -268,7 +268,7 @@ pre { line-height: 125%; }
 <li><code>ZufyUIDragDrop.h</code>：拖放（由 <code>ZufyUI.h</code> 末尾包含）。</li>
 <li><code>ZufyUIDsl.h</code>：可选<strong>链式构造 DSL</strong>（纯附加，不修改任何现有控件）。</li>
 <li>全部是<strong>纯头文件</strong>；<code>#pragma comment(lib, ...)</code> 会自动链接 <code>d2d1 / dwrite / dwmapi / imm32 / winmm</code>。</li>
-<li><strong>源码编码</strong>：含中文的 <code>.h</code> / <code>.cpp</code> 必须存为 <strong>UTF-8 带 BOM</strong>（否则 MSVC 按本地代码页解析，报 <code>C2143/C2259/C2888/C4819</code>）；<code>.md</code> / <code>.tex</code> 存为 <strong>UTF-8 无 BOM</strong>。</li>
+<li><strong>源码编码</strong>：含中文的 <code>.h</code> / <code>.cpp</code> 必须存为 <strong>UTF-8 带 BOM</strong>（否则 MSVC 按本地代码页解析，报 <code>C2143/C2259/C2888/C4819</code>）；<code>.md</code> / <code>.tex</code> 存为 <strong>UTF-8 无 BOM</strong>。需要无 BOM / 纯 ASCII 副本时，用 <code>tools/export_ascii.py</code> 生成 <code>dist/ascii</code>（不提交；详见 README「纯 ASCII 导出」）。</li>
 </ul>
 <h2 id="单位">单位</h2>
 <ul>

@@ -22,6 +22,7 @@
 - Add the directory containing `ZufyUI.h`, `ZufyUIWidgets.h`, `ZDataViewer.h`, `ZufyUICharts.h`, `ZufyUIWindowTool.h`, `ZufyUIDragDrop.h` to your **include path**; **nothing to compile**, no third-party deps.
 - All required system libs are auto-linked via `#pragma comment(lib, ...)` (complete list under Requirements).
 - GUI entry point: **`wWinMain` + `/SUBSYSTEM:WINDOWS`**.
+- If your environment dislikes BOM / non-ASCII sources, run the [ASCII-only export](#ascii-only-export) and use the headers in `dist/ascii`.
 - **⚠ Entry point pitfall**: if you insist on `int main()`, set `/SUBSYSTEM:CONSOLE`, or add `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")`, otherwise the linker won't find an entry point.
 
 **Step 1: minimal window + a button + a toggle**
@@ -251,7 +252,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 | Operating system | Windows 10 / 11 |
 | Compiler | Visual Studio (**any toolset works**; requires **C++20** or later) |
 | Windows SDK | 10.0 or later |
-| Source encoding | **UTF-8 with BOM** (otherwise MSVC parses Chinese comments in the local code page and fails to compile) |
+| Source encoding | Repository sources are **UTF-8 with BOM** (Chinese comments / wide literals); use the [ASCII-only export](#ascii-only-export) below when BOM-free sources are required |
 | Runtime libraries | All system-provided (full list below); no additional installation required |
 | Third-party dependencies | None |
 
@@ -275,6 +276,20 @@ msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64
 ```
 
 > `ZufyUI.cpp` is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own `WinMain`.
+
+### ASCII-only export
+
+If your environment dislikes UTF-8 BOMs or non-ASCII sources (CI, older toolchains, code review, some editors), generate an ASCII-only copy:
+
+```powershell
+python tools/export_ascii.py --force
+```
+
+- Output goes to `dist/ascii/` (already excluded by `.gitignore`, never committed).
+- Every source file is plain ASCII with no BOM; non-ASCII comments become spaces.
+- Non-ASCII string/font text is preserved with `\uXXXX` (wide) or UTF-8 octal escapes (narrow), so runtime text is unchanged.
+- Add translations in `tools/ascii_map.json`; `--strings ascii` replaces unmapped text with `?`.
+- See the generated `README.md` and `EXPORT_REPORT.txt` for details.
 
 ## Project structure
 
