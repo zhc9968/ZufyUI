@@ -33,7 +33,7 @@
 | `ZufyUIWindowTool.h` | 标题栏(DefaultTitleBar/CaptionButton)/MessageBox/托盘/系统对话框/无障碍(UIA)提供程序/调试通道 |
 | `ZufyUIDragDrop.h` | OLE 拖放（末尾被 `ZufyUI.h` `#include`） |
 | `ZufyUIIcons.h` | 图标字形 |
-| `ZufyUIDsl.h` | 可选**链式构造 DSL**（`dsl::`：`Ref<T>`/`Make`/`Col`/`Row`/`Grid`/短工厂/`App()` 窗口构建器） |
+| `ZufyUIDsl.h` | 可选**链式构造 DSL**（`dsl::`：`Ref<T>`/`ZMake`/`ZCol`/`ZRow`/`ZGrid`/`Z` 前缀短工厂/`ZApp()` 窗口构建器） |
 | `ZufyUI.cpp` | demo（左侧导航 + 多测试页），同时充当冒烟测试 |
 | `docs/src/API.md` / `docs/src/API.en.md` | API 参考（中/英，**按使用分类**，非按头文件） |
 | `docs/pitfalls.md` | **易错点总表**（DSL 用法 / 布局 / 缓存 / 生命周期 / 主题 / 平台 / 明确不做）——改库前先扫 |
@@ -169,11 +169,11 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
 
 ### DSL（`ZufyUIDsl.h`）
 - `with(&T::Setter, args...)` 传**成员函数指针**；继承来的 setter 的指针类型属于**基类**（已用 `template<class C,...>` 处理）；重载 setter 需 `static_cast`；**有默认参数的函数**（如 `ListView::AddItem`）成员指针调用**不支持默认值** → 用 `->AddItem(...)`。
-- 短工厂 `Slider/Card/Expander/MenuBar/StatusBar/Page/Menu` 与类同名 → 不要同时 `using namespace ZufyUI;` 和 `using namespace ZufyUI::dsl;`（歧义），或 `dsl::` 限定。
+- DSL 短工厂统一 `Z` 前缀（`ZSlider`/`ZCard`/`ZPage`/`ZMenu`…），与类名不再冲突；可以同时 `using namespace ZufyUI;` 和 `using namespace ZufyUI::dsl;`。
 - `GridLayout` 无单参 `AddChild`，`Grid(...)` 用 `(child,row,col)`。
 - `Ref::padding()` 需要 `T::SetPadding`：**`ColumnBox`/`ScrollViewer` 没有 `SetPadding`**（用 `.margin(Thickness)`）；`Card` 有 `SetPadding(float)`。
 - `Ref::minWidth/maxWidth/width/height` 是布局期望；**`minWidth` 只是给父容器的夹取下限，控件自己不会夹** → 单独对控件 `Measure()` 后断言 `desired >= minWidth` 会失败（要断言就放进容器里）。
-- `.with(&T::Method, ...)` 不能用于**有默认参数**的方法（成员指针带全部形参，如 `SettingsList::AddRow`、`ListView::AddItem` → 直接 `->AddRow(...)`）；也不能用于花括号初始化列表（用 `.apply`）。同名 `dsl::` 短工厂既要在**表达式**里限定，也要在**模板类型实参**里限定（如 `std::make_shared<::ZufyUI::dsl::Slider>()`）。
+- `.with(&T::Method, ...)` 不能用于**有默认参数**的方法（成员指针带全部形参，如 `SettingsList::AddRow`、`ListView::AddItem` → 直接 `->AddRow(...)`）；也不能用于花括号初始化列表（用 `.apply`）。同名 `dsl::` 短工厂既要在**表达式**里限定，也要在**模板类型实参**里限定（如 `::ZufyUI::dsl::ZSlider()`）。
 
 ### 主题
 - 实例显式设色的控件**不会被主题覆盖**（故意）；想让它跟主题就别手动设色。
@@ -276,7 +276,6 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
 5. **需产品决策（我没擅自动 API）**：
    - `StatusBar::AddPanel` 加 `onClick`（否则状态栏永远不能"点击触发动作"）；
    - `Window` 加尺寸/DPI 变化信号（否则状态栏 DPI/客户区格无法实时刷新）；
-   - 9 个与类同名的 `dsl::` 短工厂是否加显式别名（现在必须在表达式与模板实参里 `::ZufyUI::dsl::` 限定）；
    - 是否给 `ProgressRing` 加 `Ring(float size)` 短工厂；
    - `PieChart::zoom_` 遮蔽 `ChartBase::zoom_` 是**代码味道**（建议后续统一成一个成员 + 统一 0.4~4 的缩放区间，当前基类钳 0.4~3、饼图 `SetZoom` 钳 0.4~4）。
 6. **A 批评审报告里"真问题"但本轮未修的**（用户当时只让修确认过的）：`N3` TextBox undo 栈污染且无上限、`N4` TreeView 勾选命中 vs `GetFirstColDecor`、`N7` `IconFormat` DPI 缓存、`N9` MessageBox HWND owner 时序、`N10` `SetAppIcon`/`RegisterApp` HICON 泄漏、`N12` RenderHost 设备丢失时丢批次、`N13/N14` TreeView/TableView 虚拟化、`N16` ComboBox 过滤 O(N)。

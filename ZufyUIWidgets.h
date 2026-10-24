@@ -7466,6 +7466,7 @@ namespace ZufyUI {
     public:
         ZSignal<int> RowClicked;
         inline static float RowHeight = 56.0f;
+        inline static float DefaultWidth = 240.0f;   // ?????????????? Card/Grid ???? 0 ????
         inline static Color TextCol = Color::FromArgb(255, 40, 40, 40), SubCol = Color::FromArgb(255, 140, 140, 140),
                              HoverCol = Color::FromArgb(255, 246, 246, 246), DivCol = Color::FromArgb(255, 236, 236, 236);
         static void SetDefaultColors(Color text, Color sub, Color hover, Color div) { TextCol = text; SubCol = sub; HoverCol = hover; DivCol = div; }
@@ -7476,7 +7477,8 @@ namespace ZufyUI {
         void ClearRows() { rows_.clear(); hover_ = -1; InvalidateLayout(); RequestRepaint(); }
         int RowCount() const { return (int)rows_.size(); }
         Size MeasureOverride(const Size& avail) override {
-            float w = (avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width : width_;
+            float w = (avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width
+                    : (width_ > 0.0f ? width_ : DefaultWidth);
             return Size(w, (float)rows_.size() * RowHeight);
         }
         void Draw(ID2D1RenderTarget* rt) override {

@@ -229,9 +229,9 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 ### Fluent construction DSL (optional)
 
 - `Ref<T>`: `with / on / add / apply`; `Make / Wrap / Col / Row / Grid`; `Cell(row,col,...)`.
-- Per-control short factories + unambiguous `make_*` aliases; SFINAE-gated sugar for size/weights/colours/spacing/alignment/data views/menus.
-- `dsl::App()` / `WindowApp`: fluent configuration, `hidden`, window signals, automatic `Show()`, `run()`.
-- `tests/dsl_tests.cpp`: 139 compile-time + runtime assertions, no window created.
+- All short factories use a `Z` prefix (`ZLbl` / `ZBtn` / `ZSlider` / `ZCard` / `ZPage` ...), so they no longer collide with class names; SFINAE-gated sugar for size/weights/colours/spacing/alignment/data views/menus.
+- `dsl::ZApp()` / `WindowApp`: fluent configuration, `hidden`, window signals, automatic `Show()`, `run()`.
+- `tests/dsl_tests.cpp`: 140 compile-time + runtime assertions, no window created.
 
 ### Engineering, tools & demo
 
@@ -305,7 +305,7 @@ ZufyUI/
 ├── ZufyUIWindowTool.h    # Tray / custom title bar / accessibility (UIA) / system dialogs / debug channel
 ├── ZufyUIHwndView.h      # Native HWND host (HwndView) for WebView2 / camera / third-party windows
 ├── ZufyUIDragDrop.h      # Drag & drop: DragData / DragDataBuilder / Window::BeginDrag / element hooks
-├── ZufyUIDsl.h           # Optional: fluent construction DSL (Ref / Col / Row / Grid / short factories / dsl::App)
+├── ZufyUIDsl.h           # Optional: fluent construction DSL (Ref / ZCol / ZRow / ZGrid / Z-prefixed factories / dsl::ZApp)
 ├── ZufyUI.cpp            # Demo program entry point (wWinMain)
 ├── ZufyUIDebugger/       # Out-of-process debugger (UIA + debug channel)
 ├── ZufyUI.slnx           # Solution

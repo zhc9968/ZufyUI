@@ -80,26 +80,26 @@ static_assert(std::is_same_v<decltype(std::declval<d::WindowApp&>().on<&Window::
 static void test_containers() {
     std::printf("容器 / 加子 / 空值过滤\n");
 
-    auto lbl = d::Lbl(L"a");
-    auto col = d::Col(lbl);
+    auto lbl = d::ZLbl(L"a");
+    auto col = d::ZCol(lbl);
     col->RefreshChildren();   // GetChildren() 返回 RefreshChildren() 维护的视图缓冲
     CHECK(col->GetChildren().size() == 1);
     CHECK(col->GetChildren()[0] == lbl.ptr());
     CHECK(lbl->GetParent() == col.ptr());
 
     // A4：空子元素被容器过滤，不再解引用空指针
-    auto col2 = d::Col(d::Lbl(L"b"), nullptr, d::Ref<Label>{});
+    auto col2 = d::ZCol(d::ZLbl(L"b"), nullptr, d::Ref<Label>{});
     col2->RefreshChildren();
     CHECK(col2->GetChildren().size() == 1);
 
     // A3：add() 按容器分派（ColumnBox → AddChild）
-    auto col3 = d::Col().add(d::Lbl(L"x")).add(d::Lbl(L"y"));
+    auto col3 = d::ZCol().add(d::ZLbl(L"x")).add(d::ZLbl(L"y"));
     col3->RefreshChildren();
     CHECK(col3->GetChildren().size() == 2);
 
     // A3：Label 也是 AddChild 分支（内联子控件）——只验父子关系，Label 不维护 GetChildren 视图
-    auto host = d::Lbl(L"host");
-    auto inlineChild = d::Lbl(L"inline");
+    auto host = d::ZLbl(L"host");
+    auto inlineChild = d::ZLbl(L"inline");
     host.add(inlineChild);
     CHECK(inlineChild->GetParent() == host.ptr());
     // Label::AddChild 自身也拒绝空值
@@ -107,14 +107,14 @@ static void test_containers() {
     CHECK(inlineChild->GetParent() == host.ptr());
 
     // A3：PageHost → AddPage
-    auto ph = d::Pages().add(d::Page()).add(d::Page());
+    auto ph = d::ZPages().add(d::ZPage()).add(d::ZPage());
     CHECK(ph->GetPageCount() == 2);
     // 非 Page 实参被跳过，不会塞空指针进去
-    ph.add(d::Lbl(L"不是页"));
+    ph.add(d::ZLbl(L"不是页"));
     CHECK(ph->GetPageCount() == 2);
 
     // A3：add() 之后仍可继续链式调用
-    auto row = d::Row().add(d::Lbl(L"1")).spacing(6.0f);
+    auto row = d::ZRow().add(d::ZLbl(L"1")).spacing(6.0f);
     row->RefreshChildren();
     CHECK(row->GetChildren().size() == 1);
     CHECK(row->GetSpacing() == 6.0f);
@@ -127,7 +127,7 @@ static void test_apply() {
     std::printf("apply() 逃生口\n");
 
     int calls = 0;
-    auto l = d::Lbl(L"before").apply([&calls](Label& x) {
+    auto l = d::ZLbl(L"before").apply([&calls](Label& x) {
         ++calls;
         x.SetText(L"after");
         x.SetPadding(6.0f);
@@ -141,7 +141,7 @@ static void test_apply() {
     CHECK(calls2 == 0);
 
     // apply 之后仍可继续链式
-    auto l2 = d::Lbl(L"x").apply([](Label& x) { x.SetMinWidth(10.0f); }).minWidth(20.0f);
+    auto l2 = d::ZLbl(L"x").apply([](Label& x) { x.SetMinWidth(10.0f); }).minWidth(20.0f);
     CHECK(l2->GetMinWidth() == 20.0f);
 }
 
@@ -151,29 +151,29 @@ static void test_apply() {
 static void test_layout_sugar() {
     std::printf("布局 / 尺寸 / 外观快捷\n");
 
-    auto col = d::Col().spacing(12.0f);
+    auto col = d::ZCol().spacing(12.0f);
     CHECK(col->GetSpacing() == 12.0f);
 
-    auto l = d::Lbl(L"x").minWidth(40.0f).maxWidth(120.0f).bleed(2.0f).visible(false);
+    auto l = d::ZLbl(L"x").minWidth(40.0f).maxWidth(120.0f).bleed(2.0f).visible(false);
     CHECK(l->GetMinWidth() == 40.0f);
     CHECK(l->GetMaxWidth() == 120.0f);
     CHECK(l->GetBleed() == 2.0f);
     CHECK(!l->IsVisible());
 
-    auto l2 = d::Lbl(L"y").margin(Thickness(1, 2, 3, 4)).size(50.0f, 20.0f);
+    auto l2 = d::ZLbl(L"y").margin(Thickness(1, 2, 3, 4)).size(50.0f, 20.0f);
     CHECK(l2->GetMargin().left == 1.0f);
     CHECK(l2->GetWidth() == 50.0f);
     CHECK(l2->GetHeight() == 20.0f);
 
-    auto l3 = d::Lbl(L"z").enabled(false).hWeight(2.0f).vWeight(0.5f).weight(3.0f, 1.0f);
+    auto l3 = d::ZLbl(L"z").enabled(false).hWeight(2.0f).vWeight(0.5f).weight(3.0f, 1.0f);
     CHECK(!l3->IsEnabled());
 
     // GridLayout：双参 spacing + align（对齐只有 GridLayout 有）
-    auto g = d::Grid().spacing(4.0f, 6.0f).align(d::Align::Center, d::Align::End);
+    auto g = d::ZGrid().spacing(4.0f, 6.0f).align(d::Align::Center, d::Align::End);
     CHECK(g.ptr() != nullptr);
 
     // UIElement 标准接口的其余快捷：只验“可调用、不崩、返回自身”
-    auto l4 = d::Lbl(L"w").cache(true).dropTarget(true).contextMenuEnabled(false).accessible(L"名字");
+    auto l4 = d::ZLbl(L"w").cache(true).dropTarget(true).contextMenuEnabled(false).accessible(L"名字");
     CHECK(l4.ptr() != nullptr);
     l4.clipRect(Rect(0, 0, 10, 10)).noClip();
     CHECK(l4.ptr() != nullptr);
@@ -185,24 +185,24 @@ static void test_layout_sugar() {
 static void test_grid_coords() {
     std::printf("Grid 坐标\n");
 
-    auto a = d::Lbl(L"A");
-    auto b = d::Lbl(L"B");
-    auto g = d::Grid(d::Cell(0, 0, a), d::Cell(1, 2, b));
+    auto a = d::ZLbl(L"A");
+    auto b = d::ZLbl(L"B");
+    auto g = d::ZGrid(d::ZCell(0, 0, a), d::ZCell(1, 2, b));
     g->RefreshChildren();
     CHECK(g->GetChildren().size() == 2);
 
-    auto c = d::Lbl(L"C");
-    auto g2 = d::Grid().cell(0, 0, c).cell(1, 1, d::Lbl(L"D"));
+    auto c = d::ZLbl(L"C");
+    auto g2 = d::ZGrid().cell(0, 0, c).cell(1, 1, d::ZLbl(L"D"));
     g2->RefreshChildren();
     CHECK(g2->GetChildren().size() == 2);
 
     // 裸元素沿用旧行为（按出现顺序 (i,0)），不破坏既有代码
-    auto g3 = d::Grid(d::Lbl(L"x"), d::Lbl(L"y"));
+    auto g3 = d::ZGrid(d::ZLbl(L"x"), d::ZLbl(L"y"));
     g3->RefreshChildren();
     CHECK(g3->GetChildren().size() == 2);
 
     // Cell 的跨行跨列
-    auto g4 = d::Grid(d::Cell(0, 0, d::Lbl(L"span"), 1, 2));
+    auto g4 = d::ZGrid(d::ZCell(0, 0, d::ZLbl(L"span"), 1, 2));
     g4->RefreshChildren();
     CHECK(g4->GetChildren().size() == 1);
 }
@@ -213,25 +213,25 @@ static void test_grid_coords() {
 static void test_data_views_and_menu() {
     std::printf("数据视图 / 菜单构建糖\n");
 
-    auto lv = d::List().items({ L"a", L"b", L"c" });
+    auto lv = d::ZList().items({ L"a", L"b", L"c" });
     CHECK(lv->GetItemCount() == 3);
 
     std::vector<std::wstring> v{ L"d", L"e" };
-    auto lv2 = d::List().items(v);
+    auto lv2 = d::ZList().items(v);
     CHECK(lv2->GetItemCount() == 2);
 
-    auto tv = d::Table().rows(3).cols(2).header(0, L"列0").cell(0, 0, L"r0c0");
+    auto tv = d::ZTable().rows(3).cols(2).header(0, L"列0").cell(0, 0, L"r0c0");
     CHECK(tv->GetRowCount() == 3);
     CHECK(tv->GetColumnCount() == 2);
 
-    auto tree = d::Tree().roots({ L"根1", L"根2" });
+    auto tree = d::ZTree().roots({ L"根1", L"根2" });
     CHECK(tree.ptr() != nullptr);
 
-    auto m = d::Menu().item(L"打开").separator().item(L"退出");
+    auto m = d::ZMenu().item(L"打开").separator().item(L"退出");
     CHECK(m.ptr() != nullptr);
 
-    auto sub = d::Menu().item(L"子项");
-    auto m2 = d::Menu().item(L"顶层").submenu(L"更多", sub);
+    auto sub = d::ZMenu().item(L"子项");
+    auto m2 = d::ZMenu().item(L"顶层").submenu(L"更多", sub);
     CHECK(m2.ptr() != nullptr);
 }
 
@@ -241,27 +241,27 @@ static void test_data_views_and_menu() {
 static void test_factories_and_wrap() {
     std::printf("新工厂 / Wrap / 图片糖\n");
 
-    auto rg = d::RadioGroup();
+    auto rg = d::ZRadioGroup();
     CHECK(rg.ptr() != nullptr);
 
-    auto sb = d::ScrollBar(false);
+    auto sb = d::ZScrollBar(false);
     CHECK(sb.ptr() != nullptr);
 
-    auto g = d::Glyph(Icon::Save, 18.0f);
+    auto g = d::ZGlyph(Icon::Save, 18.0f);
     CHECK(g.ptr() != nullptr);
     CHECK(g->GetIcon() == Icon::Save);
     CHECK(g->GetIconSize() == 18.0f);
 
-    auto rg2 = d::Make<RadioGroup>();
+    auto rg2 = d::ZMake<RadioGroup>();
     CHECK(rg2.ptr() != nullptr);
 
     auto existing = std::make_shared<Label>(L"已有");
-    auto w = d::Wrap(existing);
+    auto w = d::ZWrap(existing);
     CHECK(w.ptr() == existing.get());
     CHECK(w->GetText() == L"已有");
 
     // Image 是资源对象（不是 UIElement），只能由控件侧接收
-    auto withImg = d::Lbl(L"pic").image(nullptr).imageFit(true);
+    auto withImg = d::ZLbl(L"pic").image(nullptr).imageFit(true);
     CHECK(withImg.ptr() != nullptr);
 }
 
@@ -283,20 +283,20 @@ static void test_dsl_pitfalls() {
     std::printf("DSL 边界（默认参数 / 同名歧义 / padding / 尺寸工厂）\n");
 
     // a) Card 可用 padding(float)；Col/Scroll 只能用 margin(Thickness)（见上面的 static_assert）
-    auto cardPad = d::Card().padding(6.0f);
+    auto cardPad = d::ZCard().padding(6.0f);
     CHECK(cardPad.ptr() != nullptr);
-    auto colPad = d::Col().margin(Thickness(4, 4, 4, 4));
+    auto colPad = d::ZCol().margin(Thickness(4, 4, 4, 4));
     CHECK(colPad.ptr() != nullptr);
 
     // b) 单参、无默认参数的成员函数可安全用于 .with()。
     //    历史坑：带默认参数的成员函数（如旧的 SetCheckable(bool,bool)）成员指针含全部形参，
     //    .with 会按推导参数包调用 → 报"参数太少"。P0-1 已把这类函数拆成无默认参数的重载。
-    auto treeCk = d::Tree().with(&TreeView::SetCheckable, true);
+    auto treeCk = d::ZTree().with(&TreeView::SetCheckable, true);
     CHECK(treeCk.ptr() != nullptr);
 
-    // c) 同名工厂当"表达式 / 类型实参"用必须全限定（::ZufyUI::dsl::Slider）；
+    // c) 同名工厂当"表达式 / 类型实参"用必须全限定（::ZufyUI::dsl::ZSlider）；
     //    而 .with(&Slider::SetRange, ...) 这种"嵌套名限定符"位置不歧义。
-    auto sl = ::ZufyUI::dsl::Slider()
+    auto sl = ::ZufyUI::dsl::ZSlider()
                   .with(&Slider::SetRange, 0.0f, 100.0f)
                   .with(&Slider::SetStep, 5.0f)
                   .with(&Slider::SetSnapToStep, true)
@@ -305,39 +305,39 @@ static void test_dsl_pitfalls() {
     CHECK(sl->GetValue() == 40.0f);
 
     // d) 花括号初始化列表过不了 .with()（转发引用推不出 braced-init-list）→ 用 .apply(...)
-    auto tv = d::Tree().with(&TreeView::SetColumnCount, 2)
+    auto tv = d::ZTree().with(&TreeView::SetColumnCount, 2)
                        .apply([](TreeView& t) { t.SetHeaderLabels({ L"名称", L"类型" }); });
     CHECK(tv.ptr() != nullptr);
 
     // e) Grid(Cell(...)) 声明式坐标
-    auto grid = d::Grid(d::Cell(0, 0, d::Lbl(L"A")), d::Cell(1, 1, d::Lbl(L"B"))).spacing(4.0f, 4.0f);
+    auto grid = d::ZGrid(d::ZCell(0, 0, d::ZLbl(L"A")), d::ZCell(1, 1, d::ZLbl(L"B"))).spacing(4.0f, 4.0f);
     grid->RefreshChildren();
     CHECK(grid->GetChildren().size() == 2);
 
     // f) items() 批量加项
-    auto combo = d::Combo().items({ L"一", L"二", L"三" });
+    auto combo = d::ZCombo().items({ L"一", L"二", L"三" });
     CHECK(combo->GetItemCount() == 3);
 
     // g) Table 行列 / 表头 / cell 快捷
-    auto tbl = d::Table().rows(3).cols(2).header(0, L"列一").header(1, L"列二").cell(0, 0, L"x").cell(0, 1, L"y");
+    auto tbl = d::ZTable().rows(3).cols(2).header(0, L"列一").header(1, L"列二").cell(0, 0, L"x").cell(0, 1, L"y");
     CHECK(tbl->GetRowCount() == 3);
     CHECK(tbl->GetColumnCount() == 2);
 
     // h) Ring() 走默认尺寸（工厂无法传尺寸）；要自定义尺寸只能直接构造 ProgressRing(size)
-    auto ring = d::Ring();
+    auto ring = d::ZRing();
     CHECK(ring.ptr() != nullptr);
     auto ring36 = std::make_shared<ProgressRing>(36.0f);
     CHECK(ring36 != nullptr);
 
     // i) 页面重排的固定写法：Col + add() 分派 + Scroll 包一层
-    auto col = d::Col();
-    col.add(d::Lbl(L"1"));
+    auto col = d::ZCol();
+    col.add(d::ZLbl(L"1"));
     col->RefreshChildren();
     CHECK(col->GetChildren().size() == 1);
-    col.add(d::Row(d::Lbl(L"a"), d::Lbl(L"b")).shared());
+    col.add(d::ZRow(d::ZLbl(L"a"), d::ZLbl(L"b")).shared());
     col->RefreshChildren();
     CHECK(col->GetChildren().size() == 2);
-    auto sc = d::Scroll().fill(true).margin(Thickness(8, 8, 8, 8))
+    auto sc = d::ZScroll().fill(true).margin(Thickness(8, 8, 8, 8))
                          .with(&ScrollViewer::SetContent, col.shared());
     CHECK(sc.ptr() != nullptr);
 }
@@ -349,26 +349,26 @@ static void test_fix_regressions() {
     std::printf("修复回归（Button 撑宽 / 进度条·开关缓动 / SplitView 折叠）\n");
 
     // ⑧ Button：文案超出默认宽度时应自动撑开，不再被省略号裁掉
-    auto longBtn = d::Btn(L"这是一个非常非常非常非常非常非常非常长的按钮文案，远超默认宽度");
+    auto longBtn = d::ZBtn(L"这是一个非常非常非常非常非常非常非常长的按钮文案，远超默认宽度");
     longBtn->Measure(Size(1000.0f, 100.0f));
     CHECK(longBtn->GetDesiredSize().width > Button::DefaultWidth);
 
     // 关掉自动撑宽 → 回到固定宽度（给需要精确控制布局的场景留后路）
-    auto fixedBtn = d::Btn(L"这是一个非常非常非常非常非常非常非常长的按钮文案，远超默认宽度")
+    auto fixedBtn = d::ZBtn(L"这是一个非常非常非常非常非常非常非常长的按钮文案，远超默认宽度")
                         .with(&Button::SetAutoSizeToText, false);
     fixedBtn->Measure(Size(1000.0f, 100.0f));
     CHECK(fixedBtn->GetDesiredSize().width == Button::DefaultWidth);
 
     // ⑥ Label：不设固定宽度时，宽度跟随文本 —— 这正是"后面还有空间却提前省略号"的修复点
     //    （旧代码是 .width(100.0f)，文本超过 100px 就被省略号裁掉；minWidth 只是给父容器的夹取下限）
-    auto echoLbl = d::Lbl(L"输入：一段不算短的回显文本内容");
+    auto echoLbl = d::ZLbl(L"输入：一段不算短的回显文本内容");
     echoLbl->Measure(Size(1000.0f, 100.0f));
     CHECK(echoLbl->GetWidth() <= 0.0f);                            // 没有固定宽度
     CHECK(echoLbl->GetDesiredSize().width > 100.0f);               // 宽度跟随文本
-    CHECK(d::Lbl(L"短").minWidth(160.0f)->GetMinWidth() >= 160.0f); // 快捷方法写入 MinWidth（夹取由父容器负责）
+    CHECK(d::ZLbl(L"短").minWidth(160.0f)->GetMinWidth() >= 160.0f); // 快捷方法写入 MinWidth（夹取由父容器负责）
 
     // ④ ProgressBar：SetValue 后进入"缓动中"，跑约 1 秒后收敛
-    auto pb = d::Progress().value(0.0f);
+    auto pb = d::ZProgress().value(0.0f);
     pb->SetValue(1.0f);
     CHECK(pb->HasActiveAnimation());
     for (int i = 0; i < 70; ++i) pb->UpdateAnimation(1.0f / 60.0f);
@@ -376,7 +376,7 @@ static void test_fix_regressions() {
     CHECK(pb->GetValue() == 1.0f);
 
     // ③ ToggleSwitch：一帧走不完（缓动，不是瞬变），足够多帧后收敛到 1
-    auto tg = d::Toggle(false);
+    auto tg = d::ZToggle(false);
     tg->SetOn(true);
     tg->UpdateAnimation(1.0f / 60.0f);
     CHECK(tg->DebugAnimationProgress() > 0.0f);
@@ -385,11 +385,11 @@ static void test_fix_regressions() {
     CHECK(tg->DebugAnimationProgress() >= 0.999f);
 
     // ⑮⑯ SplitView：折叠后该栏长度为 0；展开回到"最小状态"；信号与开关都生效
-    auto sv = d::Split().size(400.0f, 200.0f);
+    auto sv = d::ZSplit().size(400.0f, 200.0f);
     sv->SetMinFirst(100.0f);
     sv->SetMinSecond(100.0f);
-    sv->SetFirst(d::Lbl(L"左").shared());
-    sv->SetSecond(d::Lbl(L"右").shared());
+    sv->SetFirst(d::ZLbl(L"左").shared());
+    sv->SetSecond(d::ZLbl(L"右").shared());
     sv->Arrange(Rect(0.0f, 0.0f, 400.0f, 200.0f));
     CHECK(sv->GetFirst()->GetArrangedRect().width > 1.0f);      // 折叠前左栏有宽度
 
@@ -573,6 +573,9 @@ static void test_button_and_listview_regressions() {
     CHECK(lv.GetItemHeight() >= 1.0f);
     lv.SetItemHeight(-5.0f);
     CHECK(lv.GetItemHeight() >= 1.0f);
+
+    SettingsList settings;
+    CHECK(settings.Measure(Size(FLT_MAX, FLT_MAX)).width >= SettingsList::DefaultWidth);
 }
 
 int main() {

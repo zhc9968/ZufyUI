@@ -1356,18 +1356,18 @@ template<class T> class Ref {                      // 包装 shared_ptr<T>
     Ref& cell(int row, int col, const std::wstring&);   // TableView 单元格
     Ref& root(const std::wstring&); Ref& separator(); Ref& submenu(const std::wstring&, Menu);
 };
-template<class T, class...A> Ref<T> Make(A&&... a);          // 通用工厂
-template<class T> Ref<T> Wrap(std::shared_ptr<T> p);         // 把已有 shared_ptr 接进链
-Ref<ColumnBox> Col(children...);   Ref<RowBox> Row(...);
-Ref<GridLayout> Grid(children...);                          // 也接受 Cell(row,col,child)
-CellSpec Cell(int row, int col, child, int rowSpan=1, int colSpan=1);
+template<class T, class...A> Ref<T> ZMake(A&&... a);          // 通用工厂
+template<class T> Ref<T> ZWrap(std::shared_ptr<T> p);         // 把已有 shared_ptr 接进链
+Ref<ColumnBox> ZCol(children...);   Ref<RowBox> ZRow(...);
+Ref<GridLayout> ZGrid(children...);                          // 也接受 ZCell(row,col,child)
+CellSpec ZCell(int row, int col, child, int rowSpan=1, int colSpan=1);
 using Align = GridLayout::Alignment;                        // 供 Ref::align 使用
-// 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
-//         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
-//         RadioGroup ScrollBar Glyph
-// 与类同名者用无歧义别名（避免 using namespace 同时命中两类 → C2872）：
-//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander
-class WindowApp {                                  // dsl::App()
+// 短工厂统一 Z 前缀：ZLbl ZBtn ZTxt ZEdit ZCombo ZCheck ZRadio ZToggle
+//   ZSlider ZNum ZProgress ZRing ZScroll ZSplit ZTabs ZList ZTable ZTree
+//   ZBar ZLine ZPie ZCard ZExpander ZPages ZPage ZMenu ZSettings
+//   ZMenuBar ZStatusBar ZRadioGroup ZScrollBar ZGlyph
+// 因此与类同名也不会冲突；不需要额外别名。
+class WindowApp {                                  // dsl::ZApp()
     WindowApp& size(int,int);   WindowApp& title(const std::wstring&);
     WindowApp& resizable(bool=true);   WindowApp& corner(Window::WindowCorner);
     WindowApp& backdrop(Backdrop, DWORD tint=0);   WindowApp& hidden(bool=true);
@@ -1381,17 +1381,17 @@ class WindowApp {                                  // dsl::App()
     template<auto SigMem, class F> WindowApp& on(F&& f);      // 如 on<&Window::Closed>
     Window& window();   int run();                 // run(): Create → 应用配置 → Show() → Run()
 };
-WindowApp App();
+WindowApp ZApp();
 }
 ```
-- 用法：`using namespace ZufyUI::dsl;` 后 `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`。与 `using namespace ZufyUI;` 同时用时，**与类同名的短工厂改用无歧义别名** `make_slider` / `make_card` / `make_page` / `make_menu` / `make_menu_bar` / `make_status_bar` / `make_radio_group` / `make_scroll_bar` / `make_expander`（或 `dsl::` 限定）。
+- 用法：`using namespace ZufyUI::dsl;` 后 `ZRow(ZBtn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`。所有短工厂统一 `Z` 前缀，因此与 `using namespace ZufyUI;` 同时用时也不会和类名冲突。
 - **`易错`**：`with(&T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast<...>(&T::SetX)` 消歧。**带默认参数的函数不能直接用于 `with`**（成员指针含全部形参 → “参数太少”）；这类函数自 **v1.22.0** 起已拆成**无默认参数的重载**（如 `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`，`ListView::AddItem(text)` / `AddItemWidget(shared_ptr<Label>)`，`RadioGroup::AddItem` / `AddItemSelected`，`Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`）。
 - **`易错`**：不宜用 `with` 表达的（多步、条件、需要迭代）用 `apply(lambda)`，避免链断掉。普通类型转换告警也顺手消掉：`.with(&TextBox::SetWidth, 220)` 传 `int` 会报 `C4244`，直接用 `.width(220.0f)`。
-- **容器 `add()` 按真实接口分派**：`ColumnBox`/`RowBox`/`Label` → `AddChild`；`PageHost` → `AddPage`（非 `Page` 实参会被跳过）；`GridLayout` 需要坐标，用 `.cell(row,col,child[,rowSpan,colSpan])` 或 `dsl::Cell(...)`。空元素（`nullptr` / 空 `Ref`）一律被忽略，不会解引用空指针。
-- **Grid 坐标**：`Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))` 显式定位；也仍接受**裸子元素**（沿用旧行为，按出现顺序排 `(i,0)`，现有代码不受影响）。
-- **窗口构建器**：`dsl::App()` → `WindowApp`（链式 `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`；信号用 `on<&Window::Closed>(...)`）。`root()` 接受**任意 `Layout` 子类**（`Col`/`Row`/`Grid` 都行），`titleBar/menuBar/statusBar` 可直接收 `Ref<T>`。
+- **容器 `add()` 按真实接口分派**：`ColumnBox`/`RowBox`/`Label` → `AddChild`；`PageHost` → `AddPage`（非 `Page` 实参会被跳过）；`GridLayout` 需要坐标，用 `.cell(row,col,child[,rowSpan,colSpan])` 或 `dsl::ZCell(...)`。空元素（`nullptr` / 空 `Ref`）一律被忽略，不会解引用空指针。
+- **ZGrid 坐标**：`ZGrid(ZCell(1,2,ZLbl(L"x")), ZCell(0,0,btn,1,2))` 显式定位；也仍接受**裸子元素**（沿用旧行为，按出现顺序排 `(i,0)`，现有代码不受影响）。
+- **窗口构建器**：`dsl::ZApp()` → `WindowApp`（链式 `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`；信号用 `on<&Window::Closed>(...)`）。`root()` 接受**任意 `Layout` 子类**（`ZCol`/`ZRow`/`ZGrid` 都行），`titleBar/menuBar/statusBar` 可直接收 `Ref<T>`。
 - **`易错`**：`Window::Create` **不显示窗口**（何时显示由应用决定），所以 `WindowApp::run()` 内部会补 `Show()`；要隐藏启动就调 `.hidden()`。`WindowApp` 可移动、不可拷贝。`Window::Run()` 返回 `void`；`Window` 无公开 `SetContent`，根内容走 `root(...)`。
-- **控件专属糖**（**SFINAE 门控**：仅当控件有该方法时才存在）：`text/checked/value/placeholder/padding(float 与 Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f 与 h,v)/align/image/imageFit`；短工厂另有 `Page()`/`Menu()`/`Settings()`/`RadioGroup()`/`ScrollBar()`/`Glyph()`。
+- **控件专属糖**（**SFINAE 门控**：仅当控件有该方法时才存在）：`text/checked/value/placeholder/padding(float 与 Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f 与 h,v)/align/image/imageFit`；短工厂另有 `ZPage()`/`ZMenu()`/`ZSettings()`/`ZRadioGroup()`/`ZScrollBar()`/`ZGlyph()`。
 - **`易错`**：`Image` 不是 `UIElement`（是资源对象），所以没有 `Ref<Image>` 工厂 —— 用 `Label` 上的 `.image(Image::FromFile(...)).imageFit(true)`。
 
 

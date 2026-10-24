@@ -11,9 +11,9 @@
 |---|---|---|
 | 1.1 | 易错 | **`.with(&T::Method, args...)` 只适用于“无默认参数、无重载、非初始化列表”的成员函数**。带默认参数的成员函数，其成员指针类型包含全部形参 → `.with(&X::F, a)` 会报“参数太少”。这类函数已拆成**无默认参数的重载**（见下），直接单/多参调用即可；实在不行用 `.apply([](X& x){ x.F(...); })`。 |
 | 1.2 | 易错 | 已拆分的历史函数（P0-1）：`TreeView::SetCheckable(bool)` + `SetCheckableShallow(bool)`；`SetNodeCheckable(node,bool)` + `SetNodeCheckableRecursive`；`SetNodeEnabled(node,bool)` + `SetNodeEnabledRecursive`；`SetNodeCheckState(node,state)` + `SetNodeCheckStateFull(...,updateChildren,updateParent)`；`ListView::AddItem(text)` 与 `AddItemWidget(shared_ptr<Label>)`；`RadioGroup::AddItem(text)` / `AddItemSelected(text,bool)` / `AddButton(rb)` / `AddButtonSelected(rb,bool)`；`Menu::AddCheckItem(text,checked)` / `AddCheckItemCb(text,checked,onToggle)` / `AddCheckItemRadio(...)`。 |
-| 1.3 | 易错 | **与类同名的短工厂**（`Slider`/`Card`/`Page`/`Menu`/`MenuBar`/`StatusBar`/`RadioGroup`/`ScrollBar`/`Expander`）在同时 `using namespace ZufyUI;` + `using namespace ZufyUI::dsl;` 时触发 **C2872 二义**。用无歧义别名 `make_slider` / `make_card` / `make_page` / `make_menu` / `make_menu_bar` / `make_status_bar` / `make_radio_group` / `make_scroll_bar` / `make_expander`。 |
-| 1.4 | 易错 | 短工厂既作**表达式**又要作**模板类型实参**时都要 `::ZufyUI::dsl::` 限定（如 `std::make_shared<::ZufyUI::dsl::Slider>()`）。 |
-| 1.5 | 约定 | `GridLayout` 无单参 `AddChild`；用 `.cell(row,col,child)` 或 `Grid(Cell(r,c,child), ...)`。 |
+| 1.3 | 约定 | DSL 短工厂统一 `Z` 前缀（`ZSlider`/`ZCard`/`ZPage`/`ZMenu`…），同时 `using namespace ZufyUI;` + `using namespace ZufyUI::dsl;` 不再和类名冲突。 |
+| 1.4 | 约定 | 短工厂作模板实参时写 `::ZufyUI::dsl::ZSlider` 等限定名。 |
+| 1.5 | 约定 | `GridLayout` 无单参 `AddChild`；用 `.cell(row,col,child)` 或 `ZGrid(ZCell(r,c,child), ...)`。 |
 | 1.6 | 易错 | `.with(&T::Method, ...)` 里方法有重载时需 `static_cast` 消歧。 |
 | 1.7 | 约定 | `Ref::minWidth/maxWidth` 是**给父容器的夹取下限**，控件自身不夹；单独对控件 `Measure()` 后断言 `desired >= minWidth` 会失败（要断言就放进容器）。 |
 | 1.8 | 约定 | `Ref::padding()` 需要 `T::SetPadding`；`ColumnBox`/`ScrollViewer` 没有 `SetPadding`（用 `.margin`）；`Card` 有。 |
@@ -24,7 +24,7 @@
 |---|---|---|
 | 2.1 | 易错 | `ColumnBox`/`RowBox` 里**没有显式宽度的子元素按可用宽摆**（横向不吃拉伸权值）。“让卡片按内容收窄”不能靠 `hWeight(0)`，要放进 `Row` 或给显式宽。 |
 | 2.2 | 易错 | `Row` 里的内容**不理会可用宽**（返回自然宽）→ 内容过宽时出现横向滚动。 |
-| 2.3 | 易错 | `SettingsList::MeasureOverride` 被给 `FLT_MAX` 且自己无宽度时返回 0 宽（文字压成 0）。别把它直接塞进 `Card` 自带的 `GridLayout`（网格自动列传 `FLT_MAX`）；用 `card->SetLayout(Col().add(list))` + `list->SetFillWidth(true)`。 |
+| 2.3 | 约定 | `SettingsList` 在无父约束且自身未设宽时回退到 `DefaultWidth`（240），不会再把 `Card` 的自动列压成 0；要横向填满仍可用 `SetFillWidth(true)`。 |
 | 2.4 | 易错 | `ScrollViewer` 内容按**视口宽**测、**两遍测**（竖条出现后按变窄宽度重测）、尊重内容自身 `margin`、裁剪留 **1px 出血**。 |
 | 2.5 | 易错 | `D2D1::RectF(l,t,r,b)` 的 3/4 参是**右/下**（不是宽/高）；传反直接不画。 |
 | 2.6 | 约定 | `Measure`/`Arrange` 是**非虚包装器**；子类只实现 `MeasureOverride`（**纯虚**，漏实现编译失败）/`ArrangeOverride`。Arrange 里用 `GetDesiredSize()`，别在 Arrange 里再 Measure。 |

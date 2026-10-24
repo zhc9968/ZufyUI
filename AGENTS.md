@@ -30,7 +30,7 @@
   - 需要显式给非默认值时用拆分后的具名重载（如 `...Recursive` / `...Selected` / `...Radio` / `...Full` / `...Impl`）。
 - **`.apply([](T& x){ ... })`**：逃生舱 —— 仅用于初始化列表、重载歧义、或多步条件逻辑。不要当主写法。
 - **`->SetXxx(...)`**：在 DSL 链中尽量不用；需要时用 `.with`；确实不行才 `->`。
-- **与类同名的短工厂**（`Slider`/`Card`/`Page`/`Menu`/`MenuBar`/`StatusBar`/`RadioGroup`/`ScrollBar`/`Expander`）在 `using namespace` 同时命中 `ZufyUI` 与 `ZufyUI::dsl` 时二义 → **用无歧义别名 `make_slider` / `make_card` / `make_page` / `make_radio_group` / `make_expander` …**（见 `ZufyUIDsl.h` 的 `make_*`）。
+- **DSL 短工厂统一 `Z` 前缀**：`ZLbl` / `ZBtn` / `ZSlider` / `ZCard` / `ZPage` / `ZMenu` …；因此同时 `using namespace ZufyUI; using namespace ZufyUI::dsl;` 也不会再和类名冲突。
 - **主题钩子**：`ThemeManager::RegisterHook/RegisterSubtreeApplier` 返回 RAII `HookHandle`（析构自动断开）；想长期有效就**持有**它；库内部固定钩子用 `RegisterHookPermanent`。
 - **整页滚动**：`page->SetScrollableContent(content)` 一行搞定（别再手写 `GridLayout + ScrollViewer` 样板）。
 - 更完整的易错点集中在 **`docs/pitfalls.md`**（改库前先扫一遍）。

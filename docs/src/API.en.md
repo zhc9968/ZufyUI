@@ -1335,18 +1335,18 @@ template<class T> class Ref {                      // wraps shared_ptr<T>
     Ref& cell(int row, int col, const std::wstring&);   // TableView cell
     Ref& root(const std::wstring&); Ref& separator(); Ref& submenu(const std::wstring&, Menu);
 };
-template<class T, class...A> Ref<T> Make(A&&... a);          // generic factory
-template<class T> Ref<T> Wrap(std::shared_ptr<T> p);         // wrap an existing shared_ptr into the chain
-Ref<ColumnBox> Col(children...);   Ref<RowBox> Row(...);
-Ref<GridLayout> Grid(children...);                          // also accepts Cell(row,col,child)
-CellSpec Cell(int row, int col, child, int rowSpan=1, int colSpan=1);
+template<class T, class...A> Ref<T> ZMake(A&&... a);          // generic factory
+template<class T> Ref<T> ZWrap(std::shared_ptr<T> p);         // wrap an existing shared_ptr into the chain
+Ref<ColumnBox> ZCol(children...);   Ref<RowBox> ZRow(...);
+Ref<GridLayout> ZGrid(children...);                          // also accepts ZCell(row,col,child)
+CellSpec ZCell(int row, int col, child, int rowSpan=1, int colSpan=1);
 using Align = GridLayout::Alignment;                        // used by Ref::align
-// short factories: Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
-//                  Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
-//                  RadioGroup ScrollBar Glyph
-// unambiguous aliases for (name-colliding) factories (avoids C2872 under two using-directives):
-//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander
-class WindowApp {                                  // dsl::App()
+// short factories all use a Z prefix: ZLbl ZBtn ZTxt ZEdit ZCombo ZCheck ZRadio ZToggle
+//   ZSlider ZNum ZProgress ZRing ZScroll ZSplit ZTabs ZList ZTable ZTree
+//   ZBar ZLine ZPie ZCard ZExpander ZPages ZPage ZMenu ZSettings
+//   ZMenuBar ZStatusBar ZRadioGroup ZScrollBar ZGlyph
+// This also avoids collisions with class names; no extra aliases are needed.
+class WindowApp {                                  // dsl::ZApp()
     WindowApp& size(int,int);   WindowApp& title(const std::wstring&);
     WindowApp& resizable(bool=true);   WindowApp& corner(Window::WindowCorner);
     WindowApp& backdrop(Backdrop, DWORD tint=0);   WindowApp& hidden(bool=true);
@@ -1360,17 +1360,17 @@ class WindowApp {                                  // dsl::App()
     template<auto SigMem, class F> WindowApp& on(F&& f);      // e.g. on<&Window::Closed>
     Window& window();   int run();                 // run(): Create -> apply config -> Show() -> Run()
 };
-WindowApp App();
+WindowApp ZApp();
 }
 ```
-- Usage: `using namespace ZufyUI::dsl;` then `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`. When combined with `using namespace ZufyUI;`, use the **collision-free aliases** for name-clashing factories: `make_slider` / `make_card` / `make_page` / `make_menu` / `make_menu_bar` / `make_status_bar` / `make_radio_group` / `make_scroll_bar` / `make_expander` (or qualify with `dsl::`).
+- Usage: `using namespace ZufyUI::dsl;` then `ZRow(ZBtn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`. Every short factory uses a `Z` prefix, so combining it with `using namespace ZufyUI;` no longer collides with class names.
 - **`Pitfall`**: `with(&T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast<...>(&T::SetX)`. A function with **default arguments** can't be used with `with` (the pointer carries every parameter → "too few arguments"); since **v1.22.0** such functions are split into **non-defaulted overloads** (e.g. `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`, `ListView::AddItem(text)` / `AddItemWidget(shared_ptr<Label>)`, `RadioGroup::AddItem` / `AddItemSelected`, `Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`).
 - **`Pitfall`**: anything `with` can't express (multi-step, conditional, needs iteration) goes through `apply(lambda)` so the chain doesn't break. It also silences a conversion warning: `.with(&TextBox::SetWidth, 220)` passes an `int` and trips `C4244` — prefer `.width(220.0f)`.
-- **`add()` dispatches on the container's real API**: `ColumnBox`/`RowBox`/`Label` → `AddChild`; `PageHost` → `AddPage` (non-`Page` arguments are skipped); `GridLayout` needs coordinates, so use `.cell(row,col,child[,rowSpan,colSpan])` or `dsl::Cell(...)`. Null children (`nullptr` / empty `Ref`) are always ignored — no null dereference.
-- **Grid coordinates**: `Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))` places cells explicitly; bare children are still accepted (old behaviour: `(i,0)` in order), so existing code is unaffected.
-- **Window builder**: `dsl::App()` → `WindowApp` (chain `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`; signals via `on<&Window::Closed>(...)`). `root()` accepts **any `Layout` subclass** (`Col`/`Row`/`Grid`), and `titleBar/menuBar/statusBar` take a `Ref<T>` directly.
+- **`add()` dispatches on the container's real API**: `ColumnBox`/`RowBox`/`Label` → `AddChild`; `PageHost` → `AddPage` (non-`Page` arguments are skipped); `GridLayout` needs coordinates, so use `.cell(row,col,child[,rowSpan,colSpan])` or `dsl::ZCell(...)`. Null children (`nullptr` / empty `Ref`) are always ignored — no null dereference.
+- **ZGrid coordinates**: `ZGrid(ZCell(1,2,ZLbl(L"x")), ZCell(0,0,btn,1,2))` places cells explicitly; bare children are still accepted (old behaviour: `(i,0)` in order), so existing code is unaffected.
+- **Window builder**: `dsl::ZApp()` → `WindowApp` (chain `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`; signals via `on<&Window::Closed>(...)`). `root()` accepts **any `Layout` subclass** (`ZCol`/`ZRow`/`ZGrid`), and `titleBar/menuBar/statusBar` take a `Ref<T>` directly.
 - **`Pitfall`**: `Window::Create` **does not show the window** (the app decides when) — `WindowApp::run()` therefore calls `Show()`; use `.hidden()` to start hidden. `WindowApp` is movable but not copyable. `Window::Run()` returns `void`; `Window` has no public `SetContent`, so set the root via `root(...)`.
-- **Per-control sugar** (**SFINAE-gated**: exists only when the control has the method): `text/checked/value/placeholder/padding(float and Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f and h,v)/align/image/imageFit`; extra short factories: `Page()`/`Menu()`/`Settings()`/`RadioGroup()`/`ScrollBar()`/`Glyph()`.
+- **Per-control sugar** (**SFINAE-gated**: exists only when the control has the method): `text/checked/value/placeholder/padding(float and Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f and h,v)/align/image/imageFit`; extra short factories: `ZPage()`/`ZMenu()`/`ZSettings()`/`ZRadioGroup()`/`ZScrollBar()`/`ZGlyph()`.
 - **`Pitfall`**: `Image` is **not** a `UIElement` (it is a resource object), so there is no `Ref<Image>` factory — use `.image(Image::FromFile(...)).imageFit(true)` on a `Label`.
 
 

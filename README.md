@@ -231,7 +231,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - `Ref<T>`：`with / on / add / apply`；`Make / Wrap / Col / Row / Grid`；`Cell(row,col,...)` 坐标。
 - 各控件短工厂 + `make_*` 无歧义别名；SFINAE 门控的尺寸/权重/配色/间距/对齐/数据视图/菜单糖。
 - `dsl::App()` / `WindowApp`：链式配置、`hidden`、窗口信号、自动 `Show()`、`run()`。
-- `tests/dsl_tests.cpp`：139 项编译期+运行期断言，不建窗口。
+- `tests/dsl_tests.cpp`：140 项编译期+运行期断言，不建窗口。
 
 ### 工程、工具与示例
 

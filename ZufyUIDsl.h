@@ -3,7 +3,7 @@
 // ZufyUIDsl.h —— 链式构造 DSL（可选，零侵入）
 //   目标：一行/一段完成“构造 → 设属性 → 组子树 → 连信号”。
 //   不修改任何现有控件；Ref<T> 外层包装，通用 with(&T::Setter, args...) 转发。
-//   用法：using namespace ZufyUI::dsl;  然后  Btn(L"OK").size(100,36).on<&Button::Clicked>([]{});
+//   用法：using namespace ZufyUI::dsl;  然后  ZBtn(L"OK").size(100,36).on<&Button::Clicked>([]{});
 //   注意：不要同时 `using namespace ZufyUI;`（短工厂名与类名会歧义），用 ZufyUI:: 限定类型。
 // ============================================================================
 #include "ZufyUIWidgets.h"
@@ -36,7 +36,7 @@ namespace dsl {
     template<class T> struct HasGridAddChild<T, std::void_t<decltype(
         std::declval<T&>().AddChild(std::declval<std::shared_ptr<UIElement>>(), 0, 0, 1, 1))>> : std::true_type {};
 
-    // GridLayout 的单元格说明（供 Grid(Cell(r,c,child), ...) 使用）
+    // GridLayout 的单元格说明（供 ZGrid(ZCell(r,c,child), ...) 使用）
     struct CellSpec {
         int row = 0, col = 0, rowSpan = 1, colSpan = 1;
         std::shared_ptr<UIElement> child;
@@ -74,11 +74,11 @@ namespace dsl {
             return *this;
         }
         // 逃生口：with() 只接“成员函数指针”，多步 / 条件 / 需要迭代的操作走 apply(lambda)
-        //   Lbl(L"x").apply([](Label& l){ l.SetText(L"y"); l.SetPadding(4.0f); });
+        //   ZLbl(L"x").apply([](Label& l){ l.SetText(L"y"); l.SetPadding(4.0f); });
         template<class F> Ref& apply(F&& f) { if (p_) f(*p_); return *this; }
         // 容器：add(child...)
         //   按容器的真实接口分派：ColumnBox/RowBox/Label → AddChild；PageHost → AddPage；
-        //   GridLayout 需要坐标 → 用 cell(row,col,child) 或 dsl::Cell(...)。
+        //   GridLayout 需要坐标 → 用 cell(row,col,child) 或 dsl::ZCell(...)。
         template<class... C> Ref& add(C&&... c) {
             if (!p_) return *this;
             if constexpr (HasAddChild1<T>::value) {
@@ -88,7 +88,7 @@ namespace dsl {
                 (this->AddPageChecked(std::forward<C>(c)), ...);
             } else if constexpr (HasGridAddChild<T>::value) {
                 static_assert(sizeof...(C) == 0,
-                    "GridLayout 的子元素必须带坐标：用 .cell(row, col, child) 或 dsl::Grid(dsl::Cell(r,c,child), ...)");
+                    "GridLayout 的子元素必须带坐标：用 .cell(row, col, child) 或 dsl::ZGrid(dsl::ZCell(r,c,child), ...)");
             } else {
                 static_assert(sizeof...(C) == 0,
                     "该类型没有可用的加子接口（支持 add 的：ColumnBox / RowBox / Label / PageHost）");
@@ -221,21 +221,21 @@ namespace dsl {
     template<class U> inline std::shared_ptr<UIElement> toElem(const Ref<U>& r) { return r.shared(); }
 
     // ---- 通用工厂 ----
-    template<class T, class... A> Ref<T> Make(A&&... a) {
+    template<class T, class... A> Ref<T> ZMake(A&&... a) {
         return Ref<T>(std::make_shared<T>(std::forward<A>(a)...));
     }
-    // 把已有的 shared_ptr 接进 DSL 链：auto r = Wrap(someExistingLabel);
-    template<class T> inline Ref<T> Wrap(std::shared_ptr<T> p) { return Ref<T>(std::move(p)); }
+    // 把已有的 shared_ptr 接进 DSL 链：auto r = ZWrap(someExistingLabel);
+    template<class T> inline Ref<T> ZWrap(std::shared_ptr<T> p) { return Ref<T>(std::move(p)); }
 
     // ---- 容器（直接接子元素）----
-    template<class... C> Ref<ColumnBox>  Col(C&&... c)  { auto p = std::make_shared<ColumnBox>();  (p->AddChild(toElem(std::forward<C>(c))), ...); return Ref<ColumnBox>(p); }
-    template<class... C> Ref<RowBox>     Row(C&&... c)  { auto p = std::make_shared<RowBox>();     (p->AddChild(toElem(std::forward<C>(c))), ...); return Ref<RowBox>(p); }
+    template<class... C> Ref<ColumnBox>  ZCol(C&&... c)  { auto p = std::make_shared<ColumnBox>();  (p->AddChild(toElem(std::forward<C>(c))), ...); return Ref<ColumnBox>(p); }
+    template<class... C> Ref<RowBox>     ZRow(C&&... c)  { auto p = std::make_shared<RowBox>();     (p->AddChild(toElem(std::forward<C>(c))), ...); return Ref<RowBox>(p); }
 
-    // GridLayout 的单元格：Grid(Cell(1, 2, Lbl(L"x")), Cell(0, 0, btn, 1, 2))
-    template<class C> inline CellSpec Cell(int row, int col, C&& c, int rowSpan = 1, int colSpan = 1) {
+    // GridLayout 的单元格：ZGrid(ZCell(1, 2, ZLbl(L"x")), ZCell(0, 0, btn, 1, 2))
+    template<class C> inline CellSpec ZCell(int row, int col, C&& c, int rowSpan = 1, int colSpan = 1) {
         return CellSpec{ row, col, rowSpan, colSpan, toElem(std::forward<C>(c)) };
     }
-    // Grid(...) 同时接受“带坐标的 Cell(...)”与“裸子元素”：
+    // ZGrid(...) 同时接受“带坐标的 ZCell(...)”与“裸子元素”：
     //   裸元素沿用旧行为——按出现顺序依次放在 (i, 0)。
     template<class C> inline void GridAdd(GridLayout& g, int& autoRow, C&& c) {
         if constexpr (std::is_same_v<std::decay_t<C>, CellSpec>) {
@@ -246,7 +246,7 @@ namespace dsl {
             if (e) g.AddChild(e, autoRow++, 0);
         }
     }
-    template<class... C> Ref<GridLayout> Grid(C&&... c) {
+    template<class... C> Ref<GridLayout> ZGrid(C&&... c) {
         auto p = std::make_shared<GridLayout>();
         int i = 0;
         (GridAdd(*p, i, std::forward<C>(c)), ...);
@@ -254,56 +254,45 @@ namespace dsl {
     }
 
     // ---- 基本控件短工厂 ----
-    inline Ref<Label>  Lbl(const std::wstring& t = L""){ return Make<Label>(t); }
-    inline Ref<Button> Btn(const std::wstring& t = L""){ return Make<Button>(t); }
-    inline Ref<TextBox> Txt(const std::wstring& t = L""){ auto r = Make<TextBox>(); if (!t.empty()) r->SetText(t); return r; }
-    inline Ref<TextEdit> Edit(const std::wstring& t = L""){ auto r = Make<TextEdit>(); if (!t.empty()) r->SetPlainText(t); return r; }
-    inline Ref<ComboBox> Combo(){ return Make<ComboBox>(); }
-    inline Ref<CheckBox> Check(const std::wstring& label = L""){ auto r = Make<CheckBox>(); if (!label.empty()) r->SetLabel(label); return r; }
-    inline Ref<RadioButton> Radio(const std::wstring& t){ return Make<RadioButton>(t); }
-    inline Ref<ToggleSwitch> Toggle(bool on = false){ return Make<ToggleSwitch>(on); }
-    inline Ref<ZufyUI::Slider> Slider(){ return Make<ZufyUI::Slider>(); }
-    inline Ref<NumberBox> Num(){ return Make<NumberBox>(); }
-    inline Ref<ProgressBar> Progress(){ return Make<ProgressBar>(); }
-    inline Ref<ProgressRing> Ring(){ return Make<ProgressRing>(); }
-    inline Ref<ScrollViewer> Scroll(){ return Make<ScrollViewer>(); }
-    inline Ref<SplitView> Split(){ return Make<SplitView>(); }
-    inline Ref<TabView> Tabs(){ return Make<TabView>(); }
-    inline Ref<ListView> List(){ return Make<ListView>(); }
-    inline Ref<TableView> Table(){ return Make<TableView>(); }
-    inline Ref<TreeView> Tree(){ return Make<TreeView>(); }
-    inline Ref<BarChart> Bar(){ return Make<BarChart>(); }
-    inline Ref<LineChart> Line(){ return Make<LineChart>(); }
-    inline Ref<PieChart> Pie(){ return Make<PieChart>(); }
-    inline Ref<ZufyUI::Card> Card(){ return Make<ZufyUI::Card>(); }
-    inline Ref<ZufyUI::Expander> Expander(const std::wstring& title = L"", const std::wstring& sub = L""){ return Make<ZufyUI::Expander>(title, sub); }
-    inline Ref<PageHost> Pages(){ return Make<PageHost>(); }
-    inline Ref<ZufyUI::Page> Page(){ return Make<ZufyUI::Page>(); }
-    inline Ref<ZufyUI::Menu> Menu(){ return Make<ZufyUI::Menu>(); }
-    inline Ref<SettingsList> Settings(){ return Make<SettingsList>(); }
-    inline Ref<ZufyUI::MenuBar> MenuBar(){ return Make<ZufyUI::MenuBar>(); }
-    inline Ref<ZufyUI::StatusBar> StatusBar(){ return Make<ZufyUI::StatusBar>(); }
-    inline Ref<ZufyUI::RadioGroup> RadioGroup(){ return Make<ZufyUI::RadioGroup>(); }
-    inline Ref<ZufyUI::ScrollBar> ScrollBar(bool vertical = true){ return Make<ZufyUI::ScrollBar>(vertical); }
-    // 图标字形（ZufyUIIcons.h）：Glyph(Icon::Save) / Glyph(Icon::Save, 18.0f, Color::White)
-    inline Ref<FontIcon> Glyph(Icon icon, float size = FontIcon::DefaultSize){ return Make<FontIcon>(icon, size); }
-    inline Ref<FontIcon> Glyph(Icon icon, float size, Color color){ return Make<FontIcon>(icon, size, color); }
+    inline Ref<Label>  ZLbl(const std::wstring& t = L""){ return ZMake<Label>(t); }
+    inline Ref<Button> ZBtn(const std::wstring& t = L""){ return ZMake<Button>(t); }
+    inline Ref<TextBox> ZTxt(const std::wstring& t = L""){ auto r = ZMake<TextBox>(); if (!t.empty()) r->SetText(t); return r; }
+    inline Ref<TextEdit> ZEdit(const std::wstring& t = L""){ auto r = ZMake<TextEdit>(); if (!t.empty()) r->SetPlainText(t); return r; }
+    inline Ref<ComboBox> ZCombo(){ return ZMake<ComboBox>(); }
+    inline Ref<CheckBox> ZCheck(const std::wstring& label = L""){ auto r = ZMake<CheckBox>(); if (!label.empty()) r->SetLabel(label); return r; }
+    inline Ref<RadioButton> ZRadio(const std::wstring& t){ return ZMake<RadioButton>(t); }
+    inline Ref<ToggleSwitch> ZToggle(bool on = false){ return ZMake<ToggleSwitch>(on); }
+    inline Ref<ZufyUI::Slider> ZSlider(){ return ZMake<ZufyUI::Slider>(); }
+    inline Ref<NumberBox> ZNum(){ return ZMake<NumberBox>(); }
+    inline Ref<ProgressBar> ZProgress(){ return ZMake<ProgressBar>(); }
+    inline Ref<ProgressRing> ZRing(){ return ZMake<ProgressRing>(); }
+    inline Ref<ScrollViewer> ZScroll(){ return ZMake<ScrollViewer>(); }
+    inline Ref<SplitView> ZSplit(){ return ZMake<SplitView>(); }
+    inline Ref<TabView> ZTabs(){ return ZMake<TabView>(); }
+    inline Ref<ListView> ZList(){ return ZMake<ListView>(); }
+    inline Ref<TableView> ZTable(){ return ZMake<TableView>(); }
+    inline Ref<TreeView> ZTree(){ return ZMake<TreeView>(); }
+    inline Ref<BarChart> ZBar(){ return ZMake<BarChart>(); }
+    inline Ref<LineChart> ZLine(){ return ZMake<LineChart>(); }
+    inline Ref<PieChart> ZPie(){ return ZMake<PieChart>(); }
+    inline Ref<ZufyUI::Card> ZCard(){ return ZMake<ZufyUI::Card>(); }
+    inline Ref<ZufyUI::Expander> ZExpander(const std::wstring& title = L"", const std::wstring& sub = L""){ return ZMake<ZufyUI::Expander>(title, sub); }
+    inline Ref<PageHost> ZPages(){ return ZMake<PageHost>(); }
+    inline Ref<ZufyUI::Page> ZPage(){ return ZMake<ZufyUI::Page>(); }
+    inline Ref<ZufyUI::Menu> ZMenu(){ return ZMake<ZufyUI::Menu>(); }
+    inline Ref<SettingsList> ZSettings(){ return ZMake<SettingsList>(); }
+    inline Ref<ZufyUI::MenuBar> ZMenuBar(){ return ZMake<ZufyUI::MenuBar>(); }
+    inline Ref<ZufyUI::StatusBar> ZStatusBar(){ return ZMake<ZufyUI::StatusBar>(); }
+    inline Ref<ZufyUI::RadioGroup> ZRadioGroup(){ return ZMake<ZufyUI::RadioGroup>(); }
+    inline Ref<ZufyUI::ScrollBar> ZScrollBar(bool vertical = true){ return ZMake<ZufyUI::ScrollBar>(vertical); }
+    // 图标字形（ZufyUIIcons.h）：ZGlyph(Icon::Save) / ZGlyph(Icon::Save, 18.0f, Color::White)
+    inline Ref<FontIcon> ZGlyph(Icon icon, float size = FontIcon::DefaultSize){ return ZMake<FontIcon>(icon, size); }
+    inline Ref<FontIcon> ZGlyph(Icon icon, float size, Color color){ return ZMake<FontIcon>(icon, size, color); }
 
-    // ---- 无歧义别名 make_*：短工厂名与类名相同的那些（Slider/Card/Page/Menu/MenuBar/
     //      StatusBar/RadioGroup/ScrollBar/Expander），在同时 `using namespace ZufyUI;`
-    //      + `using namespace ZufyUI::dsl;` 时会产生 C2872 二义。用 make_* 从源头避开。----
-    inline Ref<ZufyUI::Slider>     make_slider(){ return Slider(); }
-    inline Ref<ZufyUI::Card>       make_card(){ return Card(); }
-    inline Ref<ZufyUI::Page>       make_page(){ return Page(); }
-    inline Ref<ZufyUI::Menu>       make_menu(){ return Menu(); }
-    inline Ref<ZufyUI::MenuBar>    make_menu_bar(){ return MenuBar(); }
-    inline Ref<ZufyUI::StatusBar>  make_status_bar(){ return StatusBar(); }
-    inline Ref<ZufyUI::RadioGroup> make_radio_group(){ return RadioGroup(); }
-    inline Ref<ZufyUI::ScrollBar>  make_scroll_bar(bool vertical = true){ return ScrollBar(vertical); }
-    inline Ref<ZufyUI::Expander>   make_expander(const std::wstring& title = L"", const std::wstring& sub = L""){ return Expander(title, sub); }
 
     // ---------- 窗口构建器（链式配置 + run）----------
-    //   auto app = dsl::App();  app.title(...).size(...).backdrop(...).root(Col(...)).run();
+    //   auto app = dsl::ZApp();  app.title(...).size(...).backdrop(...).root(ZCol(...)).run();
     class WindowApp {
     public:
         WindowApp() : win_(std::make_unique<ZufyUI::Window>()) {}
@@ -351,7 +340,7 @@ namespace dsl {
         WindowApp& showTitleText(bool on = true) { showTitleText_ = on; showTitleTextSet_ = true; return *this; }
         WindowApp& menuBarInTitleBar(bool on = true) { menuBarInTitleBar_ = on; menuBarInTitleBarSet_ = true; return *this; }
 
-        // 窗口信号（与 Ref::on 同形）：dsl::App().on<&ZufyUI::Window::Closed>([]{ ... })
+        // 窗口信号（与 Ref::on 同形）：dsl::ZApp().on<&ZufyUI::Window::Closed>([]{ ... })
         //   Window 没有 Connect，信号是裸成员，所以用成员指针形式。
         template<auto SigMem, class F> WindowApp& on(F&& f) {
             (win_.get()->*SigMem).connect(std::forward<F>(f));
@@ -407,7 +396,7 @@ namespace dsl {
         std::shared_ptr<Layout> root_;
         std::shared_ptr<UIElement> titleBar_, menuBar_, statusBar_;
     };
-    inline WindowApp App() { return WindowApp{}; }
+    inline WindowApp ZApp() { return WindowApp{}; }
 
 } // namespace dsl
 } // namespace ZufyUI
