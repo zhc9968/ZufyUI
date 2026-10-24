@@ -419,6 +419,79 @@ static void test_fix_regressions() {
     CHECK(sv->GetCollapseThreshold() > 0.0f);
 }
 
+static void test_animation_primitives() {
+    FloatAnimation to;
+    to.Snap(0.0f);
+    CHECK(to.To(10.0f, 1.0f, Easing::EaseOut));
+    CHECK(to.Active());
+    CHECK(to.Update(0.5f));
+    CHECK(to.Value() > 0.0f && to.Value() < 10.0f);
+    CHECK(to.Update(0.5f));                  // final frame still reports moved
+    CHECK(to.Value() == 10.0f);
+    CHECK(!to.Active());
+    CHECK(!to.Update(0.016f));
+
+    FloatAnimation same;
+    same.Snap(0.0f);
+    same.To(1.0f, 1.0f);
+    same.Update(0.2f);
+    CHECK(!same.To(1.0f, 1.0f));             // same target while active -> no restart
+
+    FloatAnimation spring;
+    spring.Snap(0.0f);
+    spring.Spring(1.0f, 12.0f, 0.001f);
+    float prev = 0.0f;
+    bool monotonic = true;
+    for (int i = 0; i < 300 && spring.Active(); ++i) {
+        spring.Update(1.0f / 60.0f);
+        if (spring.Value() < prev) monotonic = false;
+        prev = spring.Value();
+    }
+    CHECK(!spring.Active());
+    CHECK(spring.Value() == 1.0f);
+    CHECK(monotonic);
+
+    FloatAnimation retarget;
+    retarget.Snap(0.0f);
+    retarget.Spring(1.0f, 12.0f, 0.001f);
+    for (int i = 0; i < 5; ++i) retarget.Update(1.0f / 60.0f);
+    float before = retarget.Value();
+    retarget.Spring(0.0f, 12.0f, 0.001f);
+    retarget.Update(1.0f / 60.0f);
+    CHECK(retarget.Value() <= before + 1e-5f);
+    CHECK(retarget.Value() >= 0.0f);
+
+    ColorAnimation color;
+    color.Snap(Color(0, 0, 0, 1));
+    CHECK(color.To(Color(1, 1, 1, 1), 0.1f, Easing::Linear));
+    color.Update(0.05f);
+    CHECK(color.Value().r > 0.4f && color.Value().r < 0.6f);
+    color.Update(0.05f);
+    CHECK(color.Value().r == 1.0f);
+
+    AnimationGroup group;
+    FloatAnimation a, b;
+    group.Add(&a); group.Add(&b); group.Add(&a);
+    CHECK(group.Size() == 2);
+    a.To(1.0f, 1.0f);
+    b.Spring(1.0f);
+    CHECK(group.Active());
+    CHECK(group.Update(0.5f));
+    group.Update(2.0f);
+    CHECK(!group.Active());
+}
+
+static void test_button_animations() {
+    Button b;
+    b.OnMouseEnter();
+    b.UpdateAnimation(0.2f);
+    CHECK(b.DebugAnimationProgress() == 1.0f);
+    b.OnMouseLeave();
+    b.UpdateAnimation(0.2f);
+    CHECK(b.DebugAnimationProgress() == 0.0f);
+    CHECK(!b.HasActiveAnimation());
+}
+
 static void test_backdrop_defaults() {
     Window w;
     w.SetBackdrop(Backdrop::Acrylic);
@@ -476,6 +549,25 @@ static void test_button_and_listview_regressions() {
     b.SetDropWriteBack(true);
     CHECK(b.GetText() == L"alpha");
 
+    Button split;
+    split.Arrange(Rect(0, 0, 120, 36));
+    split.SetDropItems({ L"A", L"B" });
+    int clicks = 0;
+    split.Clicked.connect([&clicks]() { ++clicks; });
+    split.OnMouseDown(10, 18);
+    split.OnMouseUp(10, 18);
+    CHECK(clicks == 1);                       // main button -> Clicked
+    split.OnMouseDown(110, 18);
+    split.OnMouseUp(110, 18);
+    CHECK(clicks == 1);                       // expand arrow -> no Clicked
+    split.SetDropOpenOnClick(false);
+    split.OnMouseDown(10, 18);
+    split.OnMouseUp(10, 18);
+    CHECK(clicks == 2);                       // main button still Clicked
+    split.OnMouseDown(110, 18);
+    split.OnMouseUp(110, 18);
+    CHECK(clicks == 2);                       // arrow never Clicked
+
     ListView lv;
     lv.SetItemHeight(0.0f);
     CHECK(lv.GetItemHeight() >= 1.0f);
@@ -495,6 +587,8 @@ int main() {
     test_dsl_pitfalls();
     test_fix_regressions();
     test_button_and_listview_regressions();
+    test_animation_primitives();
+    test_button_animations();
     test_backdrop_defaults();
     std::printf("\n通过 %d 项，失败 %d 项\n", g_pass, g_fail);
     if (g_fail) { std::printf("结果：FAILED\n"); return 1; }

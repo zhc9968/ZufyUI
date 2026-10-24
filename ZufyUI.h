@@ -278,6 +278,238 @@ namespace ZufyUI {
         Size(float w = 0, float h = 0) : width(w), height(h) {}
     };
 
+    // ==================== 统一动画原语 ====================
+    enum class Easing { Linear, EaseOut, EaseInOut };
+
+    inline float EaseValue(Easing easing, float t) {
+        if (t <= 0.0f) return 0.0f;
+        if (t >= 1.0f) return 1.0f;
+        switch (easing) {
+        case Easing::Linear:
+            return t;
+        case Easing::EaseInOut:
+            return t < 0.5f ? (4.0f * t * t * t)
+                            : (1.0f - powf(-2.0f * t + 2.0f, 3.0f) * 0.5f);
+        case Easing::EaseOut:
+        default: {
+            float u = 1.0f - t;
+            return 1.0f - u * u * u;
+        }
+        }
+    }
+
+    namespace AnimationDefaults {
+        inline constexpr float Hover = 0.12f;
+        inline constexpr float Press = 0.08f;
+        inline constexpr float Expand = 0.18f;
+        inline constexpr float Page = 0.28f;
+        inline constexpr float ScrollSpringSpeed = 12.0f;
+        inline constexpr float IndicatorSpringSpeed = 14.0f;
+    }
+
+    class IAnimation {
+    public:
+        virtual ~IAnimation() = default;
+        virtual bool Update(float deltaTime) = 0;   // 本帧 value 是否真的变化
+        virtual bool Active() const = 0;           // 之后是否还需要推进
+    };
+
+    // To：目标固定，时长驱动，到点精确赋值；Spring：目标可变，一阶低通，无过冲。
+    class FloatAnimation : public IAnimation {
+    public:
+        enum class State { Idle, Running, Finished };
+
+        float Value() const { return value_; }
+        float Target() const { return target_; }
+        bool Active() const override { return active_; }
+        State GetState() const { return state_; }
+        float Duration() const { return duration_; }
+
+        void Snap(float value) {
+            value_ = from_ = target_ = value;
+            elapsed_ = 0.0f;
+            active_ = false;
+            spring_ = false;
+            state_ = State::Finished;
+            onComplete_ = nullptr;
+        }
+        void SetOnComplete(std::function<void()> cb) { onComplete_ = std::move(cb); }
+        void SetDuration(float seconds) { duration_ = max(0.0001f, seconds); }
+
+        bool To(float target, float duration = AnimationDefaults::Hover,
+                Easing easing = Easing::EaseOut) {
+            if (duration <= 0.0f) {
+                bool changed = value_ != target;
+                value_ = from_ = target_;
+                elapsed_ = 0.0f;
+                active_ = false;
+                spring_ = false;
+                state_ = State::Finished;
+                return changed;
+            }
+            if (active_ && !spring_ && target_ == target) return false;   // 同目标不重启动
+            from_ = value_;
+            target_ = target;
+            elapsed_ = 0.0f;
+            duration_ = duration;
+            easing_ = easing;
+            spring_ = false;
+            if (value_ == target_) {
+                active_ = false;
+                state_ = State::Finished;
+                return false;
+            }
+            active_ = true;
+            state_ = State::Running;
+            return true;
+        }
+
+        bool Spring(float target, float speed = AnimationDefaults::ScrollSpringSpeed,
+                    float epsilon = 0.001f) {
+            speed_ = max(0.0001f, speed);
+            epsilon_ = max(1e-6f, epsilon);
+            target_ = target;
+            spring_ = true;
+            if (fabs(value_ - target_) <= epsilon_) {
+                bool changed = value_ != target_;
+                value_ = target_;
+                active_ = false;
+                state_ = State::Finished;
+                return changed;
+            }
+            active_ = true;
+            state_ = State::Running;
+            return true;
+        }
+
+        bool Update(float deltaTime) override {
+            if (!active_) return false;
+            if (deltaTime < 0.0f) deltaTime = 0.0f;
+            const float old = value_;
+
+            if (spring_) {
+                const float a = 1.0f - expf(-speed_ * deltaTime);
+                value_ += (target_ - value_) * a;
+            }
+            else {
+                elapsed_ += deltaTime;
+                const float t = (duration_ > 0.0f) ? (elapsed_ / duration_) : 1.0f;
+                value_ = (t >= 1.0f) ? target_
+                                     : (from_ + (target_ - from_) * EaseValue(easing_, t));
+            }
+
+            const bool finished = spring_
+                ? (fabs(target_ - value_) <= epsilon_)
+                : (elapsed_ >= duration_);
+            if (finished) {
+                value_ = target_;
+                active_ = false;
+                state_ = State::Finished;
+                auto cb = std::move(onComplete_);
+                onComplete_ = nullptr;
+                if (cb) cb();   // 回调里可以启动新的 To/Spring
+            }
+            return value_ != old;
+        }
+
+    private:
+        float value_ = 0.0f, from_ = 0.0f, target_ = 0.0f;
+        float elapsed_ = 0.0f, duration_ = AnimationDefaults::Hover;
+        float speed_ = AnimationDefaults::ScrollSpringSpeed;
+        float epsilon_ = 0.001f;
+        Easing easing_ = Easing::EaseOut;
+        bool active_ = false, spring_ = false;
+        State state_ = State::Idle;
+        std::function<void()> onComplete_;
+    };
+
+    class ColorAnimation : public IAnimation {
+    public:
+        Color Value() const { return value_; }
+        bool Active() const override { return active_; }
+
+        void Snap(Color value) {
+            value_ = from_ = target_ = value;
+            elapsed_ = 0.0f;
+            active_ = false;
+            onComplete_ = nullptr;
+        }
+        void SetOnComplete(std::function<void()> cb) { onComplete_ = std::move(cb); }
+
+        bool To(Color target, float duration = AnimationDefaults::Hover,
+                Easing easing = Easing::EaseOut) {
+            if (duration <= 0.0f) {
+                bool changed = !Same(value_, target);
+                value_ = from_ = target_;
+                active_ = false;
+                return changed;
+            }
+            if (active_ && Same(target_, target)) return false;
+            from_ = value_;
+            target_ = target;
+            elapsed_ = 0.0f;
+            duration_ = duration;
+            easing_ = easing;
+            active_ = true;
+            return true;
+        }
+
+        bool Update(float deltaTime) override {
+            if (!active_) return false;
+            if (deltaTime < 0.0f) deltaTime = 0.0f;
+            const Color old = value_;
+            elapsed_ += deltaTime;
+            const float t = (duration_ > 0.0f) ? (elapsed_ / duration_) : 1.0f;
+            value_ = (t >= 1.0f) ? target_ : Color::Lerp(from_, target_, EaseValue(easing_, t));
+            if (t >= 1.0f) {
+                value_ = target_;
+                active_ = false;
+                auto cb = std::move(onComplete_);
+                onComplete_ = nullptr;
+                if (cb) cb();
+            }
+            return !Same(value_, old);
+        }
+
+    private:
+        static bool Same(const Color& a, const Color& b) {
+            return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
+        }
+        Color value_{}, from_{}, target_{};
+        float elapsed_ = 0.0f, duration_ = AnimationDefaults::Hover;
+        Easing easing_ = Easing::EaseOut;
+        bool active_ = false;
+        std::function<void()> onComplete_;
+    };
+
+    class AnimationGroup {
+    public:
+        AnimationGroup() = default;
+        AnimationGroup(const AnimationGroup&) = delete;
+        AnimationGroup& operator=(const AnimationGroup&) = delete;
+
+        void Add(IAnimation* animation) {
+            if (!animation) return;
+            for (auto* a : items_) if (a == animation) return;
+            items_.push_back(animation);
+        }
+        bool Update(float deltaTime) {
+            bool moved = false;
+            const size_t count = items_.size();   // 回调里 Add 不影响本帧遍历
+            for (size_t i = 0; i < count; ++i)
+                if (items_[i] && items_[i]->Update(deltaTime)) moved = true;
+            return moved;
+        }
+        bool Active() const {
+            for (auto* a : items_) if (a && a->Active()) return true;
+            return false;
+        }
+        size_t Size() const { return items_.size(); }
+
+    private:
+        std::vector<IAnimation*> items_;
+    };
+
     // 前向声明
     class Label;
     class Menu;
@@ -1418,9 +1650,16 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         virtual void OnChar(wchar_t ch) {}
         virtual void OnFocus() {}
         virtual void OnBlur() {}
-        virtual void UpdateAnimation(float deltaTime) {}
+        // 统一动画：基类只推进本元素持有的原语组，值真变时才重绘；
+        // 容器自行遍历子元素，不把“子树活跃”转成祖先重绘。
+        virtual void UpdateAnimation(float deltaTime) {
+            const bool moved = animations_.Update(deltaTime);
+            OnAnimationUpdate(deltaTime);
+            if (moved) RequestRepaint();
+        }
+        virtual void OnAnimationUpdate(float /*deltaTime*/) {}
         virtual bool OnMouseWheel(float deltaX, float deltaY) { return false; }
-        virtual bool HasActiveAnimation() const { return false; }
+        virtual bool HasActiveAnimation() const { return animations_.Active(); }
         virtual void CollectExpandedComboBoxes(std::vector<ComboBox*>& list) {}
 
         virtual void ReleaseDeviceResources() {
@@ -1471,6 +1710,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 value = target;
             }
         }
+
+        // 控件持有 FloatAnimation/ColorAnimation 后，构造时把它加入本组。
+        AnimationGroup& Animations() { return animations_; }
+        const AnimationGroup& Animations() const { return animations_; }
 
         // ---------- 事件信号 ----------
         ZSignal<> MouseEnter;
@@ -1833,6 +2076,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         Rect dragRegion_{ 0, 0, 0, 0 };
 
         std::shared_ptr<ConnectionGroup> connectionGroup_;
+        AnimationGroup animations_;
 
         bool useCache_; // 默认 true，可被重写
         std::atomic<int> windowId_{ 0 };  // 所属窗口 id（0 表示未挂载）；用 id 而非裸指针，避免窗口销毁后悬垂

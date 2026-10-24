@@ -644,7 +644,8 @@ void SetDropItems(const std::vector<std::wstring>&, int selected=-1);  void SetD
 ```
 - Default `120×36`; `Clicked` fires whenever press+release are both inside the button (**click always calls back**).
 - **Rich content**: the internal `Label` is a real child now, so `GetLabel()->AddChild(...)` children are laid out/composited/drawn; `SetContent` replaces it with any `UIElement`.
-- **Drop 2x2**: `SetDropWriteBack` controls whether a menu selection writes its text back to the button; `SetDropOpenOnClick` controls whether the button opens the menu after `Clicked`. The menu is **single-select** (the previous choice is marked); selecting fires `DropSelected(index)`, readable via `GetDropSelectedIndex/GetDropSelectedText`. `SetDropItems` is the text-list shortcut; use `SetDropMenu` for custom menus; when `DropOpenOnClick=false`, open it with `ShowDropMenu()`.
+- **Drop 2x2**: `SetDropWriteBack` controls whether a menu selection writes its text back to the button; `SetDropOpenOnClick` controls whether the button opens the menu after `Clicked`. The menu is **single-select** (the previous choice is marked); selecting fires `DropSelected(index)`, readable via `GetDropSelectedIndex/GetDropSelectedText`. `SetDropItems` is the text-list shortcut; use `SetDropMenu` for custom menus.
+- **Main area / expand zone**: clicking the main area always fires `Clicked`; the right expand zone (separated by a short, theme-coloured divider) **only opens the menu and never fires `Clicked`**; clicking a menu item fires only `DropSelected`, never `Clicked`. With `DropOpenOnClick=false` the main area only calls back; the expand zone still opens the menu.
 - **`Pitfall`**: `IsChecked()` is meaningless unless checkable; `SetContent` lays out inside the rect left after `padding` and the right arrow.
 - **`Version`**: since `v1.21.0` a Button **grows to fit its own text by default**; `v1.23.3` adds rich content and the drop 2x2 combinations.
 

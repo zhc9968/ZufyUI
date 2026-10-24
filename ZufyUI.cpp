@@ -584,32 +584,47 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             richBtn->SetWidth(190.0f);
             richBtn->SetContent(richRow);
 
-            auto writeOpen = std::make_shared<Button>(L"写回+开菜单");
+            auto writeOpen = std::make_shared<Button>(L"写回+点击开");
             writeOpen->SetDropWriteBack(true);
             writeOpen->SetDropOpenOnClick(true);
             writeOpen->SetDropItems({ L"选项 A", L"选项 B" });
 
-            auto noWriteOpen = std::make_shared<Button>(L"不写回+开菜单");
+            auto noWriteOpen = std::make_shared<Button>(L"不写回+点击开");
             noWriteOpen->SetDropWriteBack(false);
             noWriteOpen->SetDropOpenOnClick(true);
             noWriteOpen->SetDropItems({ L"选项 A", L"选项 B" });
 
-            auto manualMenu = std::make_shared<Button>(L"只回调");
-            manualMenu->SetDropWriteBack(true);
-            manualMenu->SetDropOpenOnClick(false);
-            manualMenu->SetDropItems({ L"选项 A", L"选项 B" });
+            auto writeNoOpen = std::make_shared<Button>(L"写回+点击不开");
+            writeNoOpen->SetDropWriteBack(true);
+            writeNoOpen->SetDropOpenOnClick(false);
+            writeNoOpen->SetDropItems({ L"选项 A", L"选项 B" });
 
-            auto openMenuBtn = std::make_shared<Button>(L"手动打开菜单");
-            openMenuBtn->Clicked.connect([manualMenu]() { manualMenu->ShowDropMenu(); });
+            auto noWriteNoOpen = std::make_shared<Button>(L"不写回+点击不开");
+            noWriteNoOpen->SetDropWriteBack(false);
+            noWriteNoOpen->SetDropOpenOnClick(false);
+            noWriteNoOpen->SetDropItems({ L"选项 A", L"选项 B" });
+
+            auto dropStatus = std::make_shared<Label>(L"下拉事件：-");
+            auto bindDrop = [dropStatus](std::shared_ptr<Button> b, const std::wstring& name) {
+                b->Clicked.connect([dropStatus, name]() { dropStatus->SetText(L"按钮回调: " + name); });
+                b->DropSelected.connect([dropStatus, name](int i) {
+                    dropStatus->SetText(L"菜单选中: " + name + L" #" + std::to_wstring(i));
+                });
+            };
+            bindDrop(writeOpen, L"写回+点击开");
+            bindDrop(noWriteOpen, L"不写回+点击开");
+            bindDrop(writeNoOpen, L"写回+点击不开");
+            bindDrop(noWriteNoOpen, L"不写回+点击不开");
 
             auto btnRow = std::make_shared<RowBox>();
             btnRow->SetSpacing(8.0f);
             btnRow->AddChild(richBtn);
             btnRow->AddChild(writeOpen);
             btnRow->AddChild(noWriteOpen);
-            btnRow->AddChild(manualMenu);
-            btnRow->AddChild(openMenuBtn);
+            btnRow->AddChild(writeNoOpen);
+            btnRow->AddChild(noWriteNoOpen);
             col->AddChild(btnRow);
+            col->AddChild(dropStatus);
         }
 
         AddSection(col, L"开关与勾选");

@@ -653,7 +653,8 @@ void SetDropItems(const std::vector<std::wstring>&, int selected=-1);  void SetD
 ```
 - 默认 `120×36`；按钮按下+抬起都在内部才 `Clicked`（**点击始终回调**）。
 - **富文本**：内部 `Label` 已经是真正的子元素，`GetLabel()->AddChild(...)` 的子元素会被合成/布局/绘制；也可 `SetContent` 换成任意 `UIElement`。
-- **下拉 2×2**：`SetDropWriteBack` 控制菜单选中是否回写按钮文字；`SetDropOpenOnClick` 控制按钮 `Clicked` 之后是否打开菜单。菜单是**单选**（上次选中项有标记）；选中触发 `DropSelected(index)`，可用 `GetDropSelectedIndex/GetDropSelectedText` 读取。`SetDropItems` 是文字列表快捷方式；自定义菜单用 `SetDropMenu`；`DropOpenOnClick=false` 时用 `ShowDropMenu()` 手动打开。
+- **下拉 2×2**：`SetDropWriteBack` 控制菜单选中是否回写按钮文字；`SetDropOpenOnClick` 控制按钮 `Clicked` 之后是否打开菜单。菜单是**单选**（上次选中项有标记）；选中触发 `DropSelected(index)`，可用 `GetDropSelectedIndex/GetDropSelectedText` 读取。`SetDropItems` 是文字列表快捷方式；自定义菜单用 `SetDropMenu`。
+- **主按钮 / 展开区**：主区域点击始终 `Clicked`；右侧展开区（与主区域之间有一条跟随主题的浅色短分隔线）**只打开菜单，不触发 `Clicked`**；点菜单项只触发 `DropSelected`，不会触发 `Clicked`。`DropOpenOnClick=false` 时主区域只回调，菜单仍可由展开区打开。
 - **`易错`**：非 checkable 时 `IsChecked()` 无意义；`SetContent` 的内容在扣除 `padding` 和右侧箭头后的矩形内布局。
 - **`版本`**：`v1.21.0` 起按钮**默认按文案自动撑宽**；`v1.23.3` 支持富文本内容与下拉 2×2 组合。
 

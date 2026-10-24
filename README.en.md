@@ -231,7 +231,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 - `Ref<T>`: `with / on / add / apply`; `Make / Wrap / Col / Row / Grid`; `Cell(row,col,...)`.
 - Per-control short factories + unambiguous `make_*` aliases; SFINAE-gated sugar for size/weights/colours/spacing/alignment/data views/menus.
 - `dsl::App()` / `WindowApp`: fluent configuration, `hidden`, window signals, automatic `Show()`, `run()`.
-- `tests/dsl_tests.cpp`: 111 compile-time + runtime assertions, no window created.
+- `tests/dsl_tests.cpp`: 139 compile-time + runtime assertions, no window created.
 
 ### Engineering, tools & demo
 

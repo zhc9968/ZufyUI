@@ -667,7 +667,7 @@ namespace ZufyUI {
         AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Button; }
         std::wstring DefaultAccessibleName() const override { return text_; }
         void AccessibilityInvoke() override { Clicked.Fire(); }   // UIA Invoke
-        float DebugAnimationProgress() const override { return hoverProgress_; }
+        float DebugAnimationProgress() const override { return hover_.Value(); }
         inline static float DefaultHoverAnimationSpeed = 10.0f;
         inline static Color DefaultNormalColor = Color::FromArgb(255, 0, 120, 212);
         inline static Color DefaultHoverColor = Color::FromArgb(255, 0, 105, 190);
@@ -696,10 +696,12 @@ namespace ZufyUI {
         ZSignal<int> DropSelected; // 下拉项被选中（索引）
         ZSignal<> DropMenuOpened;  // 即将打开下拉菜单
 
-        Button(const std::wstring& text = L"Button") : text_(text), hovered_(false), isPressed_(false), hoverProgress_(0.0f),
+        Button(const std::wstring& text = L"Button") : text_(text), hovered_(false), isPressed_(false),
             normalColor_(DefaultNormalColor), hoverColor_(DefaultHoverColor), pressedColor_(DefaultPressedColor),
-            textColor_(DefaultTextColor), cornerRadius_(DefaultCornerRadius),
-            hoverAnimSpeed_(DefaultHoverAnimationSpeed) {
+            textColor_(DefaultTextColor), cornerRadius_(DefaultCornerRadius) {
+            hoverDuration_ = (DefaultHoverAnimationSpeed > 0.0f) ? (1.0f / DefaultHoverAnimationSpeed)
+                                                                : AnimationDefaults::Hover;
+            Animations().Add(&hover_);
             width_ = DefaultWidth; height_ = DefaultHeight;
             label_ = std::make_shared<Label>(text_);
             label_->SetParent(this);   // 成为真正的子元素：富文本子元素由合成通道绘制
@@ -814,7 +816,10 @@ namespace ZufyUI {
         float GetCornerRadius() const { return cornerRadius_; }
         void SetCornerRadius(float radius) { cornerRadius_ = radius; RequestRepaint(); }
         void SetAutoSizeToText(bool on) { autoSizeToText_ = on; InvalidateLayout(); RequestRepaint(); }
-        void SetHoverAnimationSpeed(float speed) { hoverAnimSpeed_ = speed; }
+        void SetHoverAnimationSpeed(float speed) {
+            hoverDuration_ = (speed > 0.0f) ? (1.0f / speed) : AnimationDefaults::Hover;
+            hover_.SetDuration(hoverDuration_);
+        }
         void SetCheckable(bool checkable) { checkable_ = checkable; if (!checkable) checked_ = false; RequestRepaint(); }
         bool IsCheckable() const { return checkable_; }
         void SetChecked(bool checked) { if (checkable_ && checked_ != checked) { checked_ = checked; Toggled(checked_); RequestRepaint(); } }
@@ -885,7 +890,7 @@ namespace ZufyUI {
             Color bgColor;
             if (!enabled) bgColor = DefaultDisabledColor;
             else if (checkable_ && checked_) bgColor = pressedColor_;
-            else bgColor = isPressed_ ? pressedColor_ : Color::Lerp(normalColor_, hoverColor_, hoverProgress_);
+            else bgColor = (isPressed_ || dropPressed_) ? pressedColor_ : Color::Lerp(normalColor_, hoverColor_, hover_.Value());
             if (!bgBrush_) rt->CreateSolidColorBrush(bgColor.ToD2D(), bgBrush_.GetAddressOf());
             else bgBrush_->SetColor(bgColor.ToD2D());
 
@@ -897,6 +902,13 @@ namespace ZufyUI {
             if (dropMenu_) {
                 const D2D1_RECT_F rr = arrangedRect_.ToD2D();
                 float ax = max(arrangedRect_.x, arrangedRect_.x + arrangedRect_.width - dropArrowWidth_);
+                // ???/???????????????????????
+                Color dc = ThemeManager::AppTheme().Get(ThemeRole::Divider);
+                if (dc.a <= 0.01f) { dc = textColor_; dc.a = 0.25f; }
+                if (!fgBrush_) rt->CreateSolidColorBrush(dc.ToD2D(), fgBrush_.GetAddressOf());
+                else fgBrush_->SetColor(dc.ToD2D());
+                if (fgBrush_)
+                    rt->DrawLine(D2D1::Point2F(ax, rr.top + 7.0f), D2D1::Point2F(ax, rr.bottom - 7.0f), fgBrush_.Get(), 1.0f);
                 FontSpec fi; fi.familyName = IconFontFamily(); fi.size = 12.0f;
                 Color cc = enabled ? textColor_ : Color::FromArgb(255, 120, 120, 120);
                 DrawTextWithEllipsis(rt, IconGlyph(Icon::ChevronDown),
@@ -905,13 +917,9 @@ namespace ZufyUI {
         }
 
         void UpdateAnimation(float deltaTime) override {
-            float target = hovered_ ? 1.0f : 0.0f;
-            if (hoverProgress_ < target) { hoverProgress_ += hoverAnimSpeed_ * deltaTime; if (hoverProgress_ > target) hoverProgress_ = target; }
-            else if (hoverProgress_ > target) { hoverProgress_ -= hoverAnimSpeed_ * deltaTime; if (hoverProgress_ < target) hoverProgress_ = target; }
+            UIElement::UpdateAnimation(deltaTime);   // ?? hover ???????? RequestRepaint
             if (content_) content_->UpdateAnimation(deltaTime);
             else if (label_) label_->UpdateAnimation(deltaTime);
-            if (HasActiveAnimation()) RequestRepaint();
-            ConvergeValue(hoverProgress_, hovered_ ? 1.0f : 0.0f, 0.001f);
             if (autoRepeat_ && isPressed_ && autoRepeatInterval_ > 0.0f) {
                 DWORD now = GetTickCount();
                 if (now - lastRepeatTick_ >= (DWORD)autoRepeatInterval_) { lastRepeatTick_ = now; Clicked(); }
@@ -919,16 +927,27 @@ namespace ZufyUI {
         }
 
         bool HasActiveAnimation() const override {
-            const float epsilon = 0.001f;
-            bool hoverAnim = hovered_ ? (hoverProgress_ < 1.0f - epsilon) : (hoverProgress_ > epsilon);
             bool childAnim = content_ ? content_->HasActiveAnimation() : (label_ ? label_->HasActiveAnimation() : false);
-            return hoverAnim || childAnim;
+            return UIElement::HasActiveAnimation() || childAnim;
         }
 
-        void OnMouseEnter() override { if (!IsEffectivelyEnabled()) return; hovered_ = true; RequestRepaint(); MouseEnter.Fire(); }
-        void OnMouseLeave() override { hovered_ = false; isPressed_ = false; RequestRepaint(); MouseLeave.Fire(); }
+        void OnMouseEnter() override {
+            if (!IsEffectivelyEnabled()) return;
+            hovered_ = true; hover_.To(1.0f, hoverDuration_, Easing::EaseOut);
+            RequestRepaint(); MouseEnter.Fire();
+        }
+        void OnMouseLeave() override {
+            hovered_ = false; isPressed_ = false; dropPressed_ = false;
+            hover_.To(0.0f, hoverDuration_, Easing::EaseOut);
+            RequestRepaint(); MouseLeave.Fire();
+        }
         void OnMouseDown(float x, float y) override {
             if (!IsEffectivelyEnabled()) return;
+            if (InDropArrowZone(x, y)) {
+                dropPressed_ = true; isPressed_ = false;
+                RequestRepaint(); MouseDown.Fire(x, y);
+                return;
+            }
             isPressed_ = true; lastRepeatTick_ = GetTickCount();
             if (dragSource_) { dragArm_ = true; dragMoved_ = false; dragStartX_ = x; dragStartY_ = y; }
             RequestRepaint(); MouseDown.Fire(x, y);
@@ -943,7 +962,15 @@ namespace ZufyUI {
             }
         }
         void OnMouseUp(float x, float y) override {
-            if (!IsEffectivelyEnabled()) { dragArm_ = false; return; }
+            if (!IsEffectivelyEnabled()) { dropPressed_ = false; dragArm_ = false; return; }
+            if (dropPressed_) {
+                bool fire = InDropArrowZone(x, y);
+                dropPressed_ = false;
+                if (fire) ShowDropMenu();      // 展开区只开菜单，不触发 Clicked
+                RequestRepaint();
+                MouseUp.Fire(x, y);
+                return;
+            }
             if (isPressed_ && !dragMoved_) {   // 拖动过就不再触发点击
                 if (checkable_) SetChecked(!checked_);
                 Clicked();                     // 按钮点击始终回调
@@ -992,6 +1019,12 @@ namespace ZufyUI {
         }
 
     private:
+        bool InDropArrowZone(float x, float y) const {
+            if (!dropMenu_ || !IsEffectivelyEnabled()) return false;
+            const Rect& r = arrangedRect_;
+            return x >= r.x + r.width - dropArrowWidth_ && x <= r.x + r.width &&
+                   y >= r.y && y <= r.y + r.height;
+        }
         void OpenDropMenuInternal() {
             if (!dropMenu_) return;
             Window* w = GetWindow();
@@ -1011,16 +1044,17 @@ namespace ZufyUI {
 
         std::wstring text_;
         bool hovered_, isPressed_;
-        float hoverProgress_;
+        FloatAnimation hover_;
+        float hoverDuration_ = 0.1f;
         Color normalColor_, hoverColor_, pressedColor_, textColor_;
         float cornerRadius_;
-        float hoverAnimSpeed_;
         std::shared_ptr<Label> label_;
         std::shared_ptr<UIElement> content_;
         std::shared_ptr<Menu> dropMenu_;
         bool dropWriteBack_ = true;
         bool dropOpenOnClick_ = true;
         float dropArrowWidth_ = DefaultDropArrowWidth;
+        bool dropPressed_ = false;
         int selectedDropIndex_ = -1;
         ComPtr<ID2D1SolidColorBrush> bgBrush_;
         ComPtr<ID2D1SolidColorBrush> fgBrush_;
