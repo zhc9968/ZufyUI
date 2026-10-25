@@ -44,7 +44,7 @@ body {
     margin: 0; padding: 0; text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
 }
-.layout { display: flex; align-items: flex-start; gap: 32px; max-width: 1440px; margin: 0 auto; padding: 16px 24px 90px; }
+.layout { display: flex; align-items: flex-start; gap: 32px; max-width: 1440px; margin: 0 auto; padding: 74px 24px 90px; }
 .content { flex: 1 1 auto; min-width: 0; max-width: 1080px; }
 
 /* ---------- 侧栏 ---------- */
@@ -175,8 +175,27 @@ pre { line-height: 125%; }
 .highlight .m, .highlight .mb, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo, .highlight .il { color: #666 }
 .highlight .nc, .highlight .nn, .highlight .nf, .highlight .fm { color: #0000FF }
 .highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi, .highlight .vm { color: #19177C }
+
+/* ---------- 顶部统一搜索 ---------- */
+.doc-search { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 210; width: min(520px, calc(100vw - 180px)); }
+.doc-search input { width: 100%; height: 42px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 999px; background: var(--panel-bg); color: var(--text-color); padding: 0 18px; font-size: 0.92rem; outline: none; box-shadow: 0 2px 10px rgba(0,0,0,0.10); }
+.doc-search input:focus { border-color: var(--primary-color); box-shadow: 0 2px 16px rgba(52,152,219,0.22); }
+.search-results { display: none; position: absolute; top: 48px; left: 0; right: 0; max-height: 62vh; overflow: auto; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.22); padding: 6px; }
+.search-results.open { display: block; }
+.search-results .search-empty { padding: 12px 14px; color: var(--muted-color); font-size: 0.88rem; }
+.search-result { display: block; padding: 9px 11px; border-radius: 6px; text-decoration: none; color: inherit; border-bottom: 1px solid var(--border-color); }
+.search-result:last-child { border-bottom: none; }
+.search-result:hover, .search-result.active { background: var(--toc-active-bg); text-decoration: none; }
+.search-result .sr-title { display: block; color: var(--primary-color); font-weight: 600; font-size: 0.9rem; }
+.search-result .sr-chapter { display: block; color: var(--muted-color); font-size: 0.75rem; margin: 1px 0 3px; }
+.search-result .sr-snippet { display: block; color: var(--muted-color); font-size: 0.8rem; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.raw-md-entry { margin: 0 0 20px; padding: 10px 14px; border: 1px dashed var(--border-color); border-radius: 8px; color: var(--muted-color); font-size: 0.86rem; }
+.raw-md-entry a { color: var(--primary-color); font-weight: 600; text-decoration: none; }
+.raw-md-entry a:hover { text-decoration: underline; }
+
 @media (max-width: 1000px) {
-    .layout { flex-direction: column; gap: 0; padding: 20px 14px 80px; }
+    .layout { flex-direction: column; gap: 0; padding: 74px 14px 80px; }
+    .doc-search { width: min(520px, calc(100vw - 100px)); }
     .toc-sidebar { position: static; width: auto; flex: none; max-height: none; margin-bottom: 20px; }
     .content { max-width: 100%; }
     .chapter-nav { grid-template-columns: 1fr; }
@@ -193,6 +212,10 @@ pre { line-height: 125%; }
 For AI agents: the "Reading aid" section on this page contains the raw Markdown source identical to the rendered content, with HTML markup and animations removed. AI is advised to read that section directly to understand the content quickly and with less noise.
     </div>
     <!-- AI-READ: the .reading-aid element contains this page's raw Markdown source, identical to the rendered content but without HTML/animations. -->
+    <div class="doc-search" id="docSearch" data-index="API.en.search.json">
+        <input id="docSearchInput" type="search" placeholder="Search all docs…" autocomplete="off" aria-label="Search all docs…">
+        <div class="search-results" id="docSearchResults"></div>
+    </div>
     <button class="toc-toggle" id="tocToggle" title="Show contents">&#9776;</button>
     <button class="theme-toggle" id="themeToggle" title="Toggle theme (light / dark)">&#9789;</button>
 
@@ -310,7 +333,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3e29afc9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-5ab24c88', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TextOverflow</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Wrap</span><span class="p">,</span><span class="w"> </span><span class="n">Ellipsis</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">HAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">VAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Top</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Bottom</span><span class="w"> </span><span class="p">};</span>
@@ -325,7 +348,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetToolTip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">   </span><span class="c1">// auto full-text tooltip when ellipsized (v1.17.0)</span>
 </pre></div>
-<pre id="code-3e29afc9" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
+<pre id="code-5ab24c88" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
 enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bottom };
 Label(const std::wstring&amp; text = L"Label");
 void SetText(const std::wstring&amp;);   std::wstring GetText() const;
@@ -347,7 +370,7 @@ std::wstring GetToolTip() const override;   // auto full-text tooltip when ellip
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-be5bc866', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-e9c78b35', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">     </span><span class="c1">// Toggled needs SetCheckable(true)</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">DropSelected</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DropMenuOpened</span><span class="p">;</span><span class="w">   </span><span class="c1">// selected index / menu opened</span>
@@ -362,7 +385,7 @@ std::wstring GetToolTip() const override;   // auto full-text tooltip when ellip
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDropWriteBack</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDropOpenOnClick</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// two independent switches (2x2)</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDropItems</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">selected</span><span class="o">=</span><span class="mi">-1</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDropMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowDropMenu</span><span class="p">();</span>
 </pre></div>
-<pre id="code-be5bc866" style="display: none;">ZSignal&lt;&gt; Clicked;   ZSignal&lt;bool&gt; Toggled;     // Toggled needs SetCheckable(true)
+<pre id="code-e9c78b35" style="display: none;">ZSignal&lt;&gt; Clicked;   ZSignal&lt;bool&gt; Toggled;     // Toggled needs SetCheckable(true)
 ZSignal&lt;int&gt; DropSelected;   ZSignal&lt;&gt; DropMenuOpened;   // selected index / menu opened
 Button(const std::wstring&amp; text = L"Button");
 void SetText/SetIcon/SetIconColor(...);
@@ -387,7 +410,7 @@ void SetDropItems(const std::vector&lt;std::wstring&gt;&amp;, int selected=-1); 
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b1eee658', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-e713917b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">ReturnPressed</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetText</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// strips \r\n, truncates to maxLength, clears undo</span>
@@ -397,7 +420,7 @@ void SetDropItems(const std::vector&lt;std::wstring&gt;&amp;, int selected=-1); 
 <span class="kt">void</span><span class="w"> </span><span class="n">SelectAll</span><span class="o">/</span><span class="n">Copy</span><span class="o">/</span><span class="n">Cut</span><span class="o">/</span><span class="n">Paste</span><span class="o">/</span><span class="n">Undo</span><span class="o">/</span><span class="n">Redo</span><span class="p">();</span>
 <span class="kt">int</span><span class="w"> </span><span class="n">GetSelectionStart</span><span class="o">/</span><span class="n">End</span><span class="o">/</span><span class="n">CursorPosition</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelection</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">);</span>
 </pre></div>
-<pre id="code-b1eee658" style="display: none;">ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;&gt; ReturnPressed;
+<pre id="code-e713917b" style="display: none;">ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;&gt; ReturnPressed;
 void SetText(const std::wstring&amp;);   // strips \r\n, truncates to maxLength, clears undo
 void SetPlaceholder(...);  void SetPasswordMode(bool);  void SetMaxLength(int);   // -1 = unlimited
 void SetReadOnly(bool);    void SetInputFilter(std::function&lt;bool(wchar_t)&gt;);
@@ -414,7 +437,7 @@ int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);</
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-76c12931', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-a27b5e2b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">WrapMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">NoWrap</span><span class="p">,</span><span class="w"> </span><span class="n">WidgetWidth</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CursorPositionChanged</span><span class="p">;</span><span class="w">  </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span>
@@ -429,7 +452,7 @@ int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);</
 <span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">AcceptsTab</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="o">!</span><span class="n">readOnly_</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 </pre></div>
-<pre id="code-76c12931" style="display: none;">enum class WrapMode { NoWrap, WidgetWidth };
+<pre id="code-a27b5e2b" style="display: none;">enum class WrapMode { NoWrap, WidgetWidth };
 ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;int,int&gt; CursorPositionChanged;  ZSignal&lt;&gt; SelectionChanged;
 std::wstring ToPlainText() const;  void SetPlainText(const std::wstring&amp;);   // clears undo
 void AppendPlainText(...);  void InsertPlainText(...);
@@ -450,14 +473,14 @@ bool AcceptsTab() const override { return !readOnly_; }</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b918fda6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-b60a8c02', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">edit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">TextEdit</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">edit</span><span class="o">-&gt;</span><span class="n">SetPlainText</span><span class="p">(</span><span class="sa">L</span><span class="s">"hello</span><span class="se">\n</span><span class="s">world"</span><span class="p">);</span>
 <span class="n">edit</span><span class="o">-&gt;</span><span class="n">SetShowLineNumbers</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
 <span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">edit</span><span class="p">);</span><span class="w">                 </span><span class="c1">// give it a size or let the layout fill it</span>
 </pre></div>
-<pre id="code-b918fda6" style="display: none;">auto edit = std::make_shared&lt;TextEdit&gt;();
+<pre id="code-b60a8c02" style="display: none;">auto edit = std::make_shared&lt;TextEdit&gt;();
 edit-&gt;SetPlainText(L"hello\nworld");
 edit-&gt;SetShowLineNumbers(true);
 root-&gt;AddChild(edit);                 // give it a size or let the layout fill it</pre>
@@ -466,7 +489,7 @@ root-&gt;AddChild(edit);                 // give it a size or let the layout fil
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0b3a5b1a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-63ef7ede', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DropDownOpened</span><span class="p">,</span><span class="w"> </span><span class="n">DropDownClosed</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">AddItem</span><span class="o">/</span><span class="n">SetItems</span><span class="o">/</span><span class="n">InsertItem</span><span class="o">/</span><span class="n">RemoveItemAt</span><span class="o">/</span><span class="n">ClearItems</span><span class="p">(...);</span>
@@ -475,7 +498,7 @@ root-&gt;AddChild(edit);                 // give it a size or let the layout fil
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetItemDisabled</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">visibleIndex</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// persists by source index</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetEditable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFilterEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ApplyFilter</span><span class="p">();</span>
 </pre></div>
-<pre id="code-0b3a5b1a" style="display: none;">ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;&gt; DropDownOpened, DropDownClosed;
+<pre id="code-63ef7ede" style="display: none;">ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;&gt; DropDownOpened, DropDownClosed;
 void AddItem/SetItems/InsertItem/RemoveItemAt/ClearItems(...);
 void SetSelectedIndex(int);  int GetSelectedIndex() const;             // filtered/visible index
 void SetSelectedSourceIndex(int);  int GetSelectedSourceIndex() const; // v1.15.0: source index
@@ -597,6 +620,97 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();</pre>
     if (raToggle) raToggle.addEventListener('click', function () {
         raToggle.closest('.reading-aid').classList.toggle('open');
     });
+
+    // -------- 顶部统一搜索 ----------
+    var searchBox = document.getElementById('docSearch');
+    var searchInput = document.getElementById('docSearchInput');
+    var searchResults = document.getElementById('docSearchResults');
+    if (searchBox && searchInput && searchResults) {
+        var searchIndexUrl = searchBox.getAttribute('data-index');
+        var searchItems = null;
+        var searchLoading = false;
+        var searchTimer = null;
+
+        function closeSearch() {
+            searchResults.classList.remove('open');
+            searchResults.innerHTML = '';
+        }
+        function searchSnippet(text, q) {
+            if (!text) return '';
+            var lower = text.toLowerCase();
+            var pos = lower.indexOf(q);
+            if (pos < 0) return text.slice(0, 150) + (text.length > 150 ? '…' : '');
+            var start = Math.max(0, pos - 50);
+            var end = Math.min(text.length, pos + q.length + 110);
+            return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+        }
+        function renderSearch(q) {
+            q = q.trim().toLowerCase();
+            if (!q) { closeSearch(); return; }
+            if (!searchItems) {
+                if (!searchIndexUrl) return;
+                if (searchLoading) return;
+                searchLoading = true;
+                searchResults.innerHTML = '<div class="search-empty">' + 'Loading search index…' + '</div>';
+                searchResults.classList.add('open');
+                fetch(searchIndexUrl).then(function (r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                }).then(function (data) {
+                    searchItems = data;
+                    searchLoading = false;
+                    renderSearch(searchInput.value);
+                }).catch(function () {
+                    searchLoading = false;
+                    searchItems = [];
+                    searchResults.innerHTML = '<div class="search-empty">' + 'Failed to load the search index' + '</div>';
+                    searchResults.classList.add('open');
+                });
+                return;
+            }
+            var matches = [];
+            for (var i = 0; i < searchItems.length; i++) {
+                var item = searchItems[i];
+                var hay = ((item.title || '') + ' ' + (item.chapter || '') + ' ' + (item.desc || '') + ' ' + (item.text || '')).toLowerCase();
+                if (hay.indexOf(q) >= 0) matches.push(item);
+                if (matches.length >= 20) break;
+            }
+            searchResults.innerHTML = '';
+            if (!matches.length) {
+                searchResults.innerHTML = '<div class="search-empty">' + 'No matches' + '</div>';
+            } else {
+                matches.forEach(function (item) {
+                    var a = document.createElement('a');
+                    a.className = 'search-result';
+                    a.href = item.url + (item.anchor ? '#' + item.anchor : '');
+                    var t1 = document.createElement('span');
+                    t1.className = 'sr-title';
+                    t1.textContent = item.title || item.url;
+                    var t2 = document.createElement('span');
+                    t2.className = 'sr-chapter';
+                    t2.textContent = item.chapter || '';
+                    var t3 = document.createElement('span');
+                    t3.className = 'sr-snippet';
+                    t3.textContent = searchSnippet(item.text || item.desc || '', q);
+                    a.appendChild(t1); a.appendChild(t2); a.appendChild(t3);
+                    a.addEventListener('click', closeSearch);
+                    searchResults.appendChild(a);
+                });
+            }
+            searchResults.classList.add('open');
+        }
+        searchInput.addEventListener('focus', function () { if (searchInput.value.trim()) renderSearch(searchInput.value); });
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(function () { renderSearch(searchInput.value); }, 100);
+        });
+        searchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { searchInput.blur(); closeSearch(); }
+        });
+        document.addEventListener('click', function (e) {
+            if (!searchBox.contains(e.target)) closeSearch();
+        });
+    }
 
     // -------- 窄屏自动折叠大纲 ----------
     var narrow = window.matchMedia('(max-width: 1024px)');

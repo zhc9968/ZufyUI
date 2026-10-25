@@ -44,7 +44,7 @@ body {
     margin: 0; padding: 0; text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
 }
-.layout { display: flex; align-items: flex-start; gap: 32px; max-width: 1440px; margin: 0 auto; padding: 16px 24px 90px; }
+.layout { display: flex; align-items: flex-start; gap: 32px; max-width: 1440px; margin: 0 auto; padding: 74px 24px 90px; }
 .content { flex: 1 1 auto; min-width: 0; max-width: 1080px; }
 
 /* ---------- 侧栏 ---------- */
@@ -175,8 +175,27 @@ pre { line-height: 125%; }
 .highlight .m, .highlight .mb, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo, .highlight .il { color: #666 }
 .highlight .nc, .highlight .nn, .highlight .nf, .highlight .fm { color: #0000FF }
 .highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi, .highlight .vm { color: #19177C }
+
+/* ---------- 顶部统一搜索 ---------- */
+.doc-search { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 210; width: min(520px, calc(100vw - 180px)); }
+.doc-search input { width: 100%; height: 42px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 999px; background: var(--panel-bg); color: var(--text-color); padding: 0 18px; font-size: 0.92rem; outline: none; box-shadow: 0 2px 10px rgba(0,0,0,0.10); }
+.doc-search input:focus { border-color: var(--primary-color); box-shadow: 0 2px 16px rgba(52,152,219,0.22); }
+.search-results { display: none; position: absolute; top: 48px; left: 0; right: 0; max-height: 62vh; overflow: auto; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.22); padding: 6px; }
+.search-results.open { display: block; }
+.search-results .search-empty { padding: 12px 14px; color: var(--muted-color); font-size: 0.88rem; }
+.search-result { display: block; padding: 9px 11px; border-radius: 6px; text-decoration: none; color: inherit; border-bottom: 1px solid var(--border-color); }
+.search-result:last-child { border-bottom: none; }
+.search-result:hover, .search-result.active { background: var(--toc-active-bg); text-decoration: none; }
+.search-result .sr-title { display: block; color: var(--primary-color); font-weight: 600; font-size: 0.9rem; }
+.search-result .sr-chapter { display: block; color: var(--muted-color); font-size: 0.75rem; margin: 1px 0 3px; }
+.search-result .sr-snippet { display: block; color: var(--muted-color); font-size: 0.8rem; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.raw-md-entry { margin: 0 0 20px; padding: 10px 14px; border: 1px dashed var(--border-color); border-radius: 8px; color: var(--muted-color); font-size: 0.86rem; }
+.raw-md-entry a { color: var(--primary-color); font-weight: 600; text-decoration: none; }
+.raw-md-entry a:hover { text-decoration: underline; }
+
 @media (max-width: 1000px) {
-    .layout { flex-direction: column; gap: 0; padding: 20px 14px 80px; }
+    .layout { flex-direction: column; gap: 0; padding: 74px 14px 80px; }
+    .doc-search { width: min(520px, calc(100vw - 100px)); }
     .toc-sidebar { position: static; width: auto; flex: none; max-height: none; margin-bottom: 20px; }
     .content { max-width: 100%; }
     .chapter-nav { grid-template-columns: 1fr; }
@@ -193,6 +212,10 @@ pre { line-height: 125%; }
 面向 AI 智能体：本页的「阅读辅助」区块内含有与正文完全一致的原始 Markdown 源码，已去除 HTML 标签与动画特效。建议 AI 直接读取该区块，以更低的噪声快速理解内容。
     </div>
     <!-- AI-READ: the .reading-aid element contains this page's raw Markdown source, identical to the rendered content but without HTML/animations. -->
+    <div class="doc-search" id="docSearch" data-index="API.search.json">
+        <input id="docSearchInput" type="search" placeholder="搜索全部文档…" autocomplete="off" aria-label="搜索全部文档…">
+        <div class="search-results" id="docSearchResults"></div>
+    </div>
     <button class="toc-toggle" id="tocToggle" title="显示目录">&#9776;</button>
     <button class="theme-toggle" id="themeToggle" title="切换主题（浅色/深色）">&#9789;</button>
 
@@ -421,6 +444,97 @@ pre { line-height: 125%; }
     if (raToggle) raToggle.addEventListener('click', function () {
         raToggle.closest('.reading-aid').classList.toggle('open');
     });
+
+    // -------- 顶部统一搜索 ----------
+    var searchBox = document.getElementById('docSearch');
+    var searchInput = document.getElementById('docSearchInput');
+    var searchResults = document.getElementById('docSearchResults');
+    if (searchBox && searchInput && searchResults) {
+        var searchIndexUrl = searchBox.getAttribute('data-index');
+        var searchItems = null;
+        var searchLoading = false;
+        var searchTimer = null;
+
+        function closeSearch() {
+            searchResults.classList.remove('open');
+            searchResults.innerHTML = '';
+        }
+        function searchSnippet(text, q) {
+            if (!text) return '';
+            var lower = text.toLowerCase();
+            var pos = lower.indexOf(q);
+            if (pos < 0) return text.slice(0, 150) + (text.length > 150 ? '…' : '');
+            var start = Math.max(0, pos - 50);
+            var end = Math.min(text.length, pos + q.length + 110);
+            return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+        }
+        function renderSearch(q) {
+            q = q.trim().toLowerCase();
+            if (!q) { closeSearch(); return; }
+            if (!searchItems) {
+                if (!searchIndexUrl) return;
+                if (searchLoading) return;
+                searchLoading = true;
+                searchResults.innerHTML = '<div class="search-empty">' + '正在加载搜索索引…' + '</div>';
+                searchResults.classList.add('open');
+                fetch(searchIndexUrl).then(function (r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                }).then(function (data) {
+                    searchItems = data;
+                    searchLoading = false;
+                    renderSearch(searchInput.value);
+                }).catch(function () {
+                    searchLoading = false;
+                    searchItems = [];
+                    searchResults.innerHTML = '<div class="search-empty">' + '搜索索引加载失败' + '</div>';
+                    searchResults.classList.add('open');
+                });
+                return;
+            }
+            var matches = [];
+            for (var i = 0; i < searchItems.length; i++) {
+                var item = searchItems[i];
+                var hay = ((item.title || '') + ' ' + (item.chapter || '') + ' ' + (item.desc || '') + ' ' + (item.text || '')).toLowerCase();
+                if (hay.indexOf(q) >= 0) matches.push(item);
+                if (matches.length >= 20) break;
+            }
+            searchResults.innerHTML = '';
+            if (!matches.length) {
+                searchResults.innerHTML = '<div class="search-empty">' + '没有匹配项' + '</div>';
+            } else {
+                matches.forEach(function (item) {
+                    var a = document.createElement('a');
+                    a.className = 'search-result';
+                    a.href = item.url + (item.anchor ? '#' + item.anchor : '');
+                    var t1 = document.createElement('span');
+                    t1.className = 'sr-title';
+                    t1.textContent = item.title || item.url;
+                    var t2 = document.createElement('span');
+                    t2.className = 'sr-chapter';
+                    t2.textContent = item.chapter || '';
+                    var t3 = document.createElement('span');
+                    t3.className = 'sr-snippet';
+                    t3.textContent = searchSnippet(item.text || item.desc || '', q);
+                    a.appendChild(t1); a.appendChild(t2); a.appendChild(t3);
+                    a.addEventListener('click', closeSearch);
+                    searchResults.appendChild(a);
+                });
+            }
+            searchResults.classList.add('open');
+        }
+        searchInput.addEventListener('focus', function () { if (searchInput.value.trim()) renderSearch(searchInput.value); });
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(function () { renderSearch(searchInput.value); }, 100);
+        });
+        searchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { searchInput.blur(); closeSearch(); }
+        });
+        document.addEventListener('click', function (e) {
+            if (!searchBox.contains(e.target)) closeSearch();
+        });
+    }
 
     // -------- 窄屏自动折叠大纲 ----------
     var narrow = window.matchMedia('(max-width: 1024px)');

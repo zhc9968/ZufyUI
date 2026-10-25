@@ -1,13 +1,13 @@
 # ZufyUI API Reference
 
 > This document covers the entire public API of the ZufyUI framework, **organized by usage category** (not by code/header order).
-> Companion reading: [Project README & build](../README.en.md).
+> Companion reading: [Project README & build](../../README.en.md).
 
 > **How to read**: this is not just a signature list — each class first explains overall behavior, then each method's side effects, defaults and pitfalls. **You can use it correctly without reading the source.**
 
 > **Two markers used throughout**:
 > - **`Pitfall`**: real traps / counter-intuitive behavior — read these first.
-> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v{{ZUFYUI_VERSION}}**.
+> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.25.0**.
 
 ###chapter: Conventions | Namespaces, units, lifetime, version & pitfall notation
 
@@ -22,11 +22,12 @@
   - `ZufyUICharts.h`: **charts (BarChart/LineChart/PieChart)**, depends on `ZufyUI.h`.
   - `ZufyUIImages.h`: `Image` / `ImageManager` (image loading and device cache).
   - `ZufyUIIcons.h`: the `FontIcon` glyph control (the `Icon` enum itself lives in `ZufyUIWidgets.h`).
-  - `ZufyUIWindowTool.h`: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel); **since v1.20.0 it includes `ZufyUIWidgets.h` itself**, so it can be included on its own.
+  - `ZufyUIWindowTool.h`: window extras (title bar / MessageBox / tray / system dialogs / accessibility provider / debug channel); **since v1.20.0 it includes `ZufyUIWidgets.h` itself**, so it can be included on its own; it includes `ZufyUIHwndView.h` at the end.
+  - `ZufyUIHwndView.h`: native HWND host `HwndView` (WebView2 / camera / third-party / out-of-process windows).
   - `ZufyUIDragDrop.h`: drag & drop (included at the end of `ZufyUI.h`).
   - `ZufyUIDsl.h`: optional **fluent construction DSL** (purely additive; changes no existing control).
 - All are **header-only**; `#pragma comment(lib, ...)` auto-links `d2d1 / dwrite / dwmapi / imm32 / winmm`.
-- **Source encoding**: `.h` / `.cpp` files containing non-ASCII (e.g. Chinese) must be saved as **UTF-8 with BOM** (otherwise MSVC decodes them with the local code page and reports `C2143/C2259/C2888/C4819`); `.md` / `.tex` are saved as **UTF-8 without BOM**.
+- **Source encoding**: `.h` / `.cpp` files containing non-ASCII (e.g. Chinese) must be saved as **UTF-8 with BOM** (otherwise MSVC decodes them with the local code page and reports `C2143/C2259/C2888/C4819`); `.md` / `.tex` are saved as **UTF-8 without BOM**. For a BOM-free / ASCII-only copy, use `tools/export_ascii.py` (output `dist/ascii`, not committed; see the README's "ASCII-only export").
 
 ## Units
 
@@ -154,9 +155,11 @@ struct Size { float width, height; Size(float w=0, float h=0); };
 enum class ConnectionThread { CurrentThread, NewThread, UIThread };
 ```
 - `CurrentThread` (default): slot runs synchronously on the firing thread.
-- `NewThread`: **spawns a detached thread per Fire** — do not touch UI inside.
-- `UIThread`: posts the slot to the UI thread (the correct way to update UI from workers).
-- **`Version`**: cross-thread/locking semantics hardened in `v1.15.0`.
+- `NewThread`: **spawns a detached thread per Fire** — do not touch UI inside; a running slot cannot be cancelled midway; **not suitable for high-frequency signals** — use `UIThread` or your own pool instead.
+- `UIThread`: posts the slot to the UI thread (the correct way to update UI from workers); queued tasks check liveness and skip after `disconnect` / receiver destruction.
+- **`Pitfall`**: `Fire` should run on the UI thread by default; firing from a worker with `CurrentThread` slots runs UI slots on that worker — that is a caller contract violation. For cross-thread firing, use `UIThread` slots or guarantee subscriber lifetime yourself.
+- **`Pitfall`**: `NewThread` + a raw `this` capture + a receiver that may die early = UAF; use `ConnectWeak` to keep it alive, or `UIThread`.
+- **`Version`**: cross-thread/locking semantics hardened in `v1.15.0`; queued tasks gained liveness checks in `v1.24.0`.
 
 ## Connection (Qt-style passive handle)
 
@@ -167,9 +170,11 @@ class Connection {
     explicit operator bool() const;   // destructor does NOT auto-disconnect
 };
 ```
-- Disconnected by the host element's `ConnectionGroup` on destruction; **`Connection`'s own destructor does not**.
-- **`Pitfall`**: it is safe to ignore the return of `connect`; but if you keep a `Connection` and `disconnect` manually, the signal may already be gone — `isConnected`/`disconnect` are guarded by an `alive` flag.
-- **`Version`**: passive-handle semantics since `v1.8.1`.
+- Disconnected by the receiver's `ConnectionGroup` on destruction; **`Connection`'s own destructor does not**.
+- `disconnect()` logically invalidates pending `UIThread` / `NewThread` tasks, but **does not interrupt a slot already running**.
+- **`Pitfall`**: `Connection` is **not an RAII guard**; a temporary handle's destructor does not disconnect. Call `disconnect()` explicitly or rely on the receiver's group.
+- **`Pitfall`**: it is safe to ignore the return of `connect`; calling `disconnect` after the signal is destroyed is safe (`alive` is atomic).
+- **`Version`**: passive-handle semantics since `v1.8.1`; the alive flag became atomic and pending tasks are cancelled since `v1.24.0`.
 
 ## ConnectionGroup
 
@@ -178,6 +183,9 @@ class ConnectionGroup : public std::enable_shared_from_this<ConnectionGroup> {
     void disconnectAll(); size_t size() const;
 };
 ```
+- Used internally by `UIElement` / `Window` to disconnect all connections they own.
+- `size()` counts only live connections; manually disconnected connections are not counted.
+- **`Pitfall`**: `disconnectAll()` only removes connections; it does not invoke user slots.
 
 ## ZSignal
 
@@ -187,13 +195,39 @@ template<typename... TArgs> class ZSignal {
     Connection connect(SlotType slot,
                        ConnectionThread thread = ConnectionThread::CurrentThread,
                        std::shared_ptr<ConnectionGroup> group = nullptr);
+    template<class Receiver, class Slot>
+    Connection connect(Receiver* receiver, Slot&& slot,
+                       ConnectionThread thread = ConnectionThread::CurrentThread);
     void Fire(TArgs... targs) const;
     void operator()(TArgs... targs) const;
 };
 ```
 - Fire with `Fire` (**there is no `emit` macro**).
+- `ZSignal` is **not copyable or movable**; it is a member of controls/windows — never put it in a movable container.
 - **`Pitfall`**: `Fire` iterates a **snapshot**, so a slot may safely `disconnect`; re-firing the same signal inside a slot goes through the "reentrant" path (local copy) — avoid deep recursion there.
-- **`Version`**: `v1.18.0` adds a RAII guard so a throwing slot still restores reentrancy depth and releases the snapshot.
+- **`Pitfall`**: `Fire` concurrent with `ZSignal` destruction is UB; fire and destroy a signal on the same thread.
+- **`Pitfall`**: an exception thrown by a slot propagates out of `Fire`; later slots do not run. Avoid throwing from signal slots.
+- Signal arguments are passed to slots as **lvalues**; do not declare `T&&` slot parameters, and prefer `const T&` for large objects.
+- **`Version`**: `v1.18.0` adds a RAII guard so a throwing slot still restores reentrancy depth and releases the snapshot; non-movable since `v1.24.0`.
+
+## Receiver context and ConnectWeak
+
+- `elem->Connect(sig, slot)`, `Connect(elem, sig, slot)` and `sig.connect(elem, slot)` register the connection on `elem`'s `ConnectionGroup` and disconnect when `elem` is destroyed; `Window` supports the same.
+- `ConnectWeak(self, sig, slot)` holds a weak reference; the slot's first parameter is `T*` or `T&`, keeps `self` alive during execution, and does nothing if the object is gone.
+- Member-function pointers go through the free `Connect` / `ConnectWeak` only (compile-time type check); `elem->Connect(sig, &Class::Method)` is no longer supported.
+
+```cpp
+auto panel = std::make_shared<Panel>();
+
+panel->Connect(btn->Clicked, [this] { Refresh(); });
+Connect(panel, btn->Clicked, &Panel::OnClick);
+btn->Clicked.connect(panel, [this] { Refresh(); });
+
+ConnectWeak(panel, btn->Clicked, [](Panel* self) { self->Refresh(); });
+ConnectWeak(panel, btn->Clicked, &Panel::OnClick);
+```
+- **`Pitfall`**: do not capture `self`'s `shared_ptr` by value inside a `ConnectWeak` slot — that creates a signal → slot → self → signal strong cycle.
+- **`Note`**: `Menu` / `MenuItem` / `Timer` still use `signal.connect` and do **not** auto-disconnect.
 
 ## Global signals UIZSignals
 
@@ -445,7 +479,8 @@ int GetCurrentIndex() const;  std::shared_ptr<Page> GetCurrentPage() const;
 ```
 - During a transition it returns **both** source and target pages as visible children; `UpdateAnimation` updates each page only once (otherwise double speed).
 - **`Pitfall`**: `NavigateTo` is **asynchronous** (switches after the animation); `GetCurrentPage()`/`GetCurrentIndex()` may still be old during it.
-- **`Version`**: easing `v1.8.1`; **delayed hidden-page cache release (~1.2 s, recursive)** = `v1.18.0`.
+- **`Version`**: easing `v1.8.1`; **delayed hidden-page cache release (~1.2 s, recursive)** = `v1.18.0`; `MeasureOverride` **measures every page** = `v1.23.1` — page content shown/hidden at runtime (e.g. an `Expander` card revealed after a combo-box selection) re-lays out and hit-tests immediately, with no need to resize the window.
+- **`Pitfall`**: show/hide page content with `SetVisible()` (it calls `InvalidateLayout()`); do not poke the internal visibility flag, or it will be neither re-measured nor repainted.
 
 ## TabView
 
@@ -492,6 +527,17 @@ std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
 ```
 - **`Pitfall`**: `Create` does **not** auto-`Show` (since v1.8.0). `RunModal` disables the owner (`EnableWindow(FALSE)`) and deliberately does **not** use `IsDialogMessage`.
 - **`Version`**: multi-window `v1.6.0`; `SetInputBlocked`/modal `v1.6.2`; `LockRender`/`RenderNowSync` `v1.16.0`.
+
+## Temporary key handlers (v1.25.0)
+
+```cpp
+using KeyHandler = std::function<bool(int)>;
+int  AddKeyHandler(KeyHandler handler);
+void RemoveKeyHandler(int id);
+```
+- Called after `OnWindowKeyDown` and before the focused element; returning true marks the key handled.
+- For temporary Esc handling in drawers/popups; remove on close/detach/destruction.
+- **`Version`**: `v1.25.0`.
 
 ## Three ways to create a window (which to pick)
 
@@ -628,6 +674,7 @@ std::wstring GetToolTip() const override;   // auto full-text tooltip when ellip
 
 ```cpp
 ZSignal<> Clicked;   ZSignal<bool> Toggled;     // Toggled needs SetCheckable(true)
+ZSignal<int> DropSelected;   ZSignal<> DropMenuOpened;   // selected index / menu opened
 Button(const std::wstring& text = L"Button");
 void SetText/SetIcon/SetIconColor(...);
 void SetColors(Color normal, Color hover, Color pressed);   void SetTextColor(Color);
@@ -635,10 +682,16 @@ void SetCornerRadius(float);   void SetHoverAnimationSpeed(float);
 void SetCheckable(bool);  void SetChecked(bool);  bool IsChecked() const;
 void SetAutoRepeat(bool enable, float intervalMs=400);
 void SetAutoSizeToText(bool);   inline static bool AutoSizeToText;   // default true: grow to fit text
+std::shared_ptr<Label> GetLabel();  void SetContent(std::shared_ptr<UIElement>);  void ClearContent();
+void SetDropWriteBack(bool);  void SetDropOpenOnClick(bool);   // two independent switches (2x2)
+void SetDropItems(const std::vector<std::wstring>&, int selected=-1);  void SetDropMenu(std::shared_ptr<Menu>);  void ShowDropMenu();
 ```
-- Default `120×36`; `Clicked` only if press+release are both inside.
-- **`Pitfall`**: `IsChecked()` is meaningless unless checkable. Do not parent the internal Label manually.
-- **`Version`**: since `v1.21.0` a Button **grows to fit its own text by default** (`MeasureOverride` returns `max(width_, textWidth + 2*padding)`); before that the width was a constant `DefaultWidth`, so long captions were truncated with an ellipsis. For a fixed width call `SetAutoSizeToText(false)` or set an explicit width.
+- Default `120×36`; `Clicked` fires whenever press+release are both inside the button (**click always calls back**).
+- **Rich content**: the internal `Label` is a real child now, so `GetLabel()->AddChild(...)` children are laid out/composited/drawn; `SetContent` replaces it with any `UIElement`.
+- **Drop 2x2**: `SetDropWriteBack` controls whether a menu selection writes its text back to the button; `SetDropOpenOnClick` controls whether the button opens the menu after `Clicked`. The menu is **single-select** (the previous choice is marked); selecting fires `DropSelected(index)`, readable via `GetDropSelectedIndex/GetDropSelectedText`. `SetDropItems` is the text-list shortcut; use `SetDropMenu` for custom menus.
+- **Main area / expand zone**: clicking the main area always fires `Clicked`; the right expand zone (separated by a short, theme-coloured divider) **only opens the menu and never fires `Clicked`**; clicking a menu item fires only `DropSelected`, never `Clicked`. With `DropOpenOnClick=false` the main area only calls back; the expand zone still opens the menu.
+- **`Pitfall`**: `IsChecked()` is meaningless unless checkable; `SetContent` lays out inside the rect left after `padding` and the right arrow.
+- **`Version`**: since `v1.21.0` a Button **grows to fit its own text by default**; `v1.23.3` adds rich content and the drop 2x2 combinations.
 
 ## TextBox (single-line)
 
@@ -775,7 +828,7 @@ bool UseCache() const override { return false; }
 ```
 - **`Version`**: `v1.12.0`; `UseCache=false` `v1.12.2`; NaN/Inf guard `v1.14.0`.
 
-###chapter: Containers & scrolling | ScrollViewer, ScrollBar, SplitView, TabView
+###chapter: Containers & scrolling | ScrollViewer, ScrollBar, SplitView, Drawer, TabView
 
 ## ScrollViewer
 
@@ -825,6 +878,30 @@ bool UseCache() const override { return false; }
 - **Collapse (`v1.21.0`)**: drag the splitter to within `CollapseThreshold` (default 28px) of one side's edge → a translucent accent **overlay plus an arrow pointing in the collapse direction fades in ON TOP OF that pane's content** (the content is *not* changed yet); the pane actually collapses **on mouse release** (its size eases from the current value to 0). Once collapsed, a small button appears at that edge (rounded light grey + arrow pointing in the expand direction + hover easing); clicking it eases that side from 0 to its **minimum limit** (`SetMinFirst/MinSecond`, or back to the pre-collapse ratio if no minimum is set). The whole feature can be turned off with `SetCollapseEnabled(false)`.
 - **`Pitfall`**: the overlay is an internal `Overlay` **child element placed last** (the framework draws children in order), which is why it naturally ends up above both panes; do not try to paint such decorations from `SplitView::Draw` (the children would cover them).
 - **`Version`**: `v1.12.0`; NaN/Inf guard `v1.14.0`; collapse + expand button `v1.21.0`.
+
+## Drawer (v1.25.0)
+
+```cpp
+enum class DrawerSide { Left, Right, Top, Bottom };
+enum class DrawerMode { Overlay, Push, Permanent };
+ZSignal<bool> OpenChanged;  ZSignal<> Opened, Closed, ScrimClicked;
+void SetContent/SetPanel(std::shared_ptr<UIElement>);
+void SetSide(DrawerSide);  void SetMode(DrawerMode);  void SetPanelSize(float);
+void SetPanelPadding(const Thickness&);  void SetPanelCornerRadius(float);
+void SetPanelBackgroundColor(Color);  void SetPanelBorderColor(Color);
+void SetPanelShadow(bool);  void SetPanelShadowColor(Color);
+void SetContentBorder(bool);  void SetContentBorderColor(Color);  void SetContentBorderCornerRadius(float);
+void SetScrimColor(Color);  void SetScrimOpacity(float);  void SetModal(bool);
+void SetDismissOnScrimClick(bool);  void SetDismissOnEscape(bool);
+void SetFocusOnOpen(std::shared_ptr<UIElement>);
+void SetAnimationDuration(float);  void SetAnimationEasing(Easing);
+void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgress() const;
+```
+- `Overlay`: rounded scrim over content; `Push`: content yields; `Permanent`: always open, no animation/scrim, `Close` ignored.
+- Rounded panel, border and a real outer shadow; `SetScrimOpacity(0)` removes the visual scrim but keeps modal click blocking; `SetModal(false)` lets clicks pass through.
+- Can be a root layout or a `GridLayout` cell; covers the content area only, not the custom title bar/menu bar.
+- **`Pitfall`**: `SetPanelShadow` is painted before the panel background, so the opaque background covers its inner layers; the border is painted last.
+- **`Version`**: `v1.25.0`.
 
 ## TabView
 
@@ -1151,6 +1228,46 @@ bool RegisterApp(const AppInfo&);    // or Application::Instance().RegisterApp(i
 ```
 - By default only sets the AUMID (zero file/registry side effects); defining `ZUFYUI_ALLOW_APP_REGISTRATION` writes `%LOCALAPPDATA%\ZufyUI\AppReg\...` and `HKCU\...\AppUserModelId` (so Win10/11 toasts show the app name/icon); auto-cleans on exit.
 
+## Native window host — `HwndView` (v1.23.0)
+
+> Header `ZufyUIHwndView.h` (auto-included at the end of `ZufyUIWindowTool.h`). Embeds a WebView2 HWND controller, camera/capture window, third-party native control, or an out-of-process window into the ZufyUI layout.
+
+```cpp
+class HwndView : public UIElement {
+public:
+    explicit HwndView(HWND owner, bool activate = false);
+    HWND GetHostHwnd() const;
+    void SetContentHwnd(HWND external, bool own = false);
+    HWND GetContentHwnd() const;
+    void SetObscured(bool on);
+    bool IsObscured() const;
+    void SetOnBoundsChanged(std::function<void(HWND, int, int)>);
+};
+```
+
+- Implementation: creates a **normal Win32 top-level owned popup** as the host; `SetContentHwnd` re-parents the external HWND as its `WS_CHILD` (cross-thread/cross-process allowed) and shows it explicitly. Moving/resizing the host moves the child natively; the host client clips it, plus `SetWindowRgn` (element rect ∩ window client ∩ every ancestor `GetClipRect`, incl. the `ScrollViewer` viewport).
+- **`Cross-process risk`**: cross-process `SetParent` is technically legal but not recommended: it couples the input queues (one stuck process can freeze the other), blocks some window messages, can be intermittently unstable, and the target process may not know its window was re-parented. **Prefer same-process**; use cross-process only as a last resort.
+- **`Pitfall`**: the main window is `WS_EX_NOREDIRECTIONBITMAP + DComp`, so **child HWNDs are not composited**; do not use a normal child control. `HwndView` is an **airspace overlay** — always above the window content; in-window dropdowns/tooltips cannot cover it (menus are separate top-level windows and are unaffected).
+- **`Convention`**: for "content goes into composition, no airspace" (web/video) use `CreateExternalVisual` below / WebView2 `CompositionController`.
+
+## External visual attachment — `Window::CreateExternalVisual` (v1.23.0)
+
+For WebView2 CompositionController, video/capture, or anything that **renders into DComp**.
+
+```cpp
+IUnknown* Window::CreateExternalVisual();
+void Window::SetExternalVisualBounds(IUnknown* visual, float x, float y, float w, float h);
+void Window::RemoveExternalVisual(IUnknown* visual);
+int  Window::AddOverlaySync(std::function<void()>);
+void Window::RemoveOverlaySync(int id);
+void Window::SyncOverlays();
+```
+
+- Returns a WinRT `ContainerVisual` (inserted at the top of the root visual) to pass to `controller->put_RootVisualTarget(visual)`; set its position/size in `Arrange` via `SetExternalVisualBounds` (DIP, converted to physical pixels internally).
+- `AddOverlaySync/RemoveOverlaySync/SyncOverlays` let external-window hosts (e.g. `HwndView`) register a sync callback; usually not called directly.
+- **`Pitfall`**: on device loss/rebuild the visual tree is recreated → listen to `Window::DeviceLost`, call `CreateExternalVisual` again and re-attach.
+
+
 ###chapter: Drag & Drop, cards | Drag & Drop, Expander, SettingsList (v1.19.0)
 
 > Drag & drop comes from `ZufyUIDragDrop.h` (already included at the end of `ZufyUI.h`). In-app default is MOVE, cross-app is COPY.
@@ -1286,18 +1403,18 @@ template<class T> class Ref {                      // wraps shared_ptr<T>
     Ref& cell(int row, int col, const std::wstring&);   // TableView cell
     Ref& root(const std::wstring&); Ref& separator(); Ref& submenu(const std::wstring&, Menu);
 };
-template<class T, class...A> Ref<T> Make(A&&... a);          // generic factory
-template<class T> Ref<T> Wrap(std::shared_ptr<T> p);         // wrap an existing shared_ptr into the chain
-Ref<ColumnBox> Col(children...);   Ref<RowBox> Row(...);
-Ref<GridLayout> Grid(children...);                          // also accepts Cell(row,col,child)
-CellSpec Cell(int row, int col, child, int rowSpan=1, int colSpan=1);
+template<class T, class...A> Ref<T> ZMake(A&&... a);          // generic factory
+template<class T> Ref<T> ZWrap(std::shared_ptr<T> p);         // wrap an existing shared_ptr into the chain
+Ref<ColumnBox> ZCol(children...);   Ref<RowBox> ZRow(...);
+Ref<GridLayout> ZGrid(children...);                          // also accepts ZCell(row,col,child)
+CellSpec ZCell(int row, int col, child, int rowSpan=1, int colSpan=1);
 using Align = GridLayout::Alignment;                        // used by Ref::align
-// short factories: Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
-//                  Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
-//                  RadioGroup ScrollBar Glyph
-// unambiguous aliases for (name-colliding) factories (avoids C2872 under two using-directives):
-//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander
-class WindowApp {                                  // dsl::App()
+// short factories all use a Z prefix: ZLbl ZBtn ZTxt ZEdit ZCombo ZCheck ZRadio ZToggle
+//   ZSlider ZNum ZProgress ZRing ZScroll ZSplit ZTabs ZList ZTable ZTree
+//   ZBar ZLine ZPie ZCard ZExpander ZPages ZPage ZMenu ZSettings
+//   ZMenuBar ZStatusBar ZRadioGroup ZScrollBar ZGlyph
+// This also avoids collisions with class names; no extra aliases are needed.
+class WindowApp {                                  // dsl::ZApp()
     WindowApp& size(int,int);   WindowApp& title(const std::wstring&);
     WindowApp& resizable(bool=true);   WindowApp& corner(Window::WindowCorner);
     WindowApp& backdrop(Backdrop, DWORD tint=0);   WindowApp& hidden(bool=true);
@@ -1311,17 +1428,17 @@ class WindowApp {                                  // dsl::App()
     template<auto SigMem, class F> WindowApp& on(F&& f);      // e.g. on<&Window::Closed>
     Window& window();   int run();                 // run(): Create -> apply config -> Show() -> Run()
 };
-WindowApp App();
+WindowApp ZApp();
 }
 ```
-- Usage: `using namespace ZufyUI::dsl;` then `Row(Btn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`. When combined with `using namespace ZufyUI;`, use the **collision-free aliases** for name-clashing factories: `make_slider` / `make_card` / `make_page` / `make_menu` / `make_menu_bar` / `make_status_bar` / `make_radio_group` / `make_scroll_bar` / `make_expander` (or qualify with `dsl::`).
+- Usage: `using namespace ZufyUI::dsl;` then `ZRow(ZBtn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`. Every short factory uses a `Z` prefix, so combining it with `using namespace ZufyUI;` no longer collides with class names.
 - **`Pitfall`**: `with(&T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast<...>(&T::SetX)`. A function with **default arguments** can't be used with `with` (the pointer carries every parameter → "too few arguments"); since **v1.22.0** such functions are split into **non-defaulted overloads** (e.g. `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`, `ListView::AddItem(text)` / `AddItemWidget(shared_ptr<Label>)`, `RadioGroup::AddItem` / `AddItemSelected`, `Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`).
 - **`Pitfall`**: anything `with` can't express (multi-step, conditional, needs iteration) goes through `apply(lambda)` so the chain doesn't break. It also silences a conversion warning: `.with(&TextBox::SetWidth, 220)` passes an `int` and trips `C4244` — prefer `.width(220.0f)`.
-- **`add()` dispatches on the container's real API**: `ColumnBox`/`RowBox`/`Label` → `AddChild`; `PageHost` → `AddPage` (non-`Page` arguments are skipped); `GridLayout` needs coordinates, so use `.cell(row,col,child[,rowSpan,colSpan])` or `dsl::Cell(...)`. Null children (`nullptr` / empty `Ref`) are always ignored — no null dereference.
-- **Grid coordinates**: `Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))` places cells explicitly; bare children are still accepted (old behaviour: `(i,0)` in order), so existing code is unaffected.
-- **Window builder**: `dsl::App()` → `WindowApp` (chain `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`; signals via `on<&Window::Closed>(...)`). `root()` accepts **any `Layout` subclass** (`Col`/`Row`/`Grid`), and `titleBar/menuBar/statusBar` take a `Ref<T>` directly.
+- **`add()` dispatches on the container's real API**: `ColumnBox`/`RowBox`/`Label` → `AddChild`; `PageHost` → `AddPage` (non-`Page` arguments are skipped); `GridLayout` needs coordinates, so use `.cell(row,col,child[,rowSpan,colSpan])` or `dsl::ZCell(...)`. Null children (`nullptr` / empty `Ref`) are always ignored — no null dereference.
+- **ZGrid coordinates**: `ZGrid(ZCell(1,2,ZLbl(L"x")), ZCell(0,0,btn,1,2))` places cells explicitly; bare children are still accepted (old behaviour: `(i,0)` in order), so existing code is unaffected.
+- **Window builder**: `dsl::ZApp()` → `WindowApp` (chain `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`; signals via `on<&Window::Closed>(...)`). `root()` accepts **any `Layout` subclass** (`ZCol`/`ZRow`/`ZGrid`), and `titleBar/menuBar/statusBar` take a `Ref<T>` directly.
 - **`Pitfall`**: `Window::Create` **does not show the window** (the app decides when) — `WindowApp::run()` therefore calls `Show()`; use `.hidden()` to start hidden. `WindowApp` is movable but not copyable. `Window::Run()` returns `void`; `Window` has no public `SetContent`, so set the root via `root(...)`.
-- **Per-control sugar** (**SFINAE-gated**: exists only when the control has the method): `text/checked/value/placeholder/padding(float and Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f and h,v)/align/image/imageFit`; extra short factories: `Page()`/`Menu()`/`Settings()`/`RadioGroup()`/`ScrollBar()`/`Glyph()`.
+- **Per-control sugar** (**SFINAE-gated**: exists only when the control has the method): `text/checked/value/placeholder/padding(float and Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f and h,v)/align/image/imageFit`; extra short factories: `ZPage()`/`ZMenu()`/`ZSettings()`/`ZRadioGroup()`/`ZScrollBar()`/`ZGlyph()`.
 - **`Pitfall`**: `Image` is **not** a `UIElement` (it is a resource object), so there is no `Ref<Image>` factory — use `.image(Image::FromFile(...)).imageFit(true)` on a `Label`.
 
 
@@ -1357,7 +1474,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.22.1
+###chapter: Version digest | v1.15.0 → v1.25.0
 
 > Only the changes that affect your code are listed.
 
@@ -1404,7 +1521,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.6**:
   - Fix: `ListView` button mode checkbox **hit test was 4px off** (now aligned with the draw / child left edge).
   - Fix: `Label::MeasureOverride` wrap branch **ignored inline children width** (wrapping Labels with `AddChild` squeezed/overflowed text).
-  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `{{ZUFYUI_VERSION}}`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
+  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `1.25.0`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
 - **v1.19.7**:
   - Fixes: `ChartBase` swapped horizontal/vertical scrollbar allowance (`viewW` uses the vertical bar, `viewH` the horizontal) → rightmost/bottom content unreachable; `NumberBox` wheel focus check (focus is on the inner `TextBox`); `lastActiveAnimElements_` dangling (erased from the anim sets on destruction, prevents random crashes); `Menu::ShowAt` throwing `bad_weak_ptr` when not shared-owned; `ChildrenSig` missing `EnsureView`; `TreeView::SetDefaultExpandDepth` not applied by `AddRoot`/`AddChild`.
   - Fixes: `ColumnBox`/`RowBox` spacing counts only layout-participating children; `GridLayout` row/col count skips invisible; `Label` wrap ignored/duplicated spacing; `ListView`/`TableView` clear `childrenView_` before releasing labels and release pooled/rich/cell labels; `Window::defaultIMC_` via `ImmAssociateContext`; `DragData::GetFiles` buffer `len+1`; `TextEdit` fires `SelectionChanged` when clearing a selection; `MessageBox` default title localized.
@@ -1416,7 +1533,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **DSL**: `WindowApp::run()` **now calls `Show()`** — `Window::Create` does not show the window, so the previous implementation ran a **message loop with no window** (looked like a hang); added `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` and the window signal hook `on<&Window::Closed>` (`Window`'s signals are plain members, there is no `Connect`); `WindowApp` is now **movable** (it holds a `unique_ptr<Window>`, because `Window` itself is neither copyable nor movable).
   - **Fix**: null guards in `ColumnBox`/`RowBox`/`GridLayout::AddChild` — the DSL's variadic forwarding can pass `nullptr`, which used to dereference a null pointer.
   - **Fix**: `ZufyUIWindowTool.h` was **not self-contained** — it used `Label`/`Button`/`ColumnBox::AddChild` without including `ZufyUIWidgets.h`, relying on the caller to include it first (`pch.h` happened to do so); the include is now present and the header can be included on its own.
-  - **Tooling**: new `tools/build.ps1` (one shot: **auto-fix BOM before building** → kill processes holding files → build demo + `ZufyUIDebugger` → run self-tests), `tools/ensure_bom.ps1` (adds a UTF-8 BOM only to C++ sources that contain non-ASCII and lack one, preventing the GBK misparse behind `C2143/C2259/C2888/C4819`), and `tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1` (47 compile-time/runtime assertions, no window created, runnable from a shell or CI).
+  - **Tooling**: new `tools/build.ps1` (one shot: **auto-fix BOM before building** → kill processes holding files → build demo + `ZufyUIDebugger` → run self-tests), `tools/ensure_bom.ps1` (adds a UTF-8 BOM only to C++ sources that contain non-ASCII and lack one, preventing the GBK misparse behind `C2143/C2259/C2888/C4819`), and `tests/zufyui_tests.cpp` + `tools/run_tests.ps1` (47 compile-time/runtime assertions, no window created, runnable from a shell or CI).
 - **v1.21.0**:
   - **Fix**: `Card` flashed a **blue hover border** — the theme applier set `SetHoverBorderColor(Accent)` on cards, a behaviour cards never had; removed (hover still changes the background).
   - **Fix**: `ProgressBar` **inner fill radius no longer matched the outer frame after stretching** — the track, the clip geometry and the border still used the member `height_` (construction-time height) while only the fill used the arranged height; all three now use `arrangedRect_.height / 2`.
@@ -1429,7 +1546,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Fix**: `PieChart` **Ctrl+wheel zoom did nothing** — `PieChart`'s own `zoom_` shadows `ChartBase::zoom_`, so delegating to the base only changed the base's copy; the pie now handles Ctrl itself via `SetZoom`. Semantics are explicit: **Ctrl+wheel = zoom / plain wheel = pan only**.
   - **Fix**: chart wheel panning "did not move" — the wheel path was missing `SyncScrollPositions()` (it changed `scrollX_/scrollY_` but never recomputed `baseX_/baseY_`).
   - **Fix**: documented that `ColumnBox` arranges a child **without an explicit width** at the available width (horizontal stretch ignores the weight) — so "make a card hug its content" means wrapping it in a `Row`; and that a `SettingsList` placed in a `Card`'s built-in `GridLayout` (auto columns pass `FLT_MAX`) degenerates to zero width — use `SetLayout(Col(...))` + `SetFillWidth(true)`.
-  - **Tooling**: `tests/dsl_tests.cpp` 62 → **85** assertions (regressions for this batch: button auto-size on/off, label width follows text, progress/toggle easing convergence, SplitView collapse and expand-to-minimum).
+  - **Tooling**: `tests/zufyui_tests.cpp` 62 → **85** assertions (regressions for this batch: button auto-size on/off, label width follows text, progress/toggle easing convergence, SplitView collapse and expand-to-minimum).
 - **v1.22.0** (**contains breaking API changes**):
   - **Fix**: `MessageBox` (and any modal) **first click falling through to the window behind** — when a modal is opened from inside `Window::OnMouseUp`'s slot, that function's trailing `ReleaseCapture()` only runs after the modal loop ends, so the main window keeps `SetCapture` for the whole modal and Windows routes mouse input to the capture window; `Window::RunModal` now does `if (GetCapture()) ReleaseCapture();` before entering the loop.
   - **Fix**: `ScrollViewer` **scroll chaining** — it no longer swallows the wheel at the top/bottom (returns `false` to bubble up the parent chain when that axis can't scroll further), so the outer page keeps scrolling.
@@ -1448,6 +1565,31 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Fix**: data view item/cell placement `bleedY` is read from each element's `GetBleed()` (no longer a fixed `3.0f`), so shadows/bleed aren't clipped; `indicatorY_` is initialised to `-1` so the selection indicator snaps on the first frame.
   - **Fix (visual)**: the focus ring uses `ThemeRole::FocusRing` and `Theme::cornerRadius` (was a hard-coded blue + fixed 4); in `WM_NCHITTEST` the custom title-bar buttons take priority over the resize border (the maximize-button corner is no longer taken by `HTTOPRIGHT` → Win11 Snap Layouts can appear).
   - **Engineering**: `pch.h` no longer includes the library headers (editing a lib header no longer rebuilds the whole PCH); added `UIElement::MarkUserColor()` centralising 40+ "user colour" markers; removed dead code `ListView::FindEnabledFrom`.
+- **v1.23.0**:
+  - **New · `ZufyUIHwndView.h` (`HwndView`)**: native HWND content host. Because the main window is NRB+DComp (child HWNDs are not composited), it uses a **top-level owned popup** as the host; `SetContentHwnd` re-parents the external window as its `WS_CHILD` (cross-process allowed) and shows it. Moving the host moves the child natively; clipping = host client + `SetWindowRgn` (element rect ∩ window client ∩ ancestor `GetClipRect`, incl. the `ScrollViewer` viewport). Supports `SetObscured`, `SetOnBoundsChanged`, `SetFill*`.
+  - **New · `Window` external-visual attachment**: `CreateExternalVisual()` (WinRT `ContainerVisual` inserted atop the root visual, for WebView2 `put_RootVisualTarget`), `SetExternalVisualBounds` (DIP→physical px), `RemoveExternalVisual`; `AddOverlaySync/RemoveOverlaySync/SyncOverlays` (unified overlay sync).
+  - **Performance**: overlay sync is now a **single window-level point** (`WM_MOVE/WM_SIZE/WM_DPICHANGED` immediate + one shared 16ms fallback timer) instead of a per-instance timer; DPI/client cached; redundant `SetWindowPos` skipped and `SWP_NOSIZE/NOMOVE` used as appropriate; the demo's color pattern is cached into a DIB.
+  - **Fix · `NumberBox`**: the empty-text error clears once the text becomes a **valid number**; `ResetToDefault` force-clears the error after notifying the app; step/clear buttons fire **on press** (no re-check against the moving rect; fixes staying red after the × button).
+  - **Fix · data-view fill**: `ListView`/`TableView`/`TreeView` `MeasureOverride` honours `SetFillWidth/SetFillHeight` (like charts) instead of always returning the default 200/400.
+  - **Demo**: new "Native HWND" page (GDI color pattern + Card/Grid/Column/ScrollViewer layouts + an out-of-process `--outproc` producer window hosted by `HwndView`).
+- **v1.23.1**:
+  - **Fix (layout / hit-testing)**: `PageHost::MeasureOverride` now **measures every page**. Previously `PageHost` only arranged pages while `Page::Arrange` re-measured solely on a size change, so page content made visible at runtime (e.g. an `Expander` card revealed after a combo-box selection) was never re-measured: the new element kept a zero `arrangedRect` (no border, `HitTest` failed) until the window was resized. Clean pages hit the `Measure` cache, so no duplicate work is added.
+- **v1.23.2**:
+  - **Build**: added `/bigobj` to the **Debug|Win32** / **Debug|x64** configurations of `ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` (Release already had it); the full Release/Debug matrix passes.
+- **v1.23.3**:
+  - **Button**: the internal `Label` is a real child now (rich content via `GetLabel()->AddChild` / `SetContent`); added the drop 2x2 switches (`SetDropWriteBack` / `SetDropOpenOnClick`) and a single-select menu (`DropSelected` / `DropMenuOpened`).
+  - **Fix ? drop-menu position**: `GetDpiScale()` returns 96/144 (not 1.0/1.5); the old multiplier sent the menu to the screen bottom-right. Dividing by 96 places it under the button, and the demo no longer shows a MessageBox.
+  - **Fixes**: `SetBackdrop(Acrylic/Mica)` no longer covers the system material with opaque white when no tint is set; `ListView::SetItemHeight` is clamped to >=1px and Draw/hit-testing no longer divide by zero.
+  - **Docs/cleanup**: documented `HwndView` cross-process risks; removed the redundant `WM_ACTIVATE` check, added `<cstring>`, removed the demo's empty callback.
+- **v1.24.0** (**contains breaking changes**):
+  - **Signal lifetime**: `ConnectionState::alive` is atomic; `Connection::disconnect` / receiver destruction logically cancels pending `UIThread` / `NewThread` tasks; `Fire` concurrent with signal destruction is explicitly UB.
+  - **Receiver context**: `UIElement` / `Window` derive from `ConnectionOwner`; `elem->Connect(...)` / `Connect(elem, ...)` / `sig.connect(elem, ...)` disconnect with the receiver; added free `Connect` and `ConnectWeak`.
+  - **Breaking**: `ZSignal` is neither copyable nor movable; member-function pointers use `Connect(elem, sig, &Class::Method)` / `ConnectWeak`; `elem->Connect(sig, &Class::Method)` is no longer supported.
+  - **Notes**: `Menu` / `MenuItem` / `Timer` still use `signal.connect` and do not auto-disconnect; signal arguments are passed as lvalues.
+- **v1.25.0**:
+  - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
+  - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
+  - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
 
 
 ###chapter: Pitfall index | Quick lookup by topic

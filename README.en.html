@@ -44,7 +44,7 @@ body {
     margin: 0; padding: 0; text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
 }
-.layout { display: flex; align-items: flex-start; gap: 32px; max-width: 1440px; margin: 0 auto; padding: 16px 24px 90px; }
+.layout { display: flex; align-items: flex-start; gap: 32px; max-width: 1440px; margin: 0 auto; padding: 74px 24px 90px; }
 .content { flex: 1 1 auto; min-width: 0; max-width: 1080px; }
 
 /* ---------- 侧栏 ---------- */
@@ -175,8 +175,27 @@ pre { line-height: 125%; }
 .highlight .m, .highlight .mb, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo, .highlight .il { color: #666 }
 .highlight .nc, .highlight .nn, .highlight .nf, .highlight .fm { color: #0000FF }
 .highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi, .highlight .vm { color: #19177C }
+
+/* ---------- 顶部统一搜索 ---------- */
+.doc-search { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 210; width: min(520px, calc(100vw - 180px)); }
+.doc-search input { width: 100%; height: 42px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 999px; background: var(--panel-bg); color: var(--text-color); padding: 0 18px; font-size: 0.92rem; outline: none; box-shadow: 0 2px 10px rgba(0,0,0,0.10); }
+.doc-search input:focus { border-color: var(--primary-color); box-shadow: 0 2px 16px rgba(52,152,219,0.22); }
+.search-results { display: none; position: absolute; top: 48px; left: 0; right: 0; max-height: 62vh; overflow: auto; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.22); padding: 6px; }
+.search-results.open { display: block; }
+.search-results .search-empty { padding: 12px 14px; color: var(--muted-color); font-size: 0.88rem; }
+.search-result { display: block; padding: 9px 11px; border-radius: 6px; text-decoration: none; color: inherit; border-bottom: 1px solid var(--border-color); }
+.search-result:last-child { border-bottom: none; }
+.search-result:hover, .search-result.active { background: var(--toc-active-bg); text-decoration: none; }
+.search-result .sr-title { display: block; color: var(--primary-color); font-weight: 600; font-size: 0.9rem; }
+.search-result .sr-chapter { display: block; color: var(--muted-color); font-size: 0.75rem; margin: 1px 0 3px; }
+.search-result .sr-snippet { display: block; color: var(--muted-color); font-size: 0.8rem; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.raw-md-entry { margin: 0 0 20px; padding: 10px 14px; border: 1px dashed var(--border-color); border-radius: 8px; color: var(--muted-color); font-size: 0.86rem; }
+.raw-md-entry a { color: var(--primary-color); font-weight: 600; text-decoration: none; }
+.raw-md-entry a:hover { text-decoration: underline; }
+
 @media (max-width: 1000px) {
-    .layout { flex-direction: column; gap: 0; padding: 20px 14px 80px; }
+    .layout { flex-direction: column; gap: 0; padding: 74px 14px 80px; }
+    .doc-search { width: min(520px, calc(100vw - 100px)); }
     .toc-sidebar { position: static; width: auto; flex: none; max-height: none; margin-bottom: 20px; }
     .content { max-width: 100%; }
     .chapter-nav { grid-template-columns: 1fr; }
@@ -193,6 +212,10 @@ pre { line-height: 125%; }
 For AI agents: the "Reading aid" section on this page contains the raw Markdown source identical to the rendered content, with HTML markup and animations removed. AI is advised to read that section directly to understand the content quickly and with less noise.
     </div>
     <!-- AI-READ: the .reading-aid element contains this page's raw Markdown source, identical to the rendered content but without HTML/animations. -->
+    <div class="doc-search" id="docSearch" data-index="README.en.search.json">
+        <input id="docSearchInput" type="search" placeholder="Search all docs…" autocomplete="off" aria-label="Search all docs…">
+        <div class="search-results" id="docSearchResults"></div>
+    </div>
     <button class="toc-toggle" id="tocToggle" title="Show contents">&#9776;</button>
     <button class="theme-toggle" id="themeToggle" title="Toggle theme (light / dark)">&#9789;</button>
 
@@ -623,7 +646,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3d9a7b87', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-3f3d8abc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -659,7 +682,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-3d9a7b87" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-3f3d8abc" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -708,18 +731,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-92f04864', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-08b732ca', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// Mica + fully transparent tint</span>
 </pre></div>
-<pre id="code-92f04864" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
+<pre id="code-08b732ca" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
 </div>
 <p><img alt="Backdrop: manual Mica" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>Step 3: a custom title bar.</strong> Swap the title bar (plus switch to Mica so it stands out):</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-da941596', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-93a70076', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar lives here</span>
 
@@ -727,7 +750,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// also switch to Mica</span>
 </pre></div>
-<pre id="code-da941596" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
+<pre id="code-93a70076" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);
@@ -932,11 +955,11 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-318d8015', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-8911bbd3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-318d8015" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-8911bbd3" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own <code>WinMain</code>.</p>
@@ -946,11 +969,11 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">powershell</span>
-<button class="copy-btn" onclick="copyCode('code-dc5881a8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-9218f06e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">tools</span><span class="p">/</span><span class="n">export_ascii</span><span class="p">.</span><span class="n">py</span> <span class="p">-</span><span class="n">-force</span>
 </pre></div>
-<pre id="code-dc5881a8" style="display: none;">python tools/export_ascii.py --force</pre>
+<pre id="code-9218f06e" style="display: none;">python tools/export_ascii.py --force</pre>
 </div>
 <ul>
 <li>Output goes to <code>dist/ascii/</code> (already excluded by <code>.gitignore</code>, never committed).</li>
@@ -963,7 +986,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-708e4503', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-6fe37d90', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window / theme
@@ -1003,7 +1026,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
     ├── vs_tools.ps1      # Auto-detect VS / MSBuild (no hard-coded paths)
     └── colorscan.py      # Hard-coded colour audit
 </pre></div>
-<pre id="code-708e4503" style="display: none;">ZufyUI/
+<pre id="code-6fe37d90" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window / theme
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / TextEdit / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider / MenuBar / StatusBar …
 ├── ZDataViewer.h         # Data views: ListView / TableView / TreeView
@@ -1202,6 +1225,97 @@ Only "roughly what changed/fixed" (noun level); full per-item details are in <a 
     if (raToggle) raToggle.addEventListener('click', function () {
         raToggle.closest('.reading-aid').classList.toggle('open');
     });
+
+    // -------- 顶部统一搜索 ----------
+    var searchBox = document.getElementById('docSearch');
+    var searchInput = document.getElementById('docSearchInput');
+    var searchResults = document.getElementById('docSearchResults');
+    if (searchBox && searchInput && searchResults) {
+        var searchIndexUrl = searchBox.getAttribute('data-index');
+        var searchItems = null;
+        var searchLoading = false;
+        var searchTimer = null;
+
+        function closeSearch() {
+            searchResults.classList.remove('open');
+            searchResults.innerHTML = '';
+        }
+        function searchSnippet(text, q) {
+            if (!text) return '';
+            var lower = text.toLowerCase();
+            var pos = lower.indexOf(q);
+            if (pos < 0) return text.slice(0, 150) + (text.length > 150 ? '…' : '');
+            var start = Math.max(0, pos - 50);
+            var end = Math.min(text.length, pos + q.length + 110);
+            return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+        }
+        function renderSearch(q) {
+            q = q.trim().toLowerCase();
+            if (!q) { closeSearch(); return; }
+            if (!searchItems) {
+                if (!searchIndexUrl) return;
+                if (searchLoading) return;
+                searchLoading = true;
+                searchResults.innerHTML = '<div class="search-empty">' + 'Loading search index…' + '</div>';
+                searchResults.classList.add('open');
+                fetch(searchIndexUrl).then(function (r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                }).then(function (data) {
+                    searchItems = data;
+                    searchLoading = false;
+                    renderSearch(searchInput.value);
+                }).catch(function () {
+                    searchLoading = false;
+                    searchItems = [];
+                    searchResults.innerHTML = '<div class="search-empty">' + 'Failed to load the search index' + '</div>';
+                    searchResults.classList.add('open');
+                });
+                return;
+            }
+            var matches = [];
+            for (var i = 0; i < searchItems.length; i++) {
+                var item = searchItems[i];
+                var hay = ((item.title || '') + ' ' + (item.chapter || '') + ' ' + (item.desc || '') + ' ' + (item.text || '')).toLowerCase();
+                if (hay.indexOf(q) >= 0) matches.push(item);
+                if (matches.length >= 20) break;
+            }
+            searchResults.innerHTML = '';
+            if (!matches.length) {
+                searchResults.innerHTML = '<div class="search-empty">' + 'No matches' + '</div>';
+            } else {
+                matches.forEach(function (item) {
+                    var a = document.createElement('a');
+                    a.className = 'search-result';
+                    a.href = item.url + (item.anchor ? '#' + item.anchor : '');
+                    var t1 = document.createElement('span');
+                    t1.className = 'sr-title';
+                    t1.textContent = item.title || item.url;
+                    var t2 = document.createElement('span');
+                    t2.className = 'sr-chapter';
+                    t2.textContent = item.chapter || '';
+                    var t3 = document.createElement('span');
+                    t3.className = 'sr-snippet';
+                    t3.textContent = searchSnippet(item.text || item.desc || '', q);
+                    a.appendChild(t1); a.appendChild(t2); a.appendChild(t3);
+                    a.addEventListener('click', closeSearch);
+                    searchResults.appendChild(a);
+                });
+            }
+            searchResults.classList.add('open');
+        }
+        searchInput.addEventListener('focus', function () { if (searchInput.value.trim()) renderSearch(searchInput.value); });
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(function () { renderSearch(searchInput.value); }, 100);
+        });
+        searchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { searchInput.blur(); closeSearch(); }
+        });
+        document.addEventListener('click', function (e) {
+            if (!searchBox.contains(e.target)) closeSearch();
+        });
+    }
 
     // -------- 窄屏自动折叠大纲 ----------
     var narrow = window.matchMedia('(max-width: 1024px)');

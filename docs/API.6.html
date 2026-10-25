@@ -44,7 +44,7 @@ body {
     margin: 0; padding: 0; text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
 }
-.layout { display: flex; align-items: flex-start; gap: 32px; max-width: 1440px; margin: 0 auto; padding: 16px 24px 90px; }
+.layout { display: flex; align-items: flex-start; gap: 32px; max-width: 1440px; margin: 0 auto; padding: 74px 24px 90px; }
 .content { flex: 1 1 auto; min-width: 0; max-width: 1080px; }
 
 /* ---------- 侧栏 ---------- */
@@ -175,8 +175,27 @@ pre { line-height: 125%; }
 .highlight .m, .highlight .mb, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo, .highlight .il { color: #666 }
 .highlight .nc, .highlight .nn, .highlight .nf, .highlight .fm { color: #0000FF }
 .highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi, .highlight .vm { color: #19177C }
+
+/* ---------- 顶部统一搜索 ---------- */
+.doc-search { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 210; width: min(520px, calc(100vw - 180px)); }
+.doc-search input { width: 100%; height: 42px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 999px; background: var(--panel-bg); color: var(--text-color); padding: 0 18px; font-size: 0.92rem; outline: none; box-shadow: 0 2px 10px rgba(0,0,0,0.10); }
+.doc-search input:focus { border-color: var(--primary-color); box-shadow: 0 2px 16px rgba(52,152,219,0.22); }
+.search-results { display: none; position: absolute; top: 48px; left: 0; right: 0; max-height: 62vh; overflow: auto; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.22); padding: 6px; }
+.search-results.open { display: block; }
+.search-results .search-empty { padding: 12px 14px; color: var(--muted-color); font-size: 0.88rem; }
+.search-result { display: block; padding: 9px 11px; border-radius: 6px; text-decoration: none; color: inherit; border-bottom: 1px solid var(--border-color); }
+.search-result:last-child { border-bottom: none; }
+.search-result:hover, .search-result.active { background: var(--toc-active-bg); text-decoration: none; }
+.search-result .sr-title { display: block; color: var(--primary-color); font-weight: 600; font-size: 0.9rem; }
+.search-result .sr-chapter { display: block; color: var(--muted-color); font-size: 0.75rem; margin: 1px 0 3px; }
+.search-result .sr-snippet { display: block; color: var(--muted-color); font-size: 0.8rem; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.raw-md-entry { margin: 0 0 20px; padding: 10px 14px; border: 1px dashed var(--border-color); border-radius: 8px; color: var(--muted-color); font-size: 0.86rem; }
+.raw-md-entry a { color: var(--primary-color); font-weight: 600; text-decoration: none; }
+.raw-md-entry a:hover { text-decoration: underline; }
+
 @media (max-width: 1000px) {
-    .layout { flex-direction: column; gap: 0; padding: 20px 14px 80px; }
+    .layout { flex-direction: column; gap: 0; padding: 74px 14px 80px; }
+    .doc-search { width: min(520px, calc(100vw - 100px)); }
     .toc-sidebar { position: static; width: auto; flex: none; max-height: none; margin-bottom: 20px; }
     .content { max-width: 100%; }
     .chapter-nav { grid-template-columns: 1fr; }
@@ -193,6 +212,10 @@ pre { line-height: 125%; }
 面向 AI 智能体：本页的「阅读辅助」区块内含有与正文完全一致的原始 Markdown 源码，已去除 HTML 标签与动画特效。建议 AI 直接读取该区块，以更低的噪声快速理解内容。
     </div>
     <!-- AI-READ: the .reading-aid element contains this page's raw Markdown source, identical to the rendered content but without HTML/animations. -->
+    <div class="doc-search" id="docSearch" data-index="API.search.json">
+        <input id="docSearchInput" type="search" placeholder="搜索全部文档…" autocomplete="off" aria-label="搜索全部文档…">
+        <div class="search-results" id="docSearchResults"></div>
+    </div>
     <button class="toc-toggle" id="tocToggle" title="显示目录">&#9776;</button>
     <button class="theme-toggle" id="themeToggle" title="切换主题（浅色/深色）">&#9789;</button>
 
@@ -339,7 +362,7 @@ float GetShadowExtent() const;
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-cb2a3a30', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-13fb90a1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="n">Size</span><span class="w"> </span><span class="nf">MeasureOverride</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Size</span><span class="o">&amp;</span><span class="w"> </span><span class="n">avail</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="n">Size</span><span class="w"> </span><span class="nf">Measure</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Size</span><span class="o">&amp;</span><span class="w"> </span><span class="n">avail</span><span class="p">);</span><span class="w">      </span><span class="n">Size</span><span class="w"> </span><span class="nf">GetDesiredSize</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -356,7 +379,7 @@ float GetShadowExtent() const;
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetHorizontalStretchWeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVerticalStretchWeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetDefaultHorizontalStretchWeight</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 同理 Vertical</span>
 </pre></div>
-<pre id="code-cb2a3a30" style="display: none;">virtual Size MeasureOverride(const Size&amp; avail) = 0;
+<pre id="code-13fb90a1" style="display: none;">virtual Size MeasureOverride(const Size&amp; avail) = 0;
 Size Measure(const Size&amp; avail);      Size GetDesiredSize() const;
 virtual void ArrangeOverride(const Rect&amp;);   void Arrange(const Rect&amp;);
 Rect GetArrangedRect() const;
@@ -381,7 +404,7 @@ virtual float GetDefaultHorizontalStretchWeight() const;   // 同理 Vertical</p
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3c28c88a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-cec7b62d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">Draw</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">RefreshChildren</span><span class="p">();</span><span class="w">                       </span><span class="c1">// 更新阶段（UI 线程）重建可见子列表</span>
@@ -394,7 +417,7 @@ virtual float GetDefaultHorizontalStretchWeight() const;   // 同理 Vertical</p
 <span class="kt">void</span><span class="w"> </span><span class="nf">ReleaseDeviceResourcesRecursive</span><span class="p">();</span><span class="w">        </span><span class="c1">// 释放整棵子树</span>
 <span class="k">virtual</span><span class="w"> </span><span class="n">D2D1</span><span class="o">::</span><span class="n">Matrix3x2F</span><span class="w"> </span><span class="nf">GetChildRenderTransform</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">child</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-3c28c88a" style="display: none;">virtual void Draw(ID2D1RenderTarget* rt) = 0;
+<pre id="code-cec7b62d" style="display: none;">virtual void Draw(ID2D1RenderTarget* rt) = 0;
 virtual void RefreshChildren();                       // 更新阶段（UI 线程）重建可见子列表
 virtual const std::vector&lt;UIElement*&gt;&amp; GetChildren() const;   // 渲染阶段纯读
 virtual bool UseCache() const;   void SetUseCache(bool);      // 默认 true
@@ -416,14 +439,14 @@ virtual D2D1::Matrix3x2F GetChildRenderTransform(UIElement* child) const;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-49d361ed', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-04684df7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVisibleNoInvalidate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsVisible</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsEffectivelyEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="c1">// 沿父链</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetToolTip</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetToolTip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCursor</span><span class="p">(</span><span class="n">HCURSOR</span><span class="p">);</span><span class="w">   </span><span class="n">HCURSOR</span><span class="w"> </span><span class="nf">GetDesiredCursor</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-49d361ed" style="display: none;">void SetVisible(bool);  void SetVisibleNoInvalidate(bool);  bool IsVisible() const;
+<pre id="code-04684df7" style="display: none;">void SetVisible(bool);  void SetVisibleNoInvalidate(bool);  bool IsVisible() const;
 void SetEnabled(bool);  bool IsEnabled() const;  bool IsEffectivelyEnabled() const;  // 沿父链
 void SetToolTip(const std::wstring&amp;);   virtual std::wstring GetToolTip() const;
 void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;</pre>
@@ -436,7 +459,7 @@ void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-fbb71fbe', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-dd63a756', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetContextMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetContextMenuFactory</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">()</span><span class="o">&gt;</span><span class="p">);</span>
@@ -446,7 +469,7 @@ void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDraggable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDragRegion</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Rect</span><span class="o">&amp;</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearDragRegion</span><span class="p">();</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">NonClientHitTest</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-fbb71fbe" style="display: none;">void SetContextMenu(std::shared_ptr&lt;Menu&gt;);
+<pre id="code-dd63a756" style="display: none;">void SetContextMenu(std::shared_ptr&lt;Menu&gt;);
 void SetContextMenuFactory(std::function&lt;std::shared_ptr&lt;Menu&gt;()&gt;);
 std::shared_ptr&lt;Menu&gt; BuildContextMenu() const;
 enum class LayoutParticipation { Normal, DrawBeforeLayout, DrawAfterLayout };
@@ -461,7 +484,7 @@ virtual int NonClientHitTest(float x, float y) const;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c7f122dc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-5d43bed6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">HitTest</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">OnMouseEnter</span><span class="o">/</span><span class="n">Leave</span><span class="o">/</span><span class="n">Move</span><span class="o">/</span><span class="n">Down</span><span class="o">/</span><span class="n">Up</span><span class="p">(...);</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnContextMenu</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
@@ -476,7 +499,7 @@ virtual int NonClientHitTest(float x, float y) const;</pre>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">MouseMove</span><span class="p">,</span><span class="w"> </span><span class="n">MouseDown</span><span class="p">,</span><span class="w"> </span><span class="n">MouseUp</span><span class="p">;</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">WPARAM</span><span class="p">,</span><span class="n">LPARAM</span><span class="o">&gt;</span><span class="w"> </span><span class="n">KeyDown</span><span class="p">,</span><span class="w"> </span><span class="n">KeyUp</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">wchar_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Char</span><span class="p">;</span>
 </pre></div>
-<pre id="code-c7f122dc" style="display: none;">virtual UIElement* HitTest(float x, float y);
+<pre id="code-5d43bed6" style="display: none;">virtual UIElement* HitTest(float x, float y);
 virtual void OnMouseEnter/Leave/Move/Down/Up(...);  virtual bool OnContextMenu(float,float);
 virtual void OnKeyDown/Up(WPARAM,LPARAM);  virtual void OnChar(wchar_t);
 virtual void OnFocus()/OnBlur();
@@ -498,7 +521,7 @@ ZSignal&lt;WPARAM,LPARAM&gt; KeyDown, KeyUp;   ZSignal&lt;wchar_t&gt; Char;</pre
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1c81ecd1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-83d61445', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleName</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetAccessibleName</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleDescription</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
@@ -516,7 +539,7 @@ ZSignal&lt;WPARAM,LPARAM&gt; KeyDown, KeyUp;   ZSignal&lt;wchar_t&gt; Char;</pre
 <span class="k">virtual</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">GetAccessibleRangeMin</span><span class="o">/</span><span class="n">Max</span><span class="o">/</span><span class="n">Step</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">AccessibilityNotifyFocus</span><span class="o">/</span><span class="n">PropertyChanged</span><span class="o">/</span><span class="n">StructureChanged</span><span class="p">();</span>
 </pre></div>
-<pre id="code-1c81ecd1" style="display: none;">void SetAccessibleName(const std::wstring&amp;);  std::wstring GetAccessibleName() const;
+<pre id="code-83d61445" style="display: none;">void SetAccessibleName(const std::wstring&amp;);  std::wstring GetAccessibleName() const;
 void SetAccessibleDescription(const std::wstring&amp;);
 void SetAutomationId(const std::wstring&amp;);     std::wstring GetAutomationIdOrAuto() const;  // 自动 e{n}
 void SetAccessibleRole(AccessibleRole);  virtual AccessibleRole GetAccessibleRole() const;
@@ -540,13 +563,13 @@ void AccessibilityNotifyFocus/PropertyChanged/StructureChanged();</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-360c78f1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-9b80fc89', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetGlobalFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">SetFontFamily</span><span class="o">/</span><span class="n">SetFontSize</span><span class="o">/</span><span class="n">SetFontWeight</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearFont</span><span class="p">();</span>
 <span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetTypeDefaultFont</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="n">FontSpec</span><span class="w"> </span><span class="nf">GetEffectiveFontSpec</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-360c78f1" style="display: none;">static void SetGlobalFont(const FontSpec&amp;);  void SetFont(const FontSpec&amp;);
+<pre id="code-9b80fc89" style="display: none;">static void SetGlobalFont(const FontSpec&amp;);  void SetFont(const FontSpec&amp;);
 void SetFontFamily/SetFontSize/SetFontWeight(...);  void ClearFont();
 virtual std::optional&lt;FontSpec&gt; GetTypeDefaultFont() const;  FontSpec GetEffectiveFontSpec() const;</pre>
 </div>
@@ -558,13 +581,13 @@ virtual std::optional&lt;FontSpec&gt; GetTypeDefaultFont() const;  FontSpec GetE
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7e26af32', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-d8eedca0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShadow</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">HasShadow</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetShadowColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w"> </span><span class="n">SetShadowBlur</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="n">SetShadowOffset</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="n">SetShadowCornerRadius</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">GetShadowExtent</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-7e26af32" style="display: none;">void SetShadow(bool);  bool HasShadow() const;
+<pre id="code-d8eedca0" style="display: none;">void SetShadow(bool);  bool HasShadow() const;
 void SetShadowColor(Color); SetShadowBlur(float); SetShadowOffset(float,float); SetShadowCornerRadius(float);
 float GetShadowExtent() const;</pre>
 </div>
@@ -684,6 +707,97 @@ float GetShadowExtent() const;</pre>
     if (raToggle) raToggle.addEventListener('click', function () {
         raToggle.closest('.reading-aid').classList.toggle('open');
     });
+
+    // -------- 顶部统一搜索 ----------
+    var searchBox = document.getElementById('docSearch');
+    var searchInput = document.getElementById('docSearchInput');
+    var searchResults = document.getElementById('docSearchResults');
+    if (searchBox && searchInput && searchResults) {
+        var searchIndexUrl = searchBox.getAttribute('data-index');
+        var searchItems = null;
+        var searchLoading = false;
+        var searchTimer = null;
+
+        function closeSearch() {
+            searchResults.classList.remove('open');
+            searchResults.innerHTML = '';
+        }
+        function searchSnippet(text, q) {
+            if (!text) return '';
+            var lower = text.toLowerCase();
+            var pos = lower.indexOf(q);
+            if (pos < 0) return text.slice(0, 150) + (text.length > 150 ? '…' : '');
+            var start = Math.max(0, pos - 50);
+            var end = Math.min(text.length, pos + q.length + 110);
+            return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+        }
+        function renderSearch(q) {
+            q = q.trim().toLowerCase();
+            if (!q) { closeSearch(); return; }
+            if (!searchItems) {
+                if (!searchIndexUrl) return;
+                if (searchLoading) return;
+                searchLoading = true;
+                searchResults.innerHTML = '<div class="search-empty">' + '正在加载搜索索引…' + '</div>';
+                searchResults.classList.add('open');
+                fetch(searchIndexUrl).then(function (r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                }).then(function (data) {
+                    searchItems = data;
+                    searchLoading = false;
+                    renderSearch(searchInput.value);
+                }).catch(function () {
+                    searchLoading = false;
+                    searchItems = [];
+                    searchResults.innerHTML = '<div class="search-empty">' + '搜索索引加载失败' + '</div>';
+                    searchResults.classList.add('open');
+                });
+                return;
+            }
+            var matches = [];
+            for (var i = 0; i < searchItems.length; i++) {
+                var item = searchItems[i];
+                var hay = ((item.title || '') + ' ' + (item.chapter || '') + ' ' + (item.desc || '') + ' ' + (item.text || '')).toLowerCase();
+                if (hay.indexOf(q) >= 0) matches.push(item);
+                if (matches.length >= 20) break;
+            }
+            searchResults.innerHTML = '';
+            if (!matches.length) {
+                searchResults.innerHTML = '<div class="search-empty">' + '没有匹配项' + '</div>';
+            } else {
+                matches.forEach(function (item) {
+                    var a = document.createElement('a');
+                    a.className = 'search-result';
+                    a.href = item.url + (item.anchor ? '#' + item.anchor : '');
+                    var t1 = document.createElement('span');
+                    t1.className = 'sr-title';
+                    t1.textContent = item.title || item.url;
+                    var t2 = document.createElement('span');
+                    t2.className = 'sr-chapter';
+                    t2.textContent = item.chapter || '';
+                    var t3 = document.createElement('span');
+                    t3.className = 'sr-snippet';
+                    t3.textContent = searchSnippet(item.text || item.desc || '', q);
+                    a.appendChild(t1); a.appendChild(t2); a.appendChild(t3);
+                    a.addEventListener('click', closeSearch);
+                    searchResults.appendChild(a);
+                });
+            }
+            searchResults.classList.add('open');
+        }
+        searchInput.addEventListener('focus', function () { if (searchInput.value.trim()) renderSearch(searchInput.value); });
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(function () { renderSearch(searchInput.value); }, 100);
+        });
+        searchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { searchInput.blur(); closeSearch(); }
+        });
+        document.addEventListener('click', function (e) {
+            if (!searchBox.contains(e.target)) closeSearch();
+        });
+    }
 
     // -------- 窄屏自动折叠大纲 ----------
     var narrow = window.matchMedia('(max-width: 1024px)');
