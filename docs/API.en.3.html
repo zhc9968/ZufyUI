@@ -236,8 +236,18 @@ struct Color {
     static Color Lerp(const Color&amp; c1, const Color&amp; c2, float t);
 };
 ```
-- **`Pitfall`**: components are floats in **[0,1]**; `Color(255,0,0)` is wrong (over-bright). For integer input use `Color::FromArgb(255,255,0,0)`.
-- **`Note`**: `Color::Lerp(a, b, t)` does **not** clamp `t`; keep it in 0..1 (out of range extrapolates).
+
+###block_orange_start
+**Note**
+
+- `Color::Lerp(a, b, t)` does **not** clamp `t`; keep it in 0..1 (out of range extrapolates).
+###block_orange_end
+
+###block_red_start
+**Pitfall**
+
+- components are floats in **[0,1]**; `Color(255,0,0)` is wrong (over-bright). For integer input use `Color::FromArgb(255,255,0,0)`.
+###block_red_end
 
 ## Rect
 
@@ -267,7 +277,7 @@ struct Size { float width, height; Size(float w=0, float h=0); };
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c506c77e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-727d997e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Color</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">;</span><span class="w">                 </span><span class="c1">// components in [0,1], NOT 0..255</span>
@@ -277,7 +287,7 @@ struct Size { float width, height; Size(float w=0, float h=0); };
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="nf">Lerp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Color</span><span class="o">&amp;</span><span class="w"> </span><span class="n">c1</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Color</span><span class="o">&amp;</span><span class="w"> </span><span class="n">c2</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">t</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-c506c77e" style="display: none;">struct Color {
+<pre id="code-727d997e" style="display: none;">struct Color {
     float r, g, b, a;                 // components in [0,1], NOT 0..255
     Color(float r=0, float g=0, float b=0, float a=1.0f);
     static Color FromArgb(uint8_t a, uint8_t r, uint8_t g, uint8_t b);
@@ -285,15 +295,23 @@ struct Size { float width, height; Size(float w=0, float h=0); };
     static Color Lerp(const Color&amp; c1, const Color&amp; c2, float t);
 };</pre>
 </div>
+<div class="orange">
+<p><strong>Note</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: components are floats in <strong>[0,1]</strong>; <code>Color(255,0,0)</code> is wrong (over-bright). For integer input use <code>Color::FromArgb(255,255,0,0)</code>.</li>
-<li><strong><code>Note</code></strong>: <code>Color::Lerp(a, b, t)</code> does <strong>not</strong> clamp <code>t</code>; keep it in 0..1 (out of range extrapolates).</li>
+<li><code>Color::Lerp(a, b, t)</code> does <strong>not</strong> clamp <code>t</code>; keep it in 0..1 (out of range extrapolates).</li>
 </ul>
+</div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li>components are floats in <strong>[0,1]</strong>; <code>Color(255,0,0)</code> is wrong (over-bright). For integer input use <code>Color::FromArgb(255,255,0,0)</code>.</li>
+</ul>
+</div>
 <h2 id="rect">Rect</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7d66cd8a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-2c539352', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Rect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="n">height</span><span class="p">;</span>
@@ -302,7 +320,7 @@ struct Size { float width, height; Size(float w=0, float h=0); };
 <span class="w">    </span><span class="n">D2D1_RECT_F</span><span class="w"> </span><span class="nf">ToD2D</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-7d66cd8a" style="display: none;">struct Rect {
+<pre id="code-2c539352" style="display: none;">struct Rect {
     float x, y, width, height;
     Rect(float x=0, float y=0, float w=0, float h=0);
     bool Contains(float px, float py) const;   // half-open: x&lt;=px&lt;x+w
@@ -316,21 +334,21 @@ struct Size { float width, height; Size(float w=0, float h=0); };
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-faee3657', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-2bb35492', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Thickness</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">left</span><span class="p">,</span><span class="w"> </span><span class="n">top</span><span class="p">,</span><span class="w"> </span><span class="n">right</span><span class="p">,</span><span class="w"> </span><span class="n">bottom</span><span class="p">;</span><span class="w"> </span><span class="n">Thickness</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">l</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">b</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-faee3657" style="display: none;">struct Thickness { float left, top, right, bottom; Thickness(float l=0,float t=0,float r=0,float b=0); };</pre>
+<pre id="code-2bb35492" style="display: none;">struct Thickness { float left, top, right, bottom; Thickness(float l=0,float t=0,float r=0,float b=0); };</pre>
 </div>
 <h2 id="size">Size</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5a7ec43e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-7325a20b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Size</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="n">height</span><span class="p">;</span><span class="w"> </span><span class="n">Size</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-5a7ec43e" style="display: none;">struct Size { float width, height; Size(float w=0, float h=0); };</pre>
+<pre id="code-7325a20b" style="display: none;">struct Size { float width, height; Size(float w=0, float h=0); };</pre>
 </div>
 <nav class="chapter-nav"><a class="prev" href="API.en.2.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Quick start</span><span class="nav-desc">Minimal program, structure, reading path</span></a><a class="next" href="API.en.4.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Events &amp; Signals</span><span class="nav-desc">ZSignal, Connection, cross-thread</span></a></nav>
         </main>

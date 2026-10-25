@@ -249,7 +249,12 @@ std::function&lt;void(Menu&amp;)&gt; onOpening;   ZSignal&lt;int&gt; ItemSelecte
 std::function&lt;void()&gt; onClosed;   // fired after the popup closes
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // standalone popup (tray / right-click)
 ```
-- **`Pitfall`**: item callbacks are deferred via `PostToUIThread` (they often open modal dialogs; closing the menu on the current WndProc stack would cause UAF).
+
+###block_red_start
+**Pitfall**
+
+- item callbacks are deferred via `PostToUIThread` (they often open modal dialogs; closing the menu on the current WndProc stack would cause UAF).
+###block_red_end
 
 ## MenuWindowBase / MenuWindow
 
@@ -265,7 +270,12 @@ class MenuWindow : public MenuWindowBase {
 };
 ```
 - Popups use `WS_EX_NOACTIVATE|TOOLWINDOW|TOPMOST`, no DWM frame, return `MA_NOACTIVATE` so they never steal focus.
-- **`Pitfall`**: `CloseAll()` destroys HWNDs only; the object `shared_ptr`/`unique_ptr` destructs outside the message handler.
+
+###block_red_start
+**Pitfall**
+
+- `CloseAll()` destroys HWNDs only; the object `shared_ptr`/`unique_ptr` destructs outside the message handler.
+###block_red_end
 
 ## MenuBar / StatusBar (v1.19.2)
 
@@ -285,6 +295,12 @@ class StatusBar : public UIElement {
 - `MenuBar` opens the entry's `Menu` on click (reusing the menu popup); hovering only highlights, it does **not** auto-expand; the open entry stays "pressed" until the menu closes.
 - Attach to a window with `Window::SetMenuBar` / `SetStatusBar` (see "Custom title bar").
 
+###block_orange_start
+**Limitation**
+
+`StatusBar::AddPanel` has text/icon only and **no click callback**; a status bar reports state. For clickable segments use normal buttons/custom rows instead.
+###block_orange_end
+
 ## MessageBox / FastButton
 
 ```cpp
@@ -300,14 +316,19 @@ class MessageBox : public Window {
 };
 ```
 - Enter = leftmost; ESC = Cancel/Close (else leftmost).
-- **`Pitfall`**: `ZufyUIWindowTool.h` `#undef`s the Win32 `MessageBox` macro — call `MessageBoxW/A` for Win32.
-- **`Pitfall`**: `blocking=true` runs the modal loop **inside the constructor**; after `SetUserContent` there are no preset buttons, so you must `EndDialog`.</pre></div></div>
+
+###block_red_start
+**Pitfall**
+
+- `ZufyUIWindowTool.h` `#undef`s the Win32 `MessageBox` macro — call `MessageBoxW/A` for Win32.
+- `blocking=true` runs the modal loop **inside the constructor**; after `SetUserContent` there are no preset buttons, so you must `EndDialog`.
+###block_red_end</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 13 · Menus &amp; Popups</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 13</span><h1>Menus &amp; Popups</h1><p class="chapter-summary">Menu, MenuItem, MenuWindow, MessageBox</p></header><h2 id="menuitem">MenuItem</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-11f25221', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-f5ffc8e4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">text</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">submenu</span><span class="p">;</span>
@@ -316,7 +337,7 @@ class MessageBox : public Window {
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">shortcut</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bgColor</span><span class="p">,</span><span class="w"> </span><span class="n">textColor</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span>
 </pre></div>
-<pre id="code-11f25221" style="display: none;">enum class Type { Normal, Separator, Submenu };
+<pre id="code-f5ffc8e4" style="display: none;">enum class Type { Normal, Separator, Submenu };
 std::wstring text;   ZSignal&lt;&gt; Clicked;   std::shared_ptr&lt;Menu&gt; submenu;
 Type type = Normal;   bool enabled = true;   int id = 0;
 bool checkable = false, checked = false, radio = false, isDefault = false, danger = false;
@@ -327,7 +348,7 @@ std::shared_ptr&lt;Label&gt; icon;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a24744b7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-da5b17ff', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddCheckItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">checked</span><span class="p">);</span>
@@ -339,7 +360,7 @@ std::shared_ptr&lt;Label&gt; icon;</pre>
 <span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onClosed</span><span class="p">;</span><span class="w">   </span><span class="c1">// fired after the popup closes</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">ShowAt</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">   </span><span class="c1">// standalone popup (tray / right-click)</span>
 </pre></div>
-<pre id="code-a24744b7" style="display: none;">void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; cb = nullptr, int id = 0);
+<pre id="code-da5b17ff" style="display: none;">void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; cb = nullptr, int id = 0);
 void AddCheckItem(const std::wstring&amp; text, bool checked);
 void AddCheckItemCb(const std::wstring&amp; text, bool checked, std::function&lt;void(bool)&gt; onToggle);
 void AddCheckItemRadio(const std::wstring&amp; text, bool checked, std::function&lt;void(bool)&gt; onToggle);
@@ -349,14 +370,17 @@ std::function&lt;void(Menu&amp;)&gt; onOpening;   ZSignal&lt;int&gt; ItemSelecte
 std::function&lt;void()&gt; onClosed;   // fired after the popup closes
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // standalone popup (tray / right-click)</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: item callbacks are deferred via <code>PostToUIThread</code> (they often open modal dialogs; closing the menu on the current WndProc stack would cause UAF).</li>
+<li>item callbacks are deferred via <code>PostToUIThread</code> (they often open modal dialogs; closing the menu on the current WndProc stack would cause UAF).</li>
 </ul>
+</div>
 <h2 id="menuwindowbase-menuwindow">MenuWindowBase / MenuWindow</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-dc9797c1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-ffd0b3cf', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuWindowBase</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">CreatePopup</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">widthDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">heightDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span>
@@ -368,7 +392,7 @@ void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // standalone po
 <span class="w">    </span><span class="n">MenuWindow</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="p">,</span><span class="w"> </span><span class="n">HWND</span><span class="w"> </span><span class="n">ownerHwnd</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-dc9797c1" style="display: none;">class MenuWindowBase : public Window {
+<pre id="code-ffd0b3cf" style="display: none;">class MenuWindowBase : public Window {
     bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY);
     void ShowAtPoint(int x, int y);  void Hide();  void CloseAll();
     void SetStandalone(bool);  bool IsPointInPopupTree(POINT ptScreen);
@@ -380,13 +404,18 @@ class MenuWindow : public MenuWindowBase {
 </div>
 <ul>
 <li>Popups use <code>WS_EX_NOACTIVATE|TOOLWINDOW|TOPMOST</code>, no DWM frame, return <code>MA_NOACTIVATE</code> so they never steal focus.</li>
-<li><strong><code>Pitfall</code></strong>: <code>CloseAll()</code> destroys HWNDs only; the object <code>shared_ptr</code>/<code>unique_ptr</code> destructs outside the message handler.</li>
 </ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>CloseAll()</code> destroys HWNDs only; the object <code>shared_ptr</code>/<code>unique_ptr</code> destructs outside the message handler.</li>
+</ul>
+</div>
 <h2 id="menubar-statusbar-v1192">MenuBar / StatusBar (v1.19.2)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-959b671a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d2a5d549', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuBar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">AddMenu</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span><span class="w">   </span><span class="c1">// auto-created if omitted</span>
@@ -400,7 +429,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetColors</span><span class="p">(</span><span class="n">Color</span><span class="w"> </span><span class="n">bg</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">border</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">text</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-959b671a" style="display: none;">class MenuBar : public UIElement {
+<pre id="code-d2a5d549" style="display: none;">class MenuBar : public UIElement {
     int AddMenu(const std::wstring&amp; title, std::shared_ptr&lt;Menu&gt; menu = nullptr);   // auto-created if omitted
     std::shared_ptr&lt;Menu&gt; GetMenu(int i) const;   int MenuCount() const;   void CloseMenu();
     void SetFont(const FontSpec&amp;);   void SetTextColor(Color);   void SetHoverColor(Color);   void SetOpenColor(Color);
@@ -416,11 +445,15 @@ class StatusBar : public UIElement {
 <li><code>MenuBar</code> opens the entry's <code>Menu</code> on click (reusing the menu popup); hovering only highlights, it does <strong>not</strong> auto-expand; the open entry stays "pressed" until the menu closes.</li>
 <li>Attach to a window with <code>Window::SetMenuBar</code> / <code>SetStatusBar</code> (see "Custom title bar").</li>
 </ul>
+<div class="orange">
+<p><strong>Limitation</strong></p>
+<p><code>StatusBar::AddPanel</code> has text/icon only and <strong>no click callback</strong>; a status bar reports state. For clickable segments use normal buttons/custom rows instead.</p>
+</div>
 <h2 id="messagebox-fastbutton">MessageBox / FastButton</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ec2fc4d6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-5b3fbaaa', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">FastButton</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">OK</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Cancel</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Apply</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">Close</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">Yes</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">No</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">Help</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">6</span><span class="w"> </span><span class="p">};</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">HasFlag</span><span class="p">(</span><span class="n">FastButton</span><span class="w"> </span><span class="n">set</span><span class="p">,</span><span class="w"> </span><span class="n">FastButton</span><span class="w"> </span><span class="n">flag</span><span class="p">);</span>
@@ -433,7 +466,7 @@ class StatusBar : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetUserContent</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-ec2fc4d6" style="display: none;">enum class FastButton : unsigned { None=0, OK=1&lt;&lt;0, Cancel=1&lt;&lt;1, Apply=1&lt;&lt;2, Close=1&lt;&lt;3, Yes=1&lt;&lt;4, No=1&lt;&lt;5, Help=1&lt;&lt;6 };
+<pre id="code-5b3fbaaa" style="display: none;">enum class FastButton : unsigned { None=0, OK=1&lt;&lt;0, Cancel=1&lt;&lt;1, Apply=1&lt;&lt;2, Close=1&lt;&lt;3, Yes=1&lt;&lt;4, No=1&lt;&lt;5, Help=1&lt;&lt;6 };
 bool HasFlag(FastButton set, FastButton flag);
 class MessageBox : public Window {
     enum class Icon { None, Info, Warning, Error, Question };
@@ -446,9 +479,14 @@ class MessageBox : public Window {
 </div>
 <ul>
 <li>Enter = leftmost; ESC = Cancel/Close (else leftmost).</li>
-<li><strong><code>Pitfall</code></strong>: <code>ZufyUIWindowTool.h</code> <code>#undef</code>s the Win32 <code>MessageBox</code> macro — call <code>MessageBoxW/A</code> for Win32.</li>
-<li><strong><code>Pitfall</code></strong>: <code>blocking=true</code> runs the modal loop <strong>inside the constructor</strong>; after <code>SetUserContent</code> there are no preset buttons, so you must <code>EndDialog</code>.</li>
 </ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>ZufyUIWindowTool.h</code> <code>#undef</code>s the Win32 <code>MessageBox</code> macro — call <code>MessageBoxW/A</code> for Win32.</li>
+<li><code>blocking=true</code> runs the modal loop <strong>inside the constructor</strong>; after <code>SetUserContent</code> there are no preset buttons, so you must <code>EndDialog</code>.</li>
+</ul>
+</div>
 <nav class="chapter-nav"><a class="prev" href="API.en.12.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Containers &amp; scrolling</span><span class="nav-desc">ScrollViewer, ScrollBar, SplitView, Drawer, TabView</span></a><a class="next" href="API.en.14.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Data views</span><span class="nav-desc">ListView, TableView, TreeView, TreeNode (virtualization, hide/filter/visible order)</span></a></nav>
         </main>
     </div>

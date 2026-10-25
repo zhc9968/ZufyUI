@@ -253,9 +253,16 @@ void CacheDisplayLayout(...);  void CacheStyledDisplayLayout(...);
 void SetGlobalFont(const FontSpec&amp;);
 ZSignal&lt;&gt; GlobalFontChanged;
 ```
-- **`Pitfall`**: returned layouts are **shared read-only**; do not call `SetTextAlignment/SetLineSpacing/SetTrimming` on them (the cache key would no longer match).
 - The layout cache is **bounded** (400 entries, FIFO evicts ¼) and returns strong refs (`ComPtr`), safe during use.
-- **`Pitfall`**: `GetFormat`'s `IDWriteTextFormat*` is **never evicted** — do not mutate it.
+
+###block_red_start
+**Pitfall**
+
+- returned layouts are **shared read-only**; do not call `SetTextAlignment/SetLineSpacing/SetTrimming` on them (the cache key would no longer match).
+- `GetFormat`'s `IDWriteTextFormat*` is **never evicted** — do not mutate it.
+- the shared format returned by `GetFormat` sets `ParagraphAlignment` to `CENTER`. **Do not draw multi-line custom text with it directly**, or the text is vertically centred in a tall box and appears missing; use `GetStyledLayout(..., vAlign)` or your own format with `NEAR`.
+###block_red_end
+
 - **`Version`**: `GetStyledLayout`/global layout cache hardened in `v1.10.1`.
 
 ## Icon (font glyphs)
@@ -265,14 +272,20 @@ enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., 
 inline const std::wstring&amp; IconFontFamily();   // Segoe Fluent Icons → fallback Segoe MDL2 Assets
 inline std::wstring IconGlyph(Icon);
 ```
-- **`Pitfall`**: the enum value **is the font codepoint**. Font fallback is probed **once, statically**; runtime font changes are not re-probed; a few Win11-only glyphs render as a box.
+
+###block_red_start
+**Pitfall**
+
+- the enum value **is the font codepoint**. Font fallback is probed **once, statically**; runtime font changes are not re-probed; a few Win11-only glyphs render as a box.
+###block_red_end
+
 - **`Version`**: `Icon` sunk into `ZufyUIWidgets.h` in `v1.13.0`; all `Label`-derived controls gained `SetIcon`.</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 5 · Fonts &amp; Icons</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 5</span><h1>Fonts &amp; Icons</h1><p class="chapter-summary">FontSpec, FontManager, Icon</p></header><h2 id="fontspec">FontSpec</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-04ec6542', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-693865d8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FontSpec</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">familyName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"Segoe UI"</span><span class="p">;</span>
@@ -284,7 +297,7 @@ inline std::wstring IconGlyph(Icon);
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="k">operator</span><span class="o">==/!=</span><span class="p">(...)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-04ec6542" style="display: none;">struct FontSpec {
+<pre id="code-693865d8" style="display: none;">struct FontSpec {
     std::wstring familyName = L"Segoe UI";
     float size = 14.0f;
     DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
@@ -298,7 +311,7 @@ inline std::wstring IconGlyph(Icon);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d249b46f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-7a66beba', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">FontManager</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
 <span class="n">IDWriteFactory</span><span class="o">*</span><span class="w"> </span><span class="nf">GetFactory</span><span class="p">();</span>
@@ -311,7 +324,7 @@ inline std::wstring IconGlyph(Icon);
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetGlobalFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
 <span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">GlobalFontChanged</span><span class="p">;</span>
 </pre></div>
-<pre id="code-d249b46f" style="display: none;">static FontManager&amp; Instance();
+<pre id="code-7a66beba" style="display: none;">static FontManager&amp; Instance();
 IDWriteFactory* GetFactory();
 IDWriteTextFormat* GetFormat(const FontSpec&amp;);        // never evicted
 ComPtr&lt;IDWriteTextLayout&gt; GetRawLayout(text, fmt, maxW, maxH, noWrap);
@@ -323,27 +336,40 @@ void SetGlobalFont(const FontSpec&amp;);
 ZSignal&lt;&gt; GlobalFontChanged;</pre>
 </div>
 <ul>
-<li><strong><code>Pitfall</code></strong>: returned layouts are <strong>shared read-only</strong>; do not call <code>SetTextAlignment/SetLineSpacing/SetTrimming</code> on them (the cache key would no longer match).</li>
 <li>The layout cache is <strong>bounded</strong> (400 entries, FIFO evicts ¼) and returns strong refs (<code>ComPtr</code>), safe during use.</li>
-<li><strong><code>Pitfall</code></strong>: <code>GetFormat</code>'s <code>IDWriteTextFormat*</code> is <strong>never evicted</strong> — do not mutate it.</li>
+</ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li>returned layouts are <strong>shared read-only</strong>; do not call <code>SetTextAlignment/SetLineSpacing/SetTrimming</code> on them (the cache key would no longer match).</li>
+<li><code>GetFormat</code>'s <code>IDWriteTextFormat*</code> is <strong>never evicted</strong> — do not mutate it.</li>
+<li>the shared format returned by <code>GetFormat</code> sets <code>ParagraphAlignment</code> to <code>CENTER</code>. <strong>Do not draw multi-line custom text with it directly</strong>, or the text is vertically centred in a tall box and appears missing; use <code>GetStyledLayout(..., vAlign)</code> or your own format with <code>NEAR</code>.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: <code>GetStyledLayout</code>/global layout cache hardened in <code>v1.10.1</code>.</li>
 </ul>
 <h2 id="icon-font-glyphs">Icon (font glyphs)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f6b9f841', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-2e017691', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Icon</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">short</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="o">=</span><span class="mh">0x0000</span><span class="p">,</span><span class="w"> </span><span class="n">Add</span><span class="o">=</span><span class="mh">0xE710</span><span class="p">,</span><span class="w"> </span><span class="n">Remove</span><span class="o">=</span><span class="mh">0xE738</span><span class="p">,</span><span class="w"> </span><span class="p">...,</span><span class="w"> </span><span class="n">Pin</span><span class="o">=</span><span class="mh">0xE718</span><span class="p">,</span><span class="w"> </span><span class="n">View</span><span class="o">=</span><span class="mh">0xE890</span><span class="p">,</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">IconFontFamily</span><span class="p">();</span><span class="w">   </span><span class="c1">// Segoe Fluent Icons → fallback Segoe MDL2 Assets</span>
 <span class="kr">inline</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">IconGlyph</span><span class="p">(</span><span class="n">Icon</span><span class="p">);</span>
 </pre></div>
-<pre id="code-f6b9f841" style="display: none;">enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., Pin=0xE718, View=0xE890, ... };
+<pre id="code-2e017691" style="display: none;">enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., Pin=0xE718, View=0xE890, ... };
 inline const std::wstring&amp; IconFontFamily();   // Segoe Fluent Icons → fallback Segoe MDL2 Assets
 inline std::wstring IconGlyph(Icon);</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: the enum value <strong>is the font codepoint</strong>. Font fallback is probed <strong>once, statically</strong>; runtime font changes are not re-probed; a few Win11-only glyphs render as a box.</li>
+<li>the enum value <strong>is the font codepoint</strong>. Font fallback is probed <strong>once, statically</strong>; runtime font changes are not re-probed; a few Win11-only glyphs render as a box.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: <code>Icon</code> sunk into <code>ZufyUIWidgets.h</code> in <code>v1.13.0</code>; all <code>Label</code>-derived controls gained <code>SetIcon</code>.</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.en.4.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Events &amp; Signals</span><span class="nav-desc">ZSignal, Connection, cross-thread</span></a><a class="next" href="API.en.6.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Element base</span><span class="nav-desc">UIElement (layout props, cache, events, accessibility, debug)</span></a></nav>

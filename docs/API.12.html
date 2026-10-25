@@ -237,7 +237,13 @@ void SetScrollBarWidth(float);  void SetScrollWheelStep(float);  void SetAnimati
 void ScrollTo(float x,float y,bool animated=true);  void ScrollBy(...);
 float GetScrollOffsetX/Y() const;
 ```
-- **`易错`**：`Hidden` 仍允许程序化/滚轮滚动（只是不显示条）。
+
+###block_red_start
+**易错**
+
+- `Hidden` 仍允许程序化/滚轮滚动（只是不显示条）。
+###block_red_end
+
 - **`版本`**：`v1.18.0` 起 `ScrollViewer::UseCache()==false`（内容常变/可滚动，缓存无益且占大位图）。
 
 ## ScrollBar（独立可复用）
@@ -252,8 +258,14 @@ void SetIdleDelay(float);  void SetAutoShrink(bool);  void MarkActive();
 inline static float ShrunkWidthRatio;   // 默认 0.30
 ```
 - 拖动 → `animate=false`（跟手）；点轨道 → `animate=true`。悬停扩张 + 空闲缩小；宿主用 `ShrunkWidthRatio` 预留槽位。
-- **`易错`**：`ValueChanged` 是 `std::function`（不是 `ZSignal`），签名 `(float, bool)`。
-- **`易错`**：`ShrinkTarget` 的“空闲等待缩小”倒计时**不再**算作活跃动画——否则会把整窗顶进动画模式导致数据重绘不落屏。代价：空闲缩小变**惰性**（到点后由下一帧触发）。
+
+###block_red_start
+**易错**
+
+- `ValueChanged` 是 `std::function`（不是 `ZSignal`），签名 `(float, bool)`。
+- `ShrinkTarget` 的“空闲等待缩小”倒计时**不再**算作活跃动画——否则会把整窗顶进动画模式导致数据重绘不落屏。代价：空闲缩小变**惰性**（到点后由下一帧触发）。
+###block_red_end
+
 - **`版本`**：`v1.11.0` 起独立复用；`ShrunkWidthRatio` `v1.13.0`。
 
 ## SplitView
@@ -269,9 +281,15 @@ void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/Is
 void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
 bool UseCache() const override { return false; }
 ```
-- **`易错`**：`Orientation` 命名反直觉（`Vertical` 指竖直分隔条、水平排列两栏）。
 - **折叠（`v1.21.0`）**：把分隔条拖到**距某侧边缘 `CollapseThreshold`（默认 28px）内** → 该侧内容**上方**浮出半透明强调色覆盖层 + 指向折叠方向的箭头（alpha 渐入渐出）；**此时不改内容**，**松手**才真正折叠（该侧尺寸带缓动从当前值变为 0）。折叠后该侧边缘出现小按钮（圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后该侧尺寸带缓动从 0 变为**最小极限值**（`SetMinFirst/MinSecond`；未设则回到折叠前比例）。整个功能可 `SetCollapseEnabled(false)` 关闭。
-- **`易错`**：覆盖层与本控件内部的 `Overlay` 子元素有关——它是**最后一个子元素**（框架按子元素顺序绘制），所以天生画在两栏内容**之上**；不要试图在 `SplitView::Draw` 里画这类装饰（会被内容盖住）。
+
+###block_red_start
+**易错**
+
+- `Orientation` 命名反直觉（`Vertical` 指竖直分隔条、水平排列两栏）。
+- 覆盖层与本控件内部的 `Overlay` 子元素有关——它是**最后一个子元素**（框架按子元素顺序绘制），所以天生画在两栏内容**之上**；不要试图在 `SplitView::Draw` 里画这类装饰（会被内容盖住）。
+###block_red_end
+
 - **`版本`**：`v1.12.0`；NaN/Inf 守卫 `v1.14.0`；折叠/小按钮 `v1.21.0`。
 
 ## Drawer（v1.25.0）
@@ -292,10 +310,50 @@ void SetFocusOnOpen(std::shared_ptr&lt;UIElement&gt;);
 void SetAnimationDuration(float);  void SetAnimationEasing(Easing);
 void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgress() const;
 ```
-- `Overlay`：圆角遮罩覆盖内容；`Push`：内容让位；`Permanent`：常驻、无动画/遮罩、`Close` 无效。
-- 面板圆角/边框/真实外侧阴影；`SetScrimOpacity(0)` 可去视觉遮罩但保留模态点击拦截，`SetModal(false)` 才会穿透。
-- 可当根布局或放在 `GridLayout` 的 cell；只覆盖内容区，不覆盖自定义标题栏/菜单栏。
-- **`易错`**：`SetPanelShadow` 画在面板背景之前，内层由不透明背景覆盖，边框最后绘制。
+###block_list_start
+###block_item_start
+**Overlay**
+
+圆角遮罩覆盖内容；点外部或 Esc 关闭。适合导航、筛选等临时面板。
+###block_item_end
+###block_item_start
+**Push**
+
+打开时内容让位，面板参与布局；适合需要同时查看列表和详情的场景。
+###block_item_end
+###block_item_start
+**Permanent**
+
+常驻侧栏，无动画/遮罩，`Close` 无效；适合固定导航或设置入口。
+###block_item_end
+###block_list_end
+
+###block_green_start
+**推荐**
+
+优先把 `Drawer` 当根布局或放进 `GridLayout` 的 cell；普通内容放 Overlay，需要内容缩窄时用 Push，长期导航用 Permanent。面板内容用 `SetPanel`，主内容用 `SetContent`。
+###block_green_end
+
+###block_orange_start
+**绘制顺序**
+
+`SetPanelShadow` 画在面板背景之前，内层会被不透明背景盖住，只有外侧阴影可见；边框最后绘制。
+###block_orange_end
+
+###block_red_start
+**易错**
+
+- `SetContent` 是主内容（会被抽屉遮住/让位），`SetPanel` 才是抽屉面板。把面板内容塞进 `SetContent` 不会得到面板背景、内边距、圆角和阴影。
+- `SetPanelSize` 是面板**外框**尺寸；默认 16px 内边距会先从面板内容中扣除（例如 `200` 的外宽只剩 `168` 给内容）。面板内容需要更宽时，调大 `SetPanelSize` 或减小 `SetPanelPadding`。
+- `Drawer` 是布局控件，只覆盖它自己的 arranged rect（根布局或某个 `GridLayout` cell），**不覆盖**窗口标题栏/菜单栏；要压暗整个内容区就放在对应区域的最外层。
+- `Open()` 立即把目标状态设为打开并触发 `OpenChanged`；`Opened`/`Closed` 要等动画结束才触发。`IsOpen()` 返回目标状态，不是当前进度；动画中请用 `IsAnimating()` / `GetOpenProgress()`。
+- `Permanent` 模式会强制打开、进度直接为 1、无动画/遮罩；`Close()` / `SetOpen(false)` 被忽略。从 Permanent 切回 Overlay/Push **不会自动关闭**，需要再调 `Close()`。
+- Scrim 只在 Overlay 模式存在；`SetDismissOnScrimClick` / `ScrimClicked` 只在 `SetModal(true)` 且进度 &gt; 0 时生效。`SetModal(false)` 后点击会落到内容上，`ScrimClicked` 不会触发。
+- `SetScrimOpacity(0)` 只是把遮罩画成透明，模态命中仍在（仍拦截点击）；要穿透请用 `SetModal(false)`。
+- `SetContentBorder` 只在 Overlay 模式绘制；Push/Permanent 没有内容边框。`SetPanelShadow` 的内层会被不透明面板背景覆盖，只有外侧阴影可见，边框最后绘制。
+- Esc 拦截和 `SetFocusOnOpen` 都要求 `Drawer` 已挂到 `Window`；还没 attach 时不会注册 Esc，也不会执行聚焦。
+###block_red_end
+
 - **`版本`**：`v1.25.0`。
 
 ## TabView
@@ -310,15 +368,21 @@ void SetTabTitle(int, ...);  void SetTabLabel(int, std::shared_ptr&lt;Label&gt;)
 void SetSelectedIndex(int);  int GetSelectedIndex() const;
 void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransitionDirection(bool);
 ```
-- **`易错`**：内容由内部 `PageHost` 承载；`AddTab` 首个页签会自动选中并触发 `SelectionChanged`。
-- **`易错`**：`SetSelectedIndex`/切换是**异步**的（过渡动画结束才定），`GetSelectedContent()`/索引在动画期间可能仍是旧值。
+
+###block_red_start
+**易错**
+
+- 内容由内部 `PageHost` 承载；`AddTab` 首个页签会自动选中并触发 `SelectionChanged`。
+- `SetSelectedIndex`/切换是**异步**的（过渡动画结束才定），`GetSelectedContent()`/索引在动画期间可能仍是旧值。
+###block_red_end
+
 - **`版本`**：`v1.11.0`；Label 化标题 + `SetTabLabel` `v1.13.0`；加锁 `v1.15.0`。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 12 章 · 容器与滚动</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 12 章</span><h1>容器与滚动</h1><p class="chapter-summary">ScrollViewer、ScrollBar、SplitView、Drawer、TabView</p></header><h2 id="scrollviewer">ScrollViewer</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b93e0211', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-7da35c15', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ScrollBarVisibility</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Auto</span><span class="p">,</span><span class="w"> </span><span class="n">Always</span><span class="p">,</span><span class="w"> </span><span class="n">Hidden</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ScrollChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// (offsetX, offsetY)，动画中也发</span>
@@ -329,7 +393,7 @@ void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransit
 <span class="kt">void</span><span class="w"> </span><span class="nf">ScrollTo</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="kt">bool</span><span class="w"> </span><span class="n">animated</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ScrollBy</span><span class="p">(...);</span>
 <span class="kt">float</span><span class="w"> </span><span class="n">GetScrollOffsetX</span><span class="o">/</span><span class="n">Y</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-b93e0211" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
+<pre id="code-7da35c15" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
 ZSignal&lt;float,float&gt; ScrollChanged;   // (offsetX, offsetY)，动画中也发
 void SetContent(std::shared_ptr&lt;UIElement&gt;);
 void SetVertical/HorizontalScrollEnabled(bool);
@@ -338,15 +402,20 @@ void SetScrollBarWidth(float);  void SetScrollWheelStep(float);  void SetAnimati
 void ScrollTo(float x,float y,bool animated=true);  void ScrollBy(...);
 float GetScrollOffsetX/Y() const;</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>Hidden</code> 仍允许程序化/滚轮滚动（只是不显示条）。</li>
+<li><code>Hidden</code> 仍允许程序化/滚轮滚动（只是不显示条）。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.18.0</code> 起 <code>ScrollViewer::UseCache()==false</code>（内容常变/可滚动，缓存无益且占大位图）。</li>
 </ul>
 <h2 id="scrollbar独立可复用">ScrollBar（独立可复用）</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9c3daf4a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-6b6ef8f2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">animate</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
 <span class="k">explicit</span><span class="w"> </span><span class="n">ScrollBar</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">vertical</span><span class="p">);</span>
@@ -356,7 +425,7 @@ float GetScrollOffsetX/Y() const;</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetIdleDelay</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoShrink</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">MarkActive</span><span class="p">();</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">ShrunkWidthRatio</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认 0.30</span>
 </pre></div>
-<pre id="code-9c3daf4a" style="display: none;">std::function&lt;void(float value, bool animate)&gt; ValueChanged;
+<pre id="code-6b6ef8f2" style="display: none;">std::function&lt;void(float value, bool animate)&gt; ValueChanged;
 explicit ScrollBar(bool vertical);
 void SetRange(float value, float maxValue, float viewportSize);   // 宿主每帧推入
 void SetBarWidth(float);  void SetMinLength(float);  void SetHitExtra(float);
@@ -366,15 +435,22 @@ inline static float ShrunkWidthRatio;   // 默认 0.30</pre>
 </div>
 <ul>
 <li>拖动 → <code>animate=false</code>（跟手）；点轨道 → <code>animate=true</code>。悬停扩张 + 空闲缩小；宿主用 <code>ShrunkWidthRatio</code> 预留槽位。</li>
-<li><strong><code>易错</code></strong>：<code>ValueChanged</code> 是 <code>std::function</code>（不是 <code>ZSignal</code>），签名 <code>(float, bool)</code>。</li>
-<li><strong><code>易错</code></strong>：<code>ShrinkTarget</code> 的“空闲等待缩小”倒计时<strong>不再</strong>算作活跃动画——否则会把整窗顶进动画模式导致数据重绘不落屏。代价：空闲缩小变<strong>惰性</strong>（到点后由下一帧触发）。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>ValueChanged</code> 是 <code>std::function</code>（不是 <code>ZSignal</code>），签名 <code>(float, bool)</code>。</li>
+<li><code>ShrinkTarget</code> 的“空闲等待缩小”倒计时<strong>不再</strong>算作活跃动画——否则会把整窗顶进动画模式导致数据重绘不落屏。代价：空闲缩小变<strong>惰性</strong>（到点后由下一帧触发）。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.11.0</code> 起独立复用；<code>ShrunkWidthRatio</code> <code>v1.13.0</code>。</li>
 </ul>
 <h2 id="splitview">SplitView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-8b5c4a70', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-37eba17e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// Vertical = 左右两栏 + 竖直分隔条</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SplitChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// 新比例 0..1</span>
@@ -386,7 +462,7 @@ inline static float ShrunkWidthRatio;   // 默认 0.30</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetExpandButtonColors</span><span class="p">(</span><span class="n">Color</span><span class="p">,</span><span class="n">Color</span><span class="p">,</span><span class="n">Color</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetExpandButtonSize</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">);</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 </pre></div>
-<pre id="code-8b5c4a70" style="display: none;">enum class Orientation { Vertical, Horizontal };   // Vertical = 左右两栏 + 竖直分隔条
+<pre id="code-37eba17e" style="display: none;">enum class Orientation { Vertical, Horizontal };   // Vertical = 左右两栏 + 竖直分隔条
 ZSignal&lt;float&gt; SplitChanged;   // 新比例 0..1
 void SetFirst/SetSecond(std::shared_ptr&lt;UIElement&gt;);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
@@ -397,16 +473,23 @@ void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float 
 bool UseCache() const override { return false; }</pre>
 </div>
 <ul>
-<li><strong><code>易错</code></strong>：<code>Orientation</code> 命名反直觉（<code>Vertical</code> 指竖直分隔条、水平排列两栏）。</li>
 <li><strong>折叠（<code>v1.21.0</code>）</strong>：把分隔条拖到<strong>距某侧边缘 <code>CollapseThreshold</code>（默认 28px）内</strong> → 该侧内容<strong>上方</strong>浮出半透明强调色覆盖层 + 指向折叠方向的箭头（alpha 渐入渐出）；<strong>此时不改内容</strong>，<strong>松手</strong>才真正折叠（该侧尺寸带缓动从当前值变为 0）。折叠后该侧边缘出现小按钮（圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后该侧尺寸带缓动从 0 变为<strong>最小极限值</strong>（<code>SetMinFirst/MinSecond</code>；未设则回到折叠前比例）。整个功能可 <code>SetCollapseEnabled(false)</code> 关闭。</li>
-<li><strong><code>易错</code></strong>：覆盖层与本控件内部的 <code>Overlay</code> 子元素有关——它是<strong>最后一个子元素</strong>（框架按子元素顺序绘制），所以天生画在两栏内容<strong>之上</strong>；不要试图在 <code>SplitView::Draw</code> 里画这类装饰（会被内容盖住）。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>Orientation</code> 命名反直觉（<code>Vertical</code> 指竖直分隔条、水平排列两栏）。</li>
+<li>覆盖层与本控件内部的 <code>Overlay</code> 子元素有关——它是<strong>最后一个子元素</strong>（框架按子元素顺序绘制），所以天生画在两栏内容<strong>之上</strong>；不要试图在 <code>SplitView::Draw</code> 里画这类装饰（会被内容盖住）。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.12.0</code>；NaN/Inf 守卫 <code>v1.14.0</code>；折叠/小按钮 <code>v1.21.0</code>。</li>
 </ul>
 <h2 id="drawerv1250">Drawer（v1.25.0）</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-312a2a6a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e6c9e916', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">DrawerSide</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="p">,</span><span class="w"> </span><span class="n">Top</span><span class="p">,</span><span class="w"> </span><span class="n">Bottom</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">DrawerMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Overlay</span><span class="p">,</span><span class="w"> </span><span class="n">Push</span><span class="p">,</span><span class="w"> </span><span class="n">Permanent</span><span class="w"> </span><span class="p">};</span>
@@ -423,7 +506,7 @@ bool UseCache() const override { return false; }</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationDuration</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationEasing</span><span class="p">(</span><span class="n">Easing</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">Open</span><span class="o">/</span><span class="n">Close</span><span class="o">/</span><span class="n">Toggle</span><span class="p">();</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">IsOpen</span><span class="o">/</span><span class="n">IsAnimating</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetOpenProgress</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-312a2a6a" style="display: none;">enum class DrawerSide { Left, Right, Top, Bottom };
+<pre id="code-e6c9e916" style="display: none;">enum class DrawerSide { Left, Right, Top, Bottom };
 enum class DrawerMode { Overlay, Push, Permanent };
 ZSignal&lt;bool&gt; OpenChanged;  ZSignal&lt;&gt; Opened, Closed, ScrimClicked;
 void SetContent/SetPanel(std::shared_ptr&lt;UIElement&gt;);
@@ -438,18 +521,50 @@ void SetFocusOnOpen(std::shared_ptr&lt;UIElement&gt;);
 void SetAnimationDuration(float);  void SetAnimationEasing(Easing);
 void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgress() const;</pre>
 </div>
+<div class="feature-list">
+<div class="feature-item" onmouseout="resetFeature(this)" onmouseover="animateFeature(this)">
+<p><strong>Overlay</strong></p>
+<p>圆角遮罩覆盖内容；点外部或 Esc 关闭。适合导航、筛选等临时面板。</p>
+</div>
+<div class="feature-item" onmouseout="resetFeature(this)" onmouseover="animateFeature(this)">
+<p><strong>Push</strong></p>
+<p>打开时内容让位，面板参与布局；适合需要同时查看列表和详情的场景。</p>
+</div>
+<div class="feature-item" onmouseout="resetFeature(this)" onmouseover="animateFeature(this)">
+<p><strong>Permanent</strong></p>
+<p>常驻侧栏，无动画/遮罩，<code>Close</code> 无效；适合固定导航或设置入口。</p>
+</div>
+</div>
+<div class="green">
+<p><strong>推荐</strong></p>
+<p>优先把 <code>Drawer</code> 当根布局或放进 <code>GridLayout</code> 的 cell；普通内容放 Overlay，需要内容缩窄时用 Push，长期导航用 Permanent。面板内容用 <code>SetPanel</code>，主内容用 <code>SetContent</code>。</p>
+</div>
+<div class="orange">
+<p><strong>绘制顺序</strong></p>
+<p><code>SetPanelShadow</code> 画在面板背景之前，内层会被不透明背景盖住，只有外侧阴影可见；边框最后绘制。</p>
+</div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><code>Overlay</code>：圆角遮罩覆盖内容；<code>Push</code>：内容让位；<code>Permanent</code>：常驻、无动画/遮罩、<code>Close</code> 无效。</li>
-<li>面板圆角/边框/真实外侧阴影；<code>SetScrimOpacity(0)</code> 可去视觉遮罩但保留模态点击拦截，<code>SetModal(false)</code> 才会穿透。</li>
-<li>可当根布局或放在 <code>GridLayout</code> 的 cell；只覆盖内容区，不覆盖自定义标题栏/菜单栏。</li>
-<li><strong><code>易错</code></strong>：<code>SetPanelShadow</code> 画在面板背景之前，内层由不透明背景覆盖，边框最后绘制。</li>
+<li><code>SetContent</code> 是主内容（会被抽屉遮住/让位），<code>SetPanel</code> 才是抽屉面板。把面板内容塞进 <code>SetContent</code> 不会得到面板背景、内边距、圆角和阴影。</li>
+<li><code>SetPanelSize</code> 是面板<strong>外框</strong>尺寸；默认 16px 内边距会先从面板内容中扣除（例如 <code>200</code> 的外宽只剩 <code>168</code> 给内容）。面板内容需要更宽时，调大 <code>SetPanelSize</code> 或减小 <code>SetPanelPadding</code>。</li>
+<li><code>Drawer</code> 是布局控件，只覆盖它自己的 arranged rect（根布局或某个 <code>GridLayout</code> cell），<strong>不覆盖</strong>窗口标题栏/菜单栏；要压暗整个内容区就放在对应区域的最外层。</li>
+<li><code>Open()</code> 立即把目标状态设为打开并触发 <code>OpenChanged</code>；<code>Opened</code>/<code>Closed</code> 要等动画结束才触发。<code>IsOpen()</code> 返回目标状态，不是当前进度；动画中请用 <code>IsAnimating()</code> / <code>GetOpenProgress()</code>。</li>
+<li><code>Permanent</code> 模式会强制打开、进度直接为 1、无动画/遮罩；<code>Close()</code> / <code>SetOpen(false)</code> 被忽略。从 Permanent 切回 Overlay/Push <strong>不会自动关闭</strong>，需要再调 <code>Close()</code>。</li>
+<li>Scrim 只在 Overlay 模式存在；<code>SetDismissOnScrimClick</code> / <code>ScrimClicked</code> 只在 <code>SetModal(true)</code> 且进度 &gt; 0 时生效。<code>SetModal(false)</code> 后点击会落到内容上，<code>ScrimClicked</code> 不会触发。</li>
+<li><code>SetScrimOpacity(0)</code> 只是把遮罩画成透明，模态命中仍在（仍拦截点击）；要穿透请用 <code>SetModal(false)</code>。</li>
+<li><code>SetContentBorder</code> 只在 Overlay 模式绘制；Push/Permanent 没有内容边框。<code>SetPanelShadow</code> 的内层会被不透明面板背景覆盖，只有外侧阴影可见，边框最后绘制。</li>
+<li>Esc 拦截和 <code>SetFocusOnOpen</code> 都要求 <code>Drawer</code> 已挂到 <code>Window</code>；还没 attach 时不会注册 Esc，也不会执行聚焦。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.25.0</code>。</li>
 </ul>
 <h2 id="tabview">TabView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-780c6fd2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-d8d1210f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Tab</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">label</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Page</span><span class="o">&gt;</span><span class="w"> </span><span class="n">page</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">TabCloseRequested</span><span class="p">;</span>
@@ -460,7 +575,7 @@ void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgre
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedIndex</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetSelectedIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionDirection</span><span class="p">(</span><span class="n">PageHost</span><span class="o">::</span><span class="n">TransitionDirection</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoTransitionDirection</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 </pre></div>
-<pre id="code-780c6fd2" style="display: none;">struct Tab { std::shared_ptr&lt;Label&gt; label; std::shared_ptr&lt;Page&gt; page; bool closable; ... };
+<pre id="code-d8d1210f" style="display: none;">struct Tab { std::shared_ptr&lt;Label&gt; label; std::shared_ptr&lt;Page&gt; page; bool closable; ... };
 ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;int&gt; TabCloseRequested;
 int  AddTab(const std::wstring&amp;, std::shared_ptr&lt;UIElement&gt; content=nullptr, bool closable=false);
 int  AddTab(std::shared_ptr&lt;Label&gt;, ...);
@@ -469,9 +584,14 @@ void SetTabTitle(int, ...);  void SetTabLabel(int, std::shared_ptr&lt;Label&gt;)
 void SetSelectedIndex(int);  int GetSelectedIndex() const;
 void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransitionDirection(bool);</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：内容由内部 <code>PageHost</code> 承载；<code>AddTab</code> 首个页签会自动选中并触发 <code>SelectionChanged</code>。</li>
-<li><strong><code>易错</code></strong>：<code>SetSelectedIndex</code>/切换是<strong>异步</strong>的（过渡动画结束才定），<code>GetSelectedContent()</code>/索引在动画期间可能仍是旧值。</li>
+<li>内容由内部 <code>PageHost</code> 承载；<code>AddTab</code> 首个页签会自动选中并触发 <code>SelectionChanged</code>。</li>
+<li><code>SetSelectedIndex</code>/切换是<strong>异步</strong>的（过渡动画结束才定），<code>GetSelectedContent()</code>/索引在动画期间可能仍是旧值。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.11.0</code>；Label 化标题 + <code>SetTabLabel</code> <code>v1.13.0</code>；加锁 <code>v1.15.0</code>。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.11.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">进度</span><span class="nav-desc">ProgressBar、ProgressRing</span></a><a class="next" href="API.13.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">菜单与弹窗</span><span class="nav-desc">Menu、MenuItem、MenuWindow、MessageBox</span></a></nav>

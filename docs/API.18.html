@@ -262,13 +262,19 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeChanged;   // nullptr=应用级
 ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重套可见子树
 ```
 - 取色优先级：**实例显式设色 &gt; 窗口主题 &gt; 应用主题**。控件只要被显式调用过任何 `Set*Color`，就标记为“用户设色”，主题切换**不再覆盖它**；其余控件跟随主题。
-- **`易错`**：`Backdrop` 是**窗口/背景基色**（浅色白、深色黑）；`SetBackdrop/SetBackgroundColor` 显式指定 tint 后主题不再改它。
+
+###block_red_start
+**易错**
+
+- `Backdrop` 是**窗口/背景基色**（浅色白、深色黑）；`SetBackdrop/SetBackgroundColor` 显式指定 tint 后主题不再改它。
+###block_red_end
+
 - **`版本`**：`v1.19.0` 引入；窗口周边（标题栏三件套）跟随**系统**主题而非窗口主题；`WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE` 自动重解析。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 18 章 · 主题系统</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 18 章</span><h1>主题系统</h1><p class="chapter-summary">Theme（v1.19.0+）</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-de4768ff', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-3fa23f69', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// 语义色角色（按“角色”取色，而不是按控件）</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ThemeRole</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Text</span><span class="p">,</span><span class="w"> </span><span class="n">TextSecondary</span><span class="p">,</span><span class="w"> </span><span class="n">TextDisabled</span><span class="p">,</span><span class="w"> </span><span class="n">TextOnAccent</span><span class="p">,</span>
@@ -305,7 +311,7 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重�
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeChanged</span><span class="p">;</span><span class="w">   </span><span class="c1">// nullptr=应用级</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">UIZSignals</span><span class="o">::</span><span class="n">ThemeReapply</span><span class="p">;</span><span class="w">   </span><span class="c1">// 页面/标签切换后重套可见子树</span>
 </pre></div>
-<pre id="code-de4768ff" style="display: none;">// 语义色角色（按“角色”取色，而不是按控件）
+<pre id="code-3fa23f69" style="display: none;">// 语义色角色（按“角色”取色，而不是按控件）
 enum class ThemeRole { Text, TextSecondary, TextDisabled, TextOnAccent,
     Surface, SurfaceAlt, SurfaceRaised, Backdrop, Overlay,
     Control, ControlHover, ControlPressed, ControlDisabled,
@@ -342,7 +348,14 @@ ZSignal&lt;Window*&gt; UIZSignals::ThemeReapply;   // 页面/标签切换后重�
 </div>
 <ul>
 <li>取色优先级：<strong>实例显式设色 &gt; 窗口主题 &gt; 应用主题</strong>。控件只要被显式调用过任何 <code>Set*Color</code>，就标记为“用户设色”，主题切换<strong>不再覆盖它</strong>；其余控件跟随主题。</li>
-<li><strong><code>易错</code></strong>：<code>Backdrop</code> 是<strong>窗口/背景基色</strong>（浅色白、深色黑）；<code>SetBackdrop/SetBackgroundColor</code> 显式指定 tint 后主题不再改它。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>Backdrop</code> 是<strong>窗口/背景基色</strong>（浅色白、深色黑）；<code>SetBackdrop/SetBackgroundColor</code> 显式指定 tint 后主题不再改它。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.19.0</code> 引入；窗口周边（标题栏三件套）跟随<strong>系统</strong>主题而非窗口主题；<code>WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE</code> 自动重解析。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.17.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">拖放与卡片组件</span><span class="nav-desc">Drag &amp; Drop、Expander、SettingsList（v1.19.0）</span></a><a class="next" href="API.19.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">DSL</span><span class="nav-desc">链式构造（ZufyUIDsl.h，v1.19.4；v1.20.0 扩充）</span></a></nav>

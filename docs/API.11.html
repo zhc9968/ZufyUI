@@ -234,7 +234,13 @@ void SetRange(float min,float max);  void SetRangeValue(float);   // [min,max]
 void SetIndeterminate(bool);   void SetIndeterminateBlockWidth(float);  void SetIndeterminateSpeed(float);
 inline static float DefaultValueAnimDuration;   // 数值缓动时长(秒)，默认 0.22
 ```
-- **`易错`**：`SetValue` 是 `[0,1]`，`SetRangeValue` 是 `[min,max]`，**别混用**。
+
+###block_red_start
+**易错**
+
+- `SetValue` 是 `[0,1]`，`SetRangeValue` 是 `[min,max]`，**别混用**。
+###block_red_end
+
 - **`版本`**：`v1.21.0` 起数值变化有**缓动**（内部 `displayValue_` 时长驱动，填充条与 `%` 文字同步，到点即停）；同版本修**拉伸后内填充圆角与外框对不上**（轨道/裁剪/边框原用成员 `height_`，改用 `arrangedRect_.height/2`）。
 
 ## ProgressRing
@@ -249,7 +255,7 @@ bool UseCache() const override { return false; }   // 每帧重绘
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0a31b22b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-df3d3017', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">          </span><span class="c1">// 归一化到 [0,1]</span>
@@ -257,26 +263,31 @@ bool UseCache() const override { return false; }   // 每帧重绘
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminateBlockWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminateSpeed</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">DefaultValueAnimDuration</span><span class="p">;</span><span class="w">   </span><span class="c1">// 数值缓动时长(秒)，默认 0.22</span>
 </pre></div>
-<pre id="code-0a31b22b" style="display: none;">ZSignal&lt;float&gt; ValueChanged;
+<pre id="code-df3d3017" style="display: none;">ZSignal&lt;float&gt; ValueChanged;
 void SetValue(float);          // 归一化到 [0,1]
 void SetRange(float min,float max);  void SetRangeValue(float);   // [min,max]
 void SetIndeterminate(bool);   void SetIndeterminateBlockWidth(float);  void SetIndeterminateSpeed(float);
 inline static float DefaultValueAnimDuration;   // 数值缓动时长(秒)，默认 0.22</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>SetValue</code> 是 <code>[0,1]</code>，<code>SetRangeValue</code> 是 <code>[min,max]</code>，<strong>别混用</strong>。</li>
+<li><code>SetValue</code> 是 <code>[0,1]</code>，<code>SetRangeValue</code> 是 <code>[min,max]</code>，<strong>别混用</strong>。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.21.0</code> 起数值变化有<strong>缓动</strong>（内部 <code>displayValue_</code> 时长驱动，填充条与 <code>%</code> 文字同步，到点即停）；同版本修<strong>拉伸后内填充圆角与外框对不上</strong>（轨道/裁剪/边框原用成员 <code>height_</code>，改用 <code>arrangedRect_.height/2</code>）。</li>
 </ul>
 <h2 id="progressring">ProgressRing</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-73b2309c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-aee76ea1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetThickness</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// 每帧重绘</span>
 </pre></div>
-<pre id="code-73b2309c" style="display: none;">void SetValue(float);  void SetIndeterminate(bool);  void SetThickness(float);
+<pre id="code-aee76ea1" style="display: none;">void SetValue(float);  void SetIndeterminate(bool);  void SetThickness(float);
 bool UseCache() const override { return false; }   // 每帧重绘</pre>
 </div>
 <ul>

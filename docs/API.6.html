@@ -244,8 +244,14 @@ void SetHorizontalStretchWeight(float);   void SetVerticalStretchWeight(float);
 virtual float GetDefaultHorizontalStretchWeight() const;   // 同理 Vertical
 ```
 - **拉伸权值**：容器（`ColumnBox`/`RowBox`/`GridLayout`）把**剩余空间**按子元素权值分配。`FillWidth/Height` 等价“该轴权值 1”。`GetDefault*` 是类型默认，`Set*` 覆盖它。
-- **`易错`**：`SetWidth/SetHeight` 是**固定尺寸**；`SetFillWidth/Height` 是**填满父轴**；两者与拉伸权值叠加，行为要分清。
-- **`易错`**：`GetDesiredSize()` 是上一次 `Measure` 的结果；未测量过/刚改内容时可能是旧值。
+
+###block_red_start
+**易错**
+
+- `SetWidth/SetHeight` 是**固定尺寸**；`SetFillWidth/Height` 是**填满父轴**；两者与拉伸权值叠加，行为要分清。
+- `GetDesiredSize()` 是上一次 `Measure` 的结果；未测量过/刚改内容时可能是旧值。
+###block_red_end
+
 - **`版本`**：`SetStretchWeights`/`GetDefault*` 自初版存在；**`ColumnBox`/`RowBox`/`GridLayout` 真正按显式权值分配剩余空间 = `v1.17.0`**。
 
 ## 绘制 / 子元素 / 裁剪 / 缓存
@@ -263,9 +269,15 @@ void ReleaseDeviceResourcesRecursive();        // 释放整棵子树
 virtual D2D1::Matrix3x2F GetChildRenderTransform(UIElement* child) const;
 ```
 - **缓存机制**：`UseCache()==true` 的元素渲染到自身 `ID2D1Bitmap1` 离屏位图；仅当被 `RequestRepaint()` 标记或尺寸变化时重建。出现阴影时自动加 `bleed`。
-- **`易错`**：**每帧内容在变**（动画、实时文本、旋转）或**实例极多**（上千个）的控件应 `SetUseCache(false)`，否则显存与重建开销爆炸。
-- **`易错`**：`GetChildren()` 在渲染阶段**必须纯读**；渲染前要保证 `RefreshChildren()` 已调用（窗口在 `AdvanceFrame` 里统一做）。
-- **`易错`**：`ReleaseDeviceResources()` 只释放自身；释放整棵子树用 `ReleaseDeviceResourcesRecursive()`。
+
+###block_red_start
+**易错**
+
+- **每帧内容在变**（动画、实时文本、旋转）或**实例极多**（上千个）的控件应 `SetUseCache(false)`，否则显存与重建开销爆炸。
+- `GetChildren()` 在渲染阶段**必须纯读**；渲染前要保证 `RefreshChildren()` 已调用（窗口在 `AdvanceFrame` 里统一做）。
+- `ReleaseDeviceResources()` 只释放自身；释放整棵子树用 `ReleaseDeviceResourcesRecursive()`。
+###block_red_end
+
 - **`版本`**：`ReleaseDeviceResourcesRecursive()` = `v1.18.0`（用于隐藏页缓存延迟释放）；`SetUseCache(false)` 现在会**立即释放**已有位图。
 
 ## 可见性 / 启用 / 提示 / 光标
@@ -277,7 +289,12 @@ void SetToolTip(const std::wstring&amp;);   virtual std::wstring GetToolTip() co
 void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;
 ```
 - 禁用元素不参与命中/悬停。提示会**向上解析**父级提示（如 Button → Label）。
-- **`易错`**：`SetCursor` 不直接调 `::SetCursor`，而是延迟到 `WM_SETCURSOR`，避免闪烁。
+
+###block_red_start
+**易错**
+
+- `SetCursor` 不直接调 `::SetCursor`，而是延迟到 `WM_SETCURSOR`，避免闪烁。
+###block_red_end
 
 ## 右键菜单 / 拖动区 / 布局参与
 
@@ -290,7 +307,12 @@ void SetLayoutParticipation(LayoutParticipation);
 void SetDraggable(bool); void SetDragRegion(const Rect&amp;); void ClearDragRegion();
 virtual int NonClientHitTest(float x, float y) const;
 ```
-- **`易错`**：`DrawBeforeLayout`/`DrawAfterLayout` 由独立通道绘制，**不要再放进根树**，否则画两遍。自定义标题栏就是 `DrawBeforeLayout` 且自己管位置。
+
+###block_red_start
+**易错**
+
+- `DrawBeforeLayout`/`DrawAfterLayout` 由独立通道绘制，**不要再放进根树**，否则画两遍。自定义标题栏就是 `DrawBeforeLayout` 且自己管位置。
+###block_red_end
 
 ## 事件虚函数与元素信号
 
@@ -308,8 +330,14 @@ ZSignal&lt;&gt; MouseEnter, MouseLeave, Focused, Blurred;
 ZSignal&lt;float,float&gt; MouseMove, MouseDown, MouseUp;
 ZSignal&lt;WPARAM,LPARAM&gt; KeyDown, KeyUp;   ZSignal&lt;wchar_t&gt; Char;
 ```
-- **`易错`**：有动画的控件必须让 `HasActiveAnimation()` 正确返回，否则帧循环停了动画就不走。
-- **`易错`**：多行编辑器要让 `AcceptsTab()` 返回 true 才会吞掉 Tab 做缩进，否则 Tab 切焦点。
+
+###block_red_start
+**易错**
+
+- 有动画的控件必须让 `HasActiveAnimation()` 正确返回，否则帧循环停了动画就不走。
+- 多行编辑器要让 `AcceptsTab()` 返回 true 才会吞掉 Tab 做缩进，否则 Tab 切焦点。
+###block_red_end
+
 - **`版本`**：`AcceptsTab()` = `v1.18.0`（配合 `TextEdit`）。
 
 ## 无障碍（UIA）— v1.17.0
@@ -331,7 +359,13 @@ virtual double GetAccessibleRangeValue() const; virtual void SetAccessibleRangeV
 virtual double GetAccessibleRangeMin/Max/Step() const;
 void AccessibilityNotifyFocus/PropertyChanged/StructureChanged();
 ```
-- **`易错`**：角色决定暴露哪些 UIA Pattern：Button/MenuItem→Invoke；Edit/Document→Value；Slider/ProgressBar→RangeValue；toggle 状态 ≥0→Toggle；expand 状态 ≥0→ExpandCollapse。隐藏节点默认不暴露。
+
+###block_red_start
+**易错**
+
+- 角色决定暴露哪些 UIA Pattern：Button/MenuItem→Invoke；Edit/Document→Value；Slider/ProgressBar→RangeValue；toggle 状态 ≥0→Toggle；expand 状态 ≥0→ExpandCollapse。隐藏节点默认不暴露。
+###block_red_end
+
 - **`版本`**：整套 = `v1.17.0`（对应 `Window::SetAccessibilityEnabled`，默认开）。
 
 ## 字体（元素级）
@@ -342,7 +376,12 @@ void SetFontFamily/SetFontSize/SetFontWeight(...);  void ClearFont();
 virtual std::optional&lt;FontSpec&gt; GetTypeDefaultFont() const;  FontSpec GetEffectiveFontSpec() const;
 ```
 - 解析链：**实例覆盖 → 类型默认 → 全局**。
-- **`易错`**：写 `fontOverride_`（含 `std::wstring`）必须与渲染串行；已挂载元素的 `StoreFontOverride`/`InvalidateFontCache` 内部会取 `renderLock_`。
+
+###block_red_start
+**易错**
+
+- 写 `fontOverride_`（含 `std::wstring`）必须与渲染串行；已挂载元素的 `StoreFontOverride`/`InvalidateFontCache` 内部会取 `renderLock_`。
+###block_red_end
 
 ## 阴影
 
@@ -362,7 +401,7 @@ float GetShadowExtent() const;
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-13fb90a1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e57123c3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="n">Size</span><span class="w"> </span><span class="nf">MeasureOverride</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Size</span><span class="o">&amp;</span><span class="w"> </span><span class="n">avail</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="n">Size</span><span class="w"> </span><span class="nf">Measure</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Size</span><span class="o">&amp;</span><span class="w"> </span><span class="n">avail</span><span class="p">);</span><span class="w">      </span><span class="n">Size</span><span class="w"> </span><span class="nf">GetDesiredSize</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -379,7 +418,7 @@ float GetShadowExtent() const;
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetHorizontalStretchWeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVerticalStretchWeight</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetDefaultHorizontalStretchWeight</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 同理 Vertical</span>
 </pre></div>
-<pre id="code-13fb90a1" style="display: none;">virtual Size MeasureOverride(const Size&amp; avail) = 0;
+<pre id="code-e57123c3" style="display: none;">virtual Size MeasureOverride(const Size&amp; avail) = 0;
 Size Measure(const Size&amp; avail);      Size GetDesiredSize() const;
 virtual void ArrangeOverride(const Rect&amp;);   void Arrange(const Rect&amp;);
 Rect GetArrangedRect() const;
@@ -396,15 +435,22 @@ virtual float GetDefaultHorizontalStretchWeight() const;   // 同理 Vertical</p
 </div>
 <ul>
 <li><strong>拉伸权值</strong>：容器（<code>ColumnBox</code>/<code>RowBox</code>/<code>GridLayout</code>）把<strong>剩余空间</strong>按子元素权值分配。<code>FillWidth/Height</code> 等价“该轴权值 1”。<code>GetDefault*</code> 是类型默认，<code>Set*</code> 覆盖它。</li>
-<li><strong><code>易错</code></strong>：<code>SetWidth/SetHeight</code> 是<strong>固定尺寸</strong>；<code>SetFillWidth/Height</code> 是<strong>填满父轴</strong>；两者与拉伸权值叠加，行为要分清。</li>
-<li><strong><code>易错</code></strong>：<code>GetDesiredSize()</code> 是上一次 <code>Measure</code> 的结果；未测量过/刚改内容时可能是旧值。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>SetWidth/SetHeight</code> 是<strong>固定尺寸</strong>；<code>SetFillWidth/Height</code> 是<strong>填满父轴</strong>；两者与拉伸权值叠加，行为要分清。</li>
+<li><code>GetDesiredSize()</code> 是上一次 <code>Measure</code> 的结果；未测量过/刚改内容时可能是旧值。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>SetStretchWeights</code>/<code>GetDefault*</code> 自初版存在；<strong><code>ColumnBox</code>/<code>RowBox</code>/<code>GridLayout</code> 真正按显式权值分配剩余空间 = <code>v1.17.0</code></strong>。</li>
 </ul>
 <h2 id="绘制-子元素-裁剪-缓存">绘制 / 子元素 / 裁剪 / 缓存</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-cec7b62d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-83f83c67', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">Draw</span><span class="p">(</span><span class="n">ID2D1RenderTarget</span><span class="o">*</span><span class="w"> </span><span class="n">rt</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">RefreshChildren</span><span class="p">();</span><span class="w">                       </span><span class="c1">// 更新阶段（UI 线程）重建可见子列表</span>
@@ -417,7 +463,7 @@ virtual float GetDefaultHorizontalStretchWeight() const;   // 同理 Vertical</p
 <span class="kt">void</span><span class="w"> </span><span class="nf">ReleaseDeviceResourcesRecursive</span><span class="p">();</span><span class="w">        </span><span class="c1">// 释放整棵子树</span>
 <span class="k">virtual</span><span class="w"> </span><span class="n">D2D1</span><span class="o">::</span><span class="n">Matrix3x2F</span><span class="w"> </span><span class="nf">GetChildRenderTransform</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">child</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-cec7b62d" style="display: none;">virtual void Draw(ID2D1RenderTarget* rt) = 0;
+<pre id="code-83f83c67" style="display: none;">virtual void Draw(ID2D1RenderTarget* rt) = 0;
 virtual void RefreshChildren();                       // 更新阶段（UI 线程）重建可见子列表
 virtual const std::vector&lt;UIElement*&gt;&amp; GetChildren() const;   // 渲染阶段纯读
 virtual bool UseCache() const;   void SetUseCache(bool);      // 默认 true
@@ -430,36 +476,48 @@ virtual D2D1::Matrix3x2F GetChildRenderTransform(UIElement* child) const;</pre>
 </div>
 <ul>
 <li><strong>缓存机制</strong>：<code>UseCache()==true</code> 的元素渲染到自身 <code>ID2D1Bitmap1</code> 离屏位图；仅当被 <code>RequestRepaint()</code> 标记或尺寸变化时重建。出现阴影时自动加 <code>bleed</code>。</li>
-<li><strong><code>易错</code></strong>：<strong>每帧内容在变</strong>（动画、实时文本、旋转）或<strong>实例极多</strong>（上千个）的控件应 <code>SetUseCache(false)</code>，否则显存与重建开销爆炸。</li>
-<li><strong><code>易错</code></strong>：<code>GetChildren()</code> 在渲染阶段<strong>必须纯读</strong>；渲染前要保证 <code>RefreshChildren()</code> 已调用（窗口在 <code>AdvanceFrame</code> 里统一做）。</li>
-<li><strong><code>易错</code></strong>：<code>ReleaseDeviceResources()</code> 只释放自身；释放整棵子树用 <code>ReleaseDeviceResourcesRecursive()</code>。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><strong>每帧内容在变</strong>（动画、实时文本、旋转）或<strong>实例极多</strong>（上千个）的控件应 <code>SetUseCache(false)</code>，否则显存与重建开销爆炸。</li>
+<li><code>GetChildren()</code> 在渲染阶段<strong>必须纯读</strong>；渲染前要保证 <code>RefreshChildren()</code> 已调用（窗口在 <code>AdvanceFrame</code> 里统一做）。</li>
+<li><code>ReleaseDeviceResources()</code> 只释放自身；释放整棵子树用 <code>ReleaseDeviceResourcesRecursive()</code>。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>ReleaseDeviceResourcesRecursive()</code> = <code>v1.18.0</code>（用于隐藏页缓存延迟释放）；<code>SetUseCache(false)</code> 现在会<strong>立即释放</strong>已有位图。</li>
 </ul>
 <h2 id="可见性-启用-提示-光标">可见性 / 启用 / 提示 / 光标</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-04684df7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-0dda5200', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVisibleNoInvalidate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsVisible</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsEffectivelyEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="c1">// 沿父链</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetToolTip</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetToolTip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCursor</span><span class="p">(</span><span class="n">HCURSOR</span><span class="p">);</span><span class="w">   </span><span class="n">HCURSOR</span><span class="w"> </span><span class="nf">GetDesiredCursor</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-04684df7" style="display: none;">void SetVisible(bool);  void SetVisibleNoInvalidate(bool);  bool IsVisible() const;
+<pre id="code-0dda5200" style="display: none;">void SetVisible(bool);  void SetVisibleNoInvalidate(bool);  bool IsVisible() const;
 void SetEnabled(bool);  bool IsEnabled() const;  bool IsEffectivelyEnabled() const;  // 沿父链
 void SetToolTip(const std::wstring&amp;);   virtual std::wstring GetToolTip() const;
 void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;</pre>
 </div>
 <ul>
 <li>禁用元素不参与命中/悬停。提示会<strong>向上解析</strong>父级提示（如 Button → Label）。</li>
-<li><strong><code>易错</code></strong>：<code>SetCursor</code> 不直接调 <code>::SetCursor</code>，而是延迟到 <code>WM_SETCURSOR</code>，避免闪烁。</li>
 </ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>SetCursor</code> 不直接调 <code>::SetCursor</code>，而是延迟到 <code>WM_SETCURSOR</code>，避免闪烁。</li>
+</ul>
+</div>
 <h2 id="右键菜单-拖动区-布局参与">右键菜单 / 拖动区 / 布局参与</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-dd63a756', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-72f5c908', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetContextMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetContextMenuFactory</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">()</span><span class="o">&gt;</span><span class="p">);</span>
@@ -469,7 +527,7 @@ void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDraggable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDragRegion</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Rect</span><span class="o">&amp;</span><span class="p">);</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearDragRegion</span><span class="p">();</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">NonClientHitTest</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-dd63a756" style="display: none;">void SetContextMenu(std::shared_ptr&lt;Menu&gt;);
+<pre id="code-72f5c908" style="display: none;">void SetContextMenu(std::shared_ptr&lt;Menu&gt;);
 void SetContextMenuFactory(std::function&lt;std::shared_ptr&lt;Menu&gt;()&gt;);
 std::shared_ptr&lt;Menu&gt; BuildContextMenu() const;
 enum class LayoutParticipation { Normal, DrawBeforeLayout, DrawAfterLayout };
@@ -477,14 +535,17 @@ void SetLayoutParticipation(LayoutParticipation);
 void SetDraggable(bool); void SetDragRegion(const Rect&amp;); void ClearDragRegion();
 virtual int NonClientHitTest(float x, float y) const;</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>DrawBeforeLayout</code>/<code>DrawAfterLayout</code> 由独立通道绘制，<strong>不要再放进根树</strong>，否则画两遍。自定义标题栏就是 <code>DrawBeforeLayout</code> 且自己管位置。</li>
+<li><code>DrawBeforeLayout</code>/<code>DrawAfterLayout</code> 由独立通道绘制，<strong>不要再放进根树</strong>，否则画两遍。自定义标题栏就是 <code>DrawBeforeLayout</code> 且自己管位置。</li>
 </ul>
+</div>
 <h2 id="事件虚函数与元素信号">事件虚函数与元素信号</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5d43bed6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b69edafa', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">virtual</span><span class="w"> </span><span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="nf">HitTest</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">OnMouseEnter</span><span class="o">/</span><span class="n">Leave</span><span class="o">/</span><span class="n">Move</span><span class="o">/</span><span class="n">Down</span><span class="o">/</span><span class="n">Up</span><span class="p">(...);</span><span class="w">  </span><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">OnContextMenu</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
@@ -499,7 +560,7 @@ virtual int NonClientHitTest(float x, float y) const;</pre>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">MouseMove</span><span class="p">,</span><span class="w"> </span><span class="n">MouseDown</span><span class="p">,</span><span class="w"> </span><span class="n">MouseUp</span><span class="p">;</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">WPARAM</span><span class="p">,</span><span class="n">LPARAM</span><span class="o">&gt;</span><span class="w"> </span><span class="n">KeyDown</span><span class="p">,</span><span class="w"> </span><span class="n">KeyUp</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">wchar_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Char</span><span class="p">;</span>
 </pre></div>
-<pre id="code-5d43bed6" style="display: none;">virtual UIElement* HitTest(float x, float y);
+<pre id="code-b69edafa" style="display: none;">virtual UIElement* HitTest(float x, float y);
 virtual void OnMouseEnter/Leave/Move/Down/Up(...);  virtual bool OnContextMenu(float,float);
 virtual void OnKeyDown/Up(WPARAM,LPARAM);  virtual void OnChar(wchar_t);
 virtual void OnFocus()/OnBlur();
@@ -512,16 +573,21 @@ ZSignal&lt;&gt; MouseEnter, MouseLeave, Focused, Blurred;
 ZSignal&lt;float,float&gt; MouseMove, MouseDown, MouseUp;
 ZSignal&lt;WPARAM,LPARAM&gt; KeyDown, KeyUp;   ZSignal&lt;wchar_t&gt; Char;</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：有动画的控件必须让 <code>HasActiveAnimation()</code> 正确返回，否则帧循环停了动画就不走。</li>
-<li><strong><code>易错</code></strong>：多行编辑器要让 <code>AcceptsTab()</code> 返回 true 才会吞掉 Tab 做缩进，否则 Tab 切焦点。</li>
+<li>有动画的控件必须让 <code>HasActiveAnimation()</code> 正确返回，否则帧循环停了动画就不走。</li>
+<li>多行编辑器要让 <code>AcceptsTab()</code> 返回 true 才会吞掉 Tab 做缩进，否则 Tab 切焦点。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>AcceptsTab()</code> = <code>v1.18.0</code>（配合 <code>TextEdit</code>）。</li>
 </ul>
 <h2 id="无障碍uia-v1170">无障碍（UIA）— v1.17.0</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-83d61445', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-9258ba18', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleName</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetAccessibleName</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibleDescription</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
@@ -539,7 +605,7 @@ ZSignal&lt;WPARAM,LPARAM&gt; KeyDown, KeyUp;   ZSignal&lt;wchar_t&gt; Char;</pre
 <span class="k">virtual</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">GetAccessibleRangeMin</span><span class="o">/</span><span class="n">Max</span><span class="o">/</span><span class="n">Step</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">AccessibilityNotifyFocus</span><span class="o">/</span><span class="n">PropertyChanged</span><span class="o">/</span><span class="n">StructureChanged</span><span class="p">();</span>
 </pre></div>
-<pre id="code-83d61445" style="display: none;">void SetAccessibleName(const std::wstring&amp;);  std::wstring GetAccessibleName() const;
+<pre id="code-9258ba18" style="display: none;">void SetAccessibleName(const std::wstring&amp;);  std::wstring GetAccessibleName() const;
 void SetAccessibleDescription(const std::wstring&amp;);
 void SetAutomationId(const std::wstring&amp;);     std::wstring GetAutomationIdOrAuto() const;  // 自动 e{n}
 void SetAccessibleRole(AccessibleRole);  virtual AccessibleRole GetAccessibleRole() const;
@@ -555,39 +621,49 @@ virtual double GetAccessibleRangeValue() const; virtual void SetAccessibleRangeV
 virtual double GetAccessibleRangeMin/Max/Step() const;
 void AccessibilityNotifyFocus/PropertyChanged/StructureChanged();</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：角色决定暴露哪些 UIA Pattern：Button/MenuItem→Invoke；Edit/Document→Value；Slider/ProgressBar→RangeValue；toggle 状态 ≥0→Toggle；expand 状态 ≥0→ExpandCollapse。隐藏节点默认不暴露。</li>
+<li>角色决定暴露哪些 UIA Pattern：Button/MenuItem→Invoke；Edit/Document→Value；Slider/ProgressBar→RangeValue；toggle 状态 ≥0→Toggle；expand 状态 ≥0→ExpandCollapse。隐藏节点默认不暴露。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：整套 = <code>v1.17.0</code>（对应 <code>Window::SetAccessibilityEnabled</code>，默认开）。</li>
 </ul>
 <h2 id="字体元素级">字体（元素级）</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9b80fc89', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e16743a6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetGlobalFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">SetFontFamily</span><span class="o">/</span><span class="n">SetFontSize</span><span class="o">/</span><span class="n">SetFontWeight</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearFont</span><span class="p">();</span>
 <span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetTypeDefaultFont</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="n">FontSpec</span><span class="w"> </span><span class="nf">GetEffectiveFontSpec</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-9b80fc89" style="display: none;">static void SetGlobalFont(const FontSpec&amp;);  void SetFont(const FontSpec&amp;);
+<pre id="code-e16743a6" style="display: none;">static void SetGlobalFont(const FontSpec&amp;);  void SetFont(const FontSpec&amp;);
 void SetFontFamily/SetFontSize/SetFontWeight(...);  void ClearFont();
 virtual std::optional&lt;FontSpec&gt; GetTypeDefaultFont() const;  FontSpec GetEffectiveFontSpec() const;</pre>
 </div>
 <ul>
 <li>解析链：<strong>实例覆盖 → 类型默认 → 全局</strong>。</li>
-<li><strong><code>易错</code></strong>：写 <code>fontOverride_</code>（含 <code>std::wstring</code>）必须与渲染串行；已挂载元素的 <code>StoreFontOverride</code>/<code>InvalidateFontCache</code> 内部会取 <code>renderLock_</code>。</li>
 </ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li>写 <code>fontOverride_</code>（含 <code>std::wstring</code>）必须与渲染串行；已挂载元素的 <code>StoreFontOverride</code>/<code>InvalidateFontCache</code> 内部会取 <code>renderLock_</code>。</li>
+</ul>
+</div>
 <h2 id="阴影">阴影</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d8eedca0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-fafc7c49', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetShadow</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">HasShadow</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetShadowColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w"> </span><span class="n">SetShadowBlur</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="n">SetShadowOffset</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span><span class="w"> </span><span class="n">SetShadowCornerRadius</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">GetShadowExtent</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-d8eedca0" style="display: none;">void SetShadow(bool);  bool HasShadow() const;
+<pre id="code-fafc7c49" style="display: none;">void SetShadow(bool);  bool HasShadow() const;
 void SetShadowColor(Color); SetShadowBlur(float); SetShadowOffset(float,float); SetShadowCornerRadius(float);
 float GetShadowExtent() const;</pre>
 </div>

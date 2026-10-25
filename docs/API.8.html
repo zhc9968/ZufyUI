@@ -262,8 +262,14 @@ void Run();  int RunModal(Window* owner = nullptr);
 void SetInputBlocked(bool);  bool IsInputBlocked() const;
 std::unique_lock&lt;std::recursive_mutex&gt; LockRender();  void RenderNowSync();
 ```
-- **`易错`**：`Create` **不自动 `Show`**（v1.8.0 起）。`RunModal` 用 `EnableWindow(FALSE)` 禁用 owner、**不使用** `IsDialogMessage`。
-- **`易错`**：`LockRender()` 仅在 `ZUFYUI_RENDER_THREAD=1` 且改元素树数据时需要；默认单线程无需。
+
+###block_red_start
+**易错**
+
+- `Create` **不自动 `Show`**（v1.8.0 起）。`RunModal` 用 `EnableWindow(FALSE)` 禁用 owner、**不使用** `IsDialogMessage`。
+- `LockRender()` 仅在 `ZUFYUI_RENDER_THREAD=1` 且改元素树数据时需要；默认单线程无需。
+###block_red_end
+
 - **`版本`**：多窗口 `v1.6.0`；`SetInputBlocked`/模态 `v1.6.2`；`LockRender`/`RenderNowSync` `v1.16.0`。
 
 ## 临时键处理器（v1.25.0）
@@ -274,8 +280,18 @@ int  AddKeyHandler(KeyHandler handler);
 void RemoveKeyHandler(int id);
 ```
 - 在 `OnWindowKeyDown` 之后、焦点元素之前调用；返回 true 表示已处理。
+- 按注册顺序调用；`AddKeyHandler` 返回 id，`RemoveKeyHandler(id)` 注销。
 - 供抽屉/浮层临时拦截 Esc；组件关闭/detach/析构时必须移除。
 - **`版本`**：`v1.25.0`。
+
+###block_red_start
+**易错**
+
+- 每次按键会先复制一份 handler 快照；在回调里 `RemoveKeyHandler` 不会取消当前这一轮，已经被移除的 handler 仍可能再执行一次。
+- 返回 true 会吞掉按键，焦点元素和后续 handler 都收不到；不要无条件拦截 Tab/Enter/Esc。
+- handler 通常捕获裸 `this`；宿主必须在销毁前移除，否则窗口还活着时会回调悬空对象（`Drawer` 已自动处理）。
+- 键处理器在 UI 线程调用；不要在 handler 里长时间阻塞，也不要在其他线程增删。
+###block_red_end
 
 ## 三种建窗方式（选哪个）
 
@@ -285,8 +301,12 @@ void RemoveKeyHandler(int id);
 | `shared_ptr` | `auto w = app.CreateWindow(...); w-&gt;Show(); app.Run();` | `shared_ptr` 引用计数 | 共享 `Run()` | 多窗口、需动态创建/销毁 |
 | 模态 | `int r = w-&gt;RunModal(owner);` | 同 `shared_ptr` | **嵌套**循环，阻塞至关闭 | 对话框 / 确认框 |
 
-- **`易错`**：`Window` **不可拷贝**；栈上用法要保证它**活得比 `Run()` 久**（否则消息循环仍在引用已析构窗口）。
-- **`易错`**：`Application::CreateWindow` 返回的 `shared_ptr` **就是所有权**——丢掉指针窗口就销毁；`Create` 也不会自动 `Show`。
+###block_red_start
+**易错**
+
+- `Window` **不可拷贝**；栈上用法要保证它**活得比 `Run()` 久**（否则消息循环仍在引用已析构窗口）。
+- `Application::CreateWindow` 返回的 `shared_ptr` **就是所有权**——丢掉指针窗口就销毁；`Create` 也不会自动 `Show`。
+###block_red_end
 
 ## 所有权 / 多窗口 / 尺寸
 
@@ -298,8 +318,13 @@ void SetPosition(int x, int y);  void SetSize(int w, int h);   // DIP
 void SetMinSize(int w, int h);
 void SetOwnedMinimizePolicy(OwnedMinimizePolicy);
 ```
-- **`易错`**：`SetOwner` 要在 `Create` **之前**，否则会自带任务栏按钮、且不随 owner 最小化。
-- **`易错`**：`SetMinSize` 会**覆盖**基于内容的最小尺寸计算。含长文本/图表的窗口若不设，最小尺寸可能被内容撑大（内部用 `rootElement-&gt;Measure(Size(0,0))`，宽度 0 时换行 Label 会按整行宽度上报）。**含图表的调试器窗口已显式 `SetMinSize`。**
+
+###block_red_start
+**易错**
+
+- `SetOwner` 要在 `Create` **之前**，否则会自带任务栏按钮、且不随 owner 最小化。
+- `SetMinSize` 会**覆盖**基于内容的最小尺寸计算。含长文本/图表的窗口若不设，最小尺寸可能被内容撑大（内部用 `rootElement-&gt;Measure(Size(0,0))`，宽度 0 时换行 Label 会按整行宽度上报）。**含图表的调试器窗口已显式 `SetMinSize`。**
+###block_red_end
 
 ## 根内容 / 捕获
 
@@ -312,8 +337,13 @@ void CollectDragRegions();  bool PointInDragRegion(float,float) const;
 void MarkRepaint(UIElement*);   // 标脏；只记录，不定帧（帧由定时器/动画驱动）
 float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;
 ```
-- **`易错`**：`MarkRepaint` 存**裸指针**，元素析构会自动注销；不要跨销毁持有外部指针。
-- **`易错`**：`RequestRepaint()` → `MarkRepaint` **不会**主动排一帧。帧由 16ms `WM_TIMER`（忙时）或动画续帧驱动。历史教训：曾在这里强制排帧，导致“每次重绘都出一帧”的持续重渲染（严重卡顿），**已回退**。
+
+###block_red_start
+**易错**
+
+- `MarkRepaint` 存**裸指针**，元素析构会自动注销；不要跨销毁持有外部指针。
+- `RequestRepaint()` → `MarkRepaint` **不会**主动排一帧。帧由 16ms `WM_TIMER`（忙时）或动画续帧驱动。历史教训：曾在这里强制排帧，导致“每次重绘都出一帧”的持续重渲染（严重卡顿），**已回退**。
+###block_red_end
 
 ## 外观 / 背景 / 圆角
 
@@ -343,8 +373,14 @@ void SetStatusBar(std::shared_ptr&lt;UIElement&gt;);  std::shared_ptr&lt;UIEleme
 void SetMenuBarInTitleBar(bool on = true);      bool IsMenuBarInTitleBar() const;
 void SetShowTitleText(bool on);                 bool IsShowTitleText() const;
 ```
-- **`易错`**：自定义标题栏**不参与布局**——`Window` 把它放 `(0,0)`，并把根内容下移它测量出的高度。别手动 `AddChild`。
 - 菜单栏默认**叠在自定义标题栏上**（让开左侧图标、右侧系统按钮）；此时标题文字**默认隐藏**（与菜单互斥，避免重叠）。`SetShowTitleText(true)` → 显示标题、菜单栏**自动移到标题栏下方的客户区顶部**；`SetMenuBarInTitleBar(false)` 强制放到客户区顶部。状态栏固定贴底，根内容高度相应收缩。
+
+###block_red_start
+**易错**
+
+- 自定义标题栏**不参与布局**——`Window` 把它放 `(0,0)`，并把根内容下移它测量出的高度。别手动 `AddChild`。
+###block_red_end
+
 - **`版本`**：`v1.7.0` 起；`CaptionButton::Kind::Pin` = `v1.17.0`。
 
 ## 任务栏 / 缩略图 / 跳转列表
@@ -357,21 +393,37 @@ void SetThumbButtons(...);   void UpdateThumbButton(ThumbButtonId, bool enabled)
 void SetJumpList(...);  void Flash(int times=5, bool alsoTaskbar=true);  void FlashUntilForeground();
 void SetAppUserModelID(const std::wstring&amp;);
 ```
-- 这些是 COM 调用，失败**静默 no-op**。`FLASHW_CAPTION` 对自绘标题栏无效，用 `FLASHW_ALL`。
+###block_orange_start
+**注意**
+
+这些是 COM 调用，失败**静默 no-op**。`FLASHW_CAPTION` 对自绘标题栏无效；要连任务栏一起闪用 `FLASHW_ALL`。
+###block_orange_end
+
 - **`版本`**：均 `v1.9.6`。
 
 ## DPI
 
 - 进程级 Per-Monitor-v2 在静态初始化设置（回退 `SetProcessDPIAware`）。
 - `WM_DPICHANGED` 会重建整条渲染链并清空所有缓存。
-- **`易错`**：元素缓存会在 DPI 变更时被清；但子布局**不需要**你手动重测。
+
+###block_red_start
+**易错**
+
+- 元素缓存会在 DPI 变更时被清；但子布局**不需要**你手动重测。
+###block_red_end
 
 ## 渲染线程 / 帧率
 
 ```cpp
 void SetFrameRateLimit(int fps);   int GetFrameRateLimit() const;   // 0=跟随刷新；&gt;0=限帧
 ```
-- **`易错`**：`ZUFYUI_RENDER_THREAD` **默认 0**，文档标注不稳定、不建议开（空白弹窗、悬停/提示延迟、大虚拟列表可能崩）。单线程 `WM_PAINT` 是受支持路径。
+
+###block_red_start
+**易错**
+
+- `ZUFYUI_RENDER_THREAD` **默认 0**，文档标注不稳定、不建议开（空白弹窗、悬停/提示延迟、大虚拟列表可能崩）。单线程 `WM_PAINT` 是受支持路径。
+###block_red_end
+
 - **`版本`**：渲染线程 `v1.14.0`；vblank 节拍 `v1.14.1`；帧率上限 `v1.14.2`；默认关并标注 `v1.16.0`。
 
 ## 无障碍 / 信号
@@ -384,13 +436,24 @@ ZSignal&lt;&gt; Activated, Deactivated;   ZSignal&lt;bool*&gt; Closing;   ZSigna
 ZSignal&lt;&gt; BackdropUnsupported, DeviceLost;   ZSignal&lt;HRESULT&gt; RenderingError;
 std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);
 ```
-- **`易错`**：`Closing` 里把 `*cancel = true` 可取消关闭。`Closing` 的参数是 `bool*`（不是引用）。</pre></div></div>
+
+###block_orange_start
+**限制**
+
+`Window` 目前**没有尺寸/DPI 变化信号**。依赖实时客户区尺寸的 StatusBar/面板只能在 `Activated`、主题切换或切页时刷新；拖动边框时不会自动更新。需要实时更新只能先给窗口加信号。
+###block_orange_end
+
+###block_red_start
+**易错**
+
+- `Closing` 里把 `*cancel = true` 可取消关闭。`Closing` 的参数是 `bool*`（不是引用）。
+###block_red_end</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 8 章 · 窗口</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 8 章</span><h1>窗口</h1><p class="chapter-summary">Window（创建、显示、背景、标题栏、任务栏、DPI、渲染线程）</p></header><h2 id="嵌套公开类型">嵌套公开类型</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d89a77bc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-c52a07e9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">BackgroundParams</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">blurAmount</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span><span class="w"> </span><span class="n">saturation</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">D2D1_COLOR_F</span><span class="w"> </span><span class="n">tint</span><span class="p">,</span><span class="w"> </span><span class="n">luminosity</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">noiseOpacity</span><span class="o">=</span><span class="mf">0.02f</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AcrylicPreset</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Legacy</span><span class="p">,</span><span class="w"> </span><span class="n">Luminosity</span><span class="p">,</span><span class="w"> </span><span class="n">Base</span><span class="p">,</span><span class="w"> </span><span class="n">Thin</span><span class="w"> </span><span class="p">};</span>
@@ -402,7 +465,7 @@ std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ActivateMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Raise</span><span class="p">,</span><span class="w"> </span><span class="n">Activate</span><span class="p">,</span><span class="w"> </span><span class="n">Foreground</span><span class="p">,</span><span class="w"> </span><span class="n">All</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">OwnedMinimizePolicy</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Hide</span><span class="p">,</span><span class="w"> </span><span class="n">DisableMinimize</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-d89a77bc" style="display: none;">struct BackgroundParams { float blurAmount=30, saturation=1; D2D1_COLOR_F tint, luminosity; float noiseOpacity=0.02f; };
+<pre id="code-c52a07e9" style="display: none;">struct BackgroundParams { float blurAmount=30, saturation=1; D2D1_COLOR_F tint, luminosity; float noiseOpacity=0.02f; };
 enum class AcrylicPreset { Legacy, Luminosity, Base, Thin };
 struct CaptionMetrics { bool valid; float rightMargin, top, height, width; };
 enum class TaskbarProgress { None=0, Indeterminate=1, Normal=2, Error=4, Paused=8 };
@@ -416,7 +479,7 @@ enum class OwnedMinimizePolicy { None, Hide, DisableMinimize };</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f09c0002', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-714a20df', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">Backdrop</span><span class="w"> </span><span class="n">DefaultBackdrop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Backdrop</span><span class="o">::</span><span class="n">None</span><span class="p">;</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">DWORD</span><span class="w">     </span><span class="n">DefaultBackdropColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xFFFFFFFF</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认纯白，v1.17.0</span>
@@ -427,7 +490,7 @@ enum class OwnedMinimizePolicy { None, Hide, DisableMinimize };</pre>
 <span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultAppIcon</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">big</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="n">small</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span>
 <span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetProcessAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
 </pre></div>
-<pre id="code-f09c0002" style="display: none;">inline static Backdrop DefaultBackdrop = Backdrop::None;
+<pre id="code-714a20df" style="display: none;">inline static Backdrop DefaultBackdrop = Backdrop::None;
 inline static DWORD     DefaultBackdropColor = 0xFFFFFFFF;   // 默认纯白，v1.17.0
 static void SetDefaultBackdrop(Backdrop, DWORD tint = 0);
 static void SetBackgroundParams(Backdrop which, const BackgroundParams&amp;);
@@ -440,7 +503,7 @@ static void SetProcessAppUserModelID(const std::wstring&amp; id);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b1c01063', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-948973eb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">Create</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="o">=</span><span class="n">CW_USEDEFAULT</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="o">=</span><span class="n">CW_USEDEFAULT</span><span class="p">);</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">IsValid</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="n">HWND</span><span class="w"> </span><span class="nf">GetHwnd</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetId</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -449,37 +512,52 @@ static void SetProcessAppUserModelID(const std::wstring&amp; id);</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetInputBlocked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsInputBlocked</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">recursive_mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">LockRender</span><span class="p">();</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">RenderNowSync</span><span class="p">();</span>
 </pre></div>
-<pre id="code-b1c01063" style="display: none;">bool Create(int w, int h, const std::wstring&amp; title, int x=CW_USEDEFAULT, int y=CW_USEDEFAULT);
+<pre id="code-948973eb" style="display: none;">bool Create(int w, int h, const std::wstring&amp; title, int x=CW_USEDEFAULT, int y=CW_USEDEFAULT);
 bool IsValid() const;   HWND GetHwnd() const;   int GetId() const;
 void Show(); void ShowNoActivate(); void Hide(); void Raise(); void Close();
 void Run();  int RunModal(Window* owner = nullptr);
 void SetInputBlocked(bool);  bool IsInputBlocked() const;
 std::unique_lock&lt;std::recursive_mutex&gt; LockRender();  void RenderNowSync();</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>Create</code> <strong>不自动 <code>Show</code></strong>（v1.8.0 起）。<code>RunModal</code> 用 <code>EnableWindow(FALSE)</code> 禁用 owner、<strong>不使用</strong> <code>IsDialogMessage</code>。</li>
-<li><strong><code>易错</code></strong>：<code>LockRender()</code> 仅在 <code>ZUFYUI_RENDER_THREAD=1</code> 且改元素树数据时需要；默认单线程无需。</li>
+<li><code>Create</code> <strong>不自动 <code>Show</code></strong>（v1.8.0 起）。<code>RunModal</code> 用 <code>EnableWindow(FALSE)</code> 禁用 owner、<strong>不使用</strong> <code>IsDialogMessage</code>。</li>
+<li><code>LockRender()</code> 仅在 <code>ZUFYUI_RENDER_THREAD=1</code> 且改元素树数据时需要；默认单线程无需。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：多窗口 <code>v1.6.0</code>；<code>SetInputBlocked</code>/模态 <code>v1.6.2</code>；<code>LockRender</code>/<code>RenderNowSync</code> <code>v1.16.0</code>。</li>
 </ul>
 <h2 id="临时键处理器v1250">临时键处理器（v1.25.0）</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b3ccc45c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-502b0d15', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">using</span><span class="w"> </span><span class="n">KeyHandler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span>
 <span class="kt">int</span><span class="w">  </span><span class="nf">AddKeyHandler</span><span class="p">(</span><span class="n">KeyHandler</span><span class="w"> </span><span class="n">handler</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">RemoveKeyHandler</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
 </pre></div>
-<pre id="code-b3ccc45c" style="display: none;">using KeyHandler = std::function&lt;bool(int)&gt;;
+<pre id="code-502b0d15" style="display: none;">using KeyHandler = std::function&lt;bool(int)&gt;;
 int  AddKeyHandler(KeyHandler handler);
 void RemoveKeyHandler(int id);</pre>
 </div>
 <ul>
 <li>在 <code>OnWindowKeyDown</code> 之后、焦点元素之前调用；返回 true 表示已处理。</li>
+<li>按注册顺序调用；<code>AddKeyHandler</code> 返回 id，<code>RemoveKeyHandler(id)</code> 注销。</li>
 <li>供抽屉/浮层临时拦截 Esc；组件关闭/detach/析构时必须移除。</li>
 <li><strong><code>版本</code></strong>：<code>v1.25.0</code>。</li>
 </ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li>每次按键会先复制一份 handler 快照；在回调里 <code>RemoveKeyHandler</code> 不会取消当前这一轮，已经被移除的 handler 仍可能再执行一次。</li>
+<li>返回 true 会吞掉按键，焦点元素和后续 handler 都收不到；不要无条件拦截 Tab/Enter/Esc。</li>
+<li>handler 通常捕获裸 <code>this</code>；宿主必须在销毁前移除，否则窗口还活着时会回调悬空对象（<code>Drawer</code> 已自动处理）。</li>
+<li>键处理器在 UI 线程调用；不要在 handler 里长时间阻塞，也不要在其他线程增删。</li>
+</ul>
+</div>
 <h2 id="三种建窗方式选哪个">三种建窗方式（选哪个）</h2>
 <table>
 <thead>
@@ -515,15 +593,18 @@ void RemoveKeyHandler(int id);</pre>
 </tr>
 </tbody>
 </table>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>Window</code> <strong>不可拷贝</strong>；栈上用法要保证它<strong>活得比 <code>Run()</code> 久</strong>（否则消息循环仍在引用已析构窗口）。</li>
-<li><strong><code>易错</code></strong>：<code>Application::CreateWindow</code> 返回的 <code>shared_ptr</code> <strong>就是所有权</strong>——丢掉指针窗口就销毁；<code>Create</code> 也不会自动 <code>Show</code>。</li>
+<li><code>Window</code> <strong>不可拷贝</strong>；栈上用法要保证它<strong>活得比 <code>Run()</code> 久</strong>（否则消息循环仍在引用已析构窗口）。</li>
+<li><code>Application::CreateWindow</code> 返回的 <code>shared_ptr</code> <strong>就是所有权</strong>——丢掉指针窗口就销毁；<code>Create</code> 也不会自动 <code>Show</code>。</li>
 </ul>
+</div>
 <h2 id="所有权-多窗口-尺寸">所有权 / 多窗口 / 尺寸</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1b34e907', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-a49a59b3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetOwner</span><span class="p">(</span><span class="n">Window</span><span class="o">*</span><span class="p">);</span><span class="w">  </span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="nf">GetOwner</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">GetOwnedWindows</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -532,22 +613,25 @@ void RemoveKeyHandler(int id);</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetMinSize</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetOwnedMinimizePolicy</span><span class="p">(</span><span class="n">OwnedMinimizePolicy</span><span class="p">);</span>
 </pre></div>
-<pre id="code-1b34e907" style="display: none;">void SetOwner(Window*);  Window* GetOwner() const;
+<pre id="code-a49a59b3" style="display: none;">void SetOwner(Window*);  Window* GetOwner() const;
 std::vector&lt;Window*&gt; GetOwnedWindows() const;
 void HideOwnedWindows(); void ShowOwnedWindows();
 void SetPosition(int x, int y);  void SetSize(int w, int h);   // DIP
 void SetMinSize(int w, int h);
 void SetOwnedMinimizePolicy(OwnedMinimizePolicy);</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>SetOwner</code> 要在 <code>Create</code> <strong>之前</strong>，否则会自带任务栏按钮、且不随 owner 最小化。</li>
-<li><strong><code>易错</code></strong>：<code>SetMinSize</code> 会<strong>覆盖</strong>基于内容的最小尺寸计算。含长文本/图表的窗口若不设，最小尺寸可能被内容撑大（内部用 <code>rootElement-&gt;Measure(Size(0,0))</code>，宽度 0 时换行 Label 会按整行宽度上报）。<strong>含图表的调试器窗口已显式 <code>SetMinSize</code>。</strong></li>
+<li><code>SetOwner</code> 要在 <code>Create</code> <strong>之前</strong>，否则会自带任务栏按钮、且不随 owner 最小化。</li>
+<li><code>SetMinSize</code> 会<strong>覆盖</strong>基于内容的最小尺寸计算。含长文本/图表的窗口若不设，最小尺寸可能被内容撑大（内部用 <code>rootElement-&gt;Measure(Size(0,0))</code>，宽度 0 时换行 Label 会按整行宽度上报）。<strong>含图表的调试器窗口已显式 <code>SetMinSize</code>。</strong></li>
 </ul>
+</div>
 <h2 id="根内容-捕获">根内容 / 捕获</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5c5a6d56', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-868e8e35', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRootLayout</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Layout</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ColumnBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetRootColumnBox</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认根：ColumnBox margin(20) spacing 10</span>
@@ -557,7 +641,7 @@ void SetOwnedMinimizePolicy(OwnedMinimizePolicy);</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">MarkRepaint</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="p">);</span><span class="w">   </span><span class="c1">// 标脏；只记录，不定帧（帧由定时器/动画驱动）</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">GetDpiScale</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">GetClientWidthDip</span><span class="o">/</span><span class="n">HeightDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-5c5a6d56" style="display: none;">void SetRootLayout(std::shared_ptr&lt;Layout&gt;);
+<pre id="code-868e8e35" style="display: none;">void SetRootLayout(std::shared_ptr&lt;Layout&gt;);
 std::shared_ptr&lt;ColumnBox&gt; GetRootColumnBox() const;   // 默认根：ColumnBox margin(20) spacing 10
 void SetContextMenu(std::shared_ptr&lt;Menu&gt;);  void CloseContextMenu();
 UIElement* HitTestElement(float x, float y);
@@ -565,15 +649,18 @@ void CollectDragRegions();  bool PointInDragRegion(float,float) const;
 void MarkRepaint(UIElement*);   // 标脏；只记录，不定帧（帧由定时器/动画驱动）
 float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>MarkRepaint</code> 存<strong>裸指针</strong>，元素析构会自动注销；不要跨销毁持有外部指针。</li>
-<li><strong><code>易错</code></strong>：<code>RequestRepaint()</code> → <code>MarkRepaint</code> <strong>不会</strong>主动排一帧。帧由 16ms <code>WM_TIMER</code>（忙时）或动画续帧驱动。历史教训：曾在这里强制排帧，导致“每次重绘都出一帧”的持续重渲染（严重卡顿），<strong>已回退</strong>。</li>
+<li><code>MarkRepaint</code> 存<strong>裸指针</strong>，元素析构会自动注销；不要跨销毁持有外部指针。</li>
+<li><code>RequestRepaint()</code> → <code>MarkRepaint</code> <strong>不会</strong>主动排一帧。帧由 16ms <code>WM_TIMER</code>（忙时）或动画续帧驱动。历史教训：曾在这里强制排帧，导致“每次重绘都出一帧”的持续重渲染（严重卡顿），<strong>已回退</strong>。</li>
 </ul>
+</div>
 <h2 id="外观-背景-圆角">外观 / 背景 / 圆角</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ca5f069b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-53c259a1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">tint</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w">  </span><span class="n">Backdrop</span><span class="w"> </span><span class="nf">GetBackdrop</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w">            </span><span class="c1">// 叠加在背景（空/亚克力/云母）之上的颜色</span>
@@ -582,7 +669,7 @@ float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetTitleBarColors</span><span class="p">(</span><span class="n">COLORREF</span><span class="w"> </span><span class="n">caption</span><span class="p">,</span><span class="w"> </span><span class="n">COLORREF</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">COLORREF</span><span class="w"> </span><span class="n">border</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetResizable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitle</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 </pre></div>
-<pre id="code-ca5f069b" style="display: none;">void SetBackdrop(Backdrop, DWORD tint=0);  Backdrop GetBackdrop() const;
+<pre id="code-53c259a1" style="display: none;">void SetBackdrop(Backdrop, DWORD tint=0);  Backdrop GetBackdrop() const;
 void SetBackgroundColor(Color);            // 叠加在背景（空/亚克力/云母）之上的颜色
 void SetWindowCorner(WindowCorner);
 void SetContentOpacity(float opacity);     // 弹窗淡入
@@ -598,7 +685,7 @@ void SetResizable(bool);   void SetTitle(const std::wstring&amp;);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-4f84268b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-f6c71825', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCustomTitleBar</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCustomTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">HasCustomTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitleBarVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
@@ -611,7 +698,7 @@ void SetResizable(bool);   void SetTitle(const std::wstring&amp;);</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetMenuBarInTitleBar</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span><span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsMenuBarInTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetShowTitleText</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span><span class="w">                 </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsShowTitleText</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-4f84268b" style="display: none;">void SetCustomTitleBar(std::shared_ptr&lt;UIElement&gt;);  std::shared_ptr&lt;UIElement&gt; GetCustomTitleBar() const;
+<pre id="code-f6c71825" style="display: none;">void SetCustomTitleBar(std::shared_ptr&lt;UIElement&gt;);  std::shared_ptr&lt;UIElement&gt; GetCustomTitleBar() const;
 bool HasCustomTitleBar() const;   void SetTitleBarVisible(bool);
 CaptionMetrics QueryCaptionMetrics() const;
 void Minimize(); void Maximize(); void Restore(); void MaximizeRestore();
@@ -623,15 +710,22 @@ void SetMenuBarInTitleBar(bool on = true);      bool IsMenuBarInTitleBar() const
 void SetShowTitleText(bool on);                 bool IsShowTitleText() const;</pre>
 </div>
 <ul>
-<li><strong><code>易错</code></strong>：自定义标题栏<strong>不参与布局</strong>——<code>Window</code> 把它放 <code>(0,0)</code>，并把根内容下移它测量出的高度。别手动 <code>AddChild</code>。</li>
 <li>菜单栏默认<strong>叠在自定义标题栏上</strong>（让开左侧图标、右侧系统按钮）；此时标题文字<strong>默认隐藏</strong>（与菜单互斥，避免重叠）。<code>SetShowTitleText(true)</code> → 显示标题、菜单栏<strong>自动移到标题栏下方的客户区顶部</strong>；<code>SetMenuBarInTitleBar(false)</code> 强制放到客户区顶部。状态栏固定贴底，根内容高度相应收缩。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li>自定义标题栏<strong>不参与布局</strong>——<code>Window</code> 把它放 <code>(0,0)</code>，并把根内容下移它测量出的高度。别手动 <code>AddChild</code>。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.7.0</code> 起；<code>CaptionButton::Kind::Pin</code> = <code>v1.17.0</code>。</li>
 </ul>
 <h2 id="任务栏-缩略图-跳转列表">任务栏 / 缩略图 / 跳转列表</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ac7ab55a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-77b3cf78', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTaskbarProgress</span><span class="p">(</span><span class="n">TaskbarProgress</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">done</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">total</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarProgress</span><span class="p">();</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">SetTaskbarOverlayIcon</span><span class="p">(</span><span class="n">HICON</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarOverlayIcon</span><span class="p">();</span>
@@ -640,42 +734,55 @@ void SetShowTitleText(bool on);                 bool IsShowTitleText() const;</p
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetJumpList</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">Flash</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">times</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">alsoTaskbar</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">FlashUntilForeground</span><span class="p">();</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 </pre></div>
-<pre id="code-ac7ab55a" style="display: none;">void SetTaskbarProgress(TaskbarProgress, ULONGLONG done=0, ULONGLONG total=0);  void ClearTaskbarProgress();
+<pre id="code-77b3cf78" style="display: none;">void SetTaskbarProgress(TaskbarProgress, ULONGLONG done=0, ULONGLONG total=0);  void ClearTaskbarProgress();
 void SetTaskbarOverlayIcon(HICON, const std::wstring&amp; = L"");  void ClearTaskbarOverlayIcon();
 ZSignal&lt;ThumbButtonId&gt; ThumbButtonClicked;
 void SetThumbButtons(...);   void UpdateThumbButton(ThumbButtonId, bool enabled);
 void SetJumpList(...);  void Flash(int times=5, bool alsoTaskbar=true);  void FlashUntilForeground();
 void SetAppUserModelID(const std::wstring&amp;);</pre>
 </div>
+<div class="orange">
+<p><strong>注意</strong></p>
+<p>这些是 COM 调用，失败<strong>静默 no-op</strong>。<code>FLASHW_CAPTION</code> 对自绘标题栏无效；要连任务栏一起闪用 <code>FLASHW_ALL</code>。</p>
+</div>
 <ul>
-<li>这些是 COM 调用，失败<strong>静默 no-op</strong>。<code>FLASHW_CAPTION</code> 对自绘标题栏无效，用 <code>FLASHW_ALL</code>。</li>
 <li><strong><code>版本</code></strong>：均 <code>v1.9.6</code>。</li>
 </ul>
 <h2 id="dpi">DPI</h2>
 <ul>
 <li>进程级 Per-Monitor-v2 在静态初始化设置（回退 <code>SetProcessDPIAware</code>）。</li>
 <li><code>WM_DPICHANGED</code> 会重建整条渲染链并清空所有缓存。</li>
-<li><strong><code>易错</code></strong>：元素缓存会在 DPI 变更时被清；但子布局<strong>不需要</strong>你手动重测。</li>
 </ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li>元素缓存会在 DPI 变更时被清；但子布局<strong>不需要</strong>你手动重测。</li>
+</ul>
+</div>
 <h2 id="渲染线程-帧率">渲染线程 / 帧率</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2de6efc5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-7957df98', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFrameRateLimit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fps</span><span class="p">);</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetFrameRateLimit</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 0=跟随刷新；&gt;0=限帧</span>
 </pre></div>
-<pre id="code-2de6efc5" style="display: none;">void SetFrameRateLimit(int fps);   int GetFrameRateLimit() const;   // 0=跟随刷新；&gt;0=限帧</pre>
+<pre id="code-7957df98" style="display: none;">void SetFrameRateLimit(int fps);   int GetFrameRateLimit() const;   // 0=跟随刷新；&gt;0=限帧</pre>
+</div>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>ZUFYUI_RENDER_THREAD</code> <strong>默认 0</strong>，文档标注不稳定、不建议开（空白弹窗、悬停/提示延迟、大虚拟列表可能崩）。单线程 <code>WM_PAINT</code> 是受支持路径。</li>
+</ul>
 </div>
 <ul>
-<li><strong><code>易错</code></strong>：<code>ZUFYUI_RENDER_THREAD</code> <strong>默认 0</strong>，文档标注不稳定、不建议开（空白弹窗、悬停/提示延迟、大虚拟列表可能崩）。单线程 <code>WM_PAINT</code> 是受支持路径。</li>
 <li><strong><code>版本</code></strong>：渲染线程 <code>v1.14.0</code>；vblank 节拍 <code>v1.14.1</code>；帧率上限 <code>v1.14.2</code>；默认关并标注 <code>v1.16.0</code>。</li>
 </ul>
 <h2 id="无障碍-信号">无障碍 / 信号</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-8dd4b1ff', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-d5d06e90', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibilityEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsAccessibilityEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认开，v1.17.0</span>
 <span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">GetFocusedElement</span><span class="o">/</span><span class="n">HoveredElement</span><span class="o">/</span><span class="n">PressedElement</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -684,16 +791,23 @@ void SetAppUserModelID(const std::wstring&amp;);</pre>
 <span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BackdropUnsupported</span><span class="p">,</span><span class="w"> </span><span class="n">DeviceLost</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">HRESULT</span><span class="o">&gt;</span><span class="w"> </span><span class="n">RenderingError</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Timer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">intervalMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
 </pre></div>
-<pre id="code-8dd4b1ff" style="display: none;">void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // 默认开，v1.17.0
+<pre id="code-d5d06e90" style="display: none;">void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // 默认开，v1.17.0
 UIElement* GetFocusedElement/HoveredElement/PressedElement() const;
 void FocusElement(UIElement*);
 ZSignal&lt;&gt; Activated, Deactivated;   ZSignal&lt;bool*&gt; Closing;   ZSignal&lt;&gt; Closed;
 ZSignal&lt;&gt; BackdropUnsupported, DeviceLost;   ZSignal&lt;HRESULT&gt; RenderingError;
 std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);</pre>
 </div>
+<div class="orange">
+<p><strong>限制</strong></p>
+<p><code>Window</code> 目前<strong>没有尺寸/DPI 变化信号</strong>。依赖实时客户区尺寸的 StatusBar/面板只能在 <code>Activated</code>、主题切换或切页时刷新；拖动边框时不会自动更新。需要实时更新只能先给窗口加信号。</p>
+</div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>Closing</code> 里把 <code>*cancel = true</code> 可取消关闭。<code>Closing</code> 的参数是 <code>bool*</code>（不是引用）。</li>
+<li><code>Closing</code> 里把 <code>*cancel = true</code> 可取消关闭。<code>Closing</code> 的参数是 <code>bool*</code>（不是引用）。</li>
 </ul>
+</div>
 <nav class="chapter-nav"><a class="prev" href="API.7.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">布局系统</span><span class="nav-desc">Layout、ColumnBox、RowBox、GridLayout、Card、Page、PageHost</span></a><a class="next" href="API.9.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">基础控件</span><span class="nav-desc">Label、Button、TextBox、TextEdit、ComboBox</span></a></nav>
         </main>
     </div>

@@ -243,9 +243,15 @@ void SetImage(std::shared_ptr&lt;Image&gt;);   void SetIcon(Icon, float size=0);
 void AddChild(std::shared_ptr&lt;UIElement&gt;);   // 图标/文本之后的内联子元素
 std::wstring GetToolTip() const override;   // 省略时自动全量 tooltip（v1.17.0）
 ```
-- **`易错`**：`SetTextFast` 不重绘——池化容器（ListView/TableView）用它 + 容器自己重绘。直接用它设文本可能“看不到更新”。
-- **`易错`**：同时设了 image 与 glyph 时 **image 优先**。
-- **`易错`**：`GetDesiredSize()` 非 const 且用 `FLT_MAX` 测量，忽略父约束。
+
+###block_red_start
+**易错**
+
+- `SetTextFast` 不重绘——池化容器（ListView/TableView）用它 + 容器自己重绘。直接用它设文本可能“看不到更新”。
+- 同时设了 image 与 glyph 时 **image 优先**。
+- `GetDesiredSize()` 只是上一次 `Measure` 的结果；用 `FLT_MAX` 直接测量得到的是理想尺寸，不代表父容器夹取后的尺寸。
+###block_red_end
+
 - **`版本`**：`SetIcon` 家族 `v1.13.0`；省略自动 tooltip `v1.17.0`。
 
 ## Button
@@ -268,7 +274,13 @@ void SetDropItems(const std::vector&lt;std::wstring&gt;&amp;, int selected=-1); 
 - **富文本**：内部 `Label` 已经是真正的子元素，`GetLabel()-&gt;AddChild(...)` 的子元素会被合成/布局/绘制；也可 `SetContent` 换成任意 `UIElement`。
 - **下拉 2×2**：`SetDropWriteBack` 控制菜单选中是否回写按钮文字；`SetDropOpenOnClick` 控制按钮 `Clicked` 之后是否打开菜单。菜单是**单选**（上次选中项有标记）；选中触发 `DropSelected(index)`，可用 `GetDropSelectedIndex/GetDropSelectedText` 读取。`SetDropItems` 是文字列表快捷方式；自定义菜单用 `SetDropMenu`。
 - **主按钮 / 展开区**：主区域点击始终 `Clicked`；右侧展开区（与主区域之间有一条跟随主题的浅色短分隔线）**只打开菜单，不触发 `Clicked`**；点菜单项只触发 `DropSelected`，不会触发 `Clicked`。`DropOpenOnClick=false` 时主区域只回调，菜单仍可由展开区打开。
-- **`易错`**：非 checkable 时 `IsChecked()` 无意义；`SetContent` 的内容在扣除 `padding` 和右侧箭头后的矩形内布局。
+
+###block_red_start
+**易错**
+
+- 非 checkable 时 `IsChecked()` 无意义；`SetContent` 的内容在扣除 `padding` 和右侧箭头后的矩形内布局。
+###block_red_end
+
 - **`版本`**：`v1.21.0` 起按钮**默认按文案自动撑宽**；`v1.23.3` 支持富文本内容与下拉 2×2 组合。
 
 ## TextBox（单行）
@@ -282,8 +294,14 @@ void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
 void SelectAll/Copy/Cut/Paste/Undo/Redo();
 int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
 ```
-- **`易错`**：`SetImeEnabled(false)` 会抑制 IME/屏幕键盘（`IsTextInput()` 返回 `imeEnabled_`）。
-- **`易错`**：程序化 `SetText` **不产生撤销步**。
+
+###block_red_start
+**易错**
+
+- `SetImeEnabled(false)` 会抑制 IME/屏幕键盘（`IsTextInput()` 返回 `imeEnabled_`）。
+- 程序化 `SetText` **不产生撤销步**。
+###block_red_end
+
 - **`版本`**：error/indicator/IME `v1.12.0`；`v1.18.0` 修 shift+点击语义（无选区时也自锚点扩展）。
 
 ## TextEdit（多行编辑器 / 只读查看器）— v1.18.0
@@ -304,9 +322,6 @@ void EnsureCursorVisible();  float GetScrollOffsetY() const;  void SetScrollOffs
 bool UseCache() const override { return false; }
 bool AcceptsTab() const override { return !readOnly_; }   // 依赖基类新虚函数
 ```
-- **`易错`**：换行宽度变化会**重建每一行的 layout**（`ArrangeOverride` 检测 `wrapWidth_`）。
-- **`易错`**：富文本**构造即只读**。行/列 API 是 **0 基**。
-- **`易错`**：因 `AcceptsTab` 为真，Tab 是**插入缩进**而非切换焦点。
 - 默认 `Consolas 14`、`320×160`、tabSize 4。
 
 最小示例：
@@ -316,6 +331,14 @@ edit-&gt;SetPlainText(L"hello\nworld");
 edit-&gt;SetShowLineNumbers(true);
 root-&gt;AddChild(edit);                 // 记得给尺寸或让它随布局铺满
 ```
+
+###block_red_start
+**易错**
+
+- 换行宽度变化会**重建每一行的 layout**（`ArrangeOverride` 检测 `wrapWidth_`）。
+- 富文本**构造即只读**。行/列 API 是 **0 基**。
+- 因 `AcceptsTab` 为真，Tab 是**插入缩进**而非切换焦点。
+###block_red_end
 
 ## ComboBox
 
@@ -327,8 +350,14 @@ void SetSelectedSourceIndex(int);  int GetSelectedSourceIndex() const;   // v1.1
 void SetItemDisabled(int visibleIndex, bool);   // 按源索引持久
 void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 ```
-- **`易错`**：下拉画在全局 `DrawOverlay`，可超出控件边界。
-- **`易错`**：`GetSelectedIndex()` 是**过滤后可见序**；`SetItemDisabled` 按**源索引**持久（v1.15.0 修）。
+
+###block_red_start
+**易错**
+
+- 下拉画在全局 `DrawOverlay`，可超出控件边界。
+- `GetSelectedIndex()` 是**过滤后可见序**；`SetItemDisabled` 按**源索引**持久（v1.15.0 修）。
+###block_red_end
+
 - **`版本`**：下拉几何/状态 `v1.12.0`；源索引 API `v1.15.0`；下拉箭头随展开进度旋转（smoothstep，`v1.19.0`）。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 9 章 · 基础控件</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 9 章</span><h1>基础控件</h1><p class="chapter-summary">Label、Button、TextBox、TextEdit、ComboBox</p></header><blockquote>
@@ -338,7 +367,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e9895796', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-4392e9a8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TextOverflow</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Wrap</span><span class="p">,</span><span class="w"> </span><span class="n">Ellipsis</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">HAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">VAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Top</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Bottom</span><span class="w"> </span><span class="p">};</span>
@@ -353,7 +382,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span><span class="w">   </span><span class="c1">// 图标/文本之后的内联子元素</span>
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetToolTip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">   </span><span class="c1">// 省略时自动全量 tooltip（v1.17.0）</span>
 </pre></div>
-<pre id="code-e9895796" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
+<pre id="code-4392e9a8" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
 enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bottom };
 Label(const std::wstring&amp; text = L"Label");
 void SetText(const std::wstring&amp;);   std::wstring GetText() const;      // 失效布局 + 重绘
@@ -366,17 +395,22 @@ void SetImage(std::shared_ptr&lt;Image&gt;);   void SetIcon(Icon, float size=0);
 void AddChild(std::shared_ptr&lt;UIElement&gt;);   // 图标/文本之后的内联子元素
 std::wstring GetToolTip() const override;   // 省略时自动全量 tooltip（v1.17.0）</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>SetTextFast</code> 不重绘——池化容器（ListView/TableView）用它 + 容器自己重绘。直接用它设文本可能“看不到更新”。</li>
-<li><strong><code>易错</code></strong>：同时设了 image 与 glyph 时 <strong>image 优先</strong>。</li>
-<li><strong><code>易错</code></strong>：<code>GetDesiredSize()</code> 非 const 且用 <code>FLT_MAX</code> 测量，忽略父约束。</li>
+<li><code>SetTextFast</code> 不重绘——池化容器（ListView/TableView）用它 + 容器自己重绘。直接用它设文本可能“看不到更新”。</li>
+<li>同时设了 image 与 glyph 时 <strong>image 优先</strong>。</li>
+<li><code>GetDesiredSize()</code> 只是上一次 <code>Measure</code> 的结果；用 <code>FLT_MAX</code> 直接测量得到的是理想尺寸，不代表父容器夹取后的尺寸。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>SetIcon</code> 家族 <code>v1.13.0</code>；省略自动 tooltip <code>v1.17.0</code>。</li>
 </ul>
 <h2 id="button">Button</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-bae07e92', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-dc889ec1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">     </span><span class="c1">// Toggled 需先 SetCheckable(true)</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">DropSelected</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DropMenuOpened</span><span class="p">;</span><span class="w">   </span><span class="c1">// 菜单项索引 / 菜单打开</span>
@@ -391,7 +425,7 @@ std::wstring GetToolTip() const override;   // 省略时自动全量 tooltip（v
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDropWriteBack</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDropOpenOnClick</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// 两个独立开关（2×2）</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDropItems</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">selected</span><span class="o">=</span><span class="mi">-1</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDropMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowDropMenu</span><span class="p">();</span>
 </pre></div>
-<pre id="code-bae07e92" style="display: none;">ZSignal&lt;&gt; Clicked;   ZSignal&lt;bool&gt; Toggled;     // Toggled 需先 SetCheckable(true)
+<pre id="code-dc889ec1" style="display: none;">ZSignal&lt;&gt; Clicked;   ZSignal&lt;bool&gt; Toggled;     // Toggled 需先 SetCheckable(true)
 ZSignal&lt;int&gt; DropSelected;   ZSignal&lt;&gt; DropMenuOpened;   // 菜单项索引 / 菜单打开
 Button(const std::wstring&amp; text = L"Button");
 void SetText/SetIcon/SetIconColor(...);
@@ -409,14 +443,21 @@ void SetDropItems(const std::vector&lt;std::wstring&gt;&amp;, int selected=-1); 
 <li><strong>富文本</strong>：内部 <code>Label</code> 已经是真正的子元素，<code>GetLabel()-&gt;AddChild(...)</code> 的子元素会被合成/布局/绘制；也可 <code>SetContent</code> 换成任意 <code>UIElement</code>。</li>
 <li><strong>下拉 2×2</strong>：<code>SetDropWriteBack</code> 控制菜单选中是否回写按钮文字；<code>SetDropOpenOnClick</code> 控制按钮 <code>Clicked</code> 之后是否打开菜单。菜单是<strong>单选</strong>（上次选中项有标记）；选中触发 <code>DropSelected(index)</code>，可用 <code>GetDropSelectedIndex/GetDropSelectedText</code> 读取。<code>SetDropItems</code> 是文字列表快捷方式；自定义菜单用 <code>SetDropMenu</code>。</li>
 <li><strong>主按钮 / 展开区</strong>：主区域点击始终 <code>Clicked</code>；右侧展开区（与主区域之间有一条跟随主题的浅色短分隔线）<strong>只打开菜单，不触发 <code>Clicked</code></strong>；点菜单项只触发 <code>DropSelected</code>，不会触发 <code>Clicked</code>。<code>DropOpenOnClick=false</code> 时主区域只回调，菜单仍可由展开区打开。</li>
-<li><strong><code>易错</code></strong>：非 checkable 时 <code>IsChecked()</code> 无意义；<code>SetContent</code> 的内容在扣除 <code>padding</code> 和右侧箭头后的矩形内布局。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li>非 checkable 时 <code>IsChecked()</code> 无意义；<code>SetContent</code> 的内容在扣除 <code>padding</code> 和右侧箭头后的矩形内布局。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.21.0</code> 起按钮<strong>默认按文案自动撑宽</strong>；<code>v1.23.3</code> 支持富文本内容与下拉 2×2 组合。</li>
 </ul>
 <h2 id="textbox单行">TextBox（单行）</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3b25edca', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-df053b1b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">ReturnPressed</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetText</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// 会去掉 \r\n、截断到 maxLength、清撤销</span>
@@ -426,7 +467,7 @@ void SetDropItems(const std::vector&lt;std::wstring&gt;&amp;, int selected=-1); 
 <span class="kt">void</span><span class="w"> </span><span class="n">SelectAll</span><span class="o">/</span><span class="n">Copy</span><span class="o">/</span><span class="n">Cut</span><span class="o">/</span><span class="n">Paste</span><span class="o">/</span><span class="n">Undo</span><span class="o">/</span><span class="n">Redo</span><span class="p">();</span>
 <span class="kt">int</span><span class="w"> </span><span class="n">GetSelectionStart</span><span class="o">/</span><span class="n">End</span><span class="o">/</span><span class="n">CursorPosition</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelection</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">);</span>
 </pre></div>
-<pre id="code-3b25edca" style="display: none;">ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;&gt; ReturnPressed;
+<pre id="code-df053b1b" style="display: none;">ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;&gt; ReturnPressed;
 void SetText(const std::wstring&amp;);   // 会去掉 \r\n、截断到 maxLength、清撤销
 void SetPlaceholder(...);  void SetPasswordMode(bool);  void SetMaxLength(int);   // -1 不限
 void SetReadOnly(bool);    void SetInputFilter(std::function&lt;bool(wchar_t)&gt;);
@@ -434,9 +475,14 @@ void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
 void SelectAll/Copy/Cut/Paste/Undo/Redo();
 int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>SetImeEnabled(false)</code> 会抑制 IME/屏幕键盘（<code>IsTextInput()</code> 返回 <code>imeEnabled_</code>）。</li>
-<li><strong><code>易错</code></strong>：程序化 <code>SetText</code> <strong>不产生撤销步</strong>。</li>
+<li><code>SetImeEnabled(false)</code> 会抑制 IME/屏幕键盘（<code>IsTextInput()</code> 返回 <code>imeEnabled_</code>）。</li>
+<li>程序化 <code>SetText</code> <strong>不产生撤销步</strong>。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：error/indicator/IME <code>v1.12.0</code>；<code>v1.18.0</code> 修 shift+点击语义（无选区时也自锚点扩展）。</li>
 </ul>
 <h2 id="textedit多行编辑器-只读查看器-v1180">TextEdit（多行编辑器 / 只读查看器）— v1.18.0</h2>
@@ -446,7 +492,7 @@ int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);</
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-60bb3428', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-2d86e995', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">WrapMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">NoWrap</span><span class="p">,</span><span class="w"> </span><span class="n">WidgetWidth</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CursorPositionChanged</span><span class="p">;</span><span class="w">  </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span>
@@ -461,7 +507,7 @@ int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);</
 <span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">AcceptsTab</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="o">!</span><span class="n">readOnly_</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// 依赖基类新虚函数</span>
 </pre></div>
-<pre id="code-60bb3428" style="display: none;">enum class WrapMode { NoWrap, WidgetWidth };
+<pre id="code-2d86e995" style="display: none;">enum class WrapMode { NoWrap, WidgetWidth };
 ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;int,int&gt; CursorPositionChanged;  ZSignal&lt;&gt; SelectionChanged;
 std::wstring ToPlainText() const;  void SetPlainText(const std::wstring&amp;);   // 清撤销
 void AppendPlainText(const std::wstring&amp;);  void InsertPlainText(const std::wstring&amp;);
@@ -475,32 +521,37 @@ bool UseCache() const override { return false; }
 bool AcceptsTab() const override { return !readOnly_; }   // 依赖基类新虚函数</pre>
 </div>
 <ul>
-<li><strong><code>易错</code></strong>：换行宽度变化会<strong>重建每一行的 layout</strong>（<code>ArrangeOverride</code> 检测 <code>wrapWidth_</code>）。</li>
-<li><strong><code>易错</code></strong>：富文本<strong>构造即只读</strong>。行/列 API 是 <strong>0 基</strong>。</li>
-<li><strong><code>易错</code></strong>：因 <code>AcceptsTab</code> 为真，Tab 是<strong>插入缩进</strong>而非切换焦点。</li>
 <li>默认 <code>Consolas 14</code>、<code>320×160</code>、tabSize 4。</li>
 </ul>
 <p>最小示例：</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-6007835d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-884c563e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">edit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">TextEdit</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">edit</span><span class="o">-&gt;</span><span class="n">SetPlainText</span><span class="p">(</span><span class="sa">L</span><span class="s">"hello</span><span class="se">\n</span><span class="s">world"</span><span class="p">);</span>
 <span class="n">edit</span><span class="o">-&gt;</span><span class="n">SetShowLineNumbers</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
 <span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">edit</span><span class="p">);</span><span class="w">                 </span><span class="c1">// 记得给尺寸或让它随布局铺满</span>
 </pre></div>
-<pre id="code-6007835d" style="display: none;">auto edit = std::make_shared&lt;TextEdit&gt;();
+<pre id="code-884c563e" style="display: none;">auto edit = std::make_shared&lt;TextEdit&gt;();
 edit-&gt;SetPlainText(L"hello\nworld");
 edit-&gt;SetShowLineNumbers(true);
 root-&gt;AddChild(edit);                 // 记得给尺寸或让它随布局铺满</pre>
+</div>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li>换行宽度变化会<strong>重建每一行的 layout</strong>（<code>ArrangeOverride</code> 检测 <code>wrapWidth_</code>）。</li>
+<li>富文本<strong>构造即只读</strong>。行/列 API 是 <strong>0 基</strong>。</li>
+<li>因 <code>AcceptsTab</code> 为真，Tab 是<strong>插入缩进</strong>而非切换焦点。</li>
+</ul>
 </div>
 <h2 id="combobox">ComboBox</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-eafb7b4e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-7cfdf719', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DropDownOpened</span><span class="p">,</span><span class="w"> </span><span class="n">DropDownClosed</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">AddItem</span><span class="o">/</span><span class="n">SetItems</span><span class="o">/</span><span class="n">InsertItem</span><span class="o">/</span><span class="n">RemoveItemAt</span><span class="o">/</span><span class="n">ClearItems</span><span class="p">(...);</span>
@@ -509,16 +560,21 @@ root-&gt;AddChild(edit);                 // 记得给尺寸或让它随布局铺
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetItemDisabled</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">visibleIndex</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// 按源索引持久</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetEditable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFilterEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ApplyFilter</span><span class="p">();</span>
 </pre></div>
-<pre id="code-eafb7b4e" style="display: none;">ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;&gt; DropDownOpened, DropDownClosed;
+<pre id="code-7cfdf719" style="display: none;">ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;&gt; DropDownOpened, DropDownClosed;
 void AddItem/SetItems/InsertItem/RemoveItemAt/ClearItems(...);
 void SetSelectedIndex(int);  int GetSelectedIndex() const;   // 过滤后“可见序”
 void SetSelectedSourceIndex(int);  int GetSelectedSourceIndex() const;   // v1.15.0：源序
 void SetItemDisabled(int visibleIndex, bool);   // 按源索引持久
 void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：下拉画在全局 <code>DrawOverlay</code>，可超出控件边界。</li>
-<li><strong><code>易错</code></strong>：<code>GetSelectedIndex()</code> 是<strong>过滤后可见序</strong>；<code>SetItemDisabled</code> 按<strong>源索引</strong>持久（v1.15.0 修）。</li>
+<li>下拉画在全局 <code>DrawOverlay</code>，可超出控件边界。</li>
+<li><code>GetSelectedIndex()</code> 是<strong>过滤后可见序</strong>；<code>SetItemDisabled</code> 按<strong>源索引</strong>持久（v1.15.0 修）。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：下拉几何/状态 <code>v1.12.0</code>；源索引 API <code>v1.15.0</code>；下拉箭头随展开进度旋转（smoothstep，<code>v1.19.0</code>）。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.8.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">窗口</span><span class="nav-desc">Window（创建、显示、背景、标题栏、任务栏、DPI、渲染线程）</span></a><a class="next" href="API.10.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">选择与输入</span><span class="nav-desc">CheckBox、RadioButton、RadioGroup、ToggleSwitch、Slider、NumberBox</span></a></nav>

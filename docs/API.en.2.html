@@ -243,7 +243,12 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {   // Windows subsyste
     return app.Run();
 }
 ```
-&gt; **`Pitfall`**: GUI apps use `wWinMain` + `/SUBSYSTEM:WINDOWS`. If you insist on `int main()`, set `/SUBSYSTEM:CONSOLE`, or add `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")` — otherwise the linker won't find an entry point.
+
+###block_red_start
+**Pitfall**
+
+- GUI apps use `wWinMain` + `/SUBSYSTEM:WINDOWS`. If you insist on `int main()`, set `/SUBSYSTEM:CONSOLE`, or add `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")` — otherwise the linker won't find an entry point.
+###block_red_end
 
 ## Event loop &amp; threading
 
@@ -268,7 +273,7 @@ Overlays (menus/dropdowns/tooltips/system dialogs) use separate windows or a glo
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-436358bf', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-4db35cc2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUI.h"</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
@@ -285,7 +290,7 @@ Overlays (menus/dropdowns/tooltips/system dialogs) use separate windows or a glo
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">Run</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-436358bf" style="display: none;">#include "ZufyUI.h"
+<pre id="code-4db35cc2" style="display: none;">#include "ZufyUI.h"
 #include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
@@ -300,9 +305,12 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {   // Windows subsyste
     return app.Run();
 }</pre>
 </div>
-<blockquote>
-<p><strong><code>Pitfall</code></strong>: GUI apps use <code>wWinMain</code> + <code>/SUBSYSTEM:WINDOWS</code>. If you insist on <code>int main()</code>, set <code>/SUBSYSTEM:CONSOLE</code>, or add <code>#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")</code> — otherwise the linker won't find an entry point.</p>
-</blockquote>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li>GUI apps use <code>wWinMain</code> + <code>/SUBSYSTEM:WINDOWS</code>. If you insist on <code>int main()</code>, set <code>/SUBSYSTEM:CONSOLE</code>, or add <code>#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")</code> — otherwise the linker won't find an entry point.</li>
+</ul>
+</div>
 <h2 id="event-loop-threading">Event loop &amp; threading</h2>
 <ul>
 <li><code>Application::Run()</code> runs the single message loop; <strong>all windows/controls must be created and touched on the same UI thread</strong>.</li>

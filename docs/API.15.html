@@ -275,11 +275,17 @@ virtual void ComputeValueRange(double&amp; lo, double&amp; hi);
 virtual void UpdateHover(float,float);   virtual void OnDataClick(float,float);
 virtual std::wstring HoveredText() const;
 ```
+
+###block_red_start
+**易错**
+
+- 自定义 `ChartBase` 子类**必须调用 `InitScrollBars()`**（`BarChart`/`LineChart` 构造里已调），否则内部滚动条为空。
+- 实时数据用 `UpdateSeriesValues`（不重播动画），别用 `SetSeriesValues`（会重置进场动画，配合 250ms 刷新会一直闪）。
+- `SetValueAxisRange(min,max)` 仅当 `max&gt;min` 生效；滚轮 `Ctrl`=缩放(0.4..3)、`Shift`=横向滚动、否则纵向；拖动位移 &gt; 4 DIP 才判为平移。
+- 折线**面积填充的基线夹在可见轴范围内**（`ValueY(clamp(0, axisMin, axisMax))`），自动量程下不会填满整块。`LineChart` 进场为左→右揭示。
+###block_red_end
+
 - **`版本`**：`SetFillWidth/Height(true)` 在父级给出约束时会铺满；无约束（`avail=FLT_MAX`）且未设尺寸时**回退默认 `420×260`**（v1.19.4 起；不再塌成 0）。图表默认拉伸权值为 0，需要它随布局铺满时用 `SetFillWidth/Height(true)` 或权值。
-- **`易错`**：自定义 `ChartBase` 子类**必须调用 `InitScrollBars()`**（`BarChart`/`LineChart` 构造里已调），否则内部滚动条为空。
-- **`易错`**：实时数据用 `UpdateSeriesValues`（不重播动画），别用 `SetSeriesValues`（会重置进场动画，配合 250ms 刷新会一直闪）。
-- **`易错`**：`SetValueAxisRange(min,max)` 仅当 `max&gt;min` 生效；滚轮 `Ctrl`=缩放(0.4..3)、`Shift`=横向滚动、否则纵向；拖动位移 &gt; 4 DIP 才判为平移。
-- **`易错`**：折线**面积填充的基线夹在可见轴范围内**（`ValueY(clamp(0, axisMin, axisMax))`），自动量程下不会填满整块。`LineChart` 进场为左→右揭示。
 
 ## BarChart
 
@@ -315,8 +321,13 @@ void SetZoom(float);   float GetZoom() const;   // v1.18.0：滚轮缩放 0.4..4
 bool OnMouseWheel(float,float) override;   // 滚轮缩放；绘制半径与命中检测同用 zoom_
 void SetAnimationEnabled(bool);
 ```
-- **`易错`**：`PieChart` 默认拉伸权值为 0，需要显式尺寸或布局权值。
-- **`易错`**：标签带引导线，**右半边文字左对齐接在引线末端右边、左半边右对齐贴在末端左边**。</pre></div></div>
+
+###block_red_start
+**易错**
+
+- `PieChart` 默认拉伸权值为 0，需要显式尺寸或布局权值。
+- 标签带引导线，**右半边文字左对齐接在引线末端右边、左半边右对齐贴在末端左边**。
+###block_red_end</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 15 章 · 图表</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 15 章</span><h1>图表</h1><p class="chapter-summary">ChartBase、BarChart、LineChart、PieChart（v1.18.0）</p></header><blockquote>
 <p>头文件 <code>ZufyUICharts.h</code>。<code>ChartBase</code> 集中处理绘图几何、Nice 刻度、类别轴、网格、图例、调色板、内部滚动条、吸附轴、悬停/命中、Ctrl 缩放、拖动平移、进场动画；<code>BarChart</code>/<code>LineChart</code> 只实现 <code>DrawData</code>。</p>
@@ -325,7 +336,7 @@ void SetAnimationEnabled(bool);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7d8ab78b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b65fc90e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUICharts.h"</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">chart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">BarChart</span><span class="o">&gt;</span><span class="p">();</span>
@@ -335,7 +346,7 @@ void SetAnimationEnabled(bool);
 <span class="n">chart</span><span class="o">-&gt;</span><span class="n">SetWidth</span><span class="p">(</span><span class="mi">420</span><span class="p">);</span><span class="w"> </span><span class="n">chart</span><span class="o">-&gt;</span><span class="n">SetHeight</span><span class="p">(</span><span class="mi">260</span><span class="p">);</span><span class="w">   </span><span class="c1">// 图表尺寸来自自身，必须显式给或给布局权值</span>
 <span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">chart</span><span class="p">);</span>
 </pre></div>
-<pre id="code-7d8ab78b" style="display: none;">#include "ZufyUICharts.h"
+<pre id="code-b65fc90e" style="display: none;">#include "ZufyUICharts.h"
 auto chart = std::make_shared&lt;BarChart&gt;();
 chart-&gt;AddSeries(L"销量");
 chart-&gt;AddCategory(L"Q1"); chart-&gt;AddCategory(L"Q2"); chart-&gt;AddCategory(L"Q3");
@@ -347,7 +358,7 @@ root-&gt;AddChild(chart);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7b7df129', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b8d170e3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AText</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AVert</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Top</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="w"> </span><span class="p">};</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">Series</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">values</span><span class="p">;</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">color</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
@@ -383,7 +394,7 @@ root-&gt;AddChild(chart);</pre>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">UpdateHover</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">OnDataClick</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
 <span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">HoveredText</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-7b7df129" style="display: none;">enum class AText { Left, Center, Right };   enum class AVert { Top, Center };
+<pre id="code-b8d170e3" style="display: none;">enum class AText { Left, Center, Right };   enum class AVert { Top, Center };
 struct Series { std::wstring name; std::vector&lt;double&gt; values; Color color; };
 inline static std::vector&lt;Color&gt; DefaultPalette;   // 8 色
 ZSignal&lt;int,int&gt; PointClicked;    // (series, category)
@@ -417,18 +428,23 @@ virtual void ComputeValueRange(double&amp; lo, double&amp; hi);
 virtual void UpdateHover(float,float);   virtual void OnDataClick(float,float);
 virtual std::wstring HoveredText() const;</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li>自定义 <code>ChartBase</code> 子类<strong>必须调用 <code>InitScrollBars()</code></strong>（<code>BarChart</code>/<code>LineChart</code> 构造里已调），否则内部滚动条为空。</li>
+<li>实时数据用 <code>UpdateSeriesValues</code>（不重播动画），别用 <code>SetSeriesValues</code>（会重置进场动画，配合 250ms 刷新会一直闪）。</li>
+<li><code>SetValueAxisRange(min,max)</code> 仅当 <code>max&gt;min</code> 生效；滚轮 <code>Ctrl</code>=缩放(0.4..3)、<code>Shift</code>=横向滚动、否则纵向；拖动位移 &gt; 4 DIP 才判为平移。</li>
+<li>折线<strong>面积填充的基线夹在可见轴范围内</strong>（<code>ValueY(clamp(0, axisMin, axisMax))</code>），自动量程下不会填满整块。<code>LineChart</code> 进场为左→右揭示。</li>
+</ul>
+</div>
 <ul>
 <li><strong><code>版本</code></strong>：<code>SetFillWidth/Height(true)</code> 在父级给出约束时会铺满；无约束（<code>avail=FLT_MAX</code>）且未设尺寸时<strong>回退默认 <code>420×260</code></strong>（v1.19.4 起；不再塌成 0）。图表默认拉伸权值为 0，需要它随布局铺满时用 <code>SetFillWidth/Height(true)</code> 或权值。</li>
-<li><strong><code>易错</code></strong>：自定义 <code>ChartBase</code> 子类<strong>必须调用 <code>InitScrollBars()</code></strong>（<code>BarChart</code>/<code>LineChart</code> 构造里已调），否则内部滚动条为空。</li>
-<li><strong><code>易错</code></strong>：实时数据用 <code>UpdateSeriesValues</code>（不重播动画），别用 <code>SetSeriesValues</code>（会重置进场动画，配合 250ms 刷新会一直闪）。</li>
-<li><strong><code>易错</code></strong>：<code>SetValueAxisRange(min,max)</code> 仅当 <code>max&gt;min</code> 生效；滚轮 <code>Ctrl</code>=缩放(0.4..3)、<code>Shift</code>=横向滚动、否则纵向；拖动位移 &gt; 4 DIP 才判为平移。</li>
-<li><strong><code>易错</code></strong>：折线<strong>面积填充的基线夹在可见轴范围内</strong>（<code>ValueY(clamp(0, axisMin, axisMax))</code>），自动量程下不会填满整块。<code>LineChart</code> 进场为左→右揭示。</li>
 </ul>
 <h2 id="barchart">BarChart</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d34777d0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-9367fa18', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// v1.18.0补全 Horizontal 实现</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">StackMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Grouped</span><span class="p">,</span><span class="w"> </span><span class="n">Stacked</span><span class="p">,</span><span class="w"> </span><span class="n">PercentStacked</span><span class="p">,</span><span class="w"> </span><span class="n">Overlapped</span><span class="w"> </span><span class="p">};</span>
@@ -437,7 +453,7 @@ virtual std::wstring HoveredText() const;</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCornerRadius</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBarOutline</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">c</span><span class="o">=</span><span class="p">...);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetBarColor</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedCategory</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">);</span>
 </pre></div>
-<pre id="code-d34777d0" style="display: none;">enum class Orientation { Vertical, Horizontal };   // v1.18.0补全 Horizontal 实现
+<pre id="code-9367fa18" style="display: none;">enum class Orientation { Vertical, Horizontal };   // v1.18.0补全 Horizontal 实现
 enum class StackMode { Grouped, Stacked, PercentStacked, Overlapped };
 void SetOrientation(Orientation);  void SetStackMode(StackMode);
 void SetBarGap(float 0..0.9);  void SetStackBarRatio(float 0.1..1);  void SetGroupGap(float 0..0.9);
@@ -448,14 +464,14 @@ void SetBarColor(int s, int c, Color);  void SetSelectedCategory(int c);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0f749f60', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-42679c53', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Marker</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Circle</span><span class="p">,</span><span class="w"> </span><span class="n">Square</span><span class="w"> </span><span class="p">};</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetLineWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSmooth</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDashed</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetShowMarkers</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMarkerSize</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMarker</span><span class="p">(</span><span class="n">Marker</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetAreaFill</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.25f</span><span class="p">);</span>
 </pre></div>
-<pre id="code-0f749f60" style="display: none;">enum class Marker { None, Circle, Square };
+<pre id="code-42679c53" style="display: none;">enum class Marker { None, Circle, Square };
 void SetLineWidth(float);  void SetSmooth(bool);  void SetDashed(bool);
 void SetShowMarkers(bool);  void SetMarkerSize(float);  void SetMarker(Marker);
 void SetAreaFill(bool on, float alpha=0.25f);</pre>
@@ -464,7 +480,7 @@ void SetAreaFill(bool on, float alpha=0.25f);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e4733e92', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-d81fe656', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">LabelMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Percent</span><span class="p">,</span><span class="w"> </span><span class="n">Value</span><span class="p">,</span><span class="w"> </span><span class="n">LabelAndPercent</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SliceClicked</span><span class="p">;</span>
@@ -477,7 +493,7 @@ void SetAreaFill(bool on, float alpha=0.25f);</pre>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">OnMouseWheel</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">   </span><span class="c1">// 滚轮缩放；绘制半径与命中检测同用 zoom_</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 </pre></div>
-<pre id="code-e4733e92" style="display: none;">enum class LabelMode { None, Percent, Value, LabelAndPercent };
+<pre id="code-d81fe656" style="display: none;">enum class LabelMode { None, Percent, Value, LabelAndPercent };
 ZSignal&lt;int&gt; SliceClicked;
 void AddSlice(const std::wstring&amp; label, double value, Color = auto);
 void Clear();   int SliceCount() const;
@@ -488,10 +504,13 @@ void SetZoom(float);   float GetZoom() const;   // v1.18.0：滚轮缩放 0.4..4
 bool OnMouseWheel(float,float) override;   // 滚轮缩放；绘制半径与命中检测同用 zoom_
 void SetAnimationEnabled(bool);</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>PieChart</code> 默认拉伸权值为 0，需要显式尺寸或布局权值。</li>
-<li><strong><code>易错</code></strong>：标签带引导线，<strong>右半边文字左对齐接在引线末端右边、左半边右对齐贴在末端左边</strong>。</li>
+<li><code>PieChart</code> 默认拉伸权值为 0，需要显式尺寸或布局权值。</li>
+<li>标签带引导线，<strong>右半边文字左对齐接在引线末端右边、左半边右对齐贴在末端左边</strong>。</li>
 </ul>
+</div>
 <nav class="chapter-nav"><a class="prev" href="API.14.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">数据视图</span><span class="nav-desc">ListView、TableView、TreeView、TreeNode（虚拟化、隐藏/筛选/可见序）</span></a><a class="next" href="API.16.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">窗口周边</span><span class="nav-desc">图像、托盘、系统对话框、应用注册</span></a></nav>
         </main>
     </div>

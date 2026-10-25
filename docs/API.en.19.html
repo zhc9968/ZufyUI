@@ -222,10 +222,125 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
     <div class="layout">
         <aside class="toc-sidebar" id="tocSidebar">
             <div class="sidebar-head"><span>Contents</span><button class="toc-collapse" id="tocCollapse" title="Collapse contents">&laquo;</button></div>
-<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Drag &amp; Drop, cards</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Theme system</a></li><li class="active"><a href="API.en.19.html"><span class="chapter-index">19</span>DSL</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.21.html"><span class="chapter-index">21</span>Version digest</a></li><li class=""><a href="API.en.22.html"><span class="chapter-index">22</span>Pitfall index</a></li><li class=""><a href="API.en.23.html"><span class="chapter-index">23</span>Appendix</a></li></ul></div>
+<div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class=""><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Drag &amp; Drop, cards</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Theme system</a></li><li class="active"><a href="API.en.19.html"><span class="chapter-index">19</span>DSL</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.21.html"><span class="chapter-index">21</span>Version digest</a></li><li class=""><a href="API.en.22.html"><span class="chapter-index">22</span>Pitfall index</a></li><li class=""><a href="API.en.23.html"><span class="chapter-index">23</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="minimal-runnable-example"><div class="toc-row"><a href="#minimal-runnable-example" data-target="minimal-runnable-example">Minimal runnable example</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="variables-handles-and-reft"><div class="toc-row"><a href="#variables-handles-and-reft" data-target="variables-handles-and-reft">Variables, handles and Ref&lt;T&gt;</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="event-binding"><div class="toc-row"><a href="#event-binding" data-target="event-binding">Event binding</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="two-ways-to-use-windowapp"><div class="toc-row"><a href="#two-ways-to-use-windowapp" data-target="two-ways-to-use-windowapp">Two ways to use WindowApp</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="common-mistakes"><div class="toc-row"><a href="#common-mistakes" data-target="common-mistakes">Common mistakes</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="api-summary"><div class="toc-row"><a href="#api-summary" data-target="api-summary">API summary</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>```cpp
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>&gt; This chapter starts with copy-ready examples, then gives the API summary. `ZufyUIDsl.h` is an optional layer and changes no control tree; when a name is uncertain, use the header and this chapter — do not guess from Qt habits.
+
+## Minimal runnable example
+
+```cpp
+#include "ZufyUI.h"
+#include "ZufyUIWidgets.h"
+#include "ZufyUIDsl.h"
+
+using namespace ZufyUI;
+using namespace ZufyUI::dsl;
+
+int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
+    auto nameBox = ZTxt().placeholder(L"Type here...");
+    auto greeting = ZLbl(L"Hello, waiting...");
+    auto greetBtn = ZBtn(L"Greet");
+
+    auto root = ZCol(
+        ZRow(ZLbl(L"Your name:"), nameBox).spacing(12),
+        greeting.vWeight(1),
+        ZRow(greetBtn).spacing(12)
+    ).spacing(10).margin(Thickness(20));
+
+    greetBtn.on&lt;&amp;Button::Clicked&gt;([nameBox, greeting] {
+        auto name = nameBox-&gt;GetText();
+        greeting-&gt;SetText(name.empty() ? L"Hello, stranger." : L"Hello, " + name + L"!");
+    });
+
+    return ZApp().title(L"ZufyUI DSL example").size(760, 520).root(root).run();
+}
+```
+
+- `ZTxt()` / `ZLbl()` / `ZBtn()` return **handles to already-created controls**; `nameBox` is not an empty shell.
+- You do not need to write `Ref&lt;TextBox&gt;()` first and wait for it to become a control.
+- `ZApp().run()` already does `Create → apply options → Show → Run`; do not call `win-&gt;Show()` again.
+- If the project uses a precompiled header, put `#include "pch.h"` first; that is project configuration, not a ZufyUI API.
+
+###block_green_start
+**Recommended**
+
+Inline when possible: `ZRow(ZLbl(L"Name"), ZTxt().placeholder(L"..."))`. Keep `auto nameBox = ZTxt()` only when you need to read or modify that control later; do not use an empty `Ref&lt;T&gt;()` as a placeholder.
+###block_green_end
+
+## Variables, handles and `Ref&lt;T&gt;`
+
+- `auto nameBox = ZTxt();` returns `Ref&lt;TextBox&gt;` holding a real `std::shared_ptr&lt;TextBox&gt;`; `auto` hides the type, and normal use never needs to spell `Ref`.
+- `Ref&lt;T&gt;()` is an **empty handle**, not a factory: it creates no control, `ZRow` / `ZCol` ignore it, and dereferencing it gives a null pointer. Normal UI code does not need it.
+- Only use a default-constructed `Ref` for a class member assigned later or for an explicitly nullable reference; even then `std::shared_ptr&lt;T&gt;` with a member initializer is usually clearer.
+- If you do not want the `Ref` fluent sugar, DSL containers also accept `shared_ptr`; use the core `Connect` for events:
+
+```cpp
+auto nameBox = std::make_shared&lt;TextBox&gt;();
+nameBox-&gt;SetPlaceholder(L"Type here...");
+
+auto root = ZCol(
+    ZRow(ZLbl(L"Your name:"), nameBox).spacing(12)
+);
+
+nameBox-&gt;Connect(nameBox-&gt;TextChanged, [](const std::wstring&amp;) {});
+```
+
+- Class-member example (do not treat an empty Ref as ordinary construction):
+
+```cpp
+dsl::Ref&lt;Label&gt; status_;          // empty handle; wait for assignment
+status_ = dsl::ZLbl(L"Ready");    // now points at a real control
+```
+
+## Event binding
+
+- The DSL form is a signal member pointer: `.on&lt;&amp;Button::Clicked&gt;(...)`, `.on&lt;&amp;ToggleSwitch::Toggled&gt;(...)`.
+- The core signal form also works: `btn-&gt;Connect(btn-&gt;Clicked, ...)`.
+- There is no `Button::OnClicked` and no chained `.On(...)`. `Button::Clicked` is legal only in a member-pointer position such as `.on&lt;&amp;Button::Clicked&gt;`.
+
+## Two ways to use `WindowApp`
+
+Chain directly into `.run()`:
+
+```cpp
+return ZApp()
+    .title(L"ZufyUI DSL example")
+    .size(760, 520)
+    .root(ZCol(ZLbl(L"Hello")))
+    .run();
+```
+
+To keep the builder, construct it first and call methods as statements:
+
+```cpp
+WindowApp app = ZApp();
+app.title(L"ZufyUI DSL example");
+app.size(760, 520);
+app.root(ZCol(ZLbl(L"Hello")));
+return app.run();
+```
+
+Do not write `auto app = ZApp().title(...)`: chain methods return `WindowApp&amp;`, and `WindowApp` has a deleted copy constructor, so that fails to compile. `WindowApp` is movable but not copyable; chain directly into `.run()`, or start with `WindowApp app = ZApp();`.
+
+## Common mistakes
+
+| Wrong | Correct | Why |
+|---|---|---|
+| `ZufyUI::Dsl` | `ZufyUI::dsl` | the namespace is lowercase `dsl` |
+| `Col(...)` / `Row(...)` | `ZCol(...)` / `ZRow(...)` | short factories use the `Z` prefix |
+| `Ref&lt;TextBox&gt;()` | `ZTxt()` | a default Ref is an empty handle, not a factory |
+| `SetPlaceholderText(...)` | `SetPlaceholder(...)` / `.placeholder(...)` | the actual API name differs |
+| `ToggleSwitch(L"switch")` | `ZToggle(true)` plus a separate `ZLbl` | `ZToggle` takes only a bool, no label |
+| `Button::OnClicked` / `.On(...)` | `.on&lt;&amp;Button::Clicked&gt;(...)` or `Connect` | ZufyUI uses signals/slots |
+| `auto app = ZApp().title(...)` | chain into `.run()`, or `WindowApp app = ZApp()` | chaining returns an lvalue reference and copying is deleted |
+| `ZApp().root(Col(...))` | `ZApp().root(ZCol(...))` | root needs `Ref&lt;Layout&gt;`; the factory is `ZCol` |
+
+&gt; Using both `using namespace ZufyUI;` and `using namespace ZufyUI::dsl;` is allowed: every short factory has the `Z` prefix, so it does not collide with class names.
+
+## API summary
+
+```cpp
 // header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)
 namespace ZufyUI::dsl {
 template&lt;class T&gt; class Ref {                      // wraps shared_ptr&lt;T&gt;
@@ -284,19 +399,243 @@ WindowApp ZApp();
 }
 ```
 - Usage: `using namespace ZufyUI::dsl;` then `ZRow(ZBtn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)`. Every short factory uses a `Z` prefix, so combining it with `using namespace ZufyUI;` no longer collides with class names.
-- **`Pitfall`**: `with(&amp;T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast&lt;...&gt;(&amp;T::SetX)`. A function with **default arguments** can't be used with `with` (the pointer carries every parameter → "too few arguments"); since **v1.22.0** such functions are split into **non-defaulted overloads** (e.g. `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`, `ListView::AddItem(text)` / `AddItemWidget(shared_ptr&lt;Label&gt;)`, `RadioGroup::AddItem` / `AddItemSelected`, `Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`).
-- **`Pitfall`**: anything `with` can't express (multi-step, conditional, needs iteration) goes through `apply(lambda)` so the chain doesn't break. It also silences a conversion warning: `.with(&amp;TextBox::SetWidth, 220)` passes an `int` and trips `C4244` — prefer `.width(220.0f)`.
 - **`add()` dispatches on the container's real API**: `ColumnBox`/`RowBox`/`Label` → `AddChild`; `PageHost` → `AddPage` (non-`Page` arguments are skipped); `GridLayout` needs coordinates, so use `.cell(row,col,child[,rowSpan,colSpan])` or `dsl::ZCell(...)`. Null children (`nullptr` / empty `Ref`) are always ignored — no null dereference.
 - **ZGrid coordinates**: `ZGrid(ZCell(1,2,ZLbl(L"x")), ZCell(0,0,btn,1,2))` places cells explicitly; bare children are still accepted (old behaviour: `(i,0)` in order), so existing code is unaffected.
 - **Window builder**: `dsl::ZApp()` → `WindowApp` (chain `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`; signals via `on&lt;&amp;Window::Closed&gt;(...)`). `root()` accepts **any `Layout` subclass** (`ZCol`/`ZRow`/`ZGrid`), and `titleBar/menuBar/statusBar` take a `Ref&lt;T&gt;` directly.
-- **`Pitfall`**: `Window::Create` **does not show the window** (the app decides when) — `WindowApp::run()` therefore calls `Show()`; use `.hidden()` to start hidden. `WindowApp` is movable but not copyable. `Window::Run()` returns `void`; `Window` has no public `SetContent`, so set the root via `root(...)`.
 - **Per-control sugar** (**SFINAE-gated**: exists only when the control has the method): `text/checked/value/placeholder/padding(float and Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f and h,v)/align/image/imageFit`; extra short factories: `ZPage()`/`ZMenu()`/`ZSettings()`/`ZRadioGroup()`/`ZScrollBar()`/`ZGlyph()`.
-- **`Pitfall`**: `Image` is **not** a `UIElement` (it is a resource object), so there is no `Ref&lt;Image&gt;` factory — use `.image(Image::FromFile(...)).imageFit(true)` on a `Label`.</pre></div></div>
+
+###block_red_start
+**Pitfall**
+
+- `with(&amp;T::Setter, args...)` takes a **member function pointer**; overloaded setters need `static_cast&lt;...&gt;(&amp;T::SetX)`. A function with **default arguments** can't be used with `with` (the pointer carries every parameter → "too few arguments"); since **v1.22.0** such functions are split into **non-defaulted overloads** (e.g. `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`, `ListView::AddItem(text)` / `AddItemWidget(shared_ptr&lt;Label&gt;)`, `RadioGroup::AddItem` / `AddItemSelected`, `Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`).
+- anything `with` can't express (multi-step, conditional, needs iteration) goes through `apply(lambda)` so the chain doesn't break. It also silences a conversion warning: `.with(&amp;TextBox::SetWidth, 220)` passes an `int` and trips `C4244` — prefer `.width(220.0f)`.
+- `Window::Create` **does not show the window** (the app decides when) — `WindowApp::run()` therefore calls `Show()`; use `.hidden()` to start hidden. `WindowApp` is movable but not copyable. `Window::Run()` returns `void`; `Window` has no public `SetContent`, so set the root via `root(...)`.
+- `Image` is **not** a `UIElement` (it is a resource object), so there is no `Ref&lt;Image&gt;` factory — use `.image(Image::FromFile(...)).imageFit(true)` on a `Label`.
+- `Ref&lt;T&gt;()` is an empty handle, not a factory; it never becomes a control and containers ignore it. Use `ZTxt()` / `ZLbl()` / `ZBtn()` / `ZMake&lt;T&gt;()` for normal UI.
+- Bind events with `.on&lt;&amp;Button::Clicked&gt;(...)` or the core `Connect`; there is no `OnClicked` / `OnToggled` / `.On(...)`.
+- `auto app = ZApp().title(...)` fails because copying is deleted; chain directly into `.run()`, or start with `WindowApp app = ZApp();` and call methods as statements.
+- The namespace is lowercase `ZufyUI::dsl`, and short factories are `ZCol` / `ZRow` / `ZLbl` / `ZBtn` / `ZTxt`; not `ZufyUI::Dsl` / `Col` / `Row`.
+###block_red_end</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 19 · DSL</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 19</span><h1>DSL</h1><p class="chapter-summary">Fluent construction (ZufyUIDsl.h, v1.19.4; extended in v1.20.0)</p></header><div class="code-container">
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 19</span><h1>DSL</h1><p class="chapter-summary">Fluent construction (ZufyUIDsl.h, v1.19.4; extended in v1.20.0)</p></header><blockquote>
+<p>This chapter starts with copy-ready examples, then gives the API summary. <code>ZufyUIDsl.h</code> is an optional layer and changes no control tree; when a name is uncertain, use the header and this chapter — do not guess from Qt habits.</p>
+</blockquote>
+<h2 id="minimal-runnable-example">Minimal runnable example</h2>
+<div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e65cf890', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-2d3126fe', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUI.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIDsl.h"</span>
+
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="o">::</span><span class="nn">dsl</span><span class="p">;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">APIENTRY</span><span class="w"> </span><span class="nf">wWinMain</span><span class="p">(</span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">HINSTANCE</span><span class="p">,</span><span class="w"> </span><span class="n">LPWSTR</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">nameBox</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ZTxt</span><span class="p">().</span><span class="n">placeholder</span><span class="p">(</span><span class="sa">L</span><span class="s">"Type here..."</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">greeting</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ZLbl</span><span class="p">(</span><span class="sa">L</span><span class="s">"Hello, waiting..."</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">greetBtn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ZBtn</span><span class="p">(</span><span class="sa">L</span><span class="s">"Greet"</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ZCol</span><span class="p">(</span>
+<span class="w">        </span><span class="n">ZRow</span><span class="p">(</span><span class="n">ZLbl</span><span class="p">(</span><span class="sa">L</span><span class="s">"Your name:"</span><span class="p">),</span><span class="w"> </span><span class="n">nameBox</span><span class="p">).</span><span class="n">spacing</span><span class="p">(</span><span class="mi">12</span><span class="p">),</span>
+<span class="w">        </span><span class="n">greeting</span><span class="p">.</span><span class="n">vWeight</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+<span class="w">        </span><span class="n">ZRow</span><span class="p">(</span><span class="n">greetBtn</span><span class="p">).</span><span class="n">spacing</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<span class="w">    </span><span class="p">).</span><span class="n">spacing</span><span class="p">(</span><span class="mi">10</span><span class="p">).</span><span class="n">margin</span><span class="p">(</span><span class="n">Thickness</span><span class="p">(</span><span class="mi">20</span><span class="p">));</span>
+
+<span class="w">    </span><span class="n">greetBtn</span><span class="p">.</span><span class="n">on</span><span class="o">&lt;&amp;</span><span class="n">Button</span><span class="o">::</span><span class="n">Clicked</span><span class="o">&gt;</span><span class="p">([</span><span class="n">nameBox</span><span class="p">,</span><span class="w"> </span><span class="n">greeting</span><span class="p">]</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nameBox</span><span class="o">-&gt;</span><span class="n">GetText</span><span class="p">();</span>
+<span class="w">        </span><span class="n">greeting</span><span class="o">-&gt;</span><span class="n">SetText</span><span class="p">(</span><span class="n">name</span><span class="p">.</span><span class="n">empty</span><span class="p">()</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="sa">L</span><span class="s">"Hello, stranger."</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="sa">L</span><span class="s">"Hello, "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="sa">L</span><span class="s">"!"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">});</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">ZApp</span><span class="p">().</span><span class="n">title</span><span class="p">(</span><span class="sa">L</span><span class="s">"ZufyUI DSL example"</span><span class="p">).</span><span class="n">size</span><span class="p">(</span><span class="mi">760</span><span class="p">,</span><span class="w"> </span><span class="mi">520</span><span class="p">).</span><span class="n">root</span><span class="p">(</span><span class="n">root</span><span class="p">).</span><span class="n">run</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+<pre id="code-2d3126fe" style="display: none;">#include "ZufyUI.h"
+#include "ZufyUIWidgets.h"
+#include "ZufyUIDsl.h"
+
+using namespace ZufyUI;
+using namespace ZufyUI::dsl;
+
+int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
+    auto nameBox = ZTxt().placeholder(L"Type here...");
+    auto greeting = ZLbl(L"Hello, waiting...");
+    auto greetBtn = ZBtn(L"Greet");
+
+    auto root = ZCol(
+        ZRow(ZLbl(L"Your name:"), nameBox).spacing(12),
+        greeting.vWeight(1),
+        ZRow(greetBtn).spacing(12)
+    ).spacing(10).margin(Thickness(20));
+
+    greetBtn.on&lt;&amp;Button::Clicked&gt;([nameBox, greeting] {
+        auto name = nameBox-&gt;GetText();
+        greeting-&gt;SetText(name.empty() ? L"Hello, stranger." : L"Hello, " + name + L"!");
+    });
+
+    return ZApp().title(L"ZufyUI DSL example").size(760, 520).root(root).run();
+}</pre>
+</div>
+<ul>
+<li><code>ZTxt()</code> / <code>ZLbl()</code> / <code>ZBtn()</code> return <strong>handles to already-created controls</strong>; <code>nameBox</code> is not an empty shell.</li>
+<li>You do not need to write <code>Ref&lt;TextBox&gt;()</code> first and wait for it to become a control.</li>
+<li><code>ZApp().run()</code> already does <code>Create → apply options → Show → Run</code>; do not call <code>win-&gt;Show()</code> again.</li>
+<li>If the project uses a precompiled header, put <code>#include "pch.h"</code> first; that is project configuration, not a ZufyUI API.</li>
+</ul>
+<div class="green">
+<p><strong>Recommended</strong></p>
+<p>Inline when possible: <code>ZRow(ZLbl(L"Name"), ZTxt().placeholder(L"..."))</code>. Keep <code>auto nameBox = ZTxt()</code> only when you need to read or modify that control later; do not use an empty <code>Ref&lt;T&gt;()</code> as a placeholder.</p>
+</div>
+<h2 id="variables-handles-and-reft">Variables, handles and <code>Ref&lt;T&gt;</code></h2>
+<ul>
+<li><code>auto nameBox = ZTxt();</code> returns <code>Ref&lt;TextBox&gt;</code> holding a real <code>std::shared_ptr&lt;TextBox&gt;</code>; <code>auto</code> hides the type, and normal use never needs to spell <code>Ref</code>.</li>
+<li><code>Ref&lt;T&gt;()</code> is an <strong>empty handle</strong>, not a factory: it creates no control, <code>ZRow</code> / <code>ZCol</code> ignore it, and dereferencing it gives a null pointer. Normal UI code does not need it.</li>
+<li>Only use a default-constructed <code>Ref</code> for a class member assigned later or for an explicitly nullable reference; even then <code>std::shared_ptr&lt;T&gt;</code> with a member initializer is usually clearer.</li>
+<li>If you do not want the <code>Ref</code> fluent sugar, DSL containers also accept <code>shared_ptr</code>; use the core <code>Connect</code> for events:</li>
+</ul>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-c3ea8d66', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">nameBox</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">TextBox</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="n">nameBox</span><span class="o">-&gt;</span><span class="n">SetPlaceholder</span><span class="p">(</span><span class="sa">L</span><span class="s">"Type here..."</span><span class="p">);</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ZCol</span><span class="p">(</span>
+<span class="w">    </span><span class="n">ZRow</span><span class="p">(</span><span class="n">ZLbl</span><span class="p">(</span><span class="sa">L</span><span class="s">"Your name:"</span><span class="p">),</span><span class="w"> </span><span class="n">nameBox</span><span class="p">).</span><span class="n">spacing</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+<span class="p">);</span>
+
+<span class="n">nameBox</span><span class="o">-&gt;</span><span class="n">Connect</span><span class="p">(</span><span class="n">nameBox</span><span class="o">-&gt;</span><span class="n">TextChanged</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{});</span>
+</pre></div>
+<pre id="code-c3ea8d66" style="display: none;">auto nameBox = std::make_shared&lt;TextBox&gt;();
+nameBox-&gt;SetPlaceholder(L"Type here...");
+
+auto root = ZCol(
+    ZRow(ZLbl(L"Your name:"), nameBox).spacing(12)
+);
+
+nameBox-&gt;Connect(nameBox-&gt;TextChanged, [](const std::wstring&amp;) {});</pre>
+</div>
+<ul>
+<li>Class-member example (do not treat an empty Ref as ordinary construction):</li>
+</ul>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-90dc581e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">dsl</span><span class="o">::</span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">status_</span><span class="p">;</span><span class="w">          </span><span class="c1">// empty handle; wait for assignment</span>
+<span class="n">status_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dsl</span><span class="o">::</span><span class="n">ZLbl</span><span class="p">(</span><span class="sa">L</span><span class="s">"Ready"</span><span class="p">);</span><span class="w">    </span><span class="c1">// now points at a real control</span>
+</pre></div>
+<pre id="code-90dc581e" style="display: none;">dsl::Ref&lt;Label&gt; status_;          // empty handle; wait for assignment
+status_ = dsl::ZLbl(L"Ready");    // now points at a real control</pre>
+</div>
+<h2 id="event-binding">Event binding</h2>
+<ul>
+<li>The DSL form is a signal member pointer: <code>.on&lt;&amp;Button::Clicked&gt;(...)</code>, <code>.on&lt;&amp;ToggleSwitch::Toggled&gt;(...)</code>.</li>
+<li>The core signal form also works: <code>btn-&gt;Connect(btn-&gt;Clicked, ...)</code>.</li>
+<li>There is no <code>Button::OnClicked</code> and no chained <code>.On(...)</code>. <code>Button::Clicked</code> is legal only in a member-pointer position such as <code>.on&lt;&amp;Button::Clicked&gt;</code>.</li>
+</ul>
+<h2 id="two-ways-to-use-windowapp">Two ways to use <code>WindowApp</code></h2>
+<p>Chain directly into <code>.run()</code>:</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-9e486539', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="k">return</span><span class="w"> </span><span class="n">ZApp</span><span class="p">()</span>
+<span class="w">    </span><span class="p">.</span><span class="n">title</span><span class="p">(</span><span class="sa">L</span><span class="s">"ZufyUI DSL example"</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">size</span><span class="p">(</span><span class="mi">760</span><span class="p">,</span><span class="w"> </span><span class="mi">520</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="n">root</span><span class="p">(</span><span class="n">ZCol</span><span class="p">(</span><span class="n">ZLbl</span><span class="p">(</span><span class="sa">L</span><span class="s">"Hello"</span><span class="p">)))</span>
+<span class="w">    </span><span class="p">.</span><span class="n">run</span><span class="p">();</span>
+</pre></div>
+<pre id="code-9e486539" style="display: none;">return ZApp()
+    .title(L"ZufyUI DSL example")
+    .size(760, 520)
+    .root(ZCol(ZLbl(L"Hello")))
+    .run();</pre>
+</div>
+<p>To keep the builder, construct it first and call methods as statements:</p>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-519be54b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+</div>
+<div class="highlight"><pre><span></span><span class="n">WindowApp</span><span class="w"> </span><span class="n">app</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ZApp</span><span class="p">();</span>
+<span class="n">app</span><span class="p">.</span><span class="n">title</span><span class="p">(</span><span class="sa">L</span><span class="s">"ZufyUI DSL example"</span><span class="p">);</span>
+<span class="n">app</span><span class="p">.</span><span class="n">size</span><span class="p">(</span><span class="mi">760</span><span class="p">,</span><span class="w"> </span><span class="mi">520</span><span class="p">);</span>
+<span class="n">app</span><span class="p">.</span><span class="n">root</span><span class="p">(</span><span class="n">ZCol</span><span class="p">(</span><span class="n">ZLbl</span><span class="p">(</span><span class="sa">L</span><span class="s">"Hello"</span><span class="p">)));</span>
+<span class="k">return</span><span class="w"> </span><span class="n">app</span><span class="p">.</span><span class="n">run</span><span class="p">();</span>
+</pre></div>
+<pre id="code-519be54b" style="display: none;">WindowApp app = ZApp();
+app.title(L"ZufyUI DSL example");
+app.size(760, 520);
+app.root(ZCol(ZLbl(L"Hello")));
+return app.run();</pre>
+</div>
+<p>Do not write <code>auto app = ZApp().title(...)</code>: chain methods return <code>WindowApp&amp;</code>, and <code>WindowApp</code> has a deleted copy constructor, so that fails to compile. <code>WindowApp</code> is movable but not copyable; chain directly into <code>.run()</code>, or start with <code>WindowApp app = ZApp();</code>.</p>
+<h2 id="common-mistakes">Common mistakes</h2>
+<table>
+<thead>
+<tr>
+<th>Wrong</th>
+<th>Correct</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ZufyUI::Dsl</code></td>
+<td><code>ZufyUI::dsl</code></td>
+<td>the namespace is lowercase <code>dsl</code></td>
+</tr>
+<tr>
+<td><code>Col(...)</code> / <code>Row(...)</code></td>
+<td><code>ZCol(...)</code> / <code>ZRow(...)</code></td>
+<td>short factories use the <code>Z</code> prefix</td>
+</tr>
+<tr>
+<td><code>Ref&lt;TextBox&gt;()</code></td>
+<td><code>ZTxt()</code></td>
+<td>a default Ref is an empty handle, not a factory</td>
+</tr>
+<tr>
+<td><code>SetPlaceholderText(...)</code></td>
+<td><code>SetPlaceholder(...)</code> / <code>.placeholder(...)</code></td>
+<td>the actual API name differs</td>
+</tr>
+<tr>
+<td><code>ToggleSwitch(L"switch")</code></td>
+<td><code>ZToggle(true)</code> plus a separate <code>ZLbl</code></td>
+<td><code>ZToggle</code> takes only a bool, no label</td>
+</tr>
+<tr>
+<td><code>Button::OnClicked</code> / <code>.On(...)</code></td>
+<td><code>.on&lt;&amp;Button::Clicked&gt;(...)</code> or <code>Connect</code></td>
+<td>ZufyUI uses signals/slots</td>
+</tr>
+<tr>
+<td><code>auto app = ZApp().title(...)</code></td>
+<td>chain into <code>.run()</code>, or <code>WindowApp app = ZApp()</code></td>
+<td>chaining returns an lvalue reference and copying is deleted</td>
+</tr>
+<tr>
+<td><code>ZApp().root(Col(...))</code></td>
+<td><code>ZApp().root(ZCol(...))</code></td>
+<td>root needs <code>Ref&lt;Layout&gt;</code>; the factory is <code>ZCol</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Using both <code>using namespace ZufyUI;</code> and <code>using namespace ZufyUI::dsl;</code> is allowed: every short factory has the <code>Z</code> prefix, so it does not collide with class names.</p>
+</blockquote>
+<h2 id="api-summary">API summary</h2>
+<div class="code-container">
+<div class="code-header">
+<span class="code-language">cpp</span>
+<button class="copy-btn" onclick="copyCode('code-29816c10', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)</span>
 <span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="o">::</span><span class="nn">dsl</span><span class="w"> </span><span class="p">{</span>
@@ -355,7 +694,7 @@ WindowApp ZApp();
 <span class="n">WindowApp</span><span class="w"> </span><span class="nf">ZApp</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-e65cf890" style="display: none;">// header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)
+<pre id="code-29816c10" style="display: none;">// header: ZufyUIDsl.h (optional, non-intrusive; changes no existing control)
 namespace ZufyUI::dsl {
 template&lt;class T&gt; class Ref {                      // wraps shared_ptr&lt;T&gt;
     T* operator-&gt;() const;   std::shared_ptr&lt;T&gt; shared() const;
@@ -414,15 +753,24 @@ WindowApp ZApp();
 </div>
 <ul>
 <li>Usage: <code>using namespace ZufyUI::dsl;</code> then <code>ZRow(ZBtn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)</code>. Every short factory uses a <code>Z</code> prefix, so combining it with <code>using namespace ZufyUI;</code> no longer collides with class names.</li>
-<li><strong><code>Pitfall</code></strong>: <code>with(&amp;T::Setter, args...)</code> takes a <strong>member function pointer</strong>; overloaded setters need <code>static_cast&lt;...&gt;(&amp;T::SetX)</code>. A function with <strong>default arguments</strong> can't be used with <code>with</code> (the pointer carries every parameter → "too few arguments"); since <strong>v1.22.0</strong> such functions are split into <strong>non-defaulted overloads</strong> (e.g. <code>TreeView::SetCheckable(bool)</code> / <code>SetCheckableShallow(bool)</code>, <code>ListView::AddItem(text)</code> / <code>AddItemWidget(shared_ptr&lt;Label&gt;)</code>, <code>RadioGroup::AddItem</code> / <code>AddItemSelected</code>, <code>Menu::AddCheckItem</code> / <code>AddCheckItemCb</code> / <code>AddCheckItemRadio</code>).</li>
-<li><strong><code>Pitfall</code></strong>: anything <code>with</code> can't express (multi-step, conditional, needs iteration) goes through <code>apply(lambda)</code> so the chain doesn't break. It also silences a conversion warning: <code>.with(&amp;TextBox::SetWidth, 220)</code> passes an <code>int</code> and trips <code>C4244</code> — prefer <code>.width(220.0f)</code>.</li>
 <li><strong><code>add()</code> dispatches on the container's real API</strong>: <code>ColumnBox</code>/<code>RowBox</code>/<code>Label</code> → <code>AddChild</code>; <code>PageHost</code> → <code>AddPage</code> (non-<code>Page</code> arguments are skipped); <code>GridLayout</code> needs coordinates, so use <code>.cell(row,col,child[,rowSpan,colSpan])</code> or <code>dsl::ZCell(...)</code>. Null children (<code>nullptr</code> / empty <code>Ref</code>) are always ignored — no null dereference.</li>
 <li><strong>ZGrid coordinates</strong>: <code>ZGrid(ZCell(1,2,ZLbl(L"x")), ZCell(0,0,btn,1,2))</code> places cells explicitly; bare children are still accepted (old behaviour: <code>(i,0)</code> in order), so existing code is unaffected.</li>
 <li><strong>Window builder</strong>: <code>dsl::ZApp()</code> → <code>WindowApp</code> (chain <code>size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden</code>; signals via <code>on&lt;&amp;Window::Closed&gt;(...)</code>). <code>root()</code> accepts <strong>any <code>Layout</code> subclass</strong> (<code>ZCol</code>/<code>ZRow</code>/<code>ZGrid</code>), and <code>titleBar/menuBar/statusBar</code> take a <code>Ref&lt;T&gt;</code> directly.</li>
-<li><strong><code>Pitfall</code></strong>: <code>Window::Create</code> <strong>does not show the window</strong> (the app decides when) — <code>WindowApp::run()</code> therefore calls <code>Show()</code>; use <code>.hidden()</code> to start hidden. <code>WindowApp</code> is movable but not copyable. <code>Window::Run()</code> returns <code>void</code>; <code>Window</code> has no public <code>SetContent</code>, so set the root via <code>root(...)</code>.</li>
 <li><strong>Per-control sugar</strong> (<strong>SFINAE-gated</strong>: exists only when the control has the method): <code>text/checked/value/placeholder/padding(float and Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f and h,v)/align/image/imageFit</code>; extra short factories: <code>ZPage()</code>/<code>ZMenu()</code>/<code>ZSettings()</code>/<code>ZRadioGroup()</code>/<code>ZScrollBar()</code>/<code>ZGlyph()</code>.</li>
-<li><strong><code>Pitfall</code></strong>: <code>Image</code> is <strong>not</strong> a <code>UIElement</code> (it is a resource object), so there is no <code>Ref&lt;Image&gt;</code> factory — use <code>.image(Image::FromFile(...)).imageFit(true)</code> on a <code>Label</code>.</li>
 </ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>with(&amp;T::Setter, args...)</code> takes a <strong>member function pointer</strong>; overloaded setters need <code>static_cast&lt;...&gt;(&amp;T::SetX)</code>. A function with <strong>default arguments</strong> can't be used with <code>with</code> (the pointer carries every parameter → "too few arguments"); since <strong>v1.22.0</strong> such functions are split into <strong>non-defaulted overloads</strong> (e.g. <code>TreeView::SetCheckable(bool)</code> / <code>SetCheckableShallow(bool)</code>, <code>ListView::AddItem(text)</code> / <code>AddItemWidget(shared_ptr&lt;Label&gt;)</code>, <code>RadioGroup::AddItem</code> / <code>AddItemSelected</code>, <code>Menu::AddCheckItem</code> / <code>AddCheckItemCb</code> / <code>AddCheckItemRadio</code>).</li>
+<li>anything <code>with</code> can't express (multi-step, conditional, needs iteration) goes through <code>apply(lambda)</code> so the chain doesn't break. It also silences a conversion warning: <code>.with(&amp;TextBox::SetWidth, 220)</code> passes an <code>int</code> and trips <code>C4244</code> — prefer <code>.width(220.0f)</code>.</li>
+<li><code>Window::Create</code> <strong>does not show the window</strong> (the app decides when) — <code>WindowApp::run()</code> therefore calls <code>Show()</code>; use <code>.hidden()</code> to start hidden. <code>WindowApp</code> is movable but not copyable. <code>Window::Run()</code> returns <code>void</code>; <code>Window</code> has no public <code>SetContent</code>, so set the root via <code>root(...)</code>.</li>
+<li><code>Image</code> is <strong>not</strong> a <code>UIElement</code> (it is a resource object), so there is no <code>Ref&lt;Image&gt;</code> factory — use <code>.image(Image::FromFile(...)).imageFit(true)</code> on a <code>Label</code>.</li>
+<li><code>Ref&lt;T&gt;()</code> is an empty handle, not a factory; it never becomes a control and containers ignore it. Use <code>ZTxt()</code> / <code>ZLbl()</code> / <code>ZBtn()</code> / <code>ZMake&lt;T&gt;()</code> for normal UI.</li>
+<li>Bind events with <code>.on&lt;&amp;Button::Clicked&gt;(...)</code> or the core <code>Connect</code>; there is no <code>OnClicked</code> / <code>OnToggled</code> / <code>.On(...)</code>.</li>
+<li><code>auto app = ZApp().title(...)</code> fails because copying is deleted; chain directly into <code>.run()</code>, or start with <code>WindowApp app = ZApp();</code> and call methods as statements.</li>
+<li>The namespace is lowercase <code>ZufyUI::dsl</code>, and short factories are <code>ZCol</code> / <code>ZRow</code> / <code>ZLbl</code> / <code>ZBtn</code> / <code>ZTxt</code>; not <code>ZufyUI::Dsl</code> / <code>Col</code> / <code>Row</code>.</li>
+</ul>
+</div>
 <nav class="chapter-nav"><a class="prev" href="API.en.18.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Theme system</span><span class="nav-desc">Theme (v1.19.0+)</span></a><a class="next" href="API.en.20.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Accessibility &amp; Debug Channel</span><span class="nav-desc">UIA + SetDebugEnabled (v1.17.0)</span></a></nav>
         </main>
     </div>

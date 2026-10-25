@@ -234,7 +234,13 @@ void SetRange(float min,float max);  void SetRangeValue(float);   // [min,max]
 void SetIndeterminate(bool);   void SetIndeterminateBlockWidth(float);  void SetIndeterminateSpeed(float);
 inline static float DefaultValueAnimDuration;   // value animation duration (s), default 0.22
 ```
-- **`Pitfall`**: `SetValue` is `[0,1]`, `SetRangeValue` is `[min,max]` — do not mix.
+
+###block_red_start
+**Pitfall**
+
+- `SetValue` is `[0,1]`, `SetRangeValue` is `[min,max]` — do not mix.
+###block_red_end
+
 - **`Version`**: since `v1.21.0` value changes are **eased** (internal `displayValue_`, duration-driven; the fill and the `%` text move together and stop on time). The same version fixes the **inner fill radius not matching the outer frame after stretching** (track/clip/border used the member `height_`; now all use `arrangedRect_.height / 2`).
 
 ## ProgressRing
@@ -249,7 +255,7 @@ bool UseCache() const override { return false; }
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1fb01e08', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-7987d7d9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">          </span><span class="c1">// normalized to [0,1]</span>
@@ -257,26 +263,31 @@ bool UseCache() const override { return false; }
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminateBlockWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminateSpeed</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">DefaultValueAnimDuration</span><span class="p">;</span><span class="w">   </span><span class="c1">// value animation duration (s), default 0.22</span>
 </pre></div>
-<pre id="code-1fb01e08" style="display: none;">ZSignal&lt;float&gt; ValueChanged;
+<pre id="code-7987d7d9" style="display: none;">ZSignal&lt;float&gt; ValueChanged;
 void SetValue(float);          // normalized to [0,1]
 void SetRange(float min,float max);  void SetRangeValue(float);   // [min,max]
 void SetIndeterminate(bool);   void SetIndeterminateBlockWidth(float);  void SetIndeterminateSpeed(float);
 inline static float DefaultValueAnimDuration;   // value animation duration (s), default 0.22</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: <code>SetValue</code> is <code>[0,1]</code>, <code>SetRangeValue</code> is <code>[min,max]</code> — do not mix.</li>
+<li><code>SetValue</code> is <code>[0,1]</code>, <code>SetRangeValue</code> is <code>[min,max]</code> — do not mix.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: since <code>v1.21.0</code> value changes are <strong>eased</strong> (internal <code>displayValue_</code>, duration-driven; the fill and the <code>%</code> text move together and stop on time). The same version fixes the <strong>inner fill radius not matching the outer frame after stretching</strong> (track/clip/border used the member <code>height_</code>; now all use <code>arrangedRect_.height / 2</code>).</li>
 </ul>
 <h2 id="progressring">ProgressRing</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-52592f65', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-8c70e700', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetThickness</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 </pre></div>
-<pre id="code-52592f65" style="display: none;">void SetValue(float);  void SetIndeterminate(bool);  void SetThickness(float);
+<pre id="code-8c70e700" style="display: none;">void SetValue(float);  void SetIndeterminate(bool);  void SetThickness(float);
 bool UseCache() const override { return false; }</pre>
 </div>
 <ul>

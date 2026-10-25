@@ -236,8 +236,18 @@ struct Color {
     static Color Lerp(const Color&amp; c1, const Color&amp; c2, float t);
 };
 ```
-- **`易错`**：分量是浮点 **[0,1]**；写 `Color(255,0,0)` 会得到“超亮”的错色。整数入参请用 `Color::FromArgb(255,255,0,0)`。
-- **`注意`**：`Color::Lerp(a, b, t)` 的 `t` **不做 clamp**，请自行保证在 0..1（超出会外插）。
+
+###block_orange_start
+**注意**
+
+- `Color::Lerp(a, b, t)` 的 `t` **不做 clamp**，请自行保证在 0..1（超出会外插）。
+###block_orange_end
+
+###block_red_start
+**易错**
+
+- 分量是浮点 **[0,1]**；写 `Color(255,0,0)` 会得到“超亮”的错色。整数入参请用 `Color::FromArgb(255,255,0,0)`。
+###block_red_end
 
 ## Rect
 
@@ -267,7 +277,7 @@ struct Size { float width, height; Size(float w=0, float h=0); };
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-be03edbb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-6ac43084', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Color</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">;</span><span class="w">                 </span><span class="c1">// 分量范围 [0,1]，不是 0..255</span>
@@ -277,7 +287,7 @@ struct Size { float width, height; Size(float w=0, float h=0); };
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="nf">Lerp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Color</span><span class="o">&amp;</span><span class="w"> </span><span class="n">c1</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Color</span><span class="o">&amp;</span><span class="w"> </span><span class="n">c2</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">t</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-be03edbb" style="display: none;">struct Color {
+<pre id="code-6ac43084" style="display: none;">struct Color {
     float r, g, b, a;                 // 分量范围 [0,1]，不是 0..255
     Color(float r=0, float g=0, float b=0, float a=1.0f);
     static Color FromArgb(uint8_t a, uint8_t r, uint8_t g, uint8_t b);
@@ -285,15 +295,23 @@ struct Size { float width, height; Size(float w=0, float h=0); };
     static Color Lerp(const Color&amp; c1, const Color&amp; c2, float t);
 };</pre>
 </div>
+<div class="orange">
+<p><strong>注意</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：分量是浮点 <strong>[0,1]</strong>；写 <code>Color(255,0,0)</code> 会得到“超亮”的错色。整数入参请用 <code>Color::FromArgb(255,255,0,0)</code>。</li>
-<li><strong><code>注意</code></strong>：<code>Color::Lerp(a, b, t)</code> 的 <code>t</code> <strong>不做 clamp</strong>，请自行保证在 0..1（超出会外插）。</li>
+<li><code>Color::Lerp(a, b, t)</code> 的 <code>t</code> <strong>不做 clamp</strong>，请自行保证在 0..1（超出会外插）。</li>
 </ul>
+</div>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li>分量是浮点 <strong>[0,1]</strong>；写 <code>Color(255,0,0)</code> 会得到“超亮”的错色。整数入参请用 <code>Color::FromArgb(255,255,0,0)</code>。</li>
+</ul>
+</div>
 <h2 id="rect">Rect</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c5bec3bb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-a02ce8ae', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Rect</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="n">height</span><span class="p">;</span>
@@ -302,7 +320,7 @@ struct Size { float width, height; Size(float w=0, float h=0); };
 <span class="w">    </span><span class="n">D2D1_RECT_F</span><span class="w"> </span><span class="nf">ToD2D</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-c5bec3bb" style="display: none;">struct Rect {
+<pre id="code-a02ce8ae" style="display: none;">struct Rect {
     float x, y, width, height;
     Rect(float x=0, float y=0, float w=0, float h=0);
     bool Contains(float px, float py) const;   // 半开区间：x&lt;=px&lt;x+w
@@ -316,21 +334,21 @@ struct Size { float width, height; Size(float w=0, float h=0); };
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-088f6d54', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-66c525ae', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Thickness</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">left</span><span class="p">,</span><span class="w"> </span><span class="n">top</span><span class="p">,</span><span class="w"> </span><span class="n">right</span><span class="p">,</span><span class="w"> </span><span class="n">bottom</span><span class="p">;</span><span class="w"> </span><span class="n">Thickness</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">l</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">t</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">b</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-088f6d54" style="display: none;">struct Thickness { float left, top, right, bottom; Thickness(float l=0,float t=0,float r=0,float b=0); };</pre>
+<pre id="code-66c525ae" style="display: none;">struct Thickness { float left, top, right, bottom; Thickness(float l=0,float t=0,float r=0,float b=0); };</pre>
 </div>
 <h2 id="size">Size</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-3fff5532', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-802789bb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Size</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="n">height</span><span class="p">;</span><span class="w"> </span><span class="n">Size</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-3fff5532" style="display: none;">struct Size { float width, height; Size(float w=0, float h=0); };</pre>
+<pre id="code-802789bb" style="display: none;">struct Size { float width, height; Size(float w=0, float h=0); };</pre>
 </div>
 <nav class="chapter-nav"><a class="prev" href="API.2.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">快速开始</span><span class="nav-desc">最小程序、组件结构与阅读路径</span></a><a class="next" href="API.4.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">事件与信号</span><span class="nav-desc">ZSignal、Connection、跨线程</span></a></nav>
         </main>

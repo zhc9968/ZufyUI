@@ -237,7 +237,13 @@ void SetScrollBarWidth(float);  void SetScrollWheelStep(float);  void SetAnimati
 void ScrollTo(float x,float y,bool animated=true);  void ScrollBy(...);
 float GetScrollOffsetX/Y() const;
 ```
-- **`Pitfall`**: `Hidden` still allows programmatic/wheel scrolling.
+
+###block_red_start
+**Pitfall**
+
+- `Hidden` still allows programmatic/wheel scrolling.
+###block_red_end
+
 - **`Version`**: `v1.18.0` — `ScrollViewer::UseCache()==false`.
 
 ## ScrollBar (standalone, reusable)
@@ -252,8 +258,14 @@ void SetIdleDelay(float);  void SetAutoShrink(bool);  void MarkActive();
 inline static float ShrunkWidthRatio;   // default 0.30
 ```
 - Drag → `animate=false`; track click → `animate=true`. Hover expands, idle shrinks; hosts reserve gutter space via `ShrunkWidthRatio`.
-- **`Pitfall`**: `ValueChanged` is a `std::function` (not `ZSignal`), signature `(float, bool)`.
-- **`Pitfall`**: the idle-shrink countdown is **not** counted as an active animation — otherwise it put the whole window into animation mode and stopped data repaints from landing. Cost: idle shrink is **lazy** (triggered by the next frame).
+
+###block_red_start
+**Pitfall**
+
+- `ValueChanged` is a `std::function` (not `ZSignal`), signature `(float, bool)`.
+- the idle-shrink countdown is **not** counted as an active animation — otherwise it put the whole window into animation mode and stopped data repaints from landing. Cost: idle shrink is **lazy** (triggered by the next frame).
+###block_red_end
+
 - **`Version`**: reusable since `v1.11.0`; `ShrunkWidthRatio` `v1.13.0`.
 
 ## SplitView
@@ -269,9 +281,15 @@ void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/Is
 void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
 bool UseCache() const override { return false; }
 ```
-- **`Pitfall`**: `Orientation` naming is counter-intuitive (`Vertical` = vertical splitter, horizontal arrangement).
 - **Collapse (`v1.21.0`)**: drag the splitter to within `CollapseThreshold` (default 28px) of one side's edge → a translucent accent **overlay plus an arrow pointing in the collapse direction fades in ON TOP OF that pane's content** (the content is *not* changed yet); the pane actually collapses **on mouse release** (its size eases from the current value to 0). Once collapsed, a small button appears at that edge (rounded light grey + arrow pointing in the expand direction + hover easing); clicking it eases that side from 0 to its **minimum limit** (`SetMinFirst/MinSecond`, or back to the pre-collapse ratio if no minimum is set). The whole feature can be turned off with `SetCollapseEnabled(false)`.
-- **`Pitfall`**: the overlay is an internal `Overlay` **child element placed last** (the framework draws children in order), which is why it naturally ends up above both panes; do not try to paint such decorations from `SplitView::Draw` (the children would cover them).
+
+###block_red_start
+**Pitfall**
+
+- `Orientation` naming is counter-intuitive (`Vertical` = vertical splitter, horizontal arrangement).
+- the overlay is an internal `Overlay` **child element placed last** (the framework draws children in order), which is why it naturally ends up above both panes; do not try to paint such decorations from `SplitView::Draw` (the children would cover them).
+###block_red_end
+
 - **`Version`**: `v1.12.0`; NaN/Inf guard `v1.14.0`; collapse + expand button `v1.21.0`.
 
 ## Drawer (v1.25.0)
@@ -292,10 +310,50 @@ void SetFocusOnOpen(std::shared_ptr&lt;UIElement&gt;);
 void SetAnimationDuration(float);  void SetAnimationEasing(Easing);
 void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgress() const;
 ```
-- `Overlay`: rounded scrim over content; `Push`: content yields; `Permanent`: always open, no animation/scrim, `Close` ignored.
-- Rounded panel, border and a real outer shadow; `SetScrimOpacity(0)` removes the visual scrim but keeps modal click blocking; `SetModal(false)` lets clicks pass through.
-- Can be a root layout or a `GridLayout` cell; covers the content area only, not the custom title bar/menu bar.
-- **`Pitfall`**: `SetPanelShadow` is painted before the panel background, so the opaque background covers its inner layers; the border is painted last.
+###block_list_start
+###block_item_start
+**Overlay**
+
+Rounded scrim over content; dismiss with outside click or Esc. Good for navigation and filters.
+###block_item_end
+###block_item_start
+**Push**
+
+Content yields while the panel is open and participates in layout; good for list + detail side by side.
+###block_item_end
+###block_item_start
+**Permanent**
+
+Always open, no animation/scrim, `Close` ignored; good for persistent navigation or settings.
+###block_item_end
+###block_list_end
+
+###block_green_start
+**Recommended**
+
+Use `Drawer` as the root layout or a `GridLayout` cell; Overlay for temporary content, Push when content should shrink, Permanent for long-lived navigation. Put panel content in `SetPanel` and the main content in `SetContent`.
+###block_green_end
+
+###block_orange_start
+**Paint order**
+
+`SetPanelShadow` is painted before the panel background, so the opaque background covers its inner layers and only the outer shadow remains visible; the border is painted last.
+###block_orange_end
+
+###block_red_start
+**Pitfall**
+
+- `SetContent` is the main content (covered/yielded by the drawer); `SetPanel` is the drawer panel. Putting panel content in `SetContent` skips the panel background, padding, rounded corners and shadow.
+- `SetPanelSize` is the **outer** panel size; the default 16 px padding is subtracted from the panel content (e.g. outer `200` leaves `168` for content). Increase `SetPanelSize` or reduce `SetPanelPadding` when the panel needs more room.
+- `Drawer` is a layout control and covers only its own arranged rect (the root layout or one `GridLayout` cell), **not** the window title bar/menu bar. Put it at the outermost level of the area you want to dim.
+- `Open()` sets the target state and raises `OpenChanged` immediately; `Opened`/`Closed` fire only after the animation ends. `IsOpen()` returns the target state, not the current progress; use `IsAnimating()` / `GetOpenProgress()` during a transition.
+- `Permanent` forces open, progress 1, no animation/scrim; `Close()` / `SetOpen(false)` are ignored. Switching back to Overlay/Push **does not auto-close**; call `Close()` explicitly.
+- the scrim exists only in Overlay; `SetDismissOnScrimClick` / `ScrimClicked` work only with `SetModal(true)` and progress &gt; 0. With `SetModal(false)`, clicks reach the content and `ScrimClicked` never fires.
+- `SetScrimOpacity(0)` makes the scrim visually transparent but keeps modal hit-testing (clicks are still blocked); use `SetModal(false)` for click-through.
+- `SetContentBorder` is drawn only in Overlay; Push/Permanent have no content border. The inner layers of `SetPanelShadow` are covered by the opaque panel background; only the outer shadow remains, and the border is painted last.
+- Esc handling and `SetFocusOnOpen` require the `Drawer` to be attached to a `Window`; before attach, no Esc handler is registered and focus is not applied.
+###block_red_end
+
 - **`Version`**: `v1.25.0`.
 
 ## TabView
@@ -310,15 +368,21 @@ void SetTabTitle(int, const std::wstring&amp;);  void SetTabLabel(int, std::shar
 void SetSelectedIndex(int);  int GetSelectedIndex() const;
 void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransitionDirection(bool);
 ```
-- **`Pitfall`**: content is hosted by an internal `PageHost`; `AddTab` auto-selects the first tab and raises `SelectionChanged`.
-- **`Pitfall`**: `SetSelectedIndex`/switching is **asynchronous** (settles after the transition); `GetSelectedContent()`/index may be stale during it.
+
+###block_red_start
+**Pitfall**
+
+- content is hosted by an internal `PageHost`; `AddTab` auto-selects the first tab and raises `SelectionChanged`.
+- `SetSelectedIndex`/switching is **asynchronous** (settles after the transition); `GetSelectedContent()`/index may be stale during it.
+###block_red_end
+
 - **`Version`**: `v1.11.0`; Label-based titles + `SetTabLabel` `v1.13.0`; locking `v1.15.0`.</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 12 · Containers &amp; scrolling</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 12</span><h1>Containers &amp; scrolling</h1><p class="chapter-summary">ScrollViewer, ScrollBar, SplitView, Drawer, TabView</p></header><h2 id="scrollviewer">ScrollViewer</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f05bc212', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-0cf21165', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ScrollBarVisibility</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Auto</span><span class="p">,</span><span class="w"> </span><span class="n">Always</span><span class="p">,</span><span class="w"> </span><span class="n">Hidden</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ScrollChanged</span><span class="p">;</span>
@@ -329,7 +393,7 @@ void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransit
 <span class="kt">void</span><span class="w"> </span><span class="nf">ScrollTo</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="kt">bool</span><span class="w"> </span><span class="n">animated</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ScrollBy</span><span class="p">(...);</span>
 <span class="kt">float</span><span class="w"> </span><span class="n">GetScrollOffsetX</span><span class="o">/</span><span class="n">Y</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-f05bc212" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
+<pre id="code-0cf21165" style="display: none;">enum class ScrollBarVisibility { Auto, Always, Hidden };
 ZSignal&lt;float,float&gt; ScrollChanged;
 void SetContent(std::shared_ptr&lt;UIElement&gt;);
 void SetVertical/HorizontalScrollEnabled(bool);
@@ -338,15 +402,20 @@ void SetScrollBarWidth(float);  void SetScrollWheelStep(float);  void SetAnimati
 void ScrollTo(float x,float y,bool animated=true);  void ScrollBy(...);
 float GetScrollOffsetX/Y() const;</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: <code>Hidden</code> still allows programmatic/wheel scrolling.</li>
+<li><code>Hidden</code> still allows programmatic/wheel scrolling.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: <code>v1.18.0</code> — <code>ScrollViewer::UseCache()==false</code>.</li>
 </ul>
 <h2 id="scrollbar-standalone-reusable">ScrollBar (standalone, reusable)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e58b6b37', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-6cef07a0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">animate</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span>
 <span class="k">explicit</span><span class="w"> </span><span class="n">ScrollBar</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">vertical</span><span class="p">);</span>
@@ -356,7 +425,7 @@ float GetScrollOffsetX/Y() const;</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetIdleDelay</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoShrink</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">MarkActive</span><span class="p">();</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">ShrunkWidthRatio</span><span class="p">;</span><span class="w">   </span><span class="c1">// default 0.30</span>
 </pre></div>
-<pre id="code-e58b6b37" style="display: none;">std::function&lt;void(float value, bool animate)&gt; ValueChanged;
+<pre id="code-6cef07a0" style="display: none;">std::function&lt;void(float value, bool animate)&gt; ValueChanged;
 explicit ScrollBar(bool vertical);
 void SetRange(float value, float maxValue, float viewportSize);   // host pushes each frame
 void SetBarWidth(float);  void SetMinLength(float);  void SetHitExtra(float);
@@ -366,15 +435,22 @@ inline static float ShrunkWidthRatio;   // default 0.30</pre>
 </div>
 <ul>
 <li>Drag → <code>animate=false</code>; track click → <code>animate=true</code>. Hover expands, idle shrinks; hosts reserve gutter space via <code>ShrunkWidthRatio</code>.</li>
-<li><strong><code>Pitfall</code></strong>: <code>ValueChanged</code> is a <code>std::function</code> (not <code>ZSignal</code>), signature <code>(float, bool)</code>.</li>
-<li><strong><code>Pitfall</code></strong>: the idle-shrink countdown is <strong>not</strong> counted as an active animation — otherwise it put the whole window into animation mode and stopped data repaints from landing. Cost: idle shrink is <strong>lazy</strong> (triggered by the next frame).</li>
+</ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>ValueChanged</code> is a <code>std::function</code> (not <code>ZSignal</code>), signature <code>(float, bool)</code>.</li>
+<li>the idle-shrink countdown is <strong>not</strong> counted as an active animation — otherwise it put the whole window into animation mode and stopped data repaints from landing. Cost: idle shrink is <strong>lazy</strong> (triggered by the next frame).</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: reusable since <code>v1.11.0</code>; <code>ShrunkWidthRatio</code> <code>v1.13.0</code>.</li>
 </ul>
 <h2 id="splitview">SplitView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ae72f31f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-223ee3ca', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// Vertical = left/right panes + vertical splitter</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SplitChanged</span><span class="p">;</span>
@@ -386,7 +462,7 @@ inline static float ShrunkWidthRatio;   // default 0.30</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetExpandButtonColors</span><span class="p">(</span><span class="n">Color</span><span class="p">,</span><span class="n">Color</span><span class="p">,</span><span class="n">Color</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetExpandButtonSize</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">);</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 </pre></div>
-<pre id="code-ae72f31f" style="display: none;">enum class Orientation { Vertical, Horizontal };   // Vertical = left/right panes + vertical splitter
+<pre id="code-223ee3ca" style="display: none;">enum class Orientation { Vertical, Horizontal };   // Vertical = left/right panes + vertical splitter
 ZSignal&lt;float&gt; SplitChanged;
 void SetFirst/SetSecond(std::shared_ptr&lt;UIElement&gt;);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
@@ -397,16 +473,23 @@ void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float 
 bool UseCache() const override { return false; }</pre>
 </div>
 <ul>
-<li><strong><code>Pitfall</code></strong>: <code>Orientation</code> naming is counter-intuitive (<code>Vertical</code> = vertical splitter, horizontal arrangement).</li>
 <li><strong>Collapse (<code>v1.21.0</code>)</strong>: drag the splitter to within <code>CollapseThreshold</code> (default 28px) of one side's edge → a translucent accent <strong>overlay plus an arrow pointing in the collapse direction fades in ON TOP OF that pane's content</strong> (the content is <em>not</em> changed yet); the pane actually collapses <strong>on mouse release</strong> (its size eases from the current value to 0). Once collapsed, a small button appears at that edge (rounded light grey + arrow pointing in the expand direction + hover easing); clicking it eases that side from 0 to its <strong>minimum limit</strong> (<code>SetMinFirst/MinSecond</code>, or back to the pre-collapse ratio if no minimum is set). The whole feature can be turned off with <code>SetCollapseEnabled(false)</code>.</li>
-<li><strong><code>Pitfall</code></strong>: the overlay is an internal <code>Overlay</code> <strong>child element placed last</strong> (the framework draws children in order), which is why it naturally ends up above both panes; do not try to paint such decorations from <code>SplitView::Draw</code> (the children would cover them).</li>
+</ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>Orientation</code> naming is counter-intuitive (<code>Vertical</code> = vertical splitter, horizontal arrangement).</li>
+<li>the overlay is an internal <code>Overlay</code> <strong>child element placed last</strong> (the framework draws children in order), which is why it naturally ends up above both panes; do not try to paint such decorations from <code>SplitView::Draw</code> (the children would cover them).</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: <code>v1.12.0</code>; NaN/Inf guard <code>v1.14.0</code>; collapse + expand button <code>v1.21.0</code>.</li>
 </ul>
 <h2 id="drawer-v1250">Drawer (v1.25.0)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-095cf022', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-0923dea7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">DrawerSide</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="p">,</span><span class="w"> </span><span class="n">Top</span><span class="p">,</span><span class="w"> </span><span class="n">Bottom</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">DrawerMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Overlay</span><span class="p">,</span><span class="w"> </span><span class="n">Push</span><span class="p">,</span><span class="w"> </span><span class="n">Permanent</span><span class="w"> </span><span class="p">};</span>
@@ -423,7 +506,7 @@ bool UseCache() const override { return false; }</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationDuration</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationEasing</span><span class="p">(</span><span class="n">Easing</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">Open</span><span class="o">/</span><span class="n">Close</span><span class="o">/</span><span class="n">Toggle</span><span class="p">();</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">IsOpen</span><span class="o">/</span><span class="n">IsAnimating</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetOpenProgress</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-095cf022" style="display: none;">enum class DrawerSide { Left, Right, Top, Bottom };
+<pre id="code-0923dea7" style="display: none;">enum class DrawerSide { Left, Right, Top, Bottom };
 enum class DrawerMode { Overlay, Push, Permanent };
 ZSignal&lt;bool&gt; OpenChanged;  ZSignal&lt;&gt; Opened, Closed, ScrimClicked;
 void SetContent/SetPanel(std::shared_ptr&lt;UIElement&gt;);
@@ -438,18 +521,50 @@ void SetFocusOnOpen(std::shared_ptr&lt;UIElement&gt;);
 void SetAnimationDuration(float);  void SetAnimationEasing(Easing);
 void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgress() const;</pre>
 </div>
+<div class="feature-list">
+<div class="feature-item" onmouseout="resetFeature(this)" onmouseover="animateFeature(this)">
+<p><strong>Overlay</strong></p>
+<p>Rounded scrim over content; dismiss with outside click or Esc. Good for navigation and filters.</p>
+</div>
+<div class="feature-item" onmouseout="resetFeature(this)" onmouseover="animateFeature(this)">
+<p><strong>Push</strong></p>
+<p>Content yields while the panel is open and participates in layout; good for list + detail side by side.</p>
+</div>
+<div class="feature-item" onmouseout="resetFeature(this)" onmouseover="animateFeature(this)">
+<p><strong>Permanent</strong></p>
+<p>Always open, no animation/scrim, <code>Close</code> ignored; good for persistent navigation or settings.</p>
+</div>
+</div>
+<div class="green">
+<p><strong>Recommended</strong></p>
+<p>Use <code>Drawer</code> as the root layout or a <code>GridLayout</code> cell; Overlay for temporary content, Push when content should shrink, Permanent for long-lived navigation. Put panel content in <code>SetPanel</code> and the main content in <code>SetContent</code>.</p>
+</div>
+<div class="orange">
+<p><strong>Paint order</strong></p>
+<p><code>SetPanelShadow</code> is painted before the panel background, so the opaque background covers its inner layers and only the outer shadow remains visible; the border is painted last.</p>
+</div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><code>Overlay</code>: rounded scrim over content; <code>Push</code>: content yields; <code>Permanent</code>: always open, no animation/scrim, <code>Close</code> ignored.</li>
-<li>Rounded panel, border and a real outer shadow; <code>SetScrimOpacity(0)</code> removes the visual scrim but keeps modal click blocking; <code>SetModal(false)</code> lets clicks pass through.</li>
-<li>Can be a root layout or a <code>GridLayout</code> cell; covers the content area only, not the custom title bar/menu bar.</li>
-<li><strong><code>Pitfall</code></strong>: <code>SetPanelShadow</code> is painted before the panel background, so the opaque background covers its inner layers; the border is painted last.</li>
+<li><code>SetContent</code> is the main content (covered/yielded by the drawer); <code>SetPanel</code> is the drawer panel. Putting panel content in <code>SetContent</code> skips the panel background, padding, rounded corners and shadow.</li>
+<li><code>SetPanelSize</code> is the <strong>outer</strong> panel size; the default 16 px padding is subtracted from the panel content (e.g. outer <code>200</code> leaves <code>168</code> for content). Increase <code>SetPanelSize</code> or reduce <code>SetPanelPadding</code> when the panel needs more room.</li>
+<li><code>Drawer</code> is a layout control and covers only its own arranged rect (the root layout or one <code>GridLayout</code> cell), <strong>not</strong> the window title bar/menu bar. Put it at the outermost level of the area you want to dim.</li>
+<li><code>Open()</code> sets the target state and raises <code>OpenChanged</code> immediately; <code>Opened</code>/<code>Closed</code> fire only after the animation ends. <code>IsOpen()</code> returns the target state, not the current progress; use <code>IsAnimating()</code> / <code>GetOpenProgress()</code> during a transition.</li>
+<li><code>Permanent</code> forces open, progress 1, no animation/scrim; <code>Close()</code> / <code>SetOpen(false)</code> are ignored. Switching back to Overlay/Push <strong>does not auto-close</strong>; call <code>Close()</code> explicitly.</li>
+<li>the scrim exists only in Overlay; <code>SetDismissOnScrimClick</code> / <code>ScrimClicked</code> work only with <code>SetModal(true)</code> and progress &gt; 0. With <code>SetModal(false)</code>, clicks reach the content and <code>ScrimClicked</code> never fires.</li>
+<li><code>SetScrimOpacity(0)</code> makes the scrim visually transparent but keeps modal hit-testing (clicks are still blocked); use <code>SetModal(false)</code> for click-through.</li>
+<li><code>SetContentBorder</code> is drawn only in Overlay; Push/Permanent have no content border. The inner layers of <code>SetPanelShadow</code> are covered by the opaque panel background; only the outer shadow remains, and the border is painted last.</li>
+<li>Esc handling and <code>SetFocusOnOpen</code> require the <code>Drawer</code> to be attached to a <code>Window</code>; before attach, no Esc handler is registered and focus is not applied.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: <code>v1.25.0</code>.</li>
 </ul>
 <h2 id="tabview">TabView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-8de1600a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-1dd5ee95', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Tab</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">label</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Page</span><span class="o">&gt;</span><span class="w"> </span><span class="n">page</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">closable</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">TabCloseRequested</span><span class="p">;</span>
@@ -460,7 +575,7 @@ void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgre
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedIndex</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetSelectedIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionDirection</span><span class="p">(</span><span class="n">PageHost</span><span class="o">::</span><span class="n">TransitionDirection</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAutoTransitionDirection</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 </pre></div>
-<pre id="code-8de1600a" style="display: none;">struct Tab { std::shared_ptr&lt;Label&gt; label; std::shared_ptr&lt;Page&gt; page; bool closable; ... };
+<pre id="code-1dd5ee95" style="display: none;">struct Tab { std::shared_ptr&lt;Label&gt; label; std::shared_ptr&lt;Page&gt; page; bool closable; ... };
 ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;int&gt; TabCloseRequested;
 int  AddTab(const std::wstring&amp;, std::shared_ptr&lt;UIElement&gt; content=nullptr, bool closable=false);
 int  AddTab(std::shared_ptr&lt;Label&gt;, ...);
@@ -469,9 +584,14 @@ void SetTabTitle(int, const std::wstring&amp;);  void SetTabLabel(int, std::shar
 void SetSelectedIndex(int);  int GetSelectedIndex() const;
 void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransitionDirection(bool);</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: content is hosted by an internal <code>PageHost</code>; <code>AddTab</code> auto-selects the first tab and raises <code>SelectionChanged</code>.</li>
-<li><strong><code>Pitfall</code></strong>: <code>SetSelectedIndex</code>/switching is <strong>asynchronous</strong> (settles after the transition); <code>GetSelectedContent()</code>/index may be stale during it.</li>
+<li>content is hosted by an internal <code>PageHost</code>; <code>AddTab</code> auto-selects the first tab and raises <code>SelectionChanged</code>.</li>
+<li><code>SetSelectedIndex</code>/switching is <strong>asynchronous</strong> (settles after the transition); <code>GetSelectedContent()</code>/index may be stale during it.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: <code>v1.11.0</code>; Label-based titles + <code>SetTabLabel</code> <code>v1.13.0</code>; locking <code>v1.15.0</code>.</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.en.11.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Progress</span><span class="nav-desc">ProgressBar, ProgressRing</span></a><a class="next" href="API.en.13.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Menus &amp; Popups</span><span class="nav-desc">Menu, MenuItem, MenuWindow, MessageBox</span></a></nav>

@@ -275,10 +275,17 @@ virtual void ComputeValueRange(double&amp; lo, double&amp; hi);
 virtual void UpdateHover(float,float);   virtual void OnDataClick(float,float);
 virtual std::wstring HoveredText() const;
 ```
+
+###block_red_start
+**Pitfall**
+
+- a custom `ChartBase` subclass **must call `InitScrollBars()`** (as BarChart/LineChart do) or the internal scrollbars stay null.
+- for live data use `UpdateSeriesValues` (no animation replay), not `SetSeriesValues`.
+- wheel = Ctrl-zoom (0.4..3) / Shift-horizontal scroll / else vertical; drag pans only after &gt; 4 DIP.
+- area-fill baseline is clamped into the visible axis range, so auto-ranged charts don't flood the plot with the bottom band. `LineChart` keeps this off by design.
+###block_red_end
+
 - **`Version`**: `SetFillWidth/Height(true)` fills the parent axis when the parent gives a constraint; with no constraint (`avail=FLT_MAX`) and no explicit size it **falls back to the default `420×260`** (since v1.19.4; no longer collapses to 0). Charts default to weight 0 — use `SetFillWidth/Height(true)` or a stretch weight to fill the layout.
-- **`Pitfall`**: a custom `ChartBase` subclass **must call `InitScrollBars()`** (as BarChart/LineChart do) or the internal scrollbars stay null.
-- **`Pitfall`**: for live data use `UpdateSeriesValues` (no animation replay), not `SetSeriesValues`.
-- **`Pitfall`**: wheel = Ctrl-zoom (0.4..3) / Shift-horizontal scroll / else vertical; drag pans only after &gt; 4 DIP. Area-fill baseline is clamped into the visible axis range so auto-ranged charts don't flood the plot.
 
 ## BarChart
 
@@ -314,8 +321,13 @@ void SetZoom(float);   float GetZoom() const;   // v1.18.0: wheel zoom 0.4..4
 bool OnMouseWheel(float,float) override;         // draw radius and hit-test share zoom_
 void SetAnimationEnabled(bool);
 ```
-- **`Pitfall`**: `PieChart` default stretch weight is 0 — needs an explicit size or layout weight.
-- **`Pitfall`**: labels use leader lines — on the right half, text is left-aligned just after the leader end; on the left half, right-aligned just before it.</pre></div></div>
+
+###block_red_start
+**Pitfall**
+
+- `PieChart` default stretch weight is 0 — needs an explicit size or layout weight.
+- labels use leader lines — on the right half, text is left-aligned just after the leader end; on the left half, right-aligned just before it.
+###block_red_end</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 15 · Charts</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 15</span><h1>Charts</h1><p class="chapter-summary">ChartBase, BarChart, LineChart, PieChart (v1.18.0)</p></header><blockquote>
 <p>Header <code>ZufyUICharts.h</code>. <code>ChartBase</code> centralizes plot geometry, "nice" ticks, category axis, grid, legend, palette, internal scrollbars, sticky axes, hover/hit, Ctrl-zoom, drag-pan, entrance animation; <code>BarChart</code>/<code>LineChart</code> implement only <code>DrawData</code>.</p>
@@ -324,7 +336,7 @@ void SetAnimationEnabled(bool);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e95b024f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-6b9b584c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUICharts.h"</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">chart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">BarChart</span><span class="o">&gt;</span><span class="p">();</span>
@@ -334,7 +346,7 @@ void SetAnimationEnabled(bool);
 <span class="n">chart</span><span class="o">-&gt;</span><span class="n">SetWidth</span><span class="p">(</span><span class="mi">420</span><span class="p">);</span><span class="w"> </span><span class="n">chart</span><span class="o">-&gt;</span><span class="n">SetHeight</span><span class="p">(</span><span class="mi">260</span><span class="p">);</span><span class="w">   </span><span class="c1">// size comes from the chart itself — set it or give a layout weight</span>
 <span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">chart</span><span class="p">);</span>
 </pre></div>
-<pre id="code-e95b024f" style="display: none;">#include "ZufyUICharts.h"
+<pre id="code-6b9b584c" style="display: none;">#include "ZufyUICharts.h"
 auto chart = std::make_shared&lt;BarChart&gt;();
 chart-&gt;AddSeries(L"Sales");
 chart-&gt;AddCategory(L"Q1"); chart-&gt;AddCategory(L"Q2"); chart-&gt;AddCategory(L"Q3");
@@ -346,7 +358,7 @@ root-&gt;AddChild(chart);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0b8e49c8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-5e656911', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AText</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AVert</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Top</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="w"> </span><span class="p">};</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">Series</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">values</span><span class="p">;</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">color</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
@@ -382,7 +394,7 @@ root-&gt;AddChild(chart);</pre>
 <span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">UpdateHover</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">OnDataClick</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">);</span>
 <span class="k">virtual</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">HoveredText</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-0b8e49c8" style="display: none;">enum class AText { Left, Center, Right };   enum class AVert { Top, Center };
+<pre id="code-5e656911" style="display: none;">enum class AText { Left, Center, Right };   enum class AVert { Top, Center };
 struct Series { std::wstring name; std::vector&lt;double&gt; values; Color color; };
 inline static std::vector&lt;Color&gt; DefaultPalette;   // 8 colors
 ZSignal&lt;int,int&gt; PointClicked;    // (series, category)
@@ -416,17 +428,23 @@ virtual void ComputeValueRange(double&amp; lo, double&amp; hi);
 virtual void UpdateHover(float,float);   virtual void OnDataClick(float,float);
 virtual std::wstring HoveredText() const;</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li>a custom <code>ChartBase</code> subclass <strong>must call <code>InitScrollBars()</code></strong> (as BarChart/LineChart do) or the internal scrollbars stay null.</li>
+<li>for live data use <code>UpdateSeriesValues</code> (no animation replay), not <code>SetSeriesValues</code>.</li>
+<li>wheel = Ctrl-zoom (0.4..3) / Shift-horizontal scroll / else vertical; drag pans only after &gt; 4 DIP.</li>
+<li>area-fill baseline is clamped into the visible axis range, so auto-ranged charts don't flood the plot with the bottom band. <code>LineChart</code> keeps this off by design.</li>
+</ul>
+</div>
 <ul>
 <li><strong><code>Version</code></strong>: <code>SetFillWidth/Height(true)</code> fills the parent axis when the parent gives a constraint; with no constraint (<code>avail=FLT_MAX</code>) and no explicit size it <strong>falls back to the default <code>420×260</code></strong> (since v1.19.4; no longer collapses to 0). Charts default to weight 0 — use <code>SetFillWidth/Height(true)</code> or a stretch weight to fill the layout.</li>
-<li><strong><code>Pitfall</code></strong>: a custom <code>ChartBase</code> subclass <strong>must call <code>InitScrollBars()</code></strong> (as BarChart/LineChart do) or the internal scrollbars stay null.</li>
-<li><strong><code>Pitfall</code></strong>: for live data use <code>UpdateSeriesValues</code> (no animation replay), not <code>SetSeriesValues</code>.</li>
-<li><strong><code>Pitfall</code></strong>: wheel = Ctrl-zoom (0.4..3) / Shift-horizontal scroll / else vertical; drag pans only after &gt; 4 DIP. Area-fill baseline is clamped into the visible axis range so auto-ranged charts don't flood the plot.</li>
 </ul>
 <h2 id="barchart">BarChart</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2e51a29c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-cb733773', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// Horizontal implemented v1.18.0</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">StackMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Grouped</span><span class="p">,</span><span class="w"> </span><span class="n">Stacked</span><span class="p">,</span><span class="w"> </span><span class="n">PercentStacked</span><span class="p">,</span><span class="w"> </span><span class="n">Overlapped</span><span class="w"> </span><span class="p">};</span>
@@ -435,7 +453,7 @@ virtual std::wstring HoveredText() const;</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCornerRadius</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBarOutline</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="o">=</span><span class="p">...);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetBarColor</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedCategory</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">);</span>
 </pre></div>
-<pre id="code-2e51a29c" style="display: none;">enum class Orientation { Vertical, Horizontal };   // Horizontal implemented v1.18.0
+<pre id="code-cb733773" style="display: none;">enum class Orientation { Vertical, Horizontal };   // Horizontal implemented v1.18.0
 enum class StackMode { Grouped, Stacked, PercentStacked, Overlapped };
 void SetOrientation(Orientation);  void SetStackMode(StackMode);
 void SetBarGap(float);  void SetStackBarRatio(float);  void SetGroupGap(float);
@@ -446,14 +464,14 @@ void SetBarColor(int s, int c, Color);  void SetSelectedCategory(int c);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-98e2f6b9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-0f7ed9b1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Marker</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Circle</span><span class="p">,</span><span class="w"> </span><span class="n">Square</span><span class="w"> </span><span class="p">};</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetLineWidth</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSmooth</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDashed</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetShowMarkers</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMarkerSize</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMarker</span><span class="p">(</span><span class="n">Marker</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetAreaFill</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.25f</span><span class="p">);</span>
 </pre></div>
-<pre id="code-98e2f6b9" style="display: none;">enum class Marker { None, Circle, Square };
+<pre id="code-0f7ed9b1" style="display: none;">enum class Marker { None, Circle, Square };
 void SetLineWidth(float);  void SetSmooth(bool);  void SetDashed(bool);
 void SetShowMarkers(bool);  void SetMarkerSize(float);  void SetMarker(Marker);
 void SetAreaFill(bool on, float alpha=0.25f);</pre>
@@ -462,7 +480,7 @@ void SetAreaFill(bool on, float alpha=0.25f);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ad146efa', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-b0b535e1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">LabelMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Percent</span><span class="p">,</span><span class="w"> </span><span class="n">Value</span><span class="p">,</span><span class="w"> </span><span class="n">LabelAndPercent</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SliceClicked</span><span class="p">;</span>
@@ -475,7 +493,7 @@ void SetAreaFill(bool on, float alpha=0.25f);</pre>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">OnMouseWheel</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="kt">float</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">         </span><span class="c1">// draw radius and hit-test share zoom_</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 </pre></div>
-<pre id="code-ad146efa" style="display: none;">enum class LabelMode { None, Percent, Value, LabelAndPercent };
+<pre id="code-b0b535e1" style="display: none;">enum class LabelMode { None, Percent, Value, LabelAndPercent };
 ZSignal&lt;int&gt; SliceClicked;
 void AddSlice(const std::wstring&amp; label, double value, Color = auto);
 void Clear();   int SliceCount() const;
@@ -486,10 +504,13 @@ void SetZoom(float);   float GetZoom() const;   // v1.18.0: wheel zoom 0.4..4
 bool OnMouseWheel(float,float) override;         // draw radius and hit-test share zoom_
 void SetAnimationEnabled(bool);</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: <code>PieChart</code> default stretch weight is 0 — needs an explicit size or layout weight.</li>
-<li><strong><code>Pitfall</code></strong>: labels use leader lines — on the right half, text is left-aligned just after the leader end; on the left half, right-aligned just before it.</li>
+<li><code>PieChart</code> default stretch weight is 0 — needs an explicit size or layout weight.</li>
+<li>labels use leader lines — on the right half, text is left-aligned just after the leader end; on the left half, right-aligned just before it.</li>
 </ul>
+</div>
 <nav class="chapter-nav"><a class="prev" href="API.en.14.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Data views</span><span class="nav-desc">ListView, TableView, TreeView, TreeNode (virtualization, hide/filter/visible order)</span></a><a class="next" href="API.en.16.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Window extras</span><span class="nav-desc">Images, tray, system dialogs, app registration</span></a></nav>
         </main>
     </div>

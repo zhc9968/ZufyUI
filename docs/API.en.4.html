@@ -238,8 +238,14 @@ enum class ConnectionThread { CurrentThread, NewThread, UIThread };
 - `CurrentThread` (default): slot runs synchronously on the firing thread.
 - `NewThread`: **spawns a detached thread per Fire** — do not touch UI inside; a running slot cannot be cancelled midway; **not suitable for high-frequency signals** — use `UIThread` or your own pool instead.
 - `UIThread`: posts the slot to the UI thread (the correct way to update UI from workers); queued tasks check liveness and skip after `disconnect` / receiver destruction.
-- **`Pitfall`**: `Fire` should run on the UI thread by default; firing from a worker with `CurrentThread` slots runs UI slots on that worker — that is a caller contract violation. For cross-thread firing, use `UIThread` slots or guarantee subscriber lifetime yourself.
-- **`Pitfall`**: `NewThread` + a raw `this` capture + a receiver that may die early = UAF; use `ConnectWeak` to keep it alive, or `UIThread`.
+
+###block_red_start
+**Pitfall**
+
+- `Fire` should run on the UI thread by default; firing from a worker with `CurrentThread` slots runs UI slots on that worker — that is a caller contract violation. For cross-thread firing, use `UIThread` slots or guarantee subscriber lifetime yourself.
+- `NewThread` + a raw `this` capture + a receiver that may die early = UAF; use `ConnectWeak` to keep it alive, or `UIThread`.
+###block_red_end
+
 - **`Version`**: cross-thread/locking semantics hardened in `v1.15.0`; queued tasks gained liveness checks in `v1.24.0`.
 
 ## Connection (Qt-style passive handle)
@@ -253,8 +259,14 @@ class Connection {
 ```
 - Disconnected by the receiver's `ConnectionGroup` on destruction; **`Connection`'s own destructor does not**.
 - `disconnect()` logically invalidates pending `UIThread` / `NewThread` tasks, but **does not interrupt a slot already running**.
-- **`Pitfall`**: `Connection` is **not an RAII guard**; a temporary handle's destructor does not disconnect. Call `disconnect()` explicitly or rely on the receiver's group.
-- **`Pitfall`**: it is safe to ignore the return of `connect`; calling `disconnect` after the signal is destroyed is safe (`alive` is atomic).
+
+###block_red_start
+**Pitfall**
+
+- `Connection` is **not an RAII guard**; a temporary handle's destructor does not disconnect. Call `disconnect()` explicitly or rely on the receiver's group.
+- it is safe to ignore the return of `connect`; calling `disconnect` after the signal is destroyed is safe (`alive` is atomic).
+###block_red_end
+
 - **`Version`**: passive-handle semantics since `v1.8.1`; the alive flag became atomic and pending tasks are cancelled since `v1.24.0`.
 
 ## ConnectionGroup
@@ -266,7 +278,12 @@ class ConnectionGroup : public std::enable_shared_from_this&lt;ConnectionGroup&g
 ```
 - Used internally by `UIElement` / `Window` to disconnect all connections they own.
 - `size()` counts only live connections; manually disconnected connections are not counted.
-- **`Pitfall`**: `disconnectAll()` only removes connections; it does not invoke user slots.
+
+###block_red_start
+**Pitfall**
+
+- `disconnectAll()` only removes connections; it does not invoke user slots.
+###block_red_end
 
 ## ZSignal
 
@@ -285,10 +302,16 @@ template&lt;typename... TArgs&gt; class ZSignal {
 ```
 - Fire with `Fire` (**there is no `emit` macro**).
 - `ZSignal` is **not copyable or movable**; it is a member of controls/windows — never put it in a movable container.
-- **`Pitfall`**: `Fire` iterates a **snapshot**, so a slot may safely `disconnect`; re-firing the same signal inside a slot goes through the "reentrant" path (local copy) — avoid deep recursion there.
-- **`Pitfall`**: `Fire` concurrent with `ZSignal` destruction is UB; fire and destroy a signal on the same thread.
-- **`Pitfall`**: an exception thrown by a slot propagates out of `Fire`; later slots do not run. Avoid throwing from signal slots.
 - Signal arguments are passed to slots as **lvalues**; do not declare `T&amp;&amp;` slot parameters, and prefer `const T&amp;` for large objects.
+
+###block_red_start
+**Pitfall**
+
+- `Fire` iterates a **snapshot**, so a slot may safely `disconnect`; re-firing the same signal inside a slot goes through the "reentrant" path (local copy) — avoid deep recursion there.
+- `Fire` concurrent with `ZSignal` destruction is UB; fire and destroy a signal on the same thread.
+- an exception thrown by a slot propagates out of `Fire`; later slots do not run. Avoid throwing from signal slots.
+###block_red_end
+
 - **`Version`**: `v1.18.0` adds a RAII guard so a throwing slot still restores reentrancy depth and releases the snapshot; non-movable since `v1.24.0`.
 
 ## Receiver context and ConnectWeak
@@ -307,8 +330,18 @@ btn-&gt;Clicked.connect(panel, [this] { Refresh(); });
 ConnectWeak(panel, btn-&gt;Clicked, [](Panel* self) { self-&gt;Refresh(); });
 ConnectWeak(panel, btn-&gt;Clicked, &amp;Panel::OnClick);
 ```
-- **`Pitfall`**: do not capture `self`'s `shared_ptr` by value inside a `ConnectWeak` slot — that creates a signal → slot → self → signal strong cycle.
-- **`Note`**: `Menu` / `MenuItem` / `Timer` still use `signal.connect` and do **not** auto-disconnect.
+
+###block_orange_start
+**Note**
+
+- `Menu` / `MenuItem` / `Timer` still use `signal.connect` and do **not** auto-disconnect.
+###block_orange_end
+
+###block_red_start
+**Pitfall**
+
+- do not capture `self`'s `shared_ptr` by value inside a `ConnectWeak` slot — that creates a signal → slot → self → signal strong cycle.
+###block_red_end
 
 ## Global signals UIZSignals
 
@@ -323,9 +356,14 @@ namespace UIZSignals {
     inline ZSignal&lt;const std::wstring&amp;&gt; Error;         // v1.16.0
 }
 ```
-- **`Pitfall`**: `DrawOverlay` carries a `Window*`; subscribers **must** filter by `GetWindow()`, or window A's overlay draws onto window B (classic multi-window cross-talk).
 - `RepaintRequest`/`LayoutInvalidated`/capture signals only fall back for **unmounted** elements; mounted ones route directly via `Window`.
-- `DeviceReset`: release all caches keyed to the render target/device (e.g. `ImageDeviceCache`).</pre></div></div>
+- `DeviceReset`: release all caches keyed to the render target/device (e.g. `ImageDeviceCache`).
+
+###block_red_start
+**Pitfall**
+
+- `DrawOverlay` carries a `Window*`; subscribers **must** filter by `GetWindow()`, or window A's overlay draws onto window B (classic multi-window cross-talk).
+###block_red_end</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 4 · Events &amp; Signals</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 4</span><h1>Events &amp; Signals</h1><p class="chapter-summary">ZSignal, Connection, cross-thread</p></header><h2 id="when-to-use-signals">When to use signals</h2>
 <ul>
@@ -336,25 +374,32 @@ namespace UIZSignals {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-67f44ed6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-829edb87', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ConnectionThread</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">CurrentThread</span><span class="p">,</span><span class="w"> </span><span class="n">NewThread</span><span class="p">,</span><span class="w"> </span><span class="n">UIThread</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-67f44ed6" style="display: none;">enum class ConnectionThread { CurrentThread, NewThread, UIThread };</pre>
+<pre id="code-829edb87" style="display: none;">enum class ConnectionThread { CurrentThread, NewThread, UIThread };</pre>
 </div>
 <ul>
 <li><code>CurrentThread</code> (default): slot runs synchronously on the firing thread.</li>
 <li><code>NewThread</code>: <strong>spawns a detached thread per Fire</strong> — do not touch UI inside; a running slot cannot be cancelled midway; <strong>not suitable for high-frequency signals</strong> — use <code>UIThread</code> or your own pool instead.</li>
 <li><code>UIThread</code>: posts the slot to the UI thread (the correct way to update UI from workers); queued tasks check liveness and skip after <code>disconnect</code> / receiver destruction.</li>
-<li><strong><code>Pitfall</code></strong>: <code>Fire</code> should run on the UI thread by default; firing from a worker with <code>CurrentThread</code> slots runs UI slots on that worker — that is a caller contract violation. For cross-thread firing, use <code>UIThread</code> slots or guarantee subscriber lifetime yourself.</li>
-<li><strong><code>Pitfall</code></strong>: <code>NewThread</code> + a raw <code>this</code> capture + a receiver that may die early = UAF; use <code>ConnectWeak</code> to keep it alive, or <code>UIThread</code>.</li>
+</ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>Fire</code> should run on the UI thread by default; firing from a worker with <code>CurrentThread</code> slots runs UI slots on that worker — that is a caller contract violation. For cross-thread firing, use <code>UIThread</code> slots or guarantee subscriber lifetime yourself.</li>
+<li><code>NewThread</code> + a raw <code>this</code> capture + a receiver that may die early = UAF; use <code>ConnectWeak</code> to keep it alive, or <code>UIThread</code>.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: cross-thread/locking semantics hardened in <code>v1.15.0</code>; queued tasks gained liveness checks in <code>v1.24.0</code>.</li>
 </ul>
 <h2 id="connection-qt-style-passive-handle">Connection (Qt-style passive handle)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-707a7b50', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-8cdcd317', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Connection</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">();</span>
@@ -362,7 +407,7 @@ namespace UIZSignals {
 <span class="w">    </span><span class="k">explicit</span><span class="w"> </span><span class="k">operator</span><span class="w"> </span><span class="kt">bool</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// destructor does NOT auto-disconnect</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-707a7b50" style="display: none;">class Connection {
+<pre id="code-8cdcd317" style="display: none;">class Connection {
     void disconnect();
     bool isConnected() const;
     explicit operator bool() const;   // destructor does NOT auto-disconnect
@@ -371,34 +416,46 @@ namespace UIZSignals {
 <ul>
 <li>Disconnected by the receiver's <code>ConnectionGroup</code> on destruction; <strong><code>Connection</code>'s own destructor does not</strong>.</li>
 <li><code>disconnect()</code> logically invalidates pending <code>UIThread</code> / <code>NewThread</code> tasks, but <strong>does not interrupt a slot already running</strong>.</li>
-<li><strong><code>Pitfall</code></strong>: <code>Connection</code> is <strong>not an RAII guard</strong>; a temporary handle's destructor does not disconnect. Call <code>disconnect()</code> explicitly or rely on the receiver's group.</li>
-<li><strong><code>Pitfall</code></strong>: it is safe to ignore the return of <code>connect</code>; calling <code>disconnect</code> after the signal is destroyed is safe (<code>alive</code> is atomic).</li>
+</ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>Connection</code> is <strong>not an RAII guard</strong>; a temporary handle's destructor does not disconnect. Call <code>disconnect()</code> explicitly or rely on the receiver's group.</li>
+<li>it is safe to ignore the return of <code>connect</code>; calling <code>disconnect</code> after the signal is destroyed is safe (<code>alive</code> is atomic).</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: passive-handle semantics since <code>v1.8.1</code>; the alive flag became atomic and pending tasks are cancelled since <code>v1.24.0</code>.</li>
 </ul>
 <h2 id="connectiongroup">ConnectionGroup</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d3b2adc2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-afc25451', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ConnectionGroup</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">ConnectionGroup</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">disconnectAll</span><span class="p">();</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">size</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-d3b2adc2" style="display: none;">class ConnectionGroup : public std::enable_shared_from_this&lt;ConnectionGroup&gt; {
+<pre id="code-afc25451" style="display: none;">class ConnectionGroup : public std::enable_shared_from_this&lt;ConnectionGroup&gt; {
     void disconnectAll(); size_t size() const;
 };</pre>
 </div>
 <ul>
 <li>Used internally by <code>UIElement</code> / <code>Window</code> to disconnect all connections they own.</li>
 <li><code>size()</code> counts only live connections; manually disconnected connections are not counted.</li>
-<li><strong><code>Pitfall</code></strong>: <code>disconnectAll()</code> only removes connections; it does not invoke user slots.</li>
 </ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>disconnectAll()</code> only removes connections; it does not invoke user slots.</li>
+</ul>
+</div>
 <h2 id="zsignal">ZSignal</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-08cbc987', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-9c2282d5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span><span class="w"> </span><span class="n">TArgs</span><span class="o">&gt;</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ZSignal</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">SlotType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">TArgs</span><span class="p">...)</span><span class="o">&gt;</span><span class="p">;</span>
@@ -412,7 +469,7 @@ namespace UIZSignals {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">TArgs</span><span class="p">...</span><span class="w"> </span><span class="n">targs</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-08cbc987" style="display: none;">template&lt;typename... TArgs&gt; class ZSignal {
+<pre id="code-9c2282d5" style="display: none;">template&lt;typename... TArgs&gt; class ZSignal {
     using SlotType = std::function&lt;void(TArgs...)&gt;;
     Connection connect(SlotType slot,
                        ConnectionThread thread = ConnectionThread::CurrentThread,
@@ -427,10 +484,17 @@ namespace UIZSignals {
 <ul>
 <li>Fire with <code>Fire</code> (<strong>there is no <code>emit</code> macro</strong>).</li>
 <li><code>ZSignal</code> is <strong>not copyable or movable</strong>; it is a member of controls/windows — never put it in a movable container.</li>
-<li><strong><code>Pitfall</code></strong>: <code>Fire</code> iterates a <strong>snapshot</strong>, so a slot may safely <code>disconnect</code>; re-firing the same signal inside a slot goes through the "reentrant" path (local copy) — avoid deep recursion there.</li>
-<li><strong><code>Pitfall</code></strong>: <code>Fire</code> concurrent with <code>ZSignal</code> destruction is UB; fire and destroy a signal on the same thread.</li>
-<li><strong><code>Pitfall</code></strong>: an exception thrown by a slot propagates out of <code>Fire</code>; later slots do not run. Avoid throwing from signal slots.</li>
 <li>Signal arguments are passed to slots as <strong>lvalues</strong>; do not declare <code>T&amp;&amp;</code> slot parameters, and prefer <code>const T&amp;</code> for large objects.</li>
+</ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>Fire</code> iterates a <strong>snapshot</strong>, so a slot may safely <code>disconnect</code>; re-firing the same signal inside a slot goes through the "reentrant" path (local copy) — avoid deep recursion there.</li>
+<li><code>Fire</code> concurrent with <code>ZSignal</code> destruction is UB; fire and destroy a signal on the same thread.</li>
+<li>an exception thrown by a slot propagates out of <code>Fire</code>; later slots do not run. Avoid throwing from signal slots.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: <code>v1.18.0</code> adds a RAII guard so a throwing slot still restores reentrancy depth and releases the snapshot; non-movable since <code>v1.24.0</code>.</li>
 </ul>
 <h2 id="receiver-context-and-connectweak">Receiver context and ConnectWeak</h2>
@@ -442,7 +506,7 @@ namespace UIZSignals {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-64bef5ca', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-fbaf1b5a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">panel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Panel</span><span class="o">&gt;</span><span class="p">();</span>
 
@@ -453,7 +517,7 @@ namespace UIZSignals {
 <span class="n">ConnectWeak</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span><span class="w"> </span><span class="n">btn</span><span class="o">-&gt;</span><span class="n">Clicked</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="n">Panel</span><span class="o">*</span><span class="w"> </span><span class="n">self</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">self</span><span class="o">-&gt;</span><span class="n">Refresh</span><span class="p">();</span><span class="w"> </span><span class="p">});</span>
 <span class="n">ConnectWeak</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span><span class="w"> </span><span class="n">btn</span><span class="o">-&gt;</span><span class="n">Clicked</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Panel</span><span class="o">::</span><span class="n">OnClick</span><span class="p">);</span>
 </pre></div>
-<pre id="code-64bef5ca" style="display: none;">auto panel = std::make_shared&lt;Panel&gt;();
+<pre id="code-fbaf1b5a" style="display: none;">auto panel = std::make_shared&lt;Panel&gt;();
 
 panel-&gt;Connect(btn-&gt;Clicked, [this] { Refresh(); });
 Connect(panel, btn-&gt;Clicked, &amp;Panel::OnClick);
@@ -462,15 +526,23 @@ btn-&gt;Clicked.connect(panel, [this] { Refresh(); });
 ConnectWeak(panel, btn-&gt;Clicked, [](Panel* self) { self-&gt;Refresh(); });
 ConnectWeak(panel, btn-&gt;Clicked, &amp;Panel::OnClick);</pre>
 </div>
+<div class="orange">
+<p><strong>Note</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: do not capture <code>self</code>'s <code>shared_ptr</code> by value inside a <code>ConnectWeak</code> slot — that creates a signal → slot → self → signal strong cycle.</li>
-<li><strong><code>Note</code></strong>: <code>Menu</code> / <code>MenuItem</code> / <code>Timer</code> still use <code>signal.connect</code> and do <strong>not</strong> auto-disconnect.</li>
+<li><code>Menu</code> / <code>MenuItem</code> / <code>Timer</code> still use <code>signal.connect</code> and do <strong>not</strong> auto-disconnect.</li>
 </ul>
+</div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li>do not capture <code>self</code>'s <code>shared_ptr</code> by value inside a <code>ConnectWeak</code> slot — that creates a signal → slot → self → signal strong cycle.</li>
+</ul>
+</div>
 <h2 id="global-signals-uizsignals">Global signals UIZSignals</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7fe2cb4f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-47ea51f6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">UIZSignals</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="n">ID2D1RenderTarget</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">DrawOverlay</span><span class="p">;</span>
@@ -482,7 +554,7 @@ ConnectWeak(panel, btn-&gt;Clicked, &amp;Panel::OnClick);</pre>
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">Error</span><span class="p">;</span><span class="w">         </span><span class="c1">// v1.16.0</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-7fe2cb4f" style="display: none;">namespace UIZSignals {
+<pre id="code-47ea51f6" style="display: none;">namespace UIZSignals {
     inline ZSignal&lt;Window*, ID2D1RenderTarget*&gt; DrawOverlay;
     inline ZSignal&lt;Window*, float, float&gt; GlobalMouseDown;
     inline ZSignal&lt;Window*&gt; WindowActivated, WindowDeactivated;
@@ -493,10 +565,15 @@ ConnectWeak(panel, btn-&gt;Clicked, &amp;Panel::OnClick);</pre>
 }</pre>
 </div>
 <ul>
-<li><strong><code>Pitfall</code></strong>: <code>DrawOverlay</code> carries a <code>Window*</code>; subscribers <strong>must</strong> filter by <code>GetWindow()</code>, or window A's overlay draws onto window B (classic multi-window cross-talk).</li>
 <li><code>RepaintRequest</code>/<code>LayoutInvalidated</code>/capture signals only fall back for <strong>unmounted</strong> elements; mounted ones route directly via <code>Window</code>.</li>
 <li><code>DeviceReset</code>: release all caches keyed to the render target/device (e.g. <code>ImageDeviceCache</code>).</li>
 </ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>DrawOverlay</code> carries a <code>Window*</code>; subscribers <strong>must</strong> filter by <code>GetWindow()</code>, or window A's overlay draws onto window B (classic multi-window cross-talk).</li>
+</ul>
+</div>
 <nav class="chapter-nav"><a class="prev" href="API.en.3.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Basic types</span><span class="nav-desc">Color, Rect, Thickness, Size</span></a><a class="next" href="API.en.5.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Fonts &amp; Icons</span><span class="nav-desc">FontSpec, FontManager, Icon</span></a></nav>
         </main>
     </div>

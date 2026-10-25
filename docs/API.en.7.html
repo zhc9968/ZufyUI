@@ -241,7 +241,13 @@ void ClearChildren();
 void SetSpacing(float);
 ```
 - `ColumnBox` fills width, no vertical stretch; `RowBox` the opposite.
-- **`Pitfall`**: `AddChild` calls `SetParent(this)`; the container owns via `shared_ptr`. If a child sets an explicit `SetHeight`, leftover space is **added on top** by weight.
+
+###block_red_start
+**Pitfall**
+
+- `AddChild` calls `SetParent(this)`; the container owns via `shared_ptr`. If a child sets an explicit `SetHeight`, leftover space is **added on top** by weight.
+###block_red_end
+
 - **`Version`**: leftover distribution by child stretch weight since `v1.17.0`.
 
 ## GridLayout
@@ -277,9 +283,15 @@ void SetTransitionDirection(...);  void SetTransitionEasing(...);  void SetAnima
 int GetCurrentIndex() const;  std::shared_ptr&lt;Page&gt; GetCurrentPage() const;
 ```
 - During a transition it returns **both** source and target pages as visible children; `UpdateAnimation` updates each page only once (otherwise double speed).
-- **`Pitfall`**: `NavigateTo` is **asynchronous** (switches after the animation); `GetCurrentPage()`/`GetCurrentIndex()` may still be old during it.
+
+###block_red_start
+**Pitfall**
+
+- `NavigateTo` is **asynchronous** (switches after the animation); `GetCurrentPage()`/`GetCurrentIndex()` may still be old during it.
+- show/hide page content with `SetVisible()` (it calls `InvalidateLayout()`); do not poke the internal visibility flag, or it will be neither re-measured nor repainted.
+###block_red_end
+
 - **`Version`**: easing `v1.8.1`; **delayed hidden-page cache release (~1.2 s, recursive)** = `v1.18.0`; `MeasureOverride` **measures every page** = `v1.23.1` — page content shown/hidden at runtime (e.g. an `Expander` card revealed after a combo-box selection) re-lays out and hit-tests immediately, with no need to resize the window.
-- **`Pitfall`**: show/hide page content with `SetVisible()` (it calls `InvalidateLayout()`); do not poke the internal visibility flag, or it will be neither re-measured nor repainted.
 
 ## TabView
 
@@ -289,11 +301,11 @@ See the "Containers &amp; Scrolling / Tabs" chapter.</pre></div></div>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-33b6f09e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-601c8da0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Layout</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-33b6f09e" style="display: none;">class Layout : public UIElement { bool UseCache() const override { return false; } };</pre>
+<pre id="code-601c8da0" style="display: none;">class Layout : public UIElement { bool UseCache() const override { return false; } };</pre>
 </div>
 <ul>
 <li>Layout containers <strong>never cache</strong>.</li>
@@ -302,28 +314,35 @@ See the "Containers &amp; Scrolling / Tabs" chapter.</pre></div></div>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-bff3ddee', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-3d12d1cb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ColumnBox</span><span class="p">();</span><span class="w"> </span><span class="n">RowBox</span><span class="p">();</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">ClearChildren</span><span class="p">();</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetSpacing</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 </pre></div>
-<pre id="code-bff3ddee" style="display: none;">ColumnBox(); RowBox();
+<pre id="code-3d12d1cb" style="display: none;">ColumnBox(); RowBox();
 void AddChild(std::shared_ptr&lt;UIElement&gt;);
 void ClearChildren();
 void SetSpacing(float);</pre>
 </div>
 <ul>
 <li><code>ColumnBox</code> fills width, no vertical stretch; <code>RowBox</code> the opposite.</li>
-<li><strong><code>Pitfall</code></strong>: <code>AddChild</code> calls <code>SetParent(this)</code>; the container owns via <code>shared_ptr</code>. If a child sets an explicit <code>SetHeight</code>, leftover space is <strong>added on top</strong> by weight.</li>
+</ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>AddChild</code> calls <code>SetParent(this)</code>; the container owns via <code>shared_ptr</code>. If a child sets an explicit <code>SetHeight</code>, leftover space is <strong>added on top</strong> by weight.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: leftover distribution by child stretch weight since <code>v1.17.0</code>.</li>
 </ul>
 <h2 id="gridlayout">GridLayout</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a1aafc7d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d35c6390', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Alignment</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Start</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">End</span><span class="w"> </span><span class="p">};</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">rowSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">colSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">);</span>
@@ -331,7 +350,7 @@ void SetSpacing(float);</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnStretch</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">weight</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRowStretch</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">weight</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetHorizontalAlignment</span><span class="p">(</span><span class="n">Alignment</span><span class="p">);</span><span class="w">         </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVerticalAlignment</span><span class="p">(</span><span class="n">Alignment</span><span class="p">);</span>
 </pre></div>
-<pre id="code-a1aafc7d" style="display: none;">enum class Alignment { Start, Center, End };
+<pre id="code-d35c6390" style="display: none;">enum class Alignment { Start, Center, End };
 void AddChild(std::shared_ptr&lt;UIElement&gt;, int row, int col, int rowSpan=1, int colSpan=1);
 void SetSpacing(float h, float v);
 void SetColumnStretch(int col, float weight);   void SetRowStretch(int row, float weight);
@@ -344,14 +363,14 @@ void SetHorizontalAlignment(Alignment);         void SetVerticalAlignment(Alignm
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d6f9e2e7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-e8dda129', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">LayoutHost</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetLayout</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetLayout</span><span class="p">(...);</span><span class="w"> </span><span class="p">};</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Card</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">LayoutHost</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">DefaultPadding</span><span class="o">=</span><span class="mi">12</span><span class="p">;</span><span class="w"> </span><span class="n">DefaultCornerRadius</span><span class="o">=</span><span class="mi">8</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Page</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">LayoutHost</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">DefaultPadding</span><span class="o">=</span><span class="mi">10</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">Page::SetScrollableContent</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="p">);</span><span class="w">   </span><span class="c1">// one line: wrap in ScrollViewer(fill)+8px</span>
 </pre></div>
-<pre id="code-d6f9e2e7" style="display: none;">class LayoutHost : public UIElement { std::shared_ptr&lt;UIElement&gt; GetLayout() const; void SetLayout(...); };
+<pre id="code-e8dda129" style="display: none;">class LayoutHost : public UIElement { std::shared_ptr&lt;UIElement&gt; GetLayout() const; void SetLayout(...); };
 class Card : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
 class Page : public LayoutHost { DefaultPadding=10; ... };
 void Page::SetScrollableContent(std::shared_ptr&lt;UIElement&gt; content);   // one line: wrap in ScrollViewer(fill)+8px</pre>
@@ -364,7 +383,7 @@ void Page::SetScrollableContent(std::shared_ptr&lt;UIElement&gt; content);   // 
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ebd498df', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-1fe41ccf', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TransitionDirection</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="p">,</span><span class="w"> </span><span class="n">Up</span><span class="p">,</span><span class="w"> </span><span class="n">Down</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TransitionEasing</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Linear</span><span class="p">,</span><span class="w"> </span><span class="n">EaseInOut</span><span class="p">,</span><span class="w"> </span><span class="n">EaseOut</span><span class="w"> </span><span class="p">};</span>
@@ -373,7 +392,7 @@ void Page::SetScrollableContent(std::shared_ptr&lt;UIElement&gt; content);   // 
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionDirection</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionEasing</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationDuration</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="kt">int</span><span class="w"> </span><span class="nf">GetCurrentIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Page</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCurrentPage</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-ebd498df" style="display: none;">enum class TransitionDirection { Left, Right, Up, Down };
+<pre id="code-1fe41ccf" style="display: none;">enum class TransitionDirection { Left, Right, Up, Down };
 enum class TransitionEasing { Linear, EaseInOut, EaseOut };
 void AddPage(std::shared_ptr&lt;Page&gt;);  void RemovePage(int);  void ClearPages();
 void NavigateTo(int index);   void SetCurrentIndexInstant(int index);
@@ -382,9 +401,16 @@ int GetCurrentIndex() const;  std::shared_ptr&lt;Page&gt; GetCurrentPage() const
 </div>
 <ul>
 <li>During a transition it returns <strong>both</strong> source and target pages as visible children; <code>UpdateAnimation</code> updates each page only once (otherwise double speed).</li>
-<li><strong><code>Pitfall</code></strong>: <code>NavigateTo</code> is <strong>asynchronous</strong> (switches after the animation); <code>GetCurrentPage()</code>/<code>GetCurrentIndex()</code> may still be old during it.</li>
+</ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>NavigateTo</code> is <strong>asynchronous</strong> (switches after the animation); <code>GetCurrentPage()</code>/<code>GetCurrentIndex()</code> may still be old during it.</li>
+<li>show/hide page content with <code>SetVisible()</code> (it calls <code>InvalidateLayout()</code>); do not poke the internal visibility flag, or it will be neither re-measured nor repainted.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: easing <code>v1.8.1</code>; <strong>delayed hidden-page cache release (~1.2 s, recursive)</strong> = <code>v1.18.0</code>; <code>MeasureOverride</code> <strong>measures every page</strong> = <code>v1.23.1</code> — page content shown/hidden at runtime (e.g. an <code>Expander</code> card revealed after a combo-box selection) re-lays out and hit-tests immediately, with no need to resize the window.</li>
-<li><strong><code>Pitfall</code></strong>: show/hide page content with <code>SetVisible()</code> (it calls <code>InvalidateLayout()</code>); do not poke the internal visibility flag, or it will be neither re-measured nor repainted.</li>
 </ul>
 <h2 id="tabview">TabView</h2>
 <p>See the "Containers &amp; Scrolling / Tabs" chapter.</p>

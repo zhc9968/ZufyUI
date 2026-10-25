@@ -253,9 +253,16 @@ void CacheDisplayLayout(...); void CacheStyledDisplayLayout(...);
 void SetGlobalFont(const FontSpec&amp;);
 ZSignal&lt;&gt; GlobalFontChanged;
 ```
-- **`易错`**：返回的 layout 是**共享只读**对象，**不要**对它 `SetTextAlignment/SetLineSpacing/SetTrimming`——缓存 key 会与对象不一致。
 - 布局缓存**有上限**（400 条，FIFO 淘汰 ¼）；返回强引用（`ComPtr`），调用期间不会被淘汰。
-- **`易错`**：`GetFormat` 返回的 `IDWriteTextFormat*` **永不淘汰**，请勿修改它。
+
+###block_red_start
+**易错**
+
+- 返回的 layout 是**共享只读**对象，**不要**对它 `SetTextAlignment/SetLineSpacing/SetTrimming`——缓存 key 会与对象不一致。
+- `GetFormat` 返回的 `IDWriteTextFormat*` **永不淘汰**，请勿修改它。
+- `GetFormat` 的共享 format 把 `ParagraphAlignment` 设成了 `CENTER`。**不要直接拿它画多行自绘文本**，否则会被垂直居中到高盒外（看起来“没字”）；用 `GetStyledLayout(..., vAlign)` 或自建 format 并设 `NEAR`。
+###block_red_end
+
 - **`版本`**：`GetStyledLayout` 与全局布局缓存在 `v1.10.1` 强化；有界缓存/强引用契约在 `v1.15.0` 前后定型。
 
 ## 图标 Icon（字体字形）
@@ -265,14 +272,20 @@ enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., 
 inline const std::wstring&amp; IconFontFamily();   // Segoe Fluent Icons → 回退 Segoe MDL2 Assets
 inline std::wstring IconGlyph(Icon);           // 码点 → 单字宽字符串
 ```
-- **`易错`**：枚举值**就是字体码点**（无独立映射表）。字体回退**只在首次静态探测**，运行期换系统字体不会重探；个别 Win11 专有字形在两版字体里缺失会显示方框。
+
+###block_red_start
+**易错**
+
+- 枚举值**就是字体码点**（无独立映射表）。字体回退**只在首次静态探测**，运行期换系统字体不会重探；个别 Win11 专有字形在两版字体里缺失会显示方框。
+###block_red_end
+
 - **`版本`**：`v1.13.0` 起 `Icon` 下沉到 `ZufyUIWidgets.h`，所有 `Label` 派生控件获得 `SetIcon`。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 5 章 · 字体与图标</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 5 章</span><h1>字体与图标</h1><p class="chapter-summary">FontSpec、FontManager、Icon</p></header><h2 id="fontspec">FontSpec</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-28a1ab21', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-8e0dc7ac', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FontSpec</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">familyName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"Segoe UI"</span><span class="p">;</span>
@@ -284,7 +297,7 @@ inline std::wstring IconGlyph(Icon);           // 码点 → 单字宽字符串
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="k">operator</span><span class="o">==/!=</span><span class="p">(...)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-28a1ab21" style="display: none;">struct FontSpec {
+<pre id="code-8e0dc7ac" style="display: none;">struct FontSpec {
     std::wstring familyName = L"Segoe UI";
     float size = 14.0f;
     DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
@@ -298,7 +311,7 @@ inline std::wstring IconGlyph(Icon);           // 码点 → 单字宽字符串
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-30613522', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-c4826050', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">FontManager</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
 <span class="n">IDWriteFactory</span><span class="o">*</span><span class="w"> </span><span class="nf">GetFactory</span><span class="p">();</span>
@@ -311,7 +324,7 @@ inline std::wstring IconGlyph(Icon);           // 码点 → 单字宽字符串
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetGlobalFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
 <span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">GlobalFontChanged</span><span class="p">;</span>
 </pre></div>
-<pre id="code-30613522" style="display: none;">static FontManager&amp; Instance();
+<pre id="code-c4826050" style="display: none;">static FontManager&amp; Instance();
 IDWriteFactory* GetFactory();
 IDWriteTextFormat* GetFormat(const FontSpec&amp;);        // 格式缓存，永不淘汰
 ComPtr&lt;IDWriteTextLayout&gt; GetRawLayout(text, fmt, maxW, maxH, noWrap);
@@ -323,27 +336,40 @@ void SetGlobalFont(const FontSpec&amp;);
 ZSignal&lt;&gt; GlobalFontChanged;</pre>
 </div>
 <ul>
-<li><strong><code>易错</code></strong>：返回的 layout 是<strong>共享只读</strong>对象，<strong>不要</strong>对它 <code>SetTextAlignment/SetLineSpacing/SetTrimming</code>——缓存 key 会与对象不一致。</li>
 <li>布局缓存<strong>有上限</strong>（400 条，FIFO 淘汰 ¼）；返回强引用（<code>ComPtr</code>），调用期间不会被淘汰。</li>
-<li><strong><code>易错</code></strong>：<code>GetFormat</code> 返回的 <code>IDWriteTextFormat*</code> <strong>永不淘汰</strong>，请勿修改它。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li>返回的 layout 是<strong>共享只读</strong>对象，<strong>不要</strong>对它 <code>SetTextAlignment/SetLineSpacing/SetTrimming</code>——缓存 key 会与对象不一致。</li>
+<li><code>GetFormat</code> 返回的 <code>IDWriteTextFormat*</code> <strong>永不淘汰</strong>，请勿修改它。</li>
+<li><code>GetFormat</code> 的共享 format 把 <code>ParagraphAlignment</code> 设成了 <code>CENTER</code>。<strong>不要直接拿它画多行自绘文本</strong>，否则会被垂直居中到高盒外（看起来“没字”）；用 <code>GetStyledLayout(..., vAlign)</code> 或自建 format 并设 <code>NEAR</code>。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>GetStyledLayout</code> 与全局布局缓存在 <code>v1.10.1</code> 强化；有界缓存/强引用契约在 <code>v1.15.0</code> 前后定型。</li>
 </ul>
 <h2 id="图标-icon字体字形">图标 Icon（字体字形）</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-4ec97100', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-2db9f143', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Icon</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">short</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="o">=</span><span class="mh">0x0000</span><span class="p">,</span><span class="w"> </span><span class="n">Add</span><span class="o">=</span><span class="mh">0xE710</span><span class="p">,</span><span class="w"> </span><span class="n">Remove</span><span class="o">=</span><span class="mh">0xE738</span><span class="p">,</span><span class="w"> </span><span class="p">...,</span><span class="w"> </span><span class="n">Pin</span><span class="o">=</span><span class="mh">0xE718</span><span class="p">,</span><span class="w"> </span><span class="n">View</span><span class="o">=</span><span class="mh">0xE890</span><span class="p">,</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">IconFontFamily</span><span class="p">();</span><span class="w">   </span><span class="c1">// Segoe Fluent Icons → 回退 Segoe MDL2 Assets</span>
 <span class="kr">inline</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">IconGlyph</span><span class="p">(</span><span class="n">Icon</span><span class="p">);</span><span class="w">           </span><span class="c1">// 码点 → 单字宽字符串</span>
 </pre></div>
-<pre id="code-4ec97100" style="display: none;">enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., Pin=0xE718, View=0xE890, ... };
+<pre id="code-2db9f143" style="display: none;">enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., Pin=0xE718, View=0xE890, ... };
 inline const std::wstring&amp; IconFontFamily();   // Segoe Fluent Icons → 回退 Segoe MDL2 Assets
 inline std::wstring IconGlyph(Icon);           // 码点 → 单字宽字符串</pre>
 </div>
+<div class="red">
+<p><strong>易错</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：枚举值<strong>就是字体码点</strong>（无独立映射表）。字体回退<strong>只在首次静态探测</strong>，运行期换系统字体不会重探；个别 Win11 专有字形在两版字体里缺失会显示方框。</li>
+<li>枚举值<strong>就是字体码点</strong>（无独立映射表）。字体回退<strong>只在首次静态探测</strong>，运行期换系统字体不会重探；个别 Win11 专有字形在两版字体里缺失会显示方框。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.13.0</code> 起 <code>Icon</code> 下沉到 <code>ZufyUIWidgets.h</code>，所有 <code>Label</code> 派生控件获得 <code>SetIcon</code>。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.4.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">事件与信号</span><span class="nav-desc">ZSignal、Connection、跨线程</span></a><a class="next" href="API.6.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">元素基类</span><span class="nav-desc">UIElement（布局属性、缓存、事件、无障碍、调试）</span></a></nav>

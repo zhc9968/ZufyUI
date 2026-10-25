@@ -243,8 +243,15 @@ void SetImage(std::shared_ptr&lt;Image&gt;);   void SetIcon(Icon, float size=0);
 void AddChild(std::shared_ptr&lt;UIElement&gt;);
 std::wstring GetToolTip() const override;   // auto full-text tooltip when ellipsized (v1.17.0)
 ```
-- **`Pitfall`**: `SetTextFast` does not repaint — pooled containers (ListView/TableView) use it plus their own repaint. Direct use may look "not updated".
-- **`Pitfall`**: when both image and glyph are set, **image wins**.
+
+###block_red_start
+**Pitfall**
+
+- `SetTextFast` does not repaint — pooled containers (ListView/TableView) use it plus their own repaint. Direct use may look "not updated".
+- when both image and glyph are set, **image wins**.
+- `GetDesiredSize()` is only the last `Measure` result; measuring with `FLT_MAX` gives the ideal size, not the parent-constrained size.
+###block_red_end
+
 - **`Version`**: `SetIcon` family `v1.13.0`; auto tooltip `v1.17.0`.
 
 ## Button
@@ -267,7 +274,13 @@ void SetDropItems(const std::vector&lt;std::wstring&gt;&amp;, int selected=-1); 
 - **Rich content**: the internal `Label` is a real child now, so `GetLabel()-&gt;AddChild(...)` children are laid out/composited/drawn; `SetContent` replaces it with any `UIElement`.
 - **Drop 2x2**: `SetDropWriteBack` controls whether a menu selection writes its text back to the button; `SetDropOpenOnClick` controls whether the button opens the menu after `Clicked`. The menu is **single-select** (the previous choice is marked); selecting fires `DropSelected(index)`, readable via `GetDropSelectedIndex/GetDropSelectedText`. `SetDropItems` is the text-list shortcut; use `SetDropMenu` for custom menus.
 - **Main area / expand zone**: clicking the main area always fires `Clicked`; the right expand zone (separated by a short, theme-coloured divider) **only opens the menu and never fires `Clicked`**; clicking a menu item fires only `DropSelected`, never `Clicked`. With `DropOpenOnClick=false` the main area only calls back; the expand zone still opens the menu.
-- **`Pitfall`**: `IsChecked()` is meaningless unless checkable; `SetContent` lays out inside the rect left after `padding` and the right arrow.
+
+###block_red_start
+**Pitfall**
+
+- `IsChecked()` is meaningless unless checkable; `SetContent` lays out inside the rect left after `padding` and the right arrow.
+###block_red_end
+
 - **`Version`**: since `v1.21.0` a Button **grows to fit its own text by default**; `v1.23.3` adds rich content and the drop 2x2 combinations.
 
 ## TextBox (single-line)
@@ -281,8 +294,14 @@ void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
 void SelectAll/Copy/Cut/Paste/Undo/Redo();
 int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
 ```
-- **`Pitfall`**: `SetImeEnabled(false)` suppresses IME/on-screen keyboard (`IsTextInput()` returns `imeEnabled_`).
-- **`Pitfall`**: programmatic `SetText` does **not** create an undo step.
+
+###block_red_start
+**Pitfall**
+
+- `SetImeEnabled(false)` suppresses IME/on-screen keyboard (`IsTextInput()` returns `imeEnabled_`).
+- programmatic `SetText` does **not** create an undo step.
+###block_red_end
+
 - **`Version`**: error/indicator/IME `v1.12.0`; `v1.18.0` fixes shift+click semantics.
 
 ## TextEdit (multi-line editor / viewer) — v1.18.0
@@ -301,7 +320,6 @@ void EnsureCursorVisible();  float GetScrollOffsetY() const;  void SetScrollOffs
 bool UseCache() const override { return false; }
 bool AcceptsTab() const override { return !readOnly_; }
 ```
-- **`Pitfall`**: changing wrap width **rebuilds every line layout**. Rich text is **read-only**. Line/column APIs are **0-based**. Because `AcceptsTab` is true, Tab **inserts an indent** (not focus navigation).
 - Default `Consolas 14`, `320×160`, tabSize 4.
 
 Minimal example:
@@ -311,6 +329,14 @@ edit-&gt;SetPlainText(L"hello\nworld");
 edit-&gt;SetShowLineNumbers(true);
 root-&gt;AddChild(edit);                 // give it a size or let the layout fill it
 ```
+
+###block_red_start
+**Pitfall**
+
+- changing wrap width **rebuilds every line layout**.
+- rich text is **read-only**; line/column APIs are **0-based**.
+- because `AcceptsTab` is true, Tab **inserts an indent** (not focus navigation).
+###block_red_end
 
 ## ComboBox
 
@@ -322,8 +348,14 @@ void SetSelectedSourceIndex(int);  int GetSelectedSourceIndex() const; // v1.15.
 void SetItemDisabled(int visibleIndex, bool);   // persists by source index
 void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 ```
-- **`Pitfall`**: the dropdown draws on the global `DrawOverlay` and may exceed the control's bounds.
-- **`Pitfall`**: `GetSelectedIndex()` is the **filtered/visible** index; `SetItemDisabled` persists by **source** index (v1.15.0).
+
+###block_red_start
+**Pitfall**
+
+- the dropdown draws on the global `DrawOverlay` and may exceed the control's bounds.
+- `GetSelectedIndex()` is the **filtered/visible** index; `SetItemDisabled` persists by **source** index (v1.15.0).
+###block_red_end
+
 - **`Version`**: dropdown geometry/state `v1.12.0`; source-index API `v1.15.0`; the dropdown arrow rotates with expansion progress (smoothstep, `v1.19.0`).</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 9 · Basic controls</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 9</span><h1>Basic controls</h1><p class="chapter-summary">Label, Button, TextBox, TextEdit, ComboBox</p></header><blockquote>
@@ -333,7 +365,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5ab24c88', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-3c3f1a1d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TextOverflow</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Wrap</span><span class="p">,</span><span class="w"> </span><span class="n">Ellipsis</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">HAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">VAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Top</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Bottom</span><span class="w"> </span><span class="p">};</span>
@@ -348,7 +380,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetToolTip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">   </span><span class="c1">// auto full-text tooltip when ellipsized (v1.17.0)</span>
 </pre></div>
-<pre id="code-5ab24c88" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
+<pre id="code-3c3f1a1d" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
 enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bottom };
 Label(const std::wstring&amp; text = L"Label");
 void SetText(const std::wstring&amp;);   std::wstring GetText() const;
@@ -361,16 +393,22 @@ void SetImage(std::shared_ptr&lt;Image&gt;);   void SetIcon(Icon, float size=0);
 void AddChild(std::shared_ptr&lt;UIElement&gt;);
 std::wstring GetToolTip() const override;   // auto full-text tooltip when ellipsized (v1.17.0)</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: <code>SetTextFast</code> does not repaint — pooled containers (ListView/TableView) use it plus their own repaint. Direct use may look "not updated".</li>
-<li><strong><code>Pitfall</code></strong>: when both image and glyph are set, <strong>image wins</strong>.</li>
+<li><code>SetTextFast</code> does not repaint — pooled containers (ListView/TableView) use it plus their own repaint. Direct use may look "not updated".</li>
+<li>when both image and glyph are set, <strong>image wins</strong>.</li>
+<li><code>GetDesiredSize()</code> is only the last <code>Measure</code> result; measuring with <code>FLT_MAX</code> gives the ideal size, not the parent-constrained size.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: <code>SetIcon</code> family <code>v1.13.0</code>; auto tooltip <code>v1.17.0</code>.</li>
 </ul>
 <h2 id="button">Button</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e9c78b35', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-ed9b8451', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">     </span><span class="c1">// Toggled needs SetCheckable(true)</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">DropSelected</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DropMenuOpened</span><span class="p">;</span><span class="w">   </span><span class="c1">// selected index / menu opened</span>
@@ -385,7 +423,7 @@ std::wstring GetToolTip() const override;   // auto full-text tooltip when ellip
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDropWriteBack</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDropOpenOnClick</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// two independent switches (2x2)</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDropItems</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">selected</span><span class="o">=</span><span class="mi">-1</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDropMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowDropMenu</span><span class="p">();</span>
 </pre></div>
-<pre id="code-e9c78b35" style="display: none;">ZSignal&lt;&gt; Clicked;   ZSignal&lt;bool&gt; Toggled;     // Toggled needs SetCheckable(true)
+<pre id="code-ed9b8451" style="display: none;">ZSignal&lt;&gt; Clicked;   ZSignal&lt;bool&gt; Toggled;     // Toggled needs SetCheckable(true)
 ZSignal&lt;int&gt; DropSelected;   ZSignal&lt;&gt; DropMenuOpened;   // selected index / menu opened
 Button(const std::wstring&amp; text = L"Button");
 void SetText/SetIcon/SetIconColor(...);
@@ -403,14 +441,21 @@ void SetDropItems(const std::vector&lt;std::wstring&gt;&amp;, int selected=-1); 
 <li><strong>Rich content</strong>: the internal <code>Label</code> is a real child now, so <code>GetLabel()-&gt;AddChild(...)</code> children are laid out/composited/drawn; <code>SetContent</code> replaces it with any <code>UIElement</code>.</li>
 <li><strong>Drop 2x2</strong>: <code>SetDropWriteBack</code> controls whether a menu selection writes its text back to the button; <code>SetDropOpenOnClick</code> controls whether the button opens the menu after <code>Clicked</code>. The menu is <strong>single-select</strong> (the previous choice is marked); selecting fires <code>DropSelected(index)</code>, readable via <code>GetDropSelectedIndex/GetDropSelectedText</code>. <code>SetDropItems</code> is the text-list shortcut; use <code>SetDropMenu</code> for custom menus.</li>
 <li><strong>Main area / expand zone</strong>: clicking the main area always fires <code>Clicked</code>; the right expand zone (separated by a short, theme-coloured divider) <strong>only opens the menu and never fires <code>Clicked</code></strong>; clicking a menu item fires only <code>DropSelected</code>, never <code>Clicked</code>. With <code>DropOpenOnClick=false</code> the main area only calls back; the expand zone still opens the menu.</li>
-<li><strong><code>Pitfall</code></strong>: <code>IsChecked()</code> is meaningless unless checkable; <code>SetContent</code> lays out inside the rect left after <code>padding</code> and the right arrow.</li>
+</ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li><code>IsChecked()</code> is meaningless unless checkable; <code>SetContent</code> lays out inside the rect left after <code>padding</code> and the right arrow.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: since <code>v1.21.0</code> a Button <strong>grows to fit its own text by default</strong>; <code>v1.23.3</code> adds rich content and the drop 2x2 combinations.</li>
 </ul>
 <h2 id="textbox-single-line">TextBox (single-line)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-e713917b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d3e24459', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">ReturnPressed</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetText</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// strips \r\n, truncates to maxLength, clears undo</span>
@@ -420,7 +465,7 @@ void SetDropItems(const std::vector&lt;std::wstring&gt;&amp;, int selected=-1); 
 <span class="kt">void</span><span class="w"> </span><span class="n">SelectAll</span><span class="o">/</span><span class="n">Copy</span><span class="o">/</span><span class="n">Cut</span><span class="o">/</span><span class="n">Paste</span><span class="o">/</span><span class="n">Undo</span><span class="o">/</span><span class="n">Redo</span><span class="p">();</span>
 <span class="kt">int</span><span class="w"> </span><span class="n">GetSelectionStart</span><span class="o">/</span><span class="n">End</span><span class="o">/</span><span class="n">CursorPosition</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelection</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">);</span>
 </pre></div>
-<pre id="code-e713917b" style="display: none;">ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;&gt; ReturnPressed;
+<pre id="code-d3e24459" style="display: none;">ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;&gt; ReturnPressed;
 void SetText(const std::wstring&amp;);   // strips \r\n, truncates to maxLength, clears undo
 void SetPlaceholder(...);  void SetPasswordMode(bool);  void SetMaxLength(int);   // -1 = unlimited
 void SetReadOnly(bool);    void SetInputFilter(std::function&lt;bool(wchar_t)&gt;);
@@ -428,16 +473,21 @@ void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
 void SelectAll/Copy/Cut/Paste/Undo/Redo();
 int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: <code>SetImeEnabled(false)</code> suppresses IME/on-screen keyboard (<code>IsTextInput()</code> returns <code>imeEnabled_</code>).</li>
-<li><strong><code>Pitfall</code></strong>: programmatic <code>SetText</code> does <strong>not</strong> create an undo step.</li>
+<li><code>SetImeEnabled(false)</code> suppresses IME/on-screen keyboard (<code>IsTextInput()</code> returns <code>imeEnabled_</code>).</li>
+<li>programmatic <code>SetText</code> does <strong>not</strong> create an undo step.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: error/indicator/IME <code>v1.12.0</code>; <code>v1.18.0</code> fixes shift+click semantics.</li>
 </ul>
 <h2 id="textedit-multi-line-editor-viewer-v1180">TextEdit (multi-line editor / viewer) — v1.18.0</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a27b5e2b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-b77efaae', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">WrapMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">NoWrap</span><span class="p">,</span><span class="w"> </span><span class="n">WidgetWidth</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CursorPositionChanged</span><span class="p">;</span><span class="w">  </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span>
@@ -452,7 +502,7 @@ int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);</
 <span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">AcceptsTab</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="o">!</span><span class="n">readOnly_</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 </pre></div>
-<pre id="code-a27b5e2b" style="display: none;">enum class WrapMode { NoWrap, WidgetWidth };
+<pre id="code-b77efaae" style="display: none;">enum class WrapMode { NoWrap, WidgetWidth };
 ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;int,int&gt; CursorPositionChanged;  ZSignal&lt;&gt; SelectionChanged;
 std::wstring ToPlainText() const;  void SetPlainText(const std::wstring&amp;);   // clears undo
 void AppendPlainText(...);  void InsertPlainText(...);
@@ -466,30 +516,37 @@ bool UseCache() const override { return false; }
 bool AcceptsTab() const override { return !readOnly_; }</pre>
 </div>
 <ul>
-<li><strong><code>Pitfall</code></strong>: changing wrap width <strong>rebuilds every line layout</strong>. Rich text is <strong>read-only</strong>. Line/column APIs are <strong>0-based</strong>. Because <code>AcceptsTab</code> is true, Tab <strong>inserts an indent</strong> (not focus navigation).</li>
 <li>Default <code>Consolas 14</code>, <code>320×160</code>, tabSize 4.</li>
 </ul>
 <p>Minimal example:</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b60a8c02', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-975da128', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">edit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">TextEdit</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">edit</span><span class="o">-&gt;</span><span class="n">SetPlainText</span><span class="p">(</span><span class="sa">L</span><span class="s">"hello</span><span class="se">\n</span><span class="s">world"</span><span class="p">);</span>
 <span class="n">edit</span><span class="o">-&gt;</span><span class="n">SetShowLineNumbers</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
 <span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">edit</span><span class="p">);</span><span class="w">                 </span><span class="c1">// give it a size or let the layout fill it</span>
 </pre></div>
-<pre id="code-b60a8c02" style="display: none;">auto edit = std::make_shared&lt;TextEdit&gt;();
+<pre id="code-975da128" style="display: none;">auto edit = std::make_shared&lt;TextEdit&gt;();
 edit-&gt;SetPlainText(L"hello\nworld");
 edit-&gt;SetShowLineNumbers(true);
 root-&gt;AddChild(edit);                 // give it a size or let the layout fill it</pre>
+</div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li>changing wrap width <strong>rebuilds every line layout</strong>.</li>
+<li>rich text is <strong>read-only</strong>; line/column APIs are <strong>0-based</strong>.</li>
+<li>because <code>AcceptsTab</code> is true, Tab <strong>inserts an indent</strong> (not focus navigation).</li>
+</ul>
 </div>
 <h2 id="combobox">ComboBox</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-63ef7ede', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-363b3f1b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DropDownOpened</span><span class="p">,</span><span class="w"> </span><span class="n">DropDownClosed</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">AddItem</span><span class="o">/</span><span class="n">SetItems</span><span class="o">/</span><span class="n">InsertItem</span><span class="o">/</span><span class="n">RemoveItemAt</span><span class="o">/</span><span class="n">ClearItems</span><span class="p">(...);</span>
@@ -498,16 +555,21 @@ root-&gt;AddChild(edit);                 // give it a size or let the layout fil
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetItemDisabled</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">visibleIndex</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// persists by source index</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetEditable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFilterEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ApplyFilter</span><span class="p">();</span>
 </pre></div>
-<pre id="code-63ef7ede" style="display: none;">ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;&gt; DropDownOpened, DropDownClosed;
+<pre id="code-363b3f1b" style="display: none;">ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;&gt; DropDownOpened, DropDownClosed;
 void AddItem/SetItems/InsertItem/RemoveItemAt/ClearItems(...);
 void SetSelectedIndex(int);  int GetSelectedIndex() const;             // filtered/visible index
 void SetSelectedSourceIndex(int);  int GetSelectedSourceIndex() const; // v1.15.0: source index
 void SetItemDisabled(int visibleIndex, bool);   // persists by source index
 void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: the dropdown draws on the global <code>DrawOverlay</code> and may exceed the control's bounds.</li>
-<li><strong><code>Pitfall</code></strong>: <code>GetSelectedIndex()</code> is the <strong>filtered/visible</strong> index; <code>SetItemDisabled</code> persists by <strong>source</strong> index (v1.15.0).</li>
+<li>the dropdown draws on the global <code>DrawOverlay</code> and may exceed the control's bounds.</li>
+<li><code>GetSelectedIndex()</code> is the <strong>filtered/visible</strong> index; <code>SetItemDisabled</code> persists by <strong>source</strong> index (v1.15.0).</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: dropdown geometry/state <code>v1.12.0</code>; source-index API <code>v1.15.0</code>; the dropdown arrow rotates with expansion progress (smoothstep, <code>v1.19.0</code>).</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.en.8.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Window</span><span class="nav-desc">Window (create, show, backdrop, title bar, taskbar, DPI, render thread)</span></a><a class="next" href="API.en.10.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Selection &amp; input</span><span class="nav-desc">CheckBox, RadioButton, RadioGroup, ToggleSwitch, Slider, NumberBox</span></a></nav>

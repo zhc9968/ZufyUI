@@ -275,11 +275,17 @@ class SettingsList : public UIElement {
     ZSignal&lt;int&gt; RowClicked;
 };
 ```
-- **`易错`**：`DragEventArgs.x/y` 是**元素相对 DIP**（不是屏幕像素）。
 - 同控件内文本拖动：源端先删原选区、再按落点插入并左移修正；目标端检测私有格式 `ZufyUI.TextSource` 跳过重复插入。
+
+###block_red_start
+**易错**
+
+- `DragEventArgs.x/y` 是**元素相对 DIP**（不是屏幕像素）。
+- `Expander` 折叠时用显式 `SetHeight` 收拢，父布局才会跟随收缩。
+###block_red_end
+
 - **`版本`**：折叠/展开用与页面切换相同的 **smoothstep 缓动**；箭头随同一缓动**旋转**（收起向下 → 展开向上）。
 - **`版本`**：标题条悬停**高亮**（圆角）；`ComboBox` 下拉箭头同样改为随展开**旋转**的 chevron。
-- **`易错`**：`Expander` 折叠时用显式 `SetHeight` 收拢，父布局才会跟随收缩。
 - 图片展示用 `Label`：`SetImage` + `SetImageFit(true)`（等比缩放至完整可见）+ `SetDragSource`（拖出）。
 - **`版本`**：整窗接收——`Window::SetDropTargetEnabled(true)` + 窗口级 `DragEnter/DragOver/DragLeave/Drop`（`x/y` 为客户区 DIP）。
 - **`版本`**：`Expander::SetIcon(Icon, size)` 在标题前加图标；`TextEdit` 撤销/重做改为标准方案（撤销/重做都还原当时的选区与光标）。</pre></div></div>
@@ -290,7 +296,7 @@ class SettingsList : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b7c0d460', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-f46f4adc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// ---- 拖放：载荷 / 事件 ----</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DragData</span><span class="w"> </span><span class="p">{</span><span class="w">                                   </span><span class="c1">// 拖入方只读访问</span>
@@ -339,7 +345,7 @@ class SettingsList : public UIElement {
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">RowClicked</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-b7c0d460" style="display: none;">// ---- 拖放：载荷 / 事件 ----
+<pre id="code-f46f4adc" style="display: none;">// ---- 拖放：载荷 / 事件 ----
 class DragData {                                   // 拖入方只读访问
     bool HasText() const;   std::wstring GetText() const;
     bool HasFiles() const;  std::vector&lt;std::wstring&gt; GetFiles() const;
@@ -387,11 +393,18 @@ class SettingsList : public UIElement {
 };</pre>
 </div>
 <ul>
-<li><strong><code>易错</code></strong>：<code>DragEventArgs.x/y</code> 是<strong>元素相对 DIP</strong>（不是屏幕像素）。</li>
 <li>同控件内文本拖动：源端先删原选区、再按落点插入并左移修正；目标端检测私有格式 <code>ZufyUI.TextSource</code> 跳过重复插入。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>DragEventArgs.x/y</code> 是<strong>元素相对 DIP</strong>（不是屏幕像素）。</li>
+<li><code>Expander</code> 折叠时用显式 <code>SetHeight</code> 收拢，父布局才会跟随收缩。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：折叠/展开用与页面切换相同的 <strong>smoothstep 缓动</strong>；箭头随同一缓动<strong>旋转</strong>（收起向下 → 展开向上）。</li>
 <li><strong><code>版本</code></strong>：标题条悬停<strong>高亮</strong>（圆角）；<code>ComboBox</code> 下拉箭头同样改为随展开<strong>旋转</strong>的 chevron。</li>
-<li><strong><code>易错</code></strong>：<code>Expander</code> 折叠时用显式 <code>SetHeight</code> 收拢，父布局才会跟随收缩。</li>
 <li>图片展示用 <code>Label</code>：<code>SetImage</code> + <code>SetImageFit(true)</code>（等比缩放至完整可见）+ <code>SetDragSource</code>（拖出）。</li>
 <li><strong><code>版本</code></strong>：整窗接收——<code>Window::SetDropTargetEnabled(true)</code> + 窗口级 <code>DragEnter/DragOver/DragLeave/Drop</code>（<code>x/y</code> 为客户区 DIP）。</li>
 <li><strong><code>版本</code></strong>：<code>Expander::SetIcon(Icon, size)</code> 在标题前加图标；<code>TextEdit</code> 撤销/重做改为标准方案（撤销/重做都还原当时的选区与光标）。</li>

@@ -225,7 +225,14 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 <div class="sidebar-section"><div class="sidebar-heading">Chapters</div><ul class="chapter-list"><li class=""><a href="API.en.html"><span class="chapter-index">&#8962;</span>ZufyUI API Reference</a></li><li class=""><a href="API.en.1.html"><span class="chapter-index">1</span>Conventions</a></li><li class=""><a href="API.en.2.html"><span class="chapter-index">2</span>Quick start</a></li><li class=""><a href="API.en.3.html"><span class="chapter-index">3</span>Basic types</a></li><li class=""><a href="API.en.4.html"><span class="chapter-index">4</span>Events &amp; Signals</a></li><li class=""><a href="API.en.5.html"><span class="chapter-index">5</span>Fonts &amp; Icons</a></li><li class=""><a href="API.en.6.html"><span class="chapter-index">6</span>Element base</a></li><li class=""><a href="API.en.7.html"><span class="chapter-index">7</span>Layout system</a></li><li class=""><a href="API.en.8.html"><span class="chapter-index">8</span>Window</a></li><li class=""><a href="API.en.9.html"><span class="chapter-index">9</span>Basic controls</a></li><li class=""><a href="API.en.10.html"><span class="chapter-index">10</span>Selection &amp; input</a></li><li class=""><a href="API.en.11.html"><span class="chapter-index">11</span>Progress</a></li><li class=""><a href="API.en.12.html"><span class="chapter-index">12</span>Containers &amp; scrolling</a></li><li class=""><a href="API.en.13.html"><span class="chapter-index">13</span>Menus &amp; Popups</a></li><li class="active"><a href="API.en.14.html"><span class="chapter-index">14</span>Data views</a></li><li class=""><a href="API.en.15.html"><span class="chapter-index">15</span>Charts</a></li><li class=""><a href="API.en.16.html"><span class="chapter-index">16</span>Window extras</a></li><li class=""><a href="API.en.17.html"><span class="chapter-index">17</span>Drag &amp; Drop, cards</a></li><li class=""><a href="API.en.18.html"><span class="chapter-index">18</span>Theme system</a></li><li class=""><a href="API.en.19.html"><span class="chapter-index">19</span>DSL</a></li><li class=""><a href="API.en.20.html"><span class="chapter-index">20</span>Accessibility &amp; Debug Channel</a></li><li class=""><a href="API.en.21.html"><span class="chapter-index">21</span>Version digest</a></li><li class=""><a href="API.en.22.html"><span class="chapter-index">22</span>Pitfall index</a></li><li class=""><a href="API.en.23.html"><span class="chapter-index">23</span>Appendix</a></li></ul></div><div class="sidebar-section"><div class="sidebar-heading">On this page</div><ul class="toc-list"><li class="toc-item" data-toc="listview"><div class="toc-row"><a href="#listview" data-target="listview">ListView</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="tableview"><div class="toc-row"><a href="#tableview" data-target="tableview">TableView</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="treenode-plain-struct"><div class="toc-row"><a href="#treenode-plain-struct" data-target="treenode-plain-struct">TreeNode (plain struct)</a><span class="toc-caret-space"></span></div></li><li class="toc-item" data-toc="treeview"><div class="toc-row"><a href="#treeview" data-target="treeview">TreeView</a><span class="toc-caret-space"></span></div></li></ul></div>
         </aside>
         <main class="content">
-<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>&gt; **Read this first.** Since **v1.15.0** all three views are **viewport-virtualized + Label-pooled**. There are **two coordinate systems** — **source row index** (stable; legacy APIs/signals) and **visible order** (post hide/filter/sort). **Mixing them is the #1 bug source.** In virtual mode rows have no persistent `Label`; `SetTextFast` is the pool rebind path. Serialize data mutation with rendering (`RenderGuard()`).
+<div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> Reading aid · View raw Markdown</button><div class="reading-aid-body"><pre>###block_red_start
+**Pitfall-heavy chapter**
+
+- Since **v1.15.0** all three views are **viewport-virtualized + Label-pooled**.
+- There are **two coordinate systems** — **source row index** (stable; legacy APIs/signals) and **visible order** (post hide/filter/sort). **Mixing them is the #1 bug source.**
+- In virtual mode rows have no persistent `Label`; `SetTextFast` is the pool rebind path.
+- Serialize data mutation with rendering (`RenderGuard()`).
+###block_red_end
 
 ## ListView
 
@@ -249,8 +256,16 @@ std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   i
 void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector&lt;int&gt; GetCheckedIndices() const;
 void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&amp;);
 ```
-- **`Pitfall`**: `SortItems()` rearranges `items_` and **clears multi-selection/checks**; `SortView` only changes **visible order**.
-- **`Pitfall`**: pooled text uses `SetTextFast`, and the container must re-measure on width change (`v1.18.0` adds `poolW_` to re-measure on width change, fixing stale ellipsis).
+
+###block_red_start
+**Pitfall**
+
+- `SortItems()` rearranges `items_` and **clears multi-selection/checks**; `SortView` only changes **visible order**.
+- pooled text uses `SetTextFast`, and the container must re-measure on width change (`v1.18.0` adds `poolW_` to re-measure on width change, fixing stale ellipsis).
+- `SetFilter` / `SetViewComparator` store the `std::function` **inside the control**; captures by reference can dangle. In virtual mode the comparator calls `GetItemText` for every comparison — snapshot text first for large tables to avoid repeated hash lookups.
+- `SetItemHeight` clamps to ≥1; however `TableView::SetRowHeight` / `TreeView::SetRowHeight` do **not** clamp, so 0 breaks row-height math and hit-testing — row height must be &gt; 0.
+###block_red_end
+
 - **`Version`**: `BeginUpdate` `v1.9.6`; coords `v1.10.0`; virtualization/hide/filter/visible order `v1.15.0`.
 
 ## TableView
@@ -272,7 +287,13 @@ void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int
 void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&amp;);
 void SetColumnComparator(int, std::function&lt;bool(const std::wstring&amp;,const std::wstring&amp;)&gt;);  void SortByColumn(int,bool=true);
 ```
-- **`Pitfall`**: default `Cell` selection; row/cell metadata **remaps** with insert/remove/sort; hidden columns don't hit-test.
+
+###block_red_start
+**Pitfall**
+
+- default `Cell` selection; row/cell metadata **remaps** with insert/remove/sort; hidden columns don't hit-test.
+- `SetRowHeight` does not clamp; row height must be &gt; 0, or row-height math and hit-testing break. The per-row `SetRowHeightAt` clamps to ≥8.
+###block_red_end
 
 ## TreeNode (plain struct)
 
@@ -285,7 +306,13 @@ bool expanded;  int depth;  void* userData;
 std::wstring icon;  bool checkable;  CheckState checkState;  bool selected;  bool enabled;
 std::wstring tooltip;   Color bgColor = Color(0,0,0,0);   // row background, v1.17.0
 ```
-- **`Pitfall`**: `parent` is `weak_ptr`; row background is the **`node-&gt;bgColor`** field (**no** `SetNodeBackgroundColor`).
+
+###block_red_start
+**Pitfall**
+
+- `parent` is `weak_ptr`; row background is the **`node-&gt;bgColor`** field (**no** `SetNodeBackgroundColor`).
+###block_red_end
+
 - **`Version`**: `bgColor` `v1.17.0`.
 
 ## TreeView
@@ -311,17 +338,31 @@ void SetNodeCheckState(node, TreeNode::CheckState);
 void SetNodeCheckStateFull(node, TreeNode::CheckState, bool updateChildren, bool updateParent);
 float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToNode(node);   // v1.17.0
 ```
-- **`Pitfall`**: `Search` keeps a hit node **plus its ancestor chain**; `SetDefaultExpandDepth` affects only **future** inserts; `CheckMode::Linked` auto-computes `PartiallyChecked`.
+
+###block_red_start
+**Pitfall**
+
+- `Search` keeps a hit node **plus its ancestor chain**; `SetDefaultExpandDepth` affects only **future** inserts; `CheckMode::Linked` auto-computes `PartiallyChecked`.
+- `GetVisibleNodeAt` indexes the **visible list rebuilt after the latest update**, not the source/tree order.
+- `MoveNode` refuses to move a node into its own descendant (returns `false` and leaves the tree unchanged); ignoring the return value makes the move look successful.
+###block_red_end
+
 - **`Version`**: `BeginUpdate`/`SetNodeText`/tooltip + concurrency `v1.15.0`; first-column ellipsis fix `v1.16.0`; `Get/SetScrollOffsetY` + `ScrollToNode` + `bgColor` `v1.17.0`.</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 14 · Data views</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">Chapter 14</span><h1>Data views</h1><p class="chapter-summary">ListView, TableView, TreeView, TreeNode (virtualization, hide/filter/visible order)</p></header><blockquote>
-<p><strong>Read this first.</strong> Since <strong>v1.15.0</strong> all three views are <strong>viewport-virtualized + Label-pooled</strong>. There are <strong>two coordinate systems</strong> — <strong>source row index</strong> (stable; legacy APIs/signals) and <strong>visible order</strong> (post hide/filter/sort). <strong>Mixing them is the #1 bug source.</strong> In virtual mode rows have no persistent <code>Label</code>; <code>SetTextFast</code> is the pool rebind path. Serialize data mutation with rendering (<code>RenderGuard()</code>).</p>
-</blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">Chapter 14</span><h1>Data views</h1><p class="chapter-summary">ListView, TableView, TreeView, TreeNode (virtualization, hide/filter/visible order)</p></header><div class="red">
+<p><strong>Pitfall-heavy chapter</strong></p>
+<ul>
+<li>Since <strong>v1.15.0</strong> all three views are <strong>viewport-virtualized + Label-pooled</strong>.</li>
+<li>There are <strong>two coordinate systems</strong> — <strong>source row index</strong> (stable; legacy APIs/signals) and <strong>visible order</strong> (post hide/filter/sort). <strong>Mixing them is the #1 bug source.</strong></li>
+<li>In virtual mode rows have no persistent <code>Label</code>; <code>SetTextFast</code> is the pool rebind path.</li>
+<li>Serialize data mutation with rendering (<code>RenderGuard()</code>).</li>
+</ul>
+</div>
 <h2 id="listview">ListView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5e049be4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-435332e9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">,</span><span class="w"> </span><span class="n">ItemClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemDoubleClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemRightClicked</span><span class="p">;</span>
@@ -342,7 +383,7 @@ float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToN
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCheckable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItemChecked</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCheckedIndices</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetItemDisabled</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItemTextColor</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="n">Color</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetItemToolTip</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 </pre></div>
-<pre id="code-5e049be4" style="display: none;">enum class SelectionMode { Single, Extended, Multi, None };
+<pre id="code-435332e9" style="display: none;">enum class SelectionMode { Single, Extended, Multi, None };
 ZSignal&lt;int&gt; SelectionChanged, ItemClicked, ItemDoubleClicked, ItemRightClicked;
 ZSignal&lt;std::vector&lt;int&gt;&gt; SelectionChangedMulti;   ZSignal&lt;int,bool&gt; ItemCheckStateChanged;
 float ContentToLocalX/Y(float) const;   float LocalToContentX/Y(float) const;   // v1.10.0
@@ -361,16 +402,23 @@ std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   i
 void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector&lt;int&gt; GetCheckedIndices() const;
 void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&amp;);</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: <code>SortItems()</code> rearranges <code>items_</code> and <strong>clears multi-selection/checks</strong>; <code>SortView</code> only changes <strong>visible order</strong>.</li>
-<li><strong><code>Pitfall</code></strong>: pooled text uses <code>SetTextFast</code>, and the container must re-measure on width change (<code>v1.18.0</code> adds <code>poolW_</code> to re-measure on width change, fixing stale ellipsis).</li>
+<li><code>SortItems()</code> rearranges <code>items_</code> and <strong>clears multi-selection/checks</strong>; <code>SortView</code> only changes <strong>visible order</strong>.</li>
+<li>pooled text uses <code>SetTextFast</code>, and the container must re-measure on width change (<code>v1.18.0</code> adds <code>poolW_</code> to re-measure on width change, fixing stale ellipsis).</li>
+<li><code>SetFilter</code> / <code>SetViewComparator</code> store the <code>std::function</code> <strong>inside the control</strong>; captures by reference can dangle. In virtual mode the comparator calls <code>GetItemText</code> for every comparison — snapshot text first for large tables to avoid repeated hash lookups.</li>
+<li><code>SetItemHeight</code> clamps to ≥1; however <code>TableView::SetRowHeight</code> / <code>TreeView::SetRowHeight</code> do <strong>not</strong> clamp, so 0 breaks row-height math and hit-testing — row height must be &gt; 0.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: <code>BeginUpdate</code> <code>v1.9.6</code>; coords <code>v1.10.0</code>; virtualization/hide/filter/visible order <code>v1.15.0</code>.</li>
 </ul>
 <h2 id="tableview">TableView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-08a8e504', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-59ca70ef', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Cell</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Column</span><span class="p">,</span><span class="w"> </span><span class="n">None</span><span class="w"> </span><span class="p">};</span>
 <span class="k">static</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="nf">CellKey</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="kt">int</span><span class="w"> </span><span class="n">c</span><span class="p">);</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">CellKeyRow</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="p">);</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">CellKeyCol</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="kt">long</span><span class="p">);</span>
@@ -388,7 +436,7 @@ void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color); 
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCellTextColor</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">,</span><span class="n">Color</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCellToolTip</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetColumnComparator</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">,</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SortByColumn</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span>
 </pre></div>
-<pre id="code-08a8e504" style="display: none;">enum class SelectionMode { Cell, Row, Column, None };
+<pre id="code-59ca70ef" style="display: none;">enum class SelectionMode { Cell, Row, Column, None };
 static long long CellKey(int r,int c); static int CellKeyRow(long long); static int CellKeyCol(long long);
 ZSignal&lt;int,int&gt; CellClicked, CellDoubleClicked, CurrentCellChanged, CellRightClicked;
 ZSignal&lt;int&gt; HeaderClicked;  ZSignal&lt;std::vector&lt;std::pair&lt;int,int&gt;&gt;&gt; SelectionChangedCells;
@@ -404,14 +452,18 @@ void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int
 void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&amp;);
 void SetColumnComparator(int, std::function&lt;bool(const std::wstring&amp;,const std::wstring&amp;)&gt;);  void SortByColumn(int,bool=true);</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: default <code>Cell</code> selection; row/cell metadata <strong>remaps</strong> with insert/remove/sort; hidden columns don't hit-test.</li>
+<li>default <code>Cell</code> selection; row/cell metadata <strong>remaps</strong> with insert/remove/sort; hidden columns don't hit-test.</li>
+<li><code>SetRowHeight</code> does not clamp; row height must be &gt; 0, or row-height math and hit-testing break. The per-row <code>SetRowHeightAt</code> clamps to ≥8.</li>
 </ul>
+</div>
 <h2 id="treenode-plain-struct">TreeNode (plain struct)</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-eb0ceffa', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-ff654a46', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">CheckState</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Unchecked</span><span class="p">,</span><span class="w"> </span><span class="n">PartiallyChecked</span><span class="p">,</span><span class="w"> </span><span class="n">Checked</span><span class="w"> </span><span class="p">};</span>
 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">columns</span><span class="p">;</span><span class="w">   </span><span class="c1">// one real Label per column; col0 = node text</span>
@@ -421,7 +473,7 @@ void SetColumnComparator(int, std::function&lt;bool(const std::wstring&amp;,cons
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">checkable</span><span class="p">;</span><span class="w">  </span><span class="n">CheckState</span><span class="w"> </span><span class="n">checkState</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">selected</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">tooltip</span><span class="p">;</span><span class="w">   </span><span class="n">Color</span><span class="w"> </span><span class="n">bgColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Color</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">);</span><span class="w">   </span><span class="c1">// row background, v1.17.0</span>
 </pre></div>
-<pre id="code-eb0ceffa" style="display: none;">enum class CheckState { Unchecked, PartiallyChecked, Checked };
+<pre id="code-ff654a46" style="display: none;">enum class CheckState { Unchecked, PartiallyChecked, Checked };
 std::vector&lt;std::shared_ptr&lt;Label&gt;&gt; columns;   // one real Label per column; col0 = node text
 std::weak_ptr&lt;TreeNode&gt; parent;                // weak! use .lock()
 std::vector&lt;std::shared_ptr&lt;TreeNode&gt;&gt; children;
@@ -429,15 +481,20 @@ bool expanded;  int depth;  void* userData;
 std::wstring icon;  bool checkable;  CheckState checkState;  bool selected;  bool enabled;
 std::wstring tooltip;   Color bgColor = Color(0,0,0,0);   // row background, v1.17.0</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: <code>parent</code> is <code>weak_ptr</code>; row background is the <strong><code>node-&gt;bgColor</code></strong> field (<strong>no</strong> <code>SetNodeBackgroundColor</code>).</li>
+<li><code>parent</code> is <code>weak_ptr</code>; row background is the <strong><code>node-&gt;bgColor</code></strong> field (<strong>no</strong> <code>SetNodeBackgroundColor</code>).</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: <code>bgColor</code> <code>v1.17.0</code>.</li>
 </ul>
 <h2 id="treeview">TreeView</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b9758f27', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-cfcd2821', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Single</span><span class="p">,</span><span class="w"> </span><span class="n">Extended</span><span class="p">,</span><span class="w"> </span><span class="n">Multi</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">CheckMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Linked</span><span class="p">,</span><span class="w"> </span><span class="n">Independent</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">TreeNode</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">,</span><span class="w"> </span><span class="n">NodeClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemDoubleClicked</span><span class="p">,</span><span class="w"> </span><span class="n">ItemRightClicked</span><span class="p">;</span>
@@ -459,7 +516,7 @@ std::wstring tooltip;   Color bgColor = Color(0,0,0,0);   // row background, v1.
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetNodeCheckStateFull</span><span class="p">(</span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="n">TreeNode</span><span class="o">::</span><span class="n">CheckState</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">updateChildren</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">updateParent</span><span class="p">);</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">GetScrollOffsetY</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetScrollOffsetY</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ScrollToNode</span><span class="p">(</span><span class="n">node</span><span class="p">);</span><span class="w">   </span><span class="c1">// v1.17.0</span>
 </pre></div>
-<pre id="code-b9758f27" style="display: none;">enum class SelectionMode { Single, Extended, Multi };   enum class CheckMode { Linked, Independent };
+<pre id="code-cfcd2821" style="display: none;">enum class SelectionMode { Single, Extended, Multi };   enum class CheckMode { Linked, Independent };
 ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;&gt; SelectionChanged, NodeClicked, ItemDoubleClicked, ItemRightClicked;
 ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;,bool&gt; ExpandChanged;   ZSignal&lt;int&gt; HeaderClicked;
 ZSignal&lt;std::shared_ptr&lt;TreeNode&gt;, TreeNode::CheckState&gt; ItemCheckStateChanged;
@@ -479,8 +536,15 @@ void SetNodeCheckState(node, TreeNode::CheckState);
 void SetNodeCheckStateFull(node, TreeNode::CheckState, bool updateChildren, bool updateParent);
 float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToNode(node);   // v1.17.0</pre>
 </div>
+<div class="red">
+<p><strong>Pitfall</strong></p>
 <ul>
-<li><strong><code>Pitfall</code></strong>: <code>Search</code> keeps a hit node <strong>plus its ancestor chain</strong>; <code>SetDefaultExpandDepth</code> affects only <strong>future</strong> inserts; <code>CheckMode::Linked</code> auto-computes <code>PartiallyChecked</code>.</li>
+<li><code>Search</code> keeps a hit node <strong>plus its ancestor chain</strong>; <code>SetDefaultExpandDepth</code> affects only <strong>future</strong> inserts; <code>CheckMode::Linked</code> auto-computes <code>PartiallyChecked</code>.</li>
+<li><code>GetVisibleNodeAt</code> indexes the <strong>visible list rebuilt after the latest update</strong>, not the source/tree order.</li>
+<li><code>MoveNode</code> refuses to move a node into its own descendant (returns <code>false</code> and leaves the tree unchanged); ignoring the return value makes the move look successful.</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>Version</code></strong>: <code>BeginUpdate</code>/<code>SetNodeText</code>/tooltip + concurrency <code>v1.15.0</code>; first-column ellipsis fix <code>v1.16.0</code>; <code>Get/SetScrollOffsetY</code> + <code>ScrollToNode</code> + <code>bgColor</code> <code>v1.17.0</code>.</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.en.13.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">Menus &amp; Popups</span><span class="nav-desc">Menu, MenuItem, MenuWindow, MessageBox</span></a><a class="next" href="API.en.15.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Charts</span><span class="nav-desc">ChartBase, BarChart, LineChart, PieChart (v1.18.0)</span></a></nav>

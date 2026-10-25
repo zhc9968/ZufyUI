@@ -12,6 +12,13 @@
 
 ###chapter: 约定 | 命名空间、单位、生命周期、版本与易错标注约定
 
+## 颜色与标记
+
+- **红色块**：`易错`——真实踩坑、反直觉行为、会崩溃/UAF/竞争的用法，优先看。
+- **橙色块**：`注意`——线程、生命周期、绘制顺序等契约；不一定是错误，但违反后容易出问题。
+- **绿色块**：`推荐`——推荐写法、所有权模型、最佳实践。
+- 普通项目符号表示普通语义、默认值或版本变化，不代表没有风险。
+
 ## 命名空间与头文件
 
 - 所有内容位于 `namespace ZufyUI`。
@@ -35,26 +42,52 @@
 - 所有坐标与尺寸都是 **DIP**（设备无关像素），不是物理像素。
 - 框架在绘制前用内部 `Snap()` 吸附到物理像素网格；你写代码时**不需要**自己做 DPI 换算。
 - 鼠标事件坐标也是 DIP。屏幕坐标只在系统 API（`Create`、`ShowAt`、`FileDialog`）里出现。
-- **`易错`**：`Snap` 用的 DPI 比例是 **线程本地**（`GlobalDpiScaleRef`）。渲染线程每帧设置；UI 线程现在也在 `Window::Create`/`WM_DPICHANGED` 设置。若你自建线程调用 `Snap`，它会是 1.0 而非窗口 DPI。
+
+###block_red_start
+**易错**
+
+- `Snap` 用的 DPI 比例是 **线程本地**（`GlobalDpiScaleRef`）。渲染线程每帧设置；UI 线程现在也在 `Window::Create`/`WM_DPICHANGED` 设置。若你自建线程调用 `Snap`，它会是 1.0 而非窗口 DPI。
+###block_red_end
 
 ## 对象模型与生命周期
 
 - 控件一律 `std::shared_ptr<T>` 拥有，用 `std::make_shared<T>()` 创建。
 - 通过布局/容器的 `AddChild()` 挂到父容器；父容器保存子元素的 `shared_ptr`，**父容器存活期间子元素不会释放**。
 - 脱离布局后若没有其它 `shared_ptr`，元素即回收；元素析构会自动释放自身离屏缓存与已注册连接（内部 `ConnectionGroup`）。
-- **`易错`**：`UIElement::SetParent` 存的是**裸指针**（非拥有）；所有权永远在容器/`Application` 的 `shared_ptr` 上。窗口在元素里只以 **window id** 记录，避免窗口先销毁导致 UAF。
+
+###block_green_start
+**推荐的所有权模型**
+
+控件由 `std::shared_ptr` 拥有；父容器通过 `AddChild` 持有子元素。跨层引用用裸指针或 `weak_ptr`，不要反向持有父容器的 `shared_ptr`，也不要让两个容器同时拥有同一个控件。
+###block_green_end
+
+###block_red_start
+**易错**
+
+- `UIElement::SetParent` 存的是**裸指针**（非拥有）；所有权永远在容器/`Application` 的 `shared_ptr` 上。窗口在元素里只以 **window id** 记录，避免窗口先销毁导致 UAF。
+###block_red_end
 
 ## 信号与事件
 
 - 用 `Connect(signal, slot)` 绑定，返回 `Connection`，默认随宿主元素析构自动断开。
 - 槽可以是任意可调用对象（lambda / 函数指针 / `std::function`）。
-- **`易错`**：不要用“按值捕获宿主自身 `shared_ptr`”的 lambda 连接宿主自己的信号 → 引用环，整棵子树泄漏。详见「事件与信号」章。
+
+###block_red_start
+**易错**
+
+- 不要用“按值捕获宿主自身 `shared_ptr`”的 lambda 连接宿主自己的信号 → 引用环，整棵子树泄漏。详见「事件与信号」章。
+###block_red_end
 
 ## 默认值体系
 
 - 每个控件有 `inline static` 的 `Default*` 静态字段（如 `Button::DefaultSize`）。
 - `static SetDefault*()` 修改后**只影响之后新建的实例**；实例级 setter 只影响该实例。
-- **`易错`**：静态默认字段是**进程全局**的；多窗口若需要不同观感，请在创建前设置或逐实例 setter。
+
+###block_red_start
+**易错**
+
+- 静态默认字段是**进程全局**的；多窗口若需要不同观感，请在创建前设置或逐实例 setter。
+###block_red_end
 
 ## 禁用、焦点、缓存三个通用概念（贯穿所有控件）
 
@@ -82,7 +115,12 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {   // Windows 子系�
     return app.Run();
 }
 ```
-> **`易错`**：GUI 程序用 `wWinMain` + `/SUBSYSTEM:WINDOWS`。若坚持用 `int main()`，请把子系统设为控制台 `/SUBSYSTEM:CONSOLE`，或加 `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")`，否则链接会找不到入口。
+
+###block_red_start
+**易错**
+
+- GUI 程序用 `wWinMain` + `/SUBSYSTEM:WINDOWS`。若坚持用 `int main()`，请把子系统设为控制台 `/SUBSYSTEM:CONSOLE`，或加 `#pragma comment(linker, "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")`，否则链接会找不到入口。
+###block_red_end
 
 ## 事件循环与线程模型
 
@@ -116,8 +154,18 @@ struct Color {
     static Color Lerp(const Color& c1, const Color& c2, float t);
 };
 ```
-- **`易错`**：分量是浮点 **[0,1]**；写 `Color(255,0,0)` 会得到“超亮”的错色。整数入参请用 `Color::FromArgb(255,255,0,0)`。
-- **`注意`**：`Color::Lerp(a, b, t)` 的 `t` **不做 clamp**，请自行保证在 0..1（超出会外插）。
+
+###block_orange_start
+**注意**
+
+- `Color::Lerp(a, b, t)` 的 `t` **不做 clamp**，请自行保证在 0..1（超出会外插）。
+###block_orange_end
+
+###block_red_start
+**易错**
+
+- 分量是浮点 **[0,1]**；写 `Color(255,0,0)` 会得到“超亮”的错色。整数入参请用 `Color::FromArgb(255,255,0,0)`。
+###block_red_end
 
 ## Rect
 
@@ -158,8 +206,14 @@ enum class ConnectionThread { CurrentThread, NewThread, UIThread };
 - `CurrentThread`（默认）：槽在 Fire 的线程同步执行。
 - `NewThread`：**每次 Fire 起一个 detach 线程**执行槽——不要在槽里碰 UI；已开始执行的槽无法中途取消；**不适合高频信号**，高频场景用 `UIThread` 或自行池化。
 - `UIThread`：把槽投递到 UI 线程（后台线程改 UI 的唯一正确方式）；`disconnect` / 接收者析构后，已排队任务执行时检查存活并跳过。
-- **`易错`**：`Fire` 默认应在 UI 线程执行；从后台线程 Fire 且槽使用 `CurrentThread` 会直接在后台执行 UI 槽，属于调用方违约。跨线程触发请让槽用 `UIThread`，或自行保证订阅者存活。
-- **`易错`**：`NewThread` + 捕获裸 `this` + 接收者可能提前析构 = UAF；需要保活用 `ConnectWeak`，或改用 `UIThread`。
+
+###block_red_start
+**易错**
+
+- `Fire` 默认应在 UI 线程执行；从后台线程 Fire 且槽使用 `CurrentThread` 会直接在后台执行 UI 槽，属于调用方违约。跨线程触发请让槽用 `UIThread`，或自行保证订阅者存活。
+- `NewThread` + 捕获裸 `this` + 接收者可能提前析构 = UAF；需要保活用 `ConnectWeak`，或改用 `UIThread`。
+###block_red_end
+
 - **`版本`**：`v1.15.0` 起跨线程与锁语义收口；`v1.24.0` 起队列任务带存活检查。
 
 ## Connection（Qt 风格被动句柄）
@@ -173,8 +227,14 @@ class Connection {
 ```
 - 默认随接收者的 `ConnectionGroup` 在其析构时断开；**`Connection` 自身析构不断开**。
 - `disconnect()` 会让已排队的 `UIThread` / `NewThread` 任务逻辑失效，但**不会中断已经执行中的槽**。
-- **`易错`**：`Connection` **不是 RAII 守卫**；临时句柄析构不会断开，必须显式 `disconnect()` 或依赖接收者 group。
-- **`易错`**：可以忽略 `connect` 的返回值；信号销毁后再 `disconnect` 是安全的（`alive` 为原子标志）。
+
+###block_red_start
+**易错**
+
+- `Connection` **不是 RAII 守卫**；临时句柄析构不会断开，必须显式 `disconnect()` 或依赖接收者 group。
+- 可以忽略 `connect` 的返回值；信号销毁后再 `disconnect` 是安全的（`alive` 为原子标志）。
+###block_red_end
+
 - **`版本`**：`v1.8.1` 起为被动句柄语义；`v1.24.0` 起存活标志原子化并取消排队任务。
 
 ## ConnectionGroup
@@ -186,7 +246,12 @@ class ConnectionGroup : public std::enable_shared_from_this<ConnectionGroup> {
 ```
 - `UIElement` / `Window` 内部用它批量断开自己注册的所有连接。
 - `size()` 只统计仍存活的连接；已手动断开的连接不计数。
-- **`易错`**：`ConnectionGroup` 的 `disconnectAll()` 只移除连接，不执行用户槽。
+
+###block_red_start
+**易错**
+
+- `ConnectionGroup` 的 `disconnectAll()` 只移除连接，不执行用户槽。
+###block_red_end
 
 ## ZSignal
 
@@ -205,10 +270,16 @@ template<typename... TArgs> class ZSignal {
 ```
 - 触发用 `Fire`（**没有 `emit` 宏**）。
 - `ZSignal` **不可拷贝、不可移动**；信号是控件/窗口的成员，不要放进可移动容器。
-- **`易错`**：`Fire` 基于**快照**遍历，槽内可以安全 `disconnect`；槽内再次 `Fire` 同一信号会走“重入”分支（局部拷贝），**不要**在重入里做递归深链。
-- **`易错`**：`Fire` 与 `ZSignal` 析构并发是 UB；信号必须在同一线程完成触发/析构。
-- **`易错`**：槽抛异常会直接穿出 `Fire`，后续槽不再执行；信号槽内不建议抛异常。
 - 信号参数按**左值**传给槽；槽不要写 `T&&` 形参，大对象建议 `const T&`。
+
+###block_red_start
+**易错**
+
+- `Fire` 基于**快照**遍历，槽内可以安全 `disconnect`；槽内再次 `Fire` 同一信号会走“重入”分支（局部拷贝），**不要**在重入里做递归深链。
+- `Fire` 与 `ZSignal` 析构并发是 UB；信号必须在同一线程完成触发/析构。
+- 槽抛异常会直接穿出 `Fire`，后续槽不再执行；信号槽内不建议抛异常。
+###block_red_end
+
 - **`版本`**：`v1.18.0` 加 RAII 守卫：槽抛异常也会正确还原重入深度并释放快照；`v1.24.0` 禁止移动。
 
 ## 接收者上下文与 ConnectWeak
@@ -227,8 +298,18 @@ btn->Clicked.connect(panel, [this] { Refresh(); });
 ConnectWeak(panel, btn->Clicked, [](Panel* self) { self->Refresh(); });
 ConnectWeak(panel, btn->Clicked, &Panel::OnClick);
 ```
-- **`易错`**：`ConnectWeak` 的槽里不要再按值捕获 `self` 的 `shared_ptr`，否则会形成“信号→槽→self→信号”的强引用环。
-- **`注意`**：`Menu` / `MenuItem` / `Timer` 仍用 `signal.connect`，**不自动断开**。
+
+###block_orange_start
+**注意**
+
+- `Menu` / `MenuItem` / `Timer` 仍用 `signal.connect`，**不自动断开**。
+###block_orange_end
+
+###block_red_start
+**易错**
+
+- `ConnectWeak` 的槽里不要再按值捕获 `self` 的 `shared_ptr`，否则会形成“信号→槽→self→信号”的强引用环。
+###block_red_end
 
 ## 全局信号 UIZSignals
 
@@ -243,9 +324,15 @@ namespace UIZSignals {
     inline ZSignal<const std::wstring&> Error;         // v1.16.0
 }
 ```
-- **`易错`**：`DrawOverlay` 带 `Window*`，subscriber **必须**按 `GetWindow()` 过滤，否则窗口 A 的浮层会画到窗口 B 上（经典多窗口串扰）。
 - `RepaintRequest`/`LayoutInvalidated`/capture 信号只对**未挂载**元素兜底；已挂载元素直接走 `Window`。
 - `DeviceReset`：释放一切与渲染目标/设备绑定的缓存（如 `ImageDeviceCache`）。
+
+###block_red_start
+**易错**
+
+- `DrawOverlay` 带 `Window*`，subscriber **必须**按 `GetWindow()` 过滤，否则窗口 A 的浮层会画到窗口 B 上（经典多窗口串扰）。
+###block_red_end
+
 - **`版本`**：`UIZSignals::Error` = `v1.16.0`。
 
 ###chapter: 字体与图标 | FontSpec、FontManager、Icon
@@ -278,9 +365,16 @@ void CacheDisplayLayout(...); void CacheStyledDisplayLayout(...);
 void SetGlobalFont(const FontSpec&);
 ZSignal<> GlobalFontChanged;
 ```
-- **`易错`**：返回的 layout 是**共享只读**对象，**不要**对它 `SetTextAlignment/SetLineSpacing/SetTrimming`——缓存 key 会与对象不一致。
 - 布局缓存**有上限**（400 条，FIFO 淘汰 ¼）；返回强引用（`ComPtr`），调用期间不会被淘汰。
-- **`易错`**：`GetFormat` 返回的 `IDWriteTextFormat*` **永不淘汰**，请勿修改它。
+
+###block_red_start
+**易错**
+
+- 返回的 layout 是**共享只读**对象，**不要**对它 `SetTextAlignment/SetLineSpacing/SetTrimming`——缓存 key 会与对象不一致。
+- `GetFormat` 返回的 `IDWriteTextFormat*` **永不淘汰**，请勿修改它。
+- `GetFormat` 的共享 format 把 `ParagraphAlignment` 设成了 `CENTER`。**不要直接拿它画多行自绘文本**，否则会被垂直居中到高盒外（看起来“没字”）；用 `GetStyledLayout(..., vAlign)` 或自建 format 并设 `NEAR`。
+###block_red_end
+
 - **`版本`**：`GetStyledLayout` 与全局布局缓存在 `v1.10.1` 强化；有界缓存/强引用契约在 `v1.15.0` 前后定型。
 
 ## 图标 Icon（字体字形）
@@ -290,7 +384,13 @@ enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., 
 inline const std::wstring& IconFontFamily();   // Segoe Fluent Icons → 回退 Segoe MDL2 Assets
 inline std::wstring IconGlyph(Icon);           // 码点 → 单字宽字符串
 ```
-- **`易错`**：枚举值**就是字体码点**（无独立映射表）。字体回退**只在首次静态探测**，运行期换系统字体不会重探；个别 Win11 专有字形在两版字体里缺失会显示方框。
+
+###block_red_start
+**易错**
+
+- 枚举值**就是字体码点**（无独立映射表）。字体回退**只在首次静态探测**，运行期换系统字体不会重探；个别 Win11 专有字形在两版字体里缺失会显示方框。
+###block_red_end
+
 - **`版本`**：`v1.13.0` 起 `Icon` 下沉到 `ZufyUIWidgets.h`，所有 `Label` 派生控件获得 `SetIcon`。
 
 ###chapter: 元素基类 | UIElement（布局属性、缓存、事件、无障碍、调试）
@@ -314,8 +414,14 @@ void SetHorizontalStretchWeight(float);   void SetVerticalStretchWeight(float);
 virtual float GetDefaultHorizontalStretchWeight() const;   // 同理 Vertical
 ```
 - **拉伸权值**：容器（`ColumnBox`/`RowBox`/`GridLayout`）把**剩余空间**按子元素权值分配。`FillWidth/Height` 等价“该轴权值 1”。`GetDefault*` 是类型默认，`Set*` 覆盖它。
-- **`易错`**：`SetWidth/SetHeight` 是**固定尺寸**；`SetFillWidth/Height` 是**填满父轴**；两者与拉伸权值叠加，行为要分清。
-- **`易错`**：`GetDesiredSize()` 是上一次 `Measure` 的结果；未测量过/刚改内容时可能是旧值。
+
+###block_red_start
+**易错**
+
+- `SetWidth/SetHeight` 是**固定尺寸**；`SetFillWidth/Height` 是**填满父轴**；两者与拉伸权值叠加，行为要分清。
+- `GetDesiredSize()` 是上一次 `Measure` 的结果；未测量过/刚改内容时可能是旧值。
+###block_red_end
+
 - **`版本`**：`SetStretchWeights`/`GetDefault*` 自初版存在；**`ColumnBox`/`RowBox`/`GridLayout` 真正按显式权值分配剩余空间 = `v1.17.0`**。
 
 ## 绘制 / 子元素 / 裁剪 / 缓存
@@ -333,9 +439,15 @@ void ReleaseDeviceResourcesRecursive();        // 释放整棵子树
 virtual D2D1::Matrix3x2F GetChildRenderTransform(UIElement* child) const;
 ```
 - **缓存机制**：`UseCache()==true` 的元素渲染到自身 `ID2D1Bitmap1` 离屏位图；仅当被 `RequestRepaint()` 标记或尺寸变化时重建。出现阴影时自动加 `bleed`。
-- **`易错`**：**每帧内容在变**（动画、实时文本、旋转）或**实例极多**（上千个）的控件应 `SetUseCache(false)`，否则显存与重建开销爆炸。
-- **`易错`**：`GetChildren()` 在渲染阶段**必须纯读**；渲染前要保证 `RefreshChildren()` 已调用（窗口在 `AdvanceFrame` 里统一做）。
-- **`易错`**：`ReleaseDeviceResources()` 只释放自身；释放整棵子树用 `ReleaseDeviceResourcesRecursive()`。
+
+###block_red_start
+**易错**
+
+- **每帧内容在变**（动画、实时文本、旋转）或**实例极多**（上千个）的控件应 `SetUseCache(false)`，否则显存与重建开销爆炸。
+- `GetChildren()` 在渲染阶段**必须纯读**；渲染前要保证 `RefreshChildren()` 已调用（窗口在 `AdvanceFrame` 里统一做）。
+- `ReleaseDeviceResources()` 只释放自身；释放整棵子树用 `ReleaseDeviceResourcesRecursive()`。
+###block_red_end
+
 - **`版本`**：`ReleaseDeviceResourcesRecursive()` = `v1.18.0`（用于隐藏页缓存延迟释放）；`SetUseCache(false)` 现在会**立即释放**已有位图。
 
 ## 可见性 / 启用 / 提示 / 光标
@@ -347,7 +459,12 @@ void SetToolTip(const std::wstring&);   virtual std::wstring GetToolTip() const;
 void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;
 ```
 - 禁用元素不参与命中/悬停。提示会**向上解析**父级提示（如 Button → Label）。
-- **`易错`**：`SetCursor` 不直接调 `::SetCursor`，而是延迟到 `WM_SETCURSOR`，避免闪烁。
+
+###block_red_start
+**易错**
+
+- `SetCursor` 不直接调 `::SetCursor`，而是延迟到 `WM_SETCURSOR`，避免闪烁。
+###block_red_end
 
 ## 右键菜单 / 拖动区 / 布局参与
 
@@ -360,7 +477,12 @@ void SetLayoutParticipation(LayoutParticipation);
 void SetDraggable(bool); void SetDragRegion(const Rect&); void ClearDragRegion();
 virtual int NonClientHitTest(float x, float y) const;
 ```
-- **`易错`**：`DrawBeforeLayout`/`DrawAfterLayout` 由独立通道绘制，**不要再放进根树**，否则画两遍。自定义标题栏就是 `DrawBeforeLayout` 且自己管位置。
+
+###block_red_start
+**易错**
+
+- `DrawBeforeLayout`/`DrawAfterLayout` 由独立通道绘制，**不要再放进根树**，否则画两遍。自定义标题栏就是 `DrawBeforeLayout` 且自己管位置。
+###block_red_end
 
 ## 事件虚函数与元素信号
 
@@ -378,8 +500,14 @@ ZSignal<> MouseEnter, MouseLeave, Focused, Blurred;
 ZSignal<float,float> MouseMove, MouseDown, MouseUp;
 ZSignal<WPARAM,LPARAM> KeyDown, KeyUp;   ZSignal<wchar_t> Char;
 ```
-- **`易错`**：有动画的控件必须让 `HasActiveAnimation()` 正确返回，否则帧循环停了动画就不走。
-- **`易错`**：多行编辑器要让 `AcceptsTab()` 返回 true 才会吞掉 Tab 做缩进，否则 Tab 切焦点。
+
+###block_red_start
+**易错**
+
+- 有动画的控件必须让 `HasActiveAnimation()` 正确返回，否则帧循环停了动画就不走。
+- 多行编辑器要让 `AcceptsTab()` 返回 true 才会吞掉 Tab 做缩进，否则 Tab 切焦点。
+###block_red_end
+
 - **`版本`**：`AcceptsTab()` = `v1.18.0`（配合 `TextEdit`）。
 
 ## 无障碍（UIA）— v1.17.0
@@ -401,7 +529,13 @@ virtual double GetAccessibleRangeValue() const; virtual void SetAccessibleRangeV
 virtual double GetAccessibleRangeMin/Max/Step() const;
 void AccessibilityNotifyFocus/PropertyChanged/StructureChanged();
 ```
-- **`易错`**：角色决定暴露哪些 UIA Pattern：Button/MenuItem→Invoke；Edit/Document→Value；Slider/ProgressBar→RangeValue；toggle 状态 ≥0→Toggle；expand 状态 ≥0→ExpandCollapse。隐藏节点默认不暴露。
+
+###block_red_start
+**易错**
+
+- 角色决定暴露哪些 UIA Pattern：Button/MenuItem→Invoke；Edit/Document→Value；Slider/ProgressBar→RangeValue；toggle 状态 ≥0→Toggle；expand 状态 ≥0→ExpandCollapse。隐藏节点默认不暴露。
+###block_red_end
+
 - **`版本`**：整套 = `v1.17.0`（对应 `Window::SetAccessibilityEnabled`，默认开）。
 
 ## 字体（元素级）
@@ -412,7 +546,12 @@ void SetFontFamily/SetFontSize/SetFontWeight(...);  void ClearFont();
 virtual std::optional<FontSpec> GetTypeDefaultFont() const;  FontSpec GetEffectiveFontSpec() const;
 ```
 - 解析链：**实例覆盖 → 类型默认 → 全局**。
-- **`易错`**：写 `fontOverride_`（含 `std::wstring`）必须与渲染串行；已挂载元素的 `StoreFontOverride`/`InvalidateFontCache` 内部会取 `renderLock_`。
+
+###block_red_start
+**易错**
+
+- 写 `fontOverride_`（含 `std::wstring`）必须与渲染串行；已挂载元素的 `StoreFontOverride`/`InvalidateFontCache` 内部会取 `renderLock_`。
+###block_red_end
 
 ## 阴影
 
@@ -446,7 +585,13 @@ void ClearChildren();
 void SetSpacing(float);
 ```
 - `ColumnBox` 默认水平填满、垂直不拉伸；`RowBox` 相反。
-- **`易错`**：`AddChild` 会 `SetParent(this)`；容器用 `shared_ptr` 拥有子元素。子元素设了显式 `SetHeight` 时，剩余空间按权值**叠加**到该高度上。
+
+###block_red_start
+**易错**
+
+- `AddChild` 会 `SetParent(this)`；容器用 `shared_ptr` 拥有子元素。子元素设了显式 `SetHeight` 时，剩余空间按权值**叠加**到该高度上。
+###block_red_end
+
 - **`版本`**：`v1.17.0` 起按子元素拉伸权值分配剩余空间。
 
 ## GridLayout（网格）
@@ -482,9 +627,15 @@ void SetTransitionDirection(...);  void SetTransitionEasing(...);  void SetAnima
 int GetCurrentIndex() const;  std::shared_ptr<Page> GetCurrentPage() const;
 ```
 - 过渡期间**同时**把源页与目标页作为可见子元素返回；`UpdateAnimation` 每页只更新一次（否则动画速度翻倍）。
-- **`易错`**：`NavigateTo` 是**异步**的（动画结束才真正切到目标），`GetCurrentPage()`/`GetCurrentIndex()` 在动画期间可能还是旧值。
+
+###block_red_start
+**易错**
+
+- `NavigateTo` 是**异步**的（动画结束才真正切到目标），`GetCurrentPage()`/`GetCurrentIndex()` 在动画期间可能还是旧值。
+- 页面内元素显隐请用 `SetVisible()`（会 `InvalidateLayout()`）；不要直接改内部可见标志，否则既不会重测也不会重绘。
+###block_red_end
+
 - **`版本`**：缓动 `v1.8.1`；**隐藏页缓存延迟释放（约 1.2s，整棵子树递归）** = `v1.18.0`——解决快速切页内存抖动式增长；`MeasureOverride` **测量全部页面** = `v1.23.1`——页面内元素运行时显隐（如选择下拉后显示的 `Expander` 卡片）会立即重新布局并参与命中，不再需要改变窗口尺寸来触发。
-- **`易错`**：页面内元素显隐请用 `SetVisible()`（会 `InvalidateLayout()`）；不要直接改内部可见标志，否则既不会重测也不会重绘。
 
 ## TabView（页签）
 
@@ -529,8 +680,14 @@ void Run();  int RunModal(Window* owner = nullptr);
 void SetInputBlocked(bool);  bool IsInputBlocked() const;
 std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
 ```
-- **`易错`**：`Create` **不自动 `Show`**（v1.8.0 起）。`RunModal` 用 `EnableWindow(FALSE)` 禁用 owner、**不使用** `IsDialogMessage`。
-- **`易错`**：`LockRender()` 仅在 `ZUFYUI_RENDER_THREAD=1` 且改元素树数据时需要；默认单线程无需。
+
+###block_red_start
+**易错**
+
+- `Create` **不自动 `Show`**（v1.8.0 起）。`RunModal` 用 `EnableWindow(FALSE)` 禁用 owner、**不使用** `IsDialogMessage`。
+- `LockRender()` 仅在 `ZUFYUI_RENDER_THREAD=1` 且改元素树数据时需要；默认单线程无需。
+###block_red_end
+
 - **`版本`**：多窗口 `v1.6.0`；`SetInputBlocked`/模态 `v1.6.2`；`LockRender`/`RenderNowSync` `v1.16.0`。
 
 ## 临时键处理器（v1.25.0）
@@ -541,8 +698,18 @@ int  AddKeyHandler(KeyHandler handler);
 void RemoveKeyHandler(int id);
 ```
 - 在 `OnWindowKeyDown` 之后、焦点元素之前调用；返回 true 表示已处理。
+- 按注册顺序调用；`AddKeyHandler` 返回 id，`RemoveKeyHandler(id)` 注销。
 - 供抽屉/浮层临时拦截 Esc；组件关闭/detach/析构时必须移除。
 - **`版本`**：`v1.25.0`。
+
+###block_red_start
+**易错**
+
+- 每次按键会先复制一份 handler 快照；在回调里 `RemoveKeyHandler` 不会取消当前这一轮，已经被移除的 handler 仍可能再执行一次。
+- 返回 true 会吞掉按键，焦点元素和后续 handler 都收不到；不要无条件拦截 Tab/Enter/Esc。
+- handler 通常捕获裸 `this`；宿主必须在销毁前移除，否则窗口还活着时会回调悬空对象（`Drawer` 已自动处理）。
+- 键处理器在 UI 线程调用；不要在 handler 里长时间阻塞，也不要在其他线程增删。
+###block_red_end
 
 ## 三种建窗方式（选哪个）
 
@@ -552,8 +719,12 @@ void RemoveKeyHandler(int id);
 | `shared_ptr` | `auto w = app.CreateWindow(...); w->Show(); app.Run();` | `shared_ptr` 引用计数 | 共享 `Run()` | 多窗口、需动态创建/销毁 |
 | 模态 | `int r = w->RunModal(owner);` | 同 `shared_ptr` | **嵌套**循环，阻塞至关闭 | 对话框 / 确认框 |
 
-- **`易错`**：`Window` **不可拷贝**；栈上用法要保证它**活得比 `Run()` 久**（否则消息循环仍在引用已析构窗口）。
-- **`易错`**：`Application::CreateWindow` 返回的 `shared_ptr` **就是所有权**——丢掉指针窗口就销毁；`Create` 也不会自动 `Show`。
+###block_red_start
+**易错**
+
+- `Window` **不可拷贝**；栈上用法要保证它**活得比 `Run()` 久**（否则消息循环仍在引用已析构窗口）。
+- `Application::CreateWindow` 返回的 `shared_ptr` **就是所有权**——丢掉指针窗口就销毁；`Create` 也不会自动 `Show`。
+###block_red_end
 
 ## 所有权 / 多窗口 / 尺寸
 
@@ -565,8 +736,13 @@ void SetPosition(int x, int y);  void SetSize(int w, int h);   // DIP
 void SetMinSize(int w, int h);
 void SetOwnedMinimizePolicy(OwnedMinimizePolicy);
 ```
-- **`易错`**：`SetOwner` 要在 `Create` **之前**，否则会自带任务栏按钮、且不随 owner 最小化。
-- **`易错`**：`SetMinSize` 会**覆盖**基于内容的最小尺寸计算。含长文本/图表的窗口若不设，最小尺寸可能被内容撑大（内部用 `rootElement->Measure(Size(0,0))`，宽度 0 时换行 Label 会按整行宽度上报）。**含图表的调试器窗口已显式 `SetMinSize`。**
+
+###block_red_start
+**易错**
+
+- `SetOwner` 要在 `Create` **之前**，否则会自带任务栏按钮、且不随 owner 最小化。
+- `SetMinSize` 会**覆盖**基于内容的最小尺寸计算。含长文本/图表的窗口若不设，最小尺寸可能被内容撑大（内部用 `rootElement->Measure(Size(0,0))`，宽度 0 时换行 Label 会按整行宽度上报）。**含图表的调试器窗口已显式 `SetMinSize`。**
+###block_red_end
 
 ## 根内容 / 捕获
 
@@ -579,8 +755,13 @@ void CollectDragRegions();  bool PointInDragRegion(float,float) const;
 void MarkRepaint(UIElement*);   // 标脏；只记录，不定帧（帧由定时器/动画驱动）
 float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;
 ```
-- **`易错`**：`MarkRepaint` 存**裸指针**，元素析构会自动注销；不要跨销毁持有外部指针。
-- **`易错`**：`RequestRepaint()` → `MarkRepaint` **不会**主动排一帧。帧由 16ms `WM_TIMER`（忙时）或动画续帧驱动。历史教训：曾在这里强制排帧，导致“每次重绘都出一帧”的持续重渲染（严重卡顿），**已回退**。
+
+###block_red_start
+**易错**
+
+- `MarkRepaint` 存**裸指针**，元素析构会自动注销；不要跨销毁持有外部指针。
+- `RequestRepaint()` → `MarkRepaint` **不会**主动排一帧。帧由 16ms `WM_TIMER`（忙时）或动画续帧驱动。历史教训：曾在这里强制排帧，导致“每次重绘都出一帧”的持续重渲染（严重卡顿），**已回退**。
+###block_red_end
 
 ## 外观 / 背景 / 圆角
 
@@ -610,8 +791,14 @@ void SetStatusBar(std::shared_ptr<UIElement>);  std::shared_ptr<UIElement> GetSt
 void SetMenuBarInTitleBar(bool on = true);      bool IsMenuBarInTitleBar() const;
 void SetShowTitleText(bool on);                 bool IsShowTitleText() const;
 ```
-- **`易错`**：自定义标题栏**不参与布局**——`Window` 把它放 `(0,0)`，并把根内容下移它测量出的高度。别手动 `AddChild`。
 - 菜单栏默认**叠在自定义标题栏上**（让开左侧图标、右侧系统按钮）；此时标题文字**默认隐藏**（与菜单互斥，避免重叠）。`SetShowTitleText(true)` → 显示标题、菜单栏**自动移到标题栏下方的客户区顶部**；`SetMenuBarInTitleBar(false)` 强制放到客户区顶部。状态栏固定贴底，根内容高度相应收缩。
+
+###block_red_start
+**易错**
+
+- 自定义标题栏**不参与布局**——`Window` 把它放 `(0,0)`，并把根内容下移它测量出的高度。别手动 `AddChild`。
+###block_red_end
+
 - **`版本`**：`v1.7.0` 起；`CaptionButton::Kind::Pin` = `v1.17.0`。
 
 ## 任务栏 / 缩略图 / 跳转列表
@@ -624,21 +811,37 @@ void SetThumbButtons(...);   void UpdateThumbButton(ThumbButtonId, bool enabled)
 void SetJumpList(...);  void Flash(int times=5, bool alsoTaskbar=true);  void FlashUntilForeground();
 void SetAppUserModelID(const std::wstring&);
 ```
-- 这些是 COM 调用，失败**静默 no-op**。`FLASHW_CAPTION` 对自绘标题栏无效，用 `FLASHW_ALL`。
+###block_orange_start
+**注意**
+
+这些是 COM 调用，失败**静默 no-op**。`FLASHW_CAPTION` 对自绘标题栏无效；要连任务栏一起闪用 `FLASHW_ALL`。
+###block_orange_end
+
 - **`版本`**：均 `v1.9.6`。
 
 ## DPI
 
 - 进程级 Per-Monitor-v2 在静态初始化设置（回退 `SetProcessDPIAware`）。
 - `WM_DPICHANGED` 会重建整条渲染链并清空所有缓存。
-- **`易错`**：元素缓存会在 DPI 变更时被清；但子布局**不需要**你手动重测。
+
+###block_red_start
+**易错**
+
+- 元素缓存会在 DPI 变更时被清；但子布局**不需要**你手动重测。
+###block_red_end
 
 ## 渲染线程 / 帧率
 
 ```cpp
 void SetFrameRateLimit(int fps);   int GetFrameRateLimit() const;   // 0=跟随刷新；>0=限帧
 ```
-- **`易错`**：`ZUFYUI_RENDER_THREAD` **默认 0**，文档标注不稳定、不建议开（空白弹窗、悬停/提示延迟、大虚拟列表可能崩）。单线程 `WM_PAINT` 是受支持路径。
+
+###block_red_start
+**易错**
+
+- `ZUFYUI_RENDER_THREAD` **默认 0**，文档标注不稳定、不建议开（空白弹窗、悬停/提示延迟、大虚拟列表可能崩）。单线程 `WM_PAINT` 是受支持路径。
+###block_red_end
+
 - **`版本`**：渲染线程 `v1.14.0`；vblank 节拍 `v1.14.1`；帧率上限 `v1.14.2`；默认关并标注 `v1.16.0`。
 
 ## 无障碍 / 信号
@@ -651,7 +854,18 @@ ZSignal<> Activated, Deactivated;   ZSignal<bool*> Closing;   ZSignal<> Closed;
 ZSignal<> BackdropUnsupported, DeviceLost;   ZSignal<HRESULT> RenderingError;
 std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 ```
-- **`易错`**：`Closing` 里把 `*cancel = true` 可取消关闭。`Closing` 的参数是 `bool*`（不是引用）。
+
+###block_orange_start
+**限制**
+
+`Window` 目前**没有尺寸/DPI 变化信号**。依赖实时客户区尺寸的 StatusBar/面板只能在 `Activated`、主题切换或切页时刷新；拖动边框时不会自动更新。需要实时更新只能先给窗口加信号。
+###block_orange_end
+
+###block_red_start
+**易错**
+
+- `Closing` 里把 `*cancel = true` 可取消关闭。`Closing` 的参数是 `bool*`（不是引用）。
+###block_red_end
 
 ###chapter: 基础控件 | Label、Button、TextBox、TextEdit、ComboBox
 
@@ -673,9 +887,15 @@ void SetImage(std::shared_ptr<Image>);   void SetIcon(Icon, float size=0);
 void AddChild(std::shared_ptr<UIElement>);   // 图标/文本之后的内联子元素
 std::wstring GetToolTip() const override;   // 省略时自动全量 tooltip（v1.17.0）
 ```
-- **`易错`**：`SetTextFast` 不重绘——池化容器（ListView/TableView）用它 + 容器自己重绘。直接用它设文本可能“看不到更新”。
-- **`易错`**：同时设了 image 与 glyph 时 **image 优先**。
-- **`易错`**：`GetDesiredSize()` 非 const 且用 `FLT_MAX` 测量，忽略父约束。
+
+###block_red_start
+**易错**
+
+- `SetTextFast` 不重绘——池化容器（ListView/TableView）用它 + 容器自己重绘。直接用它设文本可能“看不到更新”。
+- 同时设了 image 与 glyph 时 **image 优先**。
+- `GetDesiredSize()` 只是上一次 `Measure` 的结果；用 `FLT_MAX` 直接测量得到的是理想尺寸，不代表父容器夹取后的尺寸。
+###block_red_end
+
 - **`版本`**：`SetIcon` 家族 `v1.13.0`；省略自动 tooltip `v1.17.0`。
 
 ## Button
@@ -698,7 +918,13 @@ void SetDropItems(const std::vector<std::wstring>&, int selected=-1);  void SetD
 - **富文本**：内部 `Label` 已经是真正的子元素，`GetLabel()->AddChild(...)` 的子元素会被合成/布局/绘制；也可 `SetContent` 换成任意 `UIElement`。
 - **下拉 2×2**：`SetDropWriteBack` 控制菜单选中是否回写按钮文字；`SetDropOpenOnClick` 控制按钮 `Clicked` 之后是否打开菜单。菜单是**单选**（上次选中项有标记）；选中触发 `DropSelected(index)`，可用 `GetDropSelectedIndex/GetDropSelectedText` 读取。`SetDropItems` 是文字列表快捷方式；自定义菜单用 `SetDropMenu`。
 - **主按钮 / 展开区**：主区域点击始终 `Clicked`；右侧展开区（与主区域之间有一条跟随主题的浅色短分隔线）**只打开菜单，不触发 `Clicked`**；点菜单项只触发 `DropSelected`，不会触发 `Clicked`。`DropOpenOnClick=false` 时主区域只回调，菜单仍可由展开区打开。
-- **`易错`**：非 checkable 时 `IsChecked()` 无意义；`SetContent` 的内容在扣除 `padding` 和右侧箭头后的矩形内布局。
+
+###block_red_start
+**易错**
+
+- 非 checkable 时 `IsChecked()` 无意义；`SetContent` 的内容在扣除 `padding` 和右侧箭头后的矩形内布局。
+###block_red_end
+
 - **`版本`**：`v1.21.0` 起按钮**默认按文案自动撑宽**；`v1.23.3` 支持富文本内容与下拉 2×2 组合。
 
 ## TextBox（单行）
@@ -712,8 +938,14 @@ void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
 void SelectAll/Copy/Cut/Paste/Undo/Redo();
 int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
 ```
-- **`易错`**：`SetImeEnabled(false)` 会抑制 IME/屏幕键盘（`IsTextInput()` 返回 `imeEnabled_`）。
-- **`易错`**：程序化 `SetText` **不产生撤销步**。
+
+###block_red_start
+**易错**
+
+- `SetImeEnabled(false)` 会抑制 IME/屏幕键盘（`IsTextInput()` 返回 `imeEnabled_`）。
+- 程序化 `SetText` **不产生撤销步**。
+###block_red_end
+
 - **`版本`**：error/indicator/IME `v1.12.0`；`v1.18.0` 修 shift+点击语义（无选区时也自锚点扩展）。
 
 ## TextEdit（多行编辑器 / 只读查看器）— v1.18.0
@@ -734,9 +966,6 @@ void EnsureCursorVisible();  float GetScrollOffsetY() const;  void SetScrollOffs
 bool UseCache() const override { return false; }
 bool AcceptsTab() const override { return !readOnly_; }   // 依赖基类新虚函数
 ```
-- **`易错`**：换行宽度变化会**重建每一行的 layout**（`ArrangeOverride` 检测 `wrapWidth_`）。
-- **`易错`**：富文本**构造即只读**。行/列 API 是 **0 基**。
-- **`易错`**：因 `AcceptsTab` 为真，Tab 是**插入缩进**而非切换焦点。
 - 默认 `Consolas 14`、`320×160`、tabSize 4。
 
 最小示例：
@@ -746,6 +975,14 @@ edit->SetPlainText(L"hello\nworld");
 edit->SetShowLineNumbers(true);
 root->AddChild(edit);                 // 记得给尺寸或让它随布局铺满
 ```
+
+###block_red_start
+**易错**
+
+- 换行宽度变化会**重建每一行的 layout**（`ArrangeOverride` 检测 `wrapWidth_`）。
+- 富文本**构造即只读**。行/列 API 是 **0 基**。
+- 因 `AcceptsTab` 为真，Tab 是**插入缩进**而非切换焦点。
+###block_red_end
 
 ## ComboBox
 
@@ -757,8 +994,14 @@ void SetSelectedSourceIndex(int);  int GetSelectedSourceIndex() const;   // v1.1
 void SetItemDisabled(int visibleIndex, bool);   // 按源索引持久
 void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 ```
-- **`易错`**：下拉画在全局 `DrawOverlay`，可超出控件边界。
-- **`易错`**：`GetSelectedIndex()` 是**过滤后可见序**；`SetItemDisabled` 按**源索引**持久（v1.15.0 修）。
+
+###block_red_start
+**易错**
+
+- 下拉画在全局 `DrawOverlay`，可超出控件边界。
+- `GetSelectedIndex()` 是**过滤后可见序**；`SetItemDisabled` 按**源索引**持久（v1.15.0 修）。
+###block_red_end
+
 - **`版本`**：下拉几何/状态 `v1.12.0`；源索引 API `v1.15.0`；下拉箭头随展开进度旋转（smoothstep，`v1.19.0`）。
 
 ###chapter: 选择与输入 | CheckBox、RadioButton、RadioGroup、ToggleSwitch、Slider、NumberBox
@@ -786,7 +1029,13 @@ class RadioGroup  { enum class Orientation { Vertical, Horizontal };
                     int AddButton(std::shared_ptr<RadioButton>);   int AddButtonSelected(std::shared_ptr<RadioButton>, bool selected);
                     std::shared_ptr<RadioButton> GetButton(int index) const; int GetItemCount() const; void SetSelectedIndex(int); ... };
 ```
-- **`易错`**：单独一个 `RadioButton` 不做互斥；互斥由 `RadioGroup` 保证。
+
+###block_red_start
+**易错**
+
+- 单独一个 `RadioButton` 不做互斥；互斥由 `RadioGroup` 保证。
+###block_red_end
+
 - **`版本`**：`v1.11.0`。
 
 ## ToggleSwitch
@@ -805,7 +1054,13 @@ inline static float DefaultAnimationDuration;   // 一次完整动画时长(秒)
 ZSignal<float> ValueChanged;   ZSignal<> SliderReleased;
 void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);  void SetSnapToStep(bool);
 ```
-- **`易错`**：`ValueChanged` 在拖动中**连续**触发；提交用 `SliderReleased`。
+
+###block_red_start
+**易错**
+
+- `ValueChanged` 在拖动中**连续**触发；提交用 `SliderReleased`。
+###block_red_end
+
 - **`版本`**：`v1.18.0` 修 0 宽时 0/0→NaN 静默把值设成 min/max。
 
 ## NumberBox（+ 内部 SpinButton）
@@ -816,7 +1071,13 @@ void SetValue(double, bool fire=true);  void SetRange(double lo,double hi);
 void SetStep(double);  void SetDecimals(int);  void SetWrap(bool);
 void SetDefaultValue(double);  void ResetToDefault();
 ```
-- **`易错`**：**空文本按“错误”处理**是控件行为（不是调用方责任）；步进按钮会先 `CommitText()`，所以未失焦的编辑值不会丢。
+
+###block_red_start
+**易错**
+
+- **空文本按“错误”处理**是控件行为（不是调用方责任）；步进按钮会先 `CommitText()`，所以未失焦的编辑值不会丢。
+###block_red_end
+
 - **`版本`**：`v1.12.0`；`ResetToDefault` 清错误 `v1.12.2`。
 
 ###chapter: 进度 | ProgressBar、ProgressRing
@@ -830,7 +1091,13 @@ void SetRange(float min,float max);  void SetRangeValue(float);   // [min,max]
 void SetIndeterminate(bool);   void SetIndeterminateBlockWidth(float);  void SetIndeterminateSpeed(float);
 inline static float DefaultValueAnimDuration;   // 数值缓动时长(秒)，默认 0.22
 ```
-- **`易错`**：`SetValue` 是 `[0,1]`，`SetRangeValue` 是 `[min,max]`，**别混用**。
+
+###block_red_start
+**易错**
+
+- `SetValue` 是 `[0,1]`，`SetRangeValue` 是 `[min,max]`，**别混用**。
+###block_red_end
+
 - **`版本`**：`v1.21.0` 起数值变化有**缓动**（内部 `displayValue_` 时长驱动，填充条与 `%` 文字同步，到点即停）；同版本修**拉伸后内填充圆角与外框对不上**（轨道/裁剪/边框原用成员 `height_`，改用 `arrangedRect_.height/2`）。
 
 ## ProgressRing
@@ -855,7 +1122,13 @@ void SetScrollBarWidth(float);  void SetScrollWheelStep(float);  void SetAnimati
 void ScrollTo(float x,float y,bool animated=true);  void ScrollBy(...);
 float GetScrollOffsetX/Y() const;
 ```
-- **`易错`**：`Hidden` 仍允许程序化/滚轮滚动（只是不显示条）。
+
+###block_red_start
+**易错**
+
+- `Hidden` 仍允许程序化/滚轮滚动（只是不显示条）。
+###block_red_end
+
 - **`版本`**：`v1.18.0` 起 `ScrollViewer::UseCache()==false`（内容常变/可滚动，缓存无益且占大位图）。
 
 ## ScrollBar（独立可复用）
@@ -870,8 +1143,14 @@ void SetIdleDelay(float);  void SetAutoShrink(bool);  void MarkActive();
 inline static float ShrunkWidthRatio;   // 默认 0.30
 ```
 - 拖动 → `animate=false`（跟手）；点轨道 → `animate=true`。悬停扩张 + 空闲缩小；宿主用 `ShrunkWidthRatio` 预留槽位。
-- **`易错`**：`ValueChanged` 是 `std::function`（不是 `ZSignal`），签名 `(float, bool)`。
-- **`易错`**：`ShrinkTarget` 的“空闲等待缩小”倒计时**不再**算作活跃动画——否则会把整窗顶进动画模式导致数据重绘不落屏。代价：空闲缩小变**惰性**（到点后由下一帧触发）。
+
+###block_red_start
+**易错**
+
+- `ValueChanged` 是 `std::function`（不是 `ZSignal`），签名 `(float, bool)`。
+- `ShrinkTarget` 的“空闲等待缩小”倒计时**不再**算作活跃动画——否则会把整窗顶进动画模式导致数据重绘不落屏。代价：空闲缩小变**惰性**（到点后由下一帧触发）。
+###block_red_end
+
 - **`版本`**：`v1.11.0` 起独立复用；`ShrunkWidthRatio` `v1.13.0`。
 
 ## SplitView
@@ -887,9 +1166,15 @@ void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/Is
 void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
 bool UseCache() const override { return false; }
 ```
-- **`易错`**：`Orientation` 命名反直觉（`Vertical` 指竖直分隔条、水平排列两栏）。
 - **折叠（`v1.21.0`）**：把分隔条拖到**距某侧边缘 `CollapseThreshold`（默认 28px）内** → 该侧内容**上方**浮出半透明强调色覆盖层 + 指向折叠方向的箭头（alpha 渐入渐出）；**此时不改内容**，**松手**才真正折叠（该侧尺寸带缓动从当前值变为 0）。折叠后该侧边缘出现小按钮（圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后该侧尺寸带缓动从 0 变为**最小极限值**（`SetMinFirst/MinSecond`；未设则回到折叠前比例）。整个功能可 `SetCollapseEnabled(false)` 关闭。
-- **`易错`**：覆盖层与本控件内部的 `Overlay` 子元素有关——它是**最后一个子元素**（框架按子元素顺序绘制），所以天生画在两栏内容**之上**；不要试图在 `SplitView::Draw` 里画这类装饰（会被内容盖住）。
+
+###block_red_start
+**易错**
+
+- `Orientation` 命名反直觉（`Vertical` 指竖直分隔条、水平排列两栏）。
+- 覆盖层与本控件内部的 `Overlay` 子元素有关——它是**最后一个子元素**（框架按子元素顺序绘制），所以天生画在两栏内容**之上**；不要试图在 `SplitView::Draw` 里画这类装饰（会被内容盖住）。
+###block_red_end
+
 - **`版本`**：`v1.12.0`；NaN/Inf 守卫 `v1.14.0`；折叠/小按钮 `v1.21.0`。
 
 ## Drawer（v1.25.0）
@@ -910,10 +1195,50 @@ void SetFocusOnOpen(std::shared_ptr<UIElement>);
 void SetAnimationDuration(float);  void SetAnimationEasing(Easing);
 void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgress() const;
 ```
-- `Overlay`：圆角遮罩覆盖内容；`Push`：内容让位；`Permanent`：常驻、无动画/遮罩、`Close` 无效。
-- 面板圆角/边框/真实外侧阴影；`SetScrimOpacity(0)` 可去视觉遮罩但保留模态点击拦截，`SetModal(false)` 才会穿透。
-- 可当根布局或放在 `GridLayout` 的 cell；只覆盖内容区，不覆盖自定义标题栏/菜单栏。
-- **`易错`**：`SetPanelShadow` 画在面板背景之前，内层由不透明背景覆盖，边框最后绘制。
+###block_list_start
+###block_item_start
+**Overlay**
+
+圆角遮罩覆盖内容；点外部或 Esc 关闭。适合导航、筛选等临时面板。
+###block_item_end
+###block_item_start
+**Push**
+
+打开时内容让位，面板参与布局；适合需要同时查看列表和详情的场景。
+###block_item_end
+###block_item_start
+**Permanent**
+
+常驻侧栏，无动画/遮罩，`Close` 无效；适合固定导航或设置入口。
+###block_item_end
+###block_list_end
+
+###block_green_start
+**推荐**
+
+优先把 `Drawer` 当根布局或放进 `GridLayout` 的 cell；普通内容放 Overlay，需要内容缩窄时用 Push，长期导航用 Permanent。面板内容用 `SetPanel`，主内容用 `SetContent`。
+###block_green_end
+
+###block_orange_start
+**绘制顺序**
+
+`SetPanelShadow` 画在面板背景之前，内层会被不透明背景盖住，只有外侧阴影可见；边框最后绘制。
+###block_orange_end
+
+###block_red_start
+**易错**
+
+- `SetContent` 是主内容（会被抽屉遮住/让位），`SetPanel` 才是抽屉面板。把面板内容塞进 `SetContent` 不会得到面板背景、内边距、圆角和阴影。
+- `SetPanelSize` 是面板**外框**尺寸；默认 16px 内边距会先从面板内容中扣除（例如 `200` 的外宽只剩 `168` 给内容）。面板内容需要更宽时，调大 `SetPanelSize` 或减小 `SetPanelPadding`。
+- `Drawer` 是布局控件，只覆盖它自己的 arranged rect（根布局或某个 `GridLayout` cell），**不覆盖**窗口标题栏/菜单栏；要压暗整个内容区就放在对应区域的最外层。
+- `Open()` 立即把目标状态设为打开并触发 `OpenChanged`；`Opened`/`Closed` 要等动画结束才触发。`IsOpen()` 返回目标状态，不是当前进度；动画中请用 `IsAnimating()` / `GetOpenProgress()`。
+- `Permanent` 模式会强制打开、进度直接为 1、无动画/遮罩；`Close()` / `SetOpen(false)` 被忽略。从 Permanent 切回 Overlay/Push **不会自动关闭**，需要再调 `Close()`。
+- Scrim 只在 Overlay 模式存在；`SetDismissOnScrimClick` / `ScrimClicked` 只在 `SetModal(true)` 且进度 > 0 时生效。`SetModal(false)` 后点击会落到内容上，`ScrimClicked` 不会触发。
+- `SetScrimOpacity(0)` 只是把遮罩画成透明，模态命中仍在（仍拦截点击）；要穿透请用 `SetModal(false)`。
+- `SetContentBorder` 只在 Overlay 模式绘制；Push/Permanent 没有内容边框。`SetPanelShadow` 的内层会被不透明面板背景覆盖，只有外侧阴影可见，边框最后绘制。
+- Esc 拦截和 `SetFocusOnOpen` 都要求 `Drawer` 已挂到 `Window`；还没 attach 时不会注册 Esc，也不会执行聚焦。
+###block_red_end
+
 - **`版本`**：`v1.25.0`。
 
 ## TabView
@@ -928,8 +1253,14 @@ void SetTabTitle(int, ...);  void SetTabLabel(int, std::shared_ptr<Label>);  voi
 void SetSelectedIndex(int);  int GetSelectedIndex() const;
 void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransitionDirection(bool);
 ```
-- **`易错`**：内容由内部 `PageHost` 承载；`AddTab` 首个页签会自动选中并触发 `SelectionChanged`。
-- **`易错`**：`SetSelectedIndex`/切换是**异步**的（过渡动画结束才定），`GetSelectedContent()`/索引在动画期间可能仍是旧值。
+
+###block_red_start
+**易错**
+
+- 内容由内部 `PageHost` 承载；`AddTab` 首个页签会自动选中并触发 `SelectionChanged`。
+- `SetSelectedIndex`/切换是**异步**的（过渡动画结束才定），`GetSelectedContent()`/索引在动画期间可能仍是旧值。
+###block_red_end
+
 - **`版本`**：`v1.11.0`；Label 化标题 + `SetTabLabel` `v1.13.0`；加锁 `v1.15.0`。
 
 ###chapter: 菜单与弹窗 | Menu、MenuItem、MenuWindow、MessageBox
@@ -958,7 +1289,12 @@ std::function<void(Menu&)> onOpening;   ZSignal<int> ItemSelected;
 std::function<void()> onClosed;   // 弹出层关闭后回调
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // 独立弹出（托盘/右键）
 ```
-- **`易错`**：菜单项回调会 `PostToUIThread` **推迟到当前消息之后**执行（因为回调常开模态框，若在当前 WndProc 栈上关菜单会触发 UAF）。
+
+###block_red_start
+**易错**
+
+- 菜单项回调会 `PostToUIThread` **推迟到当前消息之后**执行（因为回调常开模态框，若在当前 WndProc 栈上关菜单会触发 UAF）。
+###block_red_end
 
 ## MenuWindowBase / MenuWindow
 
@@ -974,7 +1310,12 @@ class MenuWindow : public MenuWindowBase {
 };
 ```
 - 弹出窗口用 `WS_EX_NOACTIVATE|TOOLWINDOW|TOPMOST`、无 DWM 边框，`WM_MOUSEACTIVATE` 返回 `MA_NOACTIVATE` 不抢焦点。
-- **`易错`**：`CloseAll()` 只销毁 HWND；对象的 `shared_ptr`/`unique_ptr` 在消息处理器**之外**析构。
+
+###block_red_start
+**易错**
+
+- `CloseAll()` 只销毁 HWND；对象的 `shared_ptr`/`unique_ptr` 在消息处理器**之外**析构。
+###block_red_end
 
 ## MenuBar / StatusBar（v1.19.2）
 
@@ -994,6 +1335,12 @@ class StatusBar : public UIElement {
 - `MenuBar` 点击条目弹出该 `Menu`（复用菜单弹层）；**悬停只高亮、不自动展开**；菜单打开期间条目保持“按下”，关闭后复原。
 - 用 `Window::SetMenuBar` / `SetStatusBar` 挂到窗口（见「自定义标题栏」）。
 
+###block_orange_start
+**限制**
+
+`StatusBar::AddPanel` 只有文本/图标，**没有点击回调**；状态栏只能“显示状态”。需要点击某一段触发动作时，用普通按钮/自定义行，不要指望 StatusBar。
+###block_orange_end
+
 ## MessageBox / FastButton
 
 ```cpp
@@ -1009,16 +1356,24 @@ class MessageBox : public Window {
 };
 ```
 - 按钮顺序 Yes/No/OK/Apply/Cancel/Close/Help；**Enter = 最左按钮**，**ESC = Cancel/Close**（否则最左）。
-- **`易错`**：`ZufyUIWindowTool.h` 里 `#undef` 了 Win32 `MessageBox` 宏——调用 Win32 请用 `MessageBoxW/A`。
-- **`易错`**：`blocking=true` 会在**构造函数内部**跑模态循环；`SetUserContent` 后没有预设按钮，必须自己 `EndDialog`。
+
+###block_red_start
+**易错**
+
+- `ZufyUIWindowTool.h` 里 `#undef` 了 Win32 `MessageBox` 宏——调用 Win32 请用 `MessageBoxW/A`。
+- `blocking=true` 会在**构造函数内部**跑模态循环；`SetUserContent` 后没有预设按钮，必须自己 `EndDialog`。
+###block_red_end
 
 ###chapter: 数据视图 | ListView、TableView、TreeView、TreeNode（虚拟化、隐藏/筛选/可见序）
 
-> **本章是易错重灾区，先读这段。**
-> - 自 **v1.15.0** 起三个视图都是**视口虚拟化 + Label 池化**。
-> - 存在**两套坐标**：**源行号**（稳定，旧 API/信号用它）与**可见序**（隐藏/筛选/排序之后）。**混用是头号 bug 来源。**
-> - 虚拟模式下每行没有持久 `Label`；`SetTextFast` 是池 rebind 路径。
-> - 所有数据改动应与渲染串行（视图提供 `RenderGuard()`）。
+###block_red_start
+**易错重灾区**
+
+- 自 **v1.15.0** 起三个视图都是**视口虚拟化 + Label 池化**。
+- 存在**两套坐标**：**源行号**（稳定，旧 API/信号用它）与**可见序**（隐藏/筛选/排序之后）。**混用是头号 bug 来源。**
+- 虚拟模式下每行没有持久 `Label`；`SetTextFast` 是池 rebind 路径。
+- 所有数据改动应与渲染串行（视图提供 `RenderGuard()`）。
+###block_red_end
 
 ## ListView
 
@@ -1042,8 +1397,16 @@ std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   i
 void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector<int> GetCheckedIndices() const;
 void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&);
 ```
-- **`易错`**：`SortItems()` 会重排 `items_` 并**清空多选/勾选**；`SortView` 只改**可见序**。
-- **`易错`**：池化下改行文本走 `SetTextFast`，且容器宽度变化必须重测（`v1.18.0` 修：新增 `poolW_`，宽度变也重测，修省略号错位）。
+
+###block_red_start
+**易错**
+
+- `SortItems()` 会重排 `items_` 并**清空多选/勾选**；`SortView` 只改**可见序**。
+- 池化下改行文本走 `SetTextFast`，且容器宽度变化必须重测（`v1.18.0` 修：新增 `poolW_`，宽度变也重测，修省略号错位）。
+- `SetFilter` / `SetViewComparator` 把 `std::function` **存在控件里**；按引用捕获外部变量会有悬空风险。虚拟模式下比较器每次都会调 `GetItemText`，大表请先快照文本，避免重复哈希查找。
+- `SetItemHeight` 会把高度夹到 ≥1；但 `TableView::SetRowHeight` / `TreeView::SetRowHeight` **没有夹取**，传 0 会让行高计算/命中测试失效——行高必须 > 0。
+###block_red_end
+
 - **`版本`**：`BeginUpdate` `v1.9.6`；坐标转换 `v1.10.0`；虚拟化/隐藏/筛选/可见序 `v1.15.0`。
 
 ## TableView
@@ -1065,7 +1428,13 @@ void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int
 void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&);
 void SetColumnComparator(int, std::function<bool(const std::wstring&,const std::wstring&)>);  void SortByColumn(int,bool=true);
 ```
-- **`易错`**：默认 `Cell` 选择；行/单元格元数据随插入/删除/排序**重映射**；隐藏列不参与命中。
+
+###block_red_start
+**易错**
+
+- 默认 `Cell` 选择；行/单元格元数据随插入/删除/排序**重映射**；隐藏列不参与命中。
+- `SetRowHeight` 不会夹取，行高必须 > 0；传 0 会破坏行高计算/命中测试。按行覆盖的 `SetRowHeightAt` 会夹到 ≥8。
+###block_red_end
 
 ## TreeNode（普通结构体）
 
@@ -1078,7 +1447,13 @@ bool expanded;  int depth;  void* userData;
 std::wstring icon;  bool checkable;  CheckState checkState;  bool selected;  bool enabled;
 std::wstring tooltip;   Color bgColor = Color(0,0,0,0);   // 行背景，v1.17.0
 ```
-- **`易错`**：`parent` 是 `weak_ptr`；行背景用 **`node->bgColor`** 直接字段（**没有** `SetNodeBackgroundColor`）。
+
+###block_red_start
+**易错**
+
+- `parent` 是 `weak_ptr`；行背景用 **`node->bgColor`** 直接字段（**没有** `SetNodeBackgroundColor`）。
+###block_red_end
+
 - **`版本`**：`bgColor` `v1.17.0`。
 
 ## TreeView
@@ -1104,8 +1479,15 @@ void SetNodeCheckState(node, TreeNode::CheckState);
 void SetNodeCheckStateFull(node, TreeNode::CheckState, bool updateChildren, bool updateParent);
 float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToNode(node);   // v1.17.0
 ```
-- **`易错`**：`Search` 保留命中节点**及其祖先链**；`SetDefaultExpandDepth` 只影响**未来**插入；`CheckMode::Linked` 自动算 `PartiallyChecked`。
-- **`易错`**：`GetVisibleNodeAt` 依赖**惰性重建**的可见列表，别跨树改动持有索引。
+
+###block_red_start
+**易错**
+
+- `Search` 保留命中节点**及其祖先链**；`SetDefaultExpandDepth` 只影响**未来**插入；`CheckMode::Linked` 自动算 `PartiallyChecked`。
+- `GetVisibleNodeAt` 按**最新重建**的可见列表索引，不是节点树顺序。
+- `MoveNode` 不能把节点移到自己的后代（返回 `false`，树不变）；忽略返回值会误以为移动成功。
+###block_red_end
+
 - **`版本`**：`BeginUpdate`/`SetNodeText`/tooltip + 并发 `v1.15.0`；首列省略号修 `v1.16.0`；`Get/SetScrollOffsetY` + `ScrollToNode` + 节点 `bgColor` `v1.17.0`。
 
 ###chapter: 图表 | ChartBase、BarChart、LineChart、PieChart（v1.18.0）
@@ -1160,11 +1542,17 @@ virtual void ComputeValueRange(double& lo, double& hi);
 virtual void UpdateHover(float,float);   virtual void OnDataClick(float,float);
 virtual std::wstring HoveredText() const;
 ```
+
+###block_red_start
+**易错**
+
+- 自定义 `ChartBase` 子类**必须调用 `InitScrollBars()`**（`BarChart`/`LineChart` 构造里已调），否则内部滚动条为空。
+- 实时数据用 `UpdateSeriesValues`（不重播动画），别用 `SetSeriesValues`（会重置进场动画，配合 250ms 刷新会一直闪）。
+- `SetValueAxisRange(min,max)` 仅当 `max>min` 生效；滚轮 `Ctrl`=缩放(0.4..3)、`Shift`=横向滚动、否则纵向；拖动位移 > 4 DIP 才判为平移。
+- 折线**面积填充的基线夹在可见轴范围内**（`ValueY(clamp(0, axisMin, axisMax))`），自动量程下不会填满整块。`LineChart` 进场为左→右揭示。
+###block_red_end
+
 - **`版本`**：`SetFillWidth/Height(true)` 在父级给出约束时会铺满；无约束（`avail=FLT_MAX`）且未设尺寸时**回退默认 `420×260`**（v1.19.4 起；不再塌成 0）。图表默认拉伸权值为 0，需要它随布局铺满时用 `SetFillWidth/Height(true)` 或权值。
-- **`易错`**：自定义 `ChartBase` 子类**必须调用 `InitScrollBars()`**（`BarChart`/`LineChart` 构造里已调），否则内部滚动条为空。
-- **`易错`**：实时数据用 `UpdateSeriesValues`（不重播动画），别用 `SetSeriesValues`（会重置进场动画，配合 250ms 刷新会一直闪）。
-- **`易错`**：`SetValueAxisRange(min,max)` 仅当 `max>min` 生效；滚轮 `Ctrl`=缩放(0.4..3)、`Shift`=横向滚动、否则纵向；拖动位移 > 4 DIP 才判为平移。
-- **`易错`**：折线**面积填充的基线夹在可见轴范围内**（`ValueY(clamp(0, axisMin, axisMax))`），自动量程下不会填满整块。`LineChart` 进场为左→右揭示。
 
 ## BarChart
 
@@ -1200,8 +1588,13 @@ void SetZoom(float);   float GetZoom() const;   // v1.18.0：滚轮缩放 0.4..4
 bool OnMouseWheel(float,float) override;   // 滚轮缩放；绘制半径与命中检测同用 zoom_
 void SetAnimationEnabled(bool);
 ```
-- **`易错`**：`PieChart` 默认拉伸权值为 0，需要显式尺寸或布局权值。
-- **`易错`**：标签带引导线，**右半边文字左对齐接在引线末端右边、左半边右对齐贴在末端左边**。
+
+###block_red_start
+**易错**
+
+- `PieChart` 默认拉伸权值为 0，需要显式尺寸或布局权值。
+- 标签带引导线，**右半边文字左对齐接在引线末端右边、左半边右对齐贴在末端左边**。
+###block_red_end
 
 ###chapter: 窗口周边 | 图像、托盘、系统对话框、应用注册
 
@@ -1211,8 +1604,13 @@ void SetAnimationEnabled(bool);
 class Image { int Width() const; int Height() const; bool IsNull() const; ... };   // 从文件/资源/HICON/流加载
 class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };
 ```
-- **`易错`**：`ImageDeviceCache::Get` 内部“锁外 GPU 上传 + 锁内 emplace”。**仅当 `ZUFYUI_RENDER_THREAD=1`** 才有与 `DeviceReset` 并发的极小悬垂窗口；单线程路径无风险。
 - 设备丢失时（`UIZSignals::DeviceReset`）应释放与渲染目标绑定的位图缓存。
+
+###block_red_start
+**易错**
+
+- `ImageDeviceCache::Get` 内部“锁外 GPU 上传 + 锁内 emplace”。**仅当 `ZUFYUI_RENDER_THREAD=1`** 才有与 `DeviceReset` 并发的极小悬垂窗口；单线程路径无风险。
+###block_red_end
 
 ## TrayIcon
 
@@ -1225,7 +1623,13 @@ void ShowBalloon(const std::wstring& title, const std::wstring& text, BalloonIco
 ZSignal<> Clicked, DoubleClicked, RightClicked, HoverEnter, HoverLeave, BalloonClicked, ...;
 ```
 - 相同 `id` 再次 `Add` 变 `NIM_MODIFY`；Explorer 重启后自动重加。
-- **`易错`**：NOTIFYICON_VERSION_4 下右键以 `WM_CONTEXTMENU` 在回调里到达，**双击需手动计时**（没有 `WM_LBUTTONDBLCLK`）。自定义回调消息 `WM_APP+0x400`。
+
+###block_red_start
+**易错**
+
+- NOTIFYICON_VERSION_4 下右键以 `WM_CONTEXTMENU` 在回调里到达，**双击需手动计时**（没有 `WM_LBUTTONDBLCLK`）。自定义回调消息 `WM_APP+0x400`。
+###block_red_end
+
 - **`版本`**：`v1.16.0` 修回调消息撞号。
 
 ## 系统对话框 — FileDialog / ColorDialog（v1.16.0）
@@ -1267,8 +1671,13 @@ public:
 
 - 实现：创建一个**普通 Win32 顶层 owned 弹窗**作为宿主；`SetContentHwnd` 会把外部 HWND `SetParent` 成它的 `WS_CHILD` 并显式显示。移动/缩放宿主时子窗口由系统一起走；宿主客户区负责裁剪，再叠加 `SetWindowRgn`（元素矩形 ∩ 主窗口客户区 ∩ 所有祖先 `GetClipRect`，含 `ScrollViewer` 视口）。
 - **`跨进程风险`**：跨进程 `SetParent` 技术合法但不推荐——会串联输入队列（一方卡死拖死另一方）、阻止部分窗口消息、可能出现间歇性不稳定，且目标进程可能不知道窗口被重父化。**优先同进程**；跨进程仅作最后手段。
-- **`易错`**：主窗口是 `WS_EX_NOREDIRECTIONBITMAP + DComp`，**子 HWND 不会被合成**，不能用普通子控件；`HwndView` 是 **airspace 浮窗**——永远在主窗口内容之上、窗口内自绘的下拉/ToolTip 压不住它（菜单是独立顶层窗口，不受影响）。
 - **`约定`**：需要“内容进合成、无 airspace”的网页/视频 → 用下面的 `CreateExternalVisual` / WebView2 `CompositionController`。
+
+###block_red_start
+**易错**
+
+- 主窗口是 `WS_EX_NOREDIRECTIONBITMAP + DComp`，**子 HWND 不会被合成**，不能用普通子控件；`HwndView` 是 **airspace 浮窗**——永远在主窗口内容之上、窗口内自绘的下拉/ToolTip 压不住它（菜单是独立顶层窗口，不受影响）。
+###block_red_end
 
 ## 外部视觉挂载 — `Window::CreateExternalVisual`（v1.23.0）
 
@@ -1285,8 +1694,12 @@ void Window::SyncOverlays();
 
 - 返回一个 WinRT `ContainerVisual`（已插到根视觉最上层），交给 `controller->put_RootVisualTarget(visual)`；元素 `Arrange` 时用 `SetExternalVisualBounds` 设位置/尺寸（DIP，内部换算物理像素）。
 - `AddOverlaySync/RemoveOverlaySync/SyncOverlays` 供 `HwndView` 等“外部窗口宿主”注册同步回调，一般无需直接调用。
-- **`易错`**：设备丢失/重建后视觉树会重建 → 监听 `Window::DeviceLost`，重新 `CreateExternalVisual` 并重挂。
 
+###block_red_start
+**易错**
+
+- 设备丢失/重建后视觉树会重建 → 监听 `Window::DeviceLost`，重新 `CreateExternalVisual` 并重挂。
+###block_red_end
 
 ###chapter: 拖放与卡片组件 | Drag & Drop、Expander、SettingsList（v1.19.0）
 
@@ -1340,11 +1753,17 @@ class SettingsList : public UIElement {
     ZSignal<int> RowClicked;
 };
 ```
-- **`易错`**：`DragEventArgs.x/y` 是**元素相对 DIP**（不是屏幕像素）。
 - 同控件内文本拖动：源端先删原选区、再按落点插入并左移修正；目标端检测私有格式 `ZufyUI.TextSource` 跳过重复插入。
+
+###block_red_start
+**易错**
+
+- `DragEventArgs.x/y` 是**元素相对 DIP**（不是屏幕像素）。
+- `Expander` 折叠时用显式 `SetHeight` 收拢，父布局才会跟随收缩。
+###block_red_end
+
 - **`版本`**：折叠/展开用与页面切换相同的 **smoothstep 缓动**；箭头随同一缓动**旋转**（收起向下 → 展开向上）。
 - **`版本`**：标题条悬停**高亮**（圆角）；`ComboBox` 下拉箭头同样改为随展开**旋转**的 chevron。
-- **`易错`**：`Expander` 折叠时用显式 `SetHeight` 收拢，父布局才会跟随收缩。
 - 图片展示用 `Label`：`SetImage` + `SetImageFit(true)`（等比缩放至完整可见）+ `SetDragSource`（拖出）。
 - **`版本`**：整窗接收——`Window::SetDropTargetEnabled(true)` + 窗口级 `DragEnter/DragOver/DragLeave/Drop`（`x/y` 为客户区 DIP）。
 - **`版本`**：`Expander::SetIcon(Icon, size)` 在标题前加图标；`TextEdit` 撤销/重做改为标准方案（撤销/重做都还原当时的选区与光标）。
@@ -1388,10 +1807,131 @@ ZSignal<Window*> UIZSignals::ThemeChanged;   // nullptr=应用级
 ZSignal<Window*> UIZSignals::ThemeReapply;   // 页面/标签切换后重套可见子树
 ```
 - 取色优先级：**实例显式设色 > 窗口主题 > 应用主题**。控件只要被显式调用过任何 `Set*Color`，就标记为“用户设色”，主题切换**不再覆盖它**；其余控件跟随主题。
-- **`易错`**：`Backdrop` 是**窗口/背景基色**（浅色白、深色黑）；`SetBackdrop/SetBackgroundColor` 显式指定 tint 后主题不再改它。
+
+###block_red_start
+**易错**
+
+- `Backdrop` 是**窗口/背景基色**（浅色白、深色黑）；`SetBackdrop/SetBackgroundColor` 显式指定 tint 后主题不再改它。
+###block_red_end
+
 - **`版本`**：`v1.19.0` 引入；窗口周边（标题栏三件套）跟随**系统**主题而非窗口主题；`WM_SETTINGCHANGE/WM_THEMECHANGED/WM_DWMCOLORIZATIONCOLORCHANGED/WM_SYSCOLORCHANGE` 自动重解析。
 
 ###chapter: DSL | 链式构造（ZufyUIDsl.h，v1.19.4；v1.20.0 扩充）
+
+> 这一章先给可直接照抄的写法，再给 API 摘要。`ZufyUIDsl.h` 是可选层，不改变底层控件树；遇到不确定的名字时，以本头文件和本章为准，不要凭 Qt 习惯猜。
+
+## 最小可运行示例
+
+```cpp
+#include "ZufyUI.h"
+#include "ZufyUIWidgets.h"
+#include "ZufyUIDsl.h"
+
+using namespace ZufyUI;
+using namespace ZufyUI::dsl;
+
+int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
+    auto nameBox = ZTxt().placeholder(L"在这里输入...");
+    auto greeting = ZLbl(L"你好，等待输入...");
+    auto greetBtn = ZBtn(L"打招呼");
+
+    auto root = ZCol(
+        ZRow(ZLbl(L"你的名字："), nameBox).spacing(12),
+        greeting.vWeight(1),
+        ZRow(greetBtn).spacing(12)
+    ).spacing(10).margin(Thickness(20));
+
+    greetBtn.on<&Button::Clicked>([nameBox, greeting] {
+        auto name = nameBox->GetText();
+        greeting->SetText(name.empty() ? L"你好，陌生人。" : L"你好，" + name + L"！");
+    });
+
+    return ZApp().title(L"ZufyUI DSL 示例").size(760, 520).root(root).run();
+}
+```
+
+- `ZTxt()` / `ZLbl()` / `ZBtn()` 返回**已经创建好的控件句柄**；`nameBox` 不是空壳。
+- 不需要先写 `Ref<TextBox>()` 再“等它变成控件”。
+- `ZApp().run()` 内部已经 `Create → 应用配置 → Show → Run`，不要额外 `win->Show()`。
+- 如果项目启用了预编译头，文件第一行需要 `#include "pch.h"`；这是工程配置，不属于 ZufyUI API。
+
+###block_green_start
+**推荐写法**
+
+能内联就内联：`ZRow(ZLbl(L"名字"), ZTxt().placeholder(L"..."))`。只有后面还要读取/修改某个控件时，才用 `auto nameBox = ZTxt()` 保存句柄；不要用空 `Ref<T>()` 占位。
+###block_green_end
+
+## 变量、句柄与 `Ref<T>`
+
+- `auto nameBox = ZTxt();` 返回 `Ref<TextBox>`，内部持有真实的 `std::shared_ptr<TextBox>`；`auto` 把类型藏起来，正常使用不需要写出 `Ref`。
+- `Ref<T>()` 是**空句柄**，不是工厂：它不会创建控件，`ZRow` / `ZCol` 会忽略它，直接 `->` 访问会得到空指针。普通界面不需要用它。
+- 只有“类成员先声明、之后再赋值”或“明确需要可空引用”才用默认空 `Ref`；即使是这种场景，也建议优先用 `std::shared_ptr<T>` + 成员初始化。
+- 不想用 `Ref` 的链式糖时，DSL 容器也直接接受 `shared_ptr`，事件改回核心 `Connect` 即可：
+
+```cpp
+auto nameBox = std::make_shared<TextBox>();
+nameBox->SetPlaceholder(L"在这里输入...");
+
+auto root = ZCol(
+    ZRow(ZLbl(L"你的名字："), nameBox).spacing(12)
+);
+
+nameBox->Connect(nameBox->TextChanged, [](const std::wstring&) {});
+```
+
+- 类成员示例（不推荐把空 Ref 当普通构造）：
+
+```cpp
+dsl::Ref<Label> status_;          // 空句柄，等待赋值
+status_ = dsl::ZLbl(L"就绪");     // 赋值后才指向真实控件
+```
+
+## 事件绑定
+
+- DSL 推荐语法是信号成员指针：`.on<&Button::Clicked>(...)`、`.on<&ToggleSwitch::Toggled>(...)`。
+- 也可以直接用核心信号槽：`btn->Connect(btn->Clicked, ...)`。
+- 不存在 `Button::OnClicked`，也不存在链式 `.On(...)`。`Button::Clicked` 只在 `.on<&Button::Clicked>` 这种成员指针位置合法。
+
+## `WindowApp` 的两种写法
+
+直接链到 `.run()`：
+
+```cpp
+return ZApp()
+    .title(L"ZufyUI DSL 示例")
+    .size(760, 520)
+    .root(ZCol(ZLbl(L"你好")))
+    .run();
+```
+
+需要保存 builder 时，先构造再分步调用：
+
+```cpp
+WindowApp app = ZApp();
+app.title(L"ZufyUI DSL 示例");
+app.size(760, 520);
+app.root(ZCol(ZLbl(L"你好")));
+return app.run();
+```
+
+不要写 `auto app = ZApp().title(...)`：链式方法返回 `WindowApp&`，而 `WindowApp` 拷贝构造被删除，所以这条会编译失败。`WindowApp` 可移动但不可拷贝；直接链到 `.run()`，或先 `WindowApp app = ZApp();` 是正确写法。
+
+## 常见错误对照
+
+| 容易写成 | 正确写法 | 原因 |
+|---|---|---|
+| `ZufyUI::Dsl` | `ZufyUI::dsl` | 命名空间是小写 `dsl` |
+| `Col(...)` / `Row(...)` | `ZCol(...)` / `ZRow(...)` | 短工厂统一 `Z` 前缀 |
+| `Ref<TextBox>()` | `ZTxt()` | 默认 Ref 是空句柄，不是工厂 |
+| `SetPlaceholderText(...)` | `SetPlaceholder(...)` / `.placeholder(...)` | 实际 API 名不同 |
+| `ToggleSwitch(L"开关")` | `ZToggle(true)` + 旁边 `ZLbl` | `ZToggle` 只接收 bool，不带标签 |
+| `Button::OnClicked` / `.On(...)` | `.on<&Button::Clicked>(...)` 或 `Connect` | ZufyUI 使用信号槽 |
+| `auto app = ZApp().title(...)` | 直接链 `.run()`，或 `WindowApp app = ZApp()` | 链式返回左值引用，拷贝被删除 |
+| `ZApp().root(Col(...))` | `ZApp().root(ZCol(...))` | root 需要 `Ref<Layout>`，短工厂是 `ZCol` |
+
+> 同时 `using namespace ZufyUI;` 和 `using namespace ZufyUI::dsl;` 是允许的：短工厂都有 `Z` 前缀，不会和类名冲突。
+
+## API 摘要
 
 ```cpp
 // 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
@@ -1452,15 +1992,23 @@ WindowApp ZApp();
 }
 ```
 - 用法：`using namespace ZufyUI::dsl;` 后 `ZRow(ZBtn(L"OK").size(100,36).on<&Button::Clicked>([]{...}), ...)`。所有短工厂统一 `Z` 前缀，因此与 `using namespace ZufyUI;` 同时用时也不会和类名冲突。
-- **`易错`**：`with(&T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast<...>(&T::SetX)` 消歧。**带默认参数的函数不能直接用于 `with`**（成员指针含全部形参 → “参数太少”）；这类函数自 **v1.22.0** 起已拆成**无默认参数的重载**（如 `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`，`ListView::AddItem(text)` / `AddItemWidget(shared_ptr<Label>)`，`RadioGroup::AddItem` / `AddItemSelected`，`Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`）。
-- **`易错`**：不宜用 `with` 表达的（多步、条件、需要迭代）用 `apply(lambda)`，避免链断掉。普通类型转换告警也顺手消掉：`.with(&TextBox::SetWidth, 220)` 传 `int` 会报 `C4244`，直接用 `.width(220.0f)`。
 - **容器 `add()` 按真实接口分派**：`ColumnBox`/`RowBox`/`Label` → `AddChild`；`PageHost` → `AddPage`（非 `Page` 实参会被跳过）；`GridLayout` 需要坐标，用 `.cell(row,col,child[,rowSpan,colSpan])` 或 `dsl::ZCell(...)`。空元素（`nullptr` / 空 `Ref`）一律被忽略，不会解引用空指针。
 - **ZGrid 坐标**：`ZGrid(ZCell(1,2,ZLbl(L"x")), ZCell(0,0,btn,1,2))` 显式定位；也仍接受**裸子元素**（沿用旧行为，按出现顺序排 `(i,0)`，现有代码不受影响）。
 - **窗口构建器**：`dsl::ZApp()` → `WindowApp`（链式 `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`；信号用 `on<&Window::Closed>(...)`）。`root()` 接受**任意 `Layout` 子类**（`ZCol`/`ZRow`/`ZGrid` 都行），`titleBar/menuBar/statusBar` 可直接收 `Ref<T>`。
-- **`易错`**：`Window::Create` **不显示窗口**（何时显示由应用决定），所以 `WindowApp::run()` 内部会补 `Show()`；要隐藏启动就调 `.hidden()`。`WindowApp` 可移动、不可拷贝。`Window::Run()` 返回 `void`；`Window` 无公开 `SetContent`，根内容走 `root(...)`。
 - **控件专属糖**（**SFINAE 门控**：仅当控件有该方法时才存在）：`text/checked/value/placeholder/padding(float 与 Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f 与 h,v)/align/image/imageFit`；短工厂另有 `ZPage()`/`ZMenu()`/`ZSettings()`/`ZRadioGroup()`/`ZScrollBar()`/`ZGlyph()`。
-- **`易错`**：`Image` 不是 `UIElement`（是资源对象），所以没有 `Ref<Image>` 工厂 —— 用 `Label` 上的 `.image(Image::FromFile(...)).imageFit(true)`。
 
+###block_red_start
+**易错**
+
+- `with(&T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast<...>(&T::SetX)` 消歧。**带默认参数的函数不能直接用于 `with`**（成员指针含全部形参 → “参数太少”）；这类函数自 **v1.22.0** 起已拆成**无默认参数的重载**（如 `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`，`ListView::AddItem(text)` / `AddItemWidget(shared_ptr<Label>)`，`RadioGroup::AddItem` / `AddItemSelected`，`Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`）。
+- 不宜用 `with` 表达的（多步、条件、需要迭代）用 `apply(lambda)`，避免链断掉。普通类型转换告警也顺手消掉：`.with(&TextBox::SetWidth, 220)` 传 `int` 会报 `C4244`，直接用 `.width(220.0f)`。
+- `Window::Create` **不显示窗口**（何时显示由应用决定），所以 `WindowApp::run()` 内部会补 `Show()`；要隐藏启动就调 `.hidden()`。`WindowApp` 可移动、不可拷贝。`Window::Run()` 返回 `void`；`Window` 无公开 `SetContent`，根内容走 `root(...)`。
+- `Image` 不是 `UIElement`（是资源对象），所以没有 `Ref<Image>` 工厂 —— 用 `Label` 上的 `.image(Image::FromFile(...)).imageFit(true)`。
+- `Ref<T>()` 是空句柄，不是工厂；它不会自动变成控件，容器会忽略。普通 UI 用 `ZTxt()` / `ZLbl()` / `ZBtn()` / `ZMake<T>()`。
+- 事件绑定用 `.on<&Button::Clicked>(...)` 或核心 `Connect`；不存在 `OnClicked` / `OnToggled` / `.On(...)`。
+- `auto app = ZApp().title(...)` 会因拷贝构造被删除而失败；直接链到 `.run()`，或先 `WindowApp app = ZApp();` 再分步调用。
+- 命名空间是小写 `ZufyUI::dsl`，短工厂是 `ZCol` / `ZRow` / `ZLbl` / `ZBtn` / `ZTxt`；不是 `ZufyUI::Dsl` / `Col` / `Row`。
+###block_red_end
 
 ###chapter: 无障碍与调试通道 | UIA + SetDebugEnabled（v1.17.0）
 
@@ -1468,7 +2016,12 @@ WindowApp ZApp();
 
 - 由 `ZufyUIWindowTool.h` 提供 UI Automation 提供程序；元素侧 API 见「元素基类」。
 - 窗口侧：`SetAccessibilityEnabled(bool)`（默认开）、`FocusElement`、`GetFocused/Hovered/PressedElement`。
-- **`易错`**：库**不存历史、不读写文件**，提供程序只反映当前帧。`WM_GETOBJECT` 仅在开启时处理。
+
+###block_red_start
+**易错**
+
+- 库**不存历史、不读写文件**，提供程序只反映当前帧。`WM_GETOBJECT` 仅在开启时处理。
+###block_red_end
 
 ## 调试 / 自动化通道
 
@@ -1493,7 +2046,12 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 | 11 | Highlight(id) | 23 | GetTheme（主题名 + 各 Role 的 AARRGGBB） |
 
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
-- **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
+
+###block_red_start
+**易错**
+
+- 调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
+###block_red_end
 
 ###chapter: 版本变化摘录 | v1.15.0 → v1.25.0
 
@@ -1615,18 +2173,24 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 
 ###chapter: 易错点总表 | 按主题速查
 
+###block_red_start
+**易错点总表**
+
 - **颜色**：`Color` 分量是 [0,1]；整数用 `Color::FromArgb`。
 - **尺寸/布局**：`SetWidth/Height` 是固定尺寸；`SetFill*` 是填满父轴；拉伸权值分配**剩余**空间（v1.17.0）；图表默认权值 0，`SetFill*` 在父级有约束时生效、无约束时回退 `420×260`（v1.19.4）。
 - **窗口最小尺寸**：含长文本/图表的窗口建议显式 `SetMinSize`，否则会被内容测量结果撑大。
 - **重绘**：`RequestRepaint()` 只标脏、**不排帧**；不要试图在标脏处强制出帧（会持续重渲染卡顿）。`InvalidateLayout()` 冒泡，`InvalidateLayoutSelf()` 不冒泡（池化/虚拟 rebind 用）。
 - **缓存**：默认开；每帧内容变化/实例极多的控件 `SetUseCache(false)`；释放整棵子树用 `ReleaseDeviceResourcesRecursive()`。
-- **文本**：`SetTextFast` 不重绘（池化专用）；`FontManager` 返回的 layout/format 共享只读，勿改。
-- **信号**：`Fire` 快照遍历、可安全 disconnect；`Connection` 析构不断开；`DrawOverlay` 必须按窗口过滤；别用捕获自身 `shared_ptr` 的 lambda 连自己。
-- **数据视图**：源行号 vs 可见序两套坐标；`SortItems` 重排并清多选，`SortView` 只改可见序；`parent` 是 `weak_ptr`；行背景用 `node->bgColor`。
+- **文本**：`SetTextFast` 不重绘（池化专用）；`FontManager` 返回的 layout/format 共享只读，勿改；`GetFormat` 的共享 format 是 `ParagraphAlignment=CENTER`，多行自绘要自己设 `NEAR` 或走 `GetStyledLayout`。
+- **信号**：`Fire` 快照遍历、可安全 disconnect；`Connection` 析构不断开；`DrawOverlay` 必须按窗口过滤；别用捕获自身 `shared_ptr` 的 lambda 连自己；`AddKeyHandler` 的 handler 是快照调用，移除不取消当前轮。
+- **数据视图**：源行号 vs 可见序两套坐标；`SortItems` 重排并清多选，`SortView` 只改可见序；`parent` 是 `weak_ptr`；行背景用 `node->bgColor`；`SetFilter`/`SetViewComparator` 会保存 lambda；行高必须 >0。
 - **多行编辑**：`AcceptsTab` 为真时 Tab 是缩进；富文本只读；换行宽度变化重建全部行 layout。
 - **滚动条**：宿主用 `ShrunkWidthRatio` 预留槽位；空闲缩小是**惰性**的。
+- **Drawer**：`SetContent` 是主内容、`SetPanel` 是抽屉面板；`SetPanelSize` 是外框且默认 16px padding 会扣内容；Permanent 下 `Close` 无效；Scrim 只在 Overlay+Modal 生效，`SetScrimOpacity(0)` 仍拦点击。
+- **窗口周边**：`Window` 没有尺寸/DPI 变化信号；`StatusBar::AddPanel` 没有点击回调；任务栏 COM 失败静默，`FLASHW_CAPTION` 对自绘标题栏无效。
 - **无障碍/调试**：角色决定暴露的 UIA Pattern；调试命令发送要带超时。
 - **DSL（`ZufyUIDsl.h`，可选）**：`root()` 收任意 `Layout` 子类；`add()` 按容器真实接口分派（`GridLayout` 必须用 `.cell(row,col,child)` 或 `dsl::Cell(...)`）；空元素（`nullptr` / 空 `Ref`）一律被忽略；`with()` 只接成员函数指针，多步逻辑用 `apply(lambda)`；`WindowApp::run()` 会 `Show()`（`Window::Create` 不显示窗口），隐藏启动用 `.hidden()`。
+###block_red_end
 
 ###chapter: 附录 | 默认值与信号索引
 

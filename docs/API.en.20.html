@@ -229,7 +229,12 @@ For AI agents: the "Reading aid" section on this page contains the raw Markdown 
 
 - The provider comes from `ZufyUIWindowTool.h`; element APIs are in the "Element base" chapter.
 - Window APIs: `SetAccessibilityEnabled(bool)` (on by default), `FocusElement`, `GetFocused/Hovered/PressedElement`.
-- **`Pitfall`**: the library stores no history and does no file I/O; the provider reflects only the current frame. `WM_GETOBJECT` is handled only when enabled.
+
+###block_red_start
+**Pitfall**
+
+- the library stores no history and does no file I/O; the provider reflects only the current frame. `WM_GETOBJECT` is handled only when enabled.
+###block_red_end
 
 ## Debug / automation channel
 
@@ -253,23 +258,33 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 | 11 | Highlight(id) | 23 | GetTheme (theme name + AARRGGBB per role) |
 
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
-- **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.</pre></div></div>
+
+###block_red_start
+**Pitfall**
+
+- send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
+###block_red_end</pre></div></div>
 <div class="breadcrumb"><a href="API.en.html">ZufyUI API Reference</a><span class="sep">/</span><span>Chapter 20 · Accessibility &amp; Debug Channel</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">Chapter 20</span><h1>Accessibility &amp; Debug Channel</h1><p class="chapter-summary">UIA + SetDebugEnabled (v1.17.0)</p></header><h2 id="accessibility-uia">Accessibility (UIA)</h2>
 <ul>
 <li>The provider comes from <code>ZufyUIWindowTool.h</code>; element APIs are in the "Element base" chapter.</li>
 <li>Window APIs: <code>SetAccessibilityEnabled(bool)</code> (on by default), <code>FocusElement</code>, <code>GetFocused/Hovered/PressedElement</code>.</li>
-<li><strong><code>Pitfall</code></strong>: the library stores no history and does no file I/O; the provider reflects only the current frame. <code>WM_GETOBJECT</code> is handled only when enabled.</li>
 </ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li>the library stores no history and does no file I/O; the provider reflects only the current frame. <code>WM_GETOBJECT</code> is handled only when enabled.</li>
+</ul>
+</div>
 <h2 id="debug-automation-channel">Debug / automation channel</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1e1d5cfb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-65bb36fb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDebugEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kr">inline</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsDebugEnabled</span><span class="p">();</span>
 </pre></div>
-<pre id="code-1e1d5cfb" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
+<pre id="code-65bb36fb" style="display: none;">inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();</pre>
 </div>
 <ul>
 <li>Off by default. When on, the target window handles <code>WM_COPYDATA</code> (<code>dwData</code> = command id; reply <code>0x5A554631</code>) and returns current-frame info only (no file I/O).</li>
@@ -354,8 +369,13 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 </table>
 <ul>
 <li>Unified log: <code>detail::Log(level, tag, msg)</code> / <code>LogWarning/LogInfo/DebugLog</code> / <code>RecordError</code> (→ E level + fires <code>UIZSignals::Error</code>).</li>
-<li><strong><code>Pitfall</code></strong>: send commands with a timeout (<code>SendMessageTimeout</code> without <code>SMTO_BLOCK</code>), or the debugger hangs when the target is busy. <code>ZUFYUI_DEBUG</code> is a <strong>compile-time</strong> switch (logging); <code>SetDebugEnabled</code> is a <strong>runtime</strong> switch (channel/stats) — do not conflate.</li>
 </ul>
+<div class="red">
+<p><strong>Pitfall</strong></p>
+<ul>
+<li>send commands with a timeout (<code>SendMessageTimeout</code> without <code>SMTO_BLOCK</code>), or the debugger hangs when the target is busy. <code>ZUFYUI_DEBUG</code> is a <strong>compile-time</strong> switch (logging); <code>SetDebugEnabled</code> is a <strong>runtime</strong> switch (channel/stats) — do not conflate.</li>
+</ul>
+</div>
 <nav class="chapter-nav"><a class="prev" href="API.en.19.html"><span class="nav-label">&#8592; Previous</span><span class="nav-title">DSL</span><span class="nav-desc">Fluent construction (ZufyUIDsl.h, v1.19.4; extended in v1.20.0)</span></a><a class="next" href="API.en.21.html"><span class="nav-label">Next &#8594;</span><span class="nav-title">Version digest</span><span class="nav-desc">v1.15.0 → v1.25.0</span></a></nav>
         </main>
     </div>

@@ -238,8 +238,14 @@ enum class ConnectionThread { CurrentThread, NewThread, UIThread };
 - `CurrentThread`（默认）：槽在 Fire 的线程同步执行。
 - `NewThread`：**每次 Fire 起一个 detach 线程**执行槽——不要在槽里碰 UI；已开始执行的槽无法中途取消；**不适合高频信号**，高频场景用 `UIThread` 或自行池化。
 - `UIThread`：把槽投递到 UI 线程（后台线程改 UI 的唯一正确方式）；`disconnect` / 接收者析构后，已排队任务执行时检查存活并跳过。
-- **`易错`**：`Fire` 默认应在 UI 线程执行；从后台线程 Fire 且槽使用 `CurrentThread` 会直接在后台执行 UI 槽，属于调用方违约。跨线程触发请让槽用 `UIThread`，或自行保证订阅者存活。
-- **`易错`**：`NewThread` + 捕获裸 `this` + 接收者可能提前析构 = UAF；需要保活用 `ConnectWeak`，或改用 `UIThread`。
+
+###block_red_start
+**易错**
+
+- `Fire` 默认应在 UI 线程执行；从后台线程 Fire 且槽使用 `CurrentThread` 会直接在后台执行 UI 槽，属于调用方违约。跨线程触发请让槽用 `UIThread`，或自行保证订阅者存活。
+- `NewThread` + 捕获裸 `this` + 接收者可能提前析构 = UAF；需要保活用 `ConnectWeak`，或改用 `UIThread`。
+###block_red_end
+
 - **`版本`**：`v1.15.0` 起跨线程与锁语义收口；`v1.24.0` 起队列任务带存活检查。
 
 ## Connection（Qt 风格被动句柄）
@@ -253,8 +259,14 @@ class Connection {
 ```
 - 默认随接收者的 `ConnectionGroup` 在其析构时断开；**`Connection` 自身析构不断开**。
 - `disconnect()` 会让已排队的 `UIThread` / `NewThread` 任务逻辑失效，但**不会中断已经执行中的槽**。
-- **`易错`**：`Connection` **不是 RAII 守卫**；临时句柄析构不会断开，必须显式 `disconnect()` 或依赖接收者 group。
-- **`易错`**：可以忽略 `connect` 的返回值；信号销毁后再 `disconnect` 是安全的（`alive` 为原子标志）。
+
+###block_red_start
+**易错**
+
+- `Connection` **不是 RAII 守卫**；临时句柄析构不会断开，必须显式 `disconnect()` 或依赖接收者 group。
+- 可以忽略 `connect` 的返回值；信号销毁后再 `disconnect` 是安全的（`alive` 为原子标志）。
+###block_red_end
+
 - **`版本`**：`v1.8.1` 起为被动句柄语义；`v1.24.0` 起存活标志原子化并取消排队任务。
 
 ## ConnectionGroup
@@ -266,7 +278,12 @@ class ConnectionGroup : public std::enable_shared_from_this&lt;ConnectionGroup&g
 ```
 - `UIElement` / `Window` 内部用它批量断开自己注册的所有连接。
 - `size()` 只统计仍存活的连接；已手动断开的连接不计数。
-- **`易错`**：`ConnectionGroup` 的 `disconnectAll()` 只移除连接，不执行用户槽。
+
+###block_red_start
+**易错**
+
+- `ConnectionGroup` 的 `disconnectAll()` 只移除连接，不执行用户槽。
+###block_red_end
 
 ## ZSignal
 
@@ -285,10 +302,16 @@ template&lt;typename... TArgs&gt; class ZSignal {
 ```
 - 触发用 `Fire`（**没有 `emit` 宏**）。
 - `ZSignal` **不可拷贝、不可移动**；信号是控件/窗口的成员，不要放进可移动容器。
-- **`易错`**：`Fire` 基于**快照**遍历，槽内可以安全 `disconnect`；槽内再次 `Fire` 同一信号会走“重入”分支（局部拷贝），**不要**在重入里做递归深链。
-- **`易错`**：`Fire` 与 `ZSignal` 析构并发是 UB；信号必须在同一线程完成触发/析构。
-- **`易错`**：槽抛异常会直接穿出 `Fire`，后续槽不再执行；信号槽内不建议抛异常。
 - 信号参数按**左值**传给槽；槽不要写 `T&amp;&amp;` 形参，大对象建议 `const T&amp;`。
+
+###block_red_start
+**易错**
+
+- `Fire` 基于**快照**遍历，槽内可以安全 `disconnect`；槽内再次 `Fire` 同一信号会走“重入”分支（局部拷贝），**不要**在重入里做递归深链。
+- `Fire` 与 `ZSignal` 析构并发是 UB；信号必须在同一线程完成触发/析构。
+- 槽抛异常会直接穿出 `Fire`，后续槽不再执行；信号槽内不建议抛异常。
+###block_red_end
+
 - **`版本`**：`v1.18.0` 加 RAII 守卫：槽抛异常也会正确还原重入深度并释放快照；`v1.24.0` 禁止移动。
 
 ## 接收者上下文与 ConnectWeak
@@ -307,8 +330,18 @@ btn-&gt;Clicked.connect(panel, [this] { Refresh(); });
 ConnectWeak(panel, btn-&gt;Clicked, [](Panel* self) { self-&gt;Refresh(); });
 ConnectWeak(panel, btn-&gt;Clicked, &amp;Panel::OnClick);
 ```
-- **`易错`**：`ConnectWeak` 的槽里不要再按值捕获 `self` 的 `shared_ptr`，否则会形成“信号→槽→self→信号”的强引用环。
-- **`注意`**：`Menu` / `MenuItem` / `Timer` 仍用 `signal.connect`，**不自动断开**。
+
+###block_orange_start
+**注意**
+
+- `Menu` / `MenuItem` / `Timer` 仍用 `signal.connect`，**不自动断开**。
+###block_orange_end
+
+###block_red_start
+**易错**
+
+- `ConnectWeak` 的槽里不要再按值捕获 `self` 的 `shared_ptr`，否则会形成“信号→槽→self→信号”的强引用环。
+###block_red_end
 
 ## 全局信号 UIZSignals
 
@@ -323,9 +356,15 @@ namespace UIZSignals {
     inline ZSignal&lt;const std::wstring&amp;&gt; Error;         // v1.16.0
 }
 ```
-- **`易错`**：`DrawOverlay` 带 `Window*`，subscriber **必须**按 `GetWindow()` 过滤，否则窗口 A 的浮层会画到窗口 B 上（经典多窗口串扰）。
 - `RepaintRequest`/`LayoutInvalidated`/capture 信号只对**未挂载**元素兜底；已挂载元素直接走 `Window`。
 - `DeviceReset`：释放一切与渲染目标/设备绑定的缓存（如 `ImageDeviceCache`）。
+
+###block_red_start
+**易错**
+
+- `DrawOverlay` 带 `Window*`，subscriber **必须**按 `GetWindow()` 过滤，否则窗口 A 的浮层会画到窗口 B 上（经典多窗口串扰）。
+###block_red_end
+
 - **`版本`**：`UIZSignals::Error` = `v1.16.0`。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 4 章 · 事件与信号</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 4 章</span><h1>事件与信号</h1><p class="chapter-summary">ZSignal、Connection、跨线程</p></header><h2 id="何时用信号">何时用信号</h2>
@@ -337,25 +376,32 @@ namespace UIZSignals {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-1c944257', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-950ec64c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ConnectionThread</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">CurrentThread</span><span class="p">,</span><span class="w"> </span><span class="n">NewThread</span><span class="p">,</span><span class="w"> </span><span class="n">UIThread</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-1c944257" style="display: none;">enum class ConnectionThread { CurrentThread, NewThread, UIThread };</pre>
+<pre id="code-950ec64c" style="display: none;">enum class ConnectionThread { CurrentThread, NewThread, UIThread };</pre>
 </div>
 <ul>
 <li><code>CurrentThread</code>（默认）：槽在 Fire 的线程同步执行。</li>
 <li><code>NewThread</code>：<strong>每次 Fire 起一个 detach 线程</strong>执行槽——不要在槽里碰 UI；已开始执行的槽无法中途取消；<strong>不适合高频信号</strong>，高频场景用 <code>UIThread</code> 或自行池化。</li>
 <li><code>UIThread</code>：把槽投递到 UI 线程（后台线程改 UI 的唯一正确方式）；<code>disconnect</code> / 接收者析构后，已排队任务执行时检查存活并跳过。</li>
-<li><strong><code>易错</code></strong>：<code>Fire</code> 默认应在 UI 线程执行；从后台线程 Fire 且槽使用 <code>CurrentThread</code> 会直接在后台执行 UI 槽，属于调用方违约。跨线程触发请让槽用 <code>UIThread</code>，或自行保证订阅者存活。</li>
-<li><strong><code>易错</code></strong>：<code>NewThread</code> + 捕获裸 <code>this</code> + 接收者可能提前析构 = UAF；需要保活用 <code>ConnectWeak</code>，或改用 <code>UIThread</code>。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>Fire</code> 默认应在 UI 线程执行；从后台线程 Fire 且槽使用 <code>CurrentThread</code> 会直接在后台执行 UI 槽，属于调用方违约。跨线程触发请让槽用 <code>UIThread</code>，或自行保证订阅者存活。</li>
+<li><code>NewThread</code> + 捕获裸 <code>this</code> + 接收者可能提前析构 = UAF；需要保活用 <code>ConnectWeak</code>，或改用 <code>UIThread</code>。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.15.0</code> 起跨线程与锁语义收口；<code>v1.24.0</code> 起队列任务带存活检查。</li>
 </ul>
 <h2 id="connectionqt-风格被动句柄">Connection（Qt 风格被动句柄）</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-697a2c34', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-ce4196b5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Connection</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">();</span>
@@ -363,7 +409,7 @@ namespace UIZSignals {
 <span class="w">    </span><span class="k">explicit</span><span class="w"> </span><span class="k">operator</span><span class="w"> </span><span class="kt">bool</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 析构不自动断开</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-697a2c34" style="display: none;">class Connection {
+<pre id="code-ce4196b5" style="display: none;">class Connection {
     void disconnect();
     bool isConnected() const;
     explicit operator bool() const;   // 析构不自动断开
@@ -372,34 +418,46 @@ namespace UIZSignals {
 <ul>
 <li>默认随接收者的 <code>ConnectionGroup</code> 在其析构时断开；<strong><code>Connection</code> 自身析构不断开</strong>。</li>
 <li><code>disconnect()</code> 会让已排队的 <code>UIThread</code> / <code>NewThread</code> 任务逻辑失效，但<strong>不会中断已经执行中的槽</strong>。</li>
-<li><strong><code>易错</code></strong>：<code>Connection</code> <strong>不是 RAII 守卫</strong>；临时句柄析构不会断开，必须显式 <code>disconnect()</code> 或依赖接收者 group。</li>
-<li><strong><code>易错</code></strong>：可以忽略 <code>connect</code> 的返回值；信号销毁后再 <code>disconnect</code> 是安全的（<code>alive</code> 为原子标志）。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>Connection</code> <strong>不是 RAII 守卫</strong>；临时句柄析构不会断开，必须显式 <code>disconnect()</code> 或依赖接收者 group。</li>
+<li>可以忽略 <code>connect</code> 的返回值；信号销毁后再 <code>disconnect</code> 是安全的（<code>alive</code> 为原子标志）。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.8.1</code> 起为被动句柄语义；<code>v1.24.0</code> 起存活标志原子化并取消排队任务。</li>
 </ul>
 <h2 id="connectiongroup">ConnectionGroup</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-da2e5e2b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e2a83402', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ConnectionGroup</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">ConnectionGroup</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">disconnectAll</span><span class="p">();</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">size</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-da2e5e2b" style="display: none;">class ConnectionGroup : public std::enable_shared_from_this&lt;ConnectionGroup&gt; {
+<pre id="code-e2a83402" style="display: none;">class ConnectionGroup : public std::enable_shared_from_this&lt;ConnectionGroup&gt; {
     void disconnectAll(); size_t size() const;
 };</pre>
 </div>
 <ul>
 <li><code>UIElement</code> / <code>Window</code> 内部用它批量断开自己注册的所有连接。</li>
 <li><code>size()</code> 只统计仍存活的连接；已手动断开的连接不计数。</li>
-<li><strong><code>易错</code></strong>：<code>ConnectionGroup</code> 的 <code>disconnectAll()</code> 只移除连接，不执行用户槽。</li>
 </ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>ConnectionGroup</code> 的 <code>disconnectAll()</code> 只移除连接，不执行用户槽。</li>
+</ul>
+</div>
 <h2 id="zsignal">ZSignal</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ac96968c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-92c8ca57', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span><span class="w"> </span><span class="n">TArgs</span><span class="o">&gt;</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ZSignal</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">SlotType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">TArgs</span><span class="p">...)</span><span class="o">&gt;</span><span class="p">;</span>
@@ -413,7 +471,7 @@ namespace UIZSignals {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">TArgs</span><span class="p">...</span><span class="w"> </span><span class="n">targs</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-ac96968c" style="display: none;">template&lt;typename... TArgs&gt; class ZSignal {
+<pre id="code-92c8ca57" style="display: none;">template&lt;typename... TArgs&gt; class ZSignal {
     using SlotType = std::function&lt;void(TArgs...)&gt;;
     Connection connect(SlotType slot,
                        ConnectionThread thread = ConnectionThread::CurrentThread,
@@ -428,10 +486,17 @@ namespace UIZSignals {
 <ul>
 <li>触发用 <code>Fire</code>（<strong>没有 <code>emit</code> 宏</strong>）。</li>
 <li><code>ZSignal</code> <strong>不可拷贝、不可移动</strong>；信号是控件/窗口的成员，不要放进可移动容器。</li>
-<li><strong><code>易错</code></strong>：<code>Fire</code> 基于<strong>快照</strong>遍历，槽内可以安全 <code>disconnect</code>；槽内再次 <code>Fire</code> 同一信号会走“重入”分支（局部拷贝），<strong>不要</strong>在重入里做递归深链。</li>
-<li><strong><code>易错</code></strong>：<code>Fire</code> 与 <code>ZSignal</code> 析构并发是 UB；信号必须在同一线程完成触发/析构。</li>
-<li><strong><code>易错</code></strong>：槽抛异常会直接穿出 <code>Fire</code>，后续槽不再执行；信号槽内不建议抛异常。</li>
 <li>信号参数按<strong>左值</strong>传给槽；槽不要写 <code>T&amp;&amp;</code> 形参，大对象建议 <code>const T&amp;</code>。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>Fire</code> 基于<strong>快照</strong>遍历，槽内可以安全 <code>disconnect</code>；槽内再次 <code>Fire</code> 同一信号会走“重入”分支（局部拷贝），<strong>不要</strong>在重入里做递归深链。</li>
+<li><code>Fire</code> 与 <code>ZSignal</code> 析构并发是 UB；信号必须在同一线程完成触发/析构。</li>
+<li>槽抛异常会直接穿出 <code>Fire</code>，后续槽不再执行；信号槽内不建议抛异常。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>v1.18.0</code> 加 RAII 守卫：槽抛异常也会正确还原重入深度并释放快照；<code>v1.24.0</code> 禁止移动。</li>
 </ul>
 <h2 id="接收者上下文与-connectweak">接收者上下文与 ConnectWeak</h2>
@@ -443,7 +508,7 @@ namespace UIZSignals {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-6cd60285', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-a68e1810', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">panel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Panel</span><span class="o">&gt;</span><span class="p">();</span>
 
@@ -454,7 +519,7 @@ namespace UIZSignals {
 <span class="n">ConnectWeak</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span><span class="w"> </span><span class="n">btn</span><span class="o">-&gt;</span><span class="n">Clicked</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="n">Panel</span><span class="o">*</span><span class="w"> </span><span class="n">self</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">self</span><span class="o">-&gt;</span><span class="n">Refresh</span><span class="p">();</span><span class="w"> </span><span class="p">});</span>
 <span class="n">ConnectWeak</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span><span class="w"> </span><span class="n">btn</span><span class="o">-&gt;</span><span class="n">Clicked</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Panel</span><span class="o">::</span><span class="n">OnClick</span><span class="p">);</span>
 </pre></div>
-<pre id="code-6cd60285" style="display: none;">auto panel = std::make_shared&lt;Panel&gt;();
+<pre id="code-a68e1810" style="display: none;">auto panel = std::make_shared&lt;Panel&gt;();
 
 panel-&gt;Connect(btn-&gt;Clicked, [this] { Refresh(); });
 Connect(panel, btn-&gt;Clicked, &amp;Panel::OnClick);
@@ -463,15 +528,23 @@ btn-&gt;Clicked.connect(panel, [this] { Refresh(); });
 ConnectWeak(panel, btn-&gt;Clicked, [](Panel* self) { self-&gt;Refresh(); });
 ConnectWeak(panel, btn-&gt;Clicked, &amp;Panel::OnClick);</pre>
 </div>
+<div class="orange">
+<p><strong>注意</strong></p>
 <ul>
-<li><strong><code>易错</code></strong>：<code>ConnectWeak</code> 的槽里不要再按值捕获 <code>self</code> 的 <code>shared_ptr</code>，否则会形成“信号→槽→self→信号”的强引用环。</li>
-<li><strong><code>注意</code></strong>：<code>Menu</code> / <code>MenuItem</code> / <code>Timer</code> 仍用 <code>signal.connect</code>，<strong>不自动断开</strong>。</li>
+<li><code>Menu</code> / <code>MenuItem</code> / <code>Timer</code> 仍用 <code>signal.connect</code>，<strong>不自动断开</strong>。</li>
 </ul>
+</div>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>ConnectWeak</code> 的槽里不要再按值捕获 <code>self</code> 的 <code>shared_ptr</code>，否则会形成“信号→槽→self→信号”的强引用环。</li>
+</ul>
+</div>
 <h2 id="全局信号-uizsignals">全局信号 UIZSignals</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c58fa284', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-d6764c23', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">UIZSignals</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="n">ID2D1RenderTarget</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">DrawOverlay</span><span class="p">;</span>
@@ -483,7 +556,7 @@ ConnectWeak(panel, btn-&gt;Clicked, &amp;Panel::OnClick);</pre>
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">Error</span><span class="p">;</span><span class="w">         </span><span class="c1">// v1.16.0</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-c58fa284" style="display: none;">namespace UIZSignals {
+<pre id="code-d6764c23" style="display: none;">namespace UIZSignals {
     inline ZSignal&lt;Window*, ID2D1RenderTarget*&gt; DrawOverlay;
     inline ZSignal&lt;Window*, float, float&gt; GlobalMouseDown;
     inline ZSignal&lt;Window*&gt; WindowActivated, WindowDeactivated;
@@ -494,9 +567,16 @@ ConnectWeak(panel, btn-&gt;Clicked, &amp;Panel::OnClick);</pre>
 }</pre>
 </div>
 <ul>
-<li><strong><code>易错</code></strong>：<code>DrawOverlay</code> 带 <code>Window*</code>，subscriber <strong>必须</strong>按 <code>GetWindow()</code> 过滤，否则窗口 A 的浮层会画到窗口 B 上（经典多窗口串扰）。</li>
 <li><code>RepaintRequest</code>/<code>LayoutInvalidated</code>/capture 信号只对<strong>未挂载</strong>元素兜底；已挂载元素直接走 <code>Window</code>。</li>
 <li><code>DeviceReset</code>：释放一切与渲染目标/设备绑定的缓存（如 <code>ImageDeviceCache</code>）。</li>
+</ul>
+<div class="red">
+<p><strong>易错</strong></p>
+<ul>
+<li><code>DrawOverlay</code> 带 <code>Window*</code>，subscriber <strong>必须</strong>按 <code>GetWindow()</code> 过滤，否则窗口 A 的浮层会画到窗口 B 上（经典多窗口串扰）。</li>
+</ul>
+</div>
+<ul>
 <li><strong><code>版本</code></strong>：<code>UIZSignals::Error</code> = <code>v1.16.0</code>。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.3.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">基础类型</span><span class="nav-desc">Color、Rect、Thickness、Size</span></a><a class="next" href="API.5.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">字体与图标</span><span class="nav-desc">FontSpec、FontManager、Icon</span></a></nav>
