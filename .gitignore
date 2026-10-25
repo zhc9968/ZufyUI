@@ -33,6 +33,8 @@ ZufyUI_Release_1.5_fontUpdate1/
 /README.html
 /README.en.html
 /docs/API*.html
+/docs/API*.md
+/docs/API*.search.json
 *.lnk
 
 # gh-pages 站点工作副本（内嵌 git 仓库，仅在本机维护，不纳入主仓库）

@@ -828,7 +828,7 @@ bool UseCache() const override { return false; }
 ```
 - **`Version`**: `v1.12.0`; `UseCache=false` `v1.12.2`; NaN/Inf guard `v1.14.0`.
 
-###chapter: Containers & scrolling | ScrollViewer, ScrollBar, SplitView, TabView
+###chapter: Containers & scrolling | ScrollViewer, ScrollBar, SplitView, Drawer, TabView
 
 ## ScrollViewer
 

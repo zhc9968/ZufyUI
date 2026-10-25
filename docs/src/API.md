@@ -841,7 +841,7 @@ bool UseCache() const override { return false; }   // 每帧重绘
 ```
 - **`版本`**：`v1.12.0`；`UseCache=false` `v1.12.2`；NaN/Inf 守卫 `v1.14.0`。
 
-###chapter: 容器与滚动 | ScrollViewer、ScrollBar、SplitView、TabView
+###chapter: 容器与滚动 | ScrollViewer、ScrollBar、SplitView、Drawer、TabView
 
 ## ScrollViewer
 
