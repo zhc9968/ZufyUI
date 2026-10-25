@@ -155,9 +155,11 @@ struct Size { float width, height; Size(float w=0, float h=0); };
 enum class ConnectionThread { CurrentThread, NewThread, UIThread };
 ```
 - `CurrentThread` (default): slot runs synchronously on the firing thread.
-- `NewThread`: **spawns a detached thread per Fire** — do not touch UI inside.
-- `UIThread`: posts the slot to the UI thread (the correct way to update UI from workers).
-- **`Version`**: cross-thread/locking semantics hardened in `v1.15.0`.
+- `NewThread`: **spawns a detached thread per Fire** — do not touch UI inside; a running slot cannot be cancelled midway; **not suitable for high-frequency signals** — use `UIThread` or your own pool instead.
+- `UIThread`: posts the slot to the UI thread (the correct way to update UI from workers); queued tasks check liveness and skip after `disconnect` / receiver destruction.
+- **`Pitfall`**: `Fire` should run on the UI thread by default; firing from a worker with `CurrentThread` slots runs UI slots on that worker — that is a caller contract violation. For cross-thread firing, use `UIThread` slots or guarantee subscriber lifetime yourself.
+- **`Pitfall`**: `NewThread` + a raw `this` capture + a receiver that may die early = UAF; use `ConnectWeak` to keep it alive, or `UIThread`.
+- **`Version`**: cross-thread/locking semantics hardened in `v1.15.0`; queued tasks gained liveness checks in `v1.24.0`.
 
 ## Connection (Qt-style passive handle)
 
@@ -168,9 +170,11 @@ class Connection {
     explicit operator bool() const;   // destructor does NOT auto-disconnect
 };
 ```
-- Disconnected by the host element's `ConnectionGroup` on destruction; **`Connection`'s own destructor does not**.
-- **`Pitfall`**: it is safe to ignore the return of `connect`; but if you keep a `Connection` and `disconnect` manually, the signal may already be gone — `isConnected`/`disconnect` are guarded by an `alive` flag.
-- **`Version`**: passive-handle semantics since `v1.8.1`.
+- Disconnected by the receiver's `ConnectionGroup` on destruction; **`Connection`'s own destructor does not**.
+- `disconnect()` logically invalidates pending `UIThread` / `NewThread` tasks, but **does not interrupt a slot already running**.
+- **`Pitfall`**: `Connection` is **not an RAII guard**; a temporary handle's destructor does not disconnect. Call `disconnect()` explicitly or rely on the receiver's group.
+- **`Pitfall`**: it is safe to ignore the return of `connect`; calling `disconnect` after the signal is destroyed is safe (`alive` is atomic).
+- **`Version`**: passive-handle semantics since `v1.8.1`; the alive flag became atomic and pending tasks are cancelled since `v1.24.0`.
 
 ## ConnectionGroup
 
@@ -179,6 +183,9 @@ class ConnectionGroup : public std::enable_shared_from_this<ConnectionGroup> {
     void disconnectAll(); size_t size() const;
 };
 ```
+- Used internally by `UIElement` / `Window` to disconnect all connections they own.
+- `size()` counts only live connections; manually disconnected connections are not counted.
+- **`Pitfall`**: `disconnectAll()` only removes connections; it does not invoke user slots.
 
 ## ZSignal
 
@@ -188,13 +195,39 @@ template<typename... TArgs> class ZSignal {
     Connection connect(SlotType slot,
                        ConnectionThread thread = ConnectionThread::CurrentThread,
                        std::shared_ptr<ConnectionGroup> group = nullptr);
+    template<class Receiver, class Slot>
+    Connection connect(Receiver* receiver, Slot&& slot,
+                       ConnectionThread thread = ConnectionThread::CurrentThread);
     void Fire(TArgs... targs) const;
     void operator()(TArgs... targs) const;
 };
 ```
 - Fire with `Fire` (**there is no `emit` macro**).
+- `ZSignal` is **not copyable or movable**; it is a member of controls/windows — never put it in a movable container.
 - **`Pitfall`**: `Fire` iterates a **snapshot**, so a slot may safely `disconnect`; re-firing the same signal inside a slot goes through the "reentrant" path (local copy) — avoid deep recursion there.
-- **`Version`**: `v1.18.0` adds a RAII guard so a throwing slot still restores reentrancy depth and releases the snapshot.
+- **`Pitfall`**: `Fire` concurrent with `ZSignal` destruction is UB; fire and destroy a signal on the same thread.
+- **`Pitfall`**: an exception thrown by a slot propagates out of `Fire`; later slots do not run. Avoid throwing from signal slots.
+- Signal arguments are passed to slots as **lvalues**; do not declare `T&&` slot parameters, and prefer `const T&` for large objects.
+- **`Version`**: `v1.18.0` adds a RAII guard so a throwing slot still restores reentrancy depth and releases the snapshot; non-movable since `v1.24.0`.
+
+## Receiver context and ConnectWeak
+
+- `elem->Connect(sig, slot)`, `Connect(elem, sig, slot)` and `sig.connect(elem, slot)` register the connection on `elem`'s `ConnectionGroup` and disconnect when `elem` is destroyed; `Window` supports the same.
+- `ConnectWeak(self, sig, slot)` holds a weak reference; the slot's first parameter is `T*` or `T&`, keeps `self` alive during execution, and does nothing if the object is gone.
+- Member-function pointers go through the free `Connect` / `ConnectWeak` only (compile-time type check); `elem->Connect(sig, &Class::Method)` is no longer supported.
+
+```cpp
+auto panel = std::make_shared<Panel>();
+
+panel->Connect(btn->Clicked, [this] { Refresh(); });
+Connect(panel, btn->Clicked, &Panel::OnClick);
+btn->Clicked.connect(panel, [this] { Refresh(); });
+
+ConnectWeak(panel, btn->Clicked, [](Panel* self) { self->Refresh(); });
+ConnectWeak(panel, btn->Clicked, &Panel::OnClick);
+```
+- **`Pitfall`**: do not capture `self`'s `shared_ptr` by value inside a `ConnectWeak` slot — that creates a signal → slot → self → signal strong cycle.
+- **`Note`**: `Menu` / `MenuItem` / `Timer` still use `signal.connect` and do **not** auto-disconnect.
 
 ## Global signals UIZSignals
 
@@ -1406,7 +1439,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.23.3
+###chapter: Version digest | v1.15.0 → v1.24.0
 
 > Only the changes that affect your code are listed.
 
@@ -1513,6 +1546,11 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Fix ? drop-menu position**: `GetDpiScale()` returns 96/144 (not 1.0/1.5); the old multiplier sent the menu to the screen bottom-right. Dividing by 96 places it under the button, and the demo no longer shows a MessageBox.
   - **Fixes**: `SetBackdrop(Acrylic/Mica)` no longer covers the system material with opaque white when no tint is set; `ListView::SetItemHeight` is clamped to >=1px and Draw/hit-testing no longer divide by zero.
   - **Docs/cleanup**: documented `HwndView` cross-process risks; removed the redundant `WM_ACTIVATE` check, added `<cstring>`, removed the demo's empty callback.
+- **v1.24.0** (**contains breaking changes**):
+  - **Signal lifetime**: `ConnectionState::alive` is atomic; `Connection::disconnect` / receiver destruction logically cancels pending `UIThread` / `NewThread` tasks; `Fire` concurrent with signal destruction is explicitly UB.
+  - **Receiver context**: `UIElement` / `Window` derive from `ConnectionOwner`; `elem->Connect(...)` / `Connect(elem, ...)` / `sig.connect(elem, ...)` disconnect with the receiver; added free `Connect` and `ConnectWeak`.
+  - **Breaking**: `ZSignal` is neither copyable nor movable; member-function pointers use `Connect(elem, sig, &Class::Method)` / `ConnectWeak`; `elem->Connect(sig, &Class::Method)` is no longer supported.
+  - **Notes**: `Menu` / `MenuItem` / `Timer` still use `signal.connect` and do not auto-disconnect; signal arguments are passed as lvalues.
 
 
 ###chapter: Pitfall index | Quick lookup by topic

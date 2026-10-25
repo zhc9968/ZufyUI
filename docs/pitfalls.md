@@ -48,7 +48,7 @@
 | # | 状态 | 说明 |
 |---|---|---|
 | 4.1 | 易错 | `Window::Run()` 返回 `void`；无公开 `SetContent`，根内容走 `SetRootLayout(Layout)` 或 `GetRootColumnBox()`。 |
-| 4.2 | 易错 | `Window` **没有 `Connect` 方法**、**没有尺寸/DPI 变化信号**；挂窗口信号用 `signal.connect(slot)`。 |
+| 4.2 | 易错 | `Window` 现在继承 `ConnectionOwner`，有 `Connect`；仍**没有尺寸/DPI 变化信号**。成员函数指针用自由 `Connect` / `ConnectWeak`。 |
 | 4.3 | 易错 | 自定义标题栏**不参与布局**；菜单栏/状态栏默认 chrome。 |
 | 4.4 | 易错 | 隐藏页/池化控件**不在 `GetChildren()`**；主题等“遍历可见子树”覆盖不到 → 用 `UIZSignals::ThemeReapply`（切页触发）懒套用。 |
 | 4.5 | 易错 | **动画 `deltaTime` 已被钳到 ≤0.033s**；自定义动画别用“指数收敛到阈值”（要爬 ~6τ），用**时长驱动** `detail::EaseOutCubic/EaseInOutCubic`（到点精确结束）。 |
@@ -62,12 +62,20 @@
 | # | 状态 | 说明 |
 |---|---|---|
 | 5.1 | 易错 | `GetChildren()` 返回内部缓冲引用，**遍历期不得对同一元素再次调 `GetChildren()`**。 |
-| 5.2 | 易错 | `Connect(signal, slot)` **不返回** `Connection`；需要手动断开才用 `signal.connect(...)`。 |
+| 5.2 | 易错 | `Connect(signal, slot)` 返回 `Connection`；连接随**接收者**析构断开。可忽略返回值；手动断开用 `Connection::disconnect()`。 |
 | 5.3 | 易错 | 全局 `UIZSignals::*` 带 `Window*`，订阅者**必须按 `GetWindow()` 过滤**。 |
-| 5.4 | 易错 | `ZSignal::Fire` 的异步/重入分支要用**左值**（`std::apply(slot, tuple)` 右值绑不到 `T&`）。 |
+| 5.4 | 易错 | `ZSignal::Fire` 的异步/重入分支要用**左值**（`std::apply(slot, tuple)` 右值绑不到 `T&`）；信号参数不要写 `T&&`。 |
 | 5.5 | 易错 | `~UIElement` 会从窗口的 `pendingRepaint_`/`lastActiveAnimElements_`/UIA 表**反向注销**；新增“窗口持裸元素指针”的集合时，析构里必须擦除，否则随机 UAF。 |
-| 5.6 | 约定 | 回调捕获**裸指针**（而不是 `shared_ptr`）可避免“对象→回调→shared_ptr→对象”引用环；连接随元素析构自动断开，裸指针安全。 |
+| 5.6 | 约定 | 裸 `this` 捕获安全的前提是连接登记在**正确的接收者** `ConnectionGroup`；直接 `signal.connect(slot)` 不自动断开。 |
 | 5.7 | 易错 | 池只增不减（`ListView/TableView` 数据骤降不收缩）。 |
+| 5.8 | 约定 | 成员函数指针用自由 `Connect(receiver, signal, &Class::Method)` 或 `ConnectWeak`；`elem->Connect(sig, &Class::Method)` 已不支持。 |
+| 5.9 | 易错 | `disconnect()` 只逻辑取消**已排队**的 `UIThread`/`NewThread` 任务；**不中断已开始执行**的槽。 |
+| 5.10 | 易错 | `NewThread` 槽里不能碰 UI；裸 `this` + 接收者可能死亡 = UAF。用 `ConnectWeak` 保活，改 UI 用 `UIThread`。 |
+| 5.11 | 易错 | `Fire` 与 `ZSignal` 析构并发是 **UB**；`ZSignal` 不可拷贝/移动，不要放进可移动容器。 |
+| 5.12 | 易错 | `Connection` **不是 RAII 守卫**；临时句柄析构不会断连，必须显式 `disconnect()` 或依赖接收者 group。 |
+| 5.13 | 易错 | `Fire` 默认应在 UI 线程；后台 Fire + `CurrentThread` 槽会直接在后台执行 UI 槽，属于调用方违约。 |
+| 5.14 | 易错 | 槽抛异常会直接穿出 `Fire`，后续槽不再执行；信号槽内不建议抛异常。 |
+| 5.15 | 约定 | `NewThread` 每次 Fire 起一个 detached 线程，不适合高频信号；高频用 `UIThread` 或线程池。 |
 
 ## 6. 主题
 

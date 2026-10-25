@@ -19,7 +19,7 @@
 
 - `UIElement::GetChildren()` 返回的是**元素内部缓冲的引用**，其有效期为“该元素的子列表或可视状态发生变化 / 再次调用该元素的 `GetChildren()` 之前”。遍历期间**不得对同一个元素再次调用 `GetChildren()`**（容器递归自己子元素时用的是各自独立的缓冲，安全）。
 - 元素内部用**窗口 id**（不是裸指针）记录所属窗口；窗口销毁后 `GetWindow()` 返回 `nullptr`。
-- `UIElement::Connect(signal, slot)` **不返回** `Connection`；连接登记在元素的 `ConnectionGroup`，随元素析构自动断开。需要手动断开请直接用 `signal.connect(...)`。
+- `UIElement` / `Window` 继承 `ConnectionOwner`，`Connect(signal, slot)` 返回 `Connection`；连接登记在接收者 `ConnectionGroup`，随接收者析构自动断开。成员函数指针用自由 `Connect(receiver, signal, &Class::Method)` 或 `ConnectWeak`，**不要**写 `elem->Connect(sig, &Class::Method)`。
 - 所有与窗口相关的全局信号（`UIZSignals::*`）都携带 `Window*`；订阅者必须用 `GetWindow()` 过滤，禁止跨窗口处理。
 - 数据视图（List/Table/Tree）的按项/按行元数据要么绑定到项目对象、要么在排序/增删时重映射，禁止用会失效的下标或裸指针悬挂。
 

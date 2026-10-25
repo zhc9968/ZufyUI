@@ -1,7 +1,7 @@
 # ZufyUI 交接文档（HANDOFF）
 
 > 给**下一位接手者 / AI 智能体**：读这一份即可上手。配套：`AGENTS.md`（硬规则）、`TODO.md`（本地待办，不发布）、`docs/src/API.md`（API 参考）、`docs/src/API.en.md`（英文）、`README.md`（构建/快速开始）。
-> 版本基线：`1.23.3`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
+> 版本基线：`1.24.0`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
 > ⚠️ **一批反馈工作已随 `v1.21.0` 发布**（commit `cf78c54`，tag `v1.21.0`，已推 gitee/github；gh-pages 站点同步）：逐项记录与**尚未解决**的问题见 **§10**，接手前先读 §10（尤其 §10.4 未决项）。
 
 ---
@@ -147,7 +147,7 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
 - 隐藏页/被池化的控件**不在 `GetChildren()` 里**：主题等“遍历可见子树”的操作覆盖不到它们 → 用 `UIZSignals::ThemeReapply`（切页时 `PageHost` 触发）懒套用。
 - **`ColumnBox`/`RowBox` 会把"没有显式宽度"的子元素按可用宽度摆**（`childW = GetWidth() > 0 ? GetWidth() : availW`），**横向不看 `hWeight`/拉伸权值**。所以「让卡片按内容收窄」不能靠 `.hWeight(0)`，要么给显式宽度，要么**把它放进一个 `Row`**（`Row` 按子元素自然宽度摆）。反过来，`Row` 里的 Row 内容**不理会可用宽度**（返回自然宽）→ 内容过宽时会出现横向滚动。
 - **`SettingsList::MeasureOverride`**：`w = (avail.width != FLT_MAX && avail.width > 0) ? avail.width : width_`。**若被给到 `FLT_MAX` 且自己没设宽度，它会返回 0 宽** → 行内文字被压成 0（只剩图标和箭头）。所以**别把 `SettingsList` 直接塞进 `Card` 自带的 `GridLayout`**（网格自动列会传 `FLT_MAX`）；用 `card->SetLayout(Col().add(list))` + `list->SetFillWidth(true)`。
-- **`Window` 没有 `Connect` 方法**，挂窗口信号用 `signal.connect(slot)`（`ZSignal` 自带）。
+- `Window` / `UIElement` 现在继承 `ConnectionOwner`，有 `Connect`；连接随接收者析构自动断开。成员函数指针用自由 `Connect` / `ConnectWeak`，不要写 `elem->Connect(sig, &Class::Method)`。
 - **`Window` 没有尺寸/DPI 变化信号**（现有信号只有 `BackdropUnsupported/DeviceLost/RenderingError/ThumbButtonClicked/Activated/Deactivated/Closing/Closed`）→ 状态栏之类"实时反映窗口尺寸"的面板只能在激活/切页/切主题时刷新，做不到每次拖边框都变（要实时得先加信号）。
 - **`StatusBar::AddPanel` 没有点击回调**（`Panel{text,icon,right}`）→ 状态栏只能"反映状态"，不能"点某一格触发动作"（要做得给 Panel 加 `onClick`）。
 - **`WM_MOUSEACTIVATE → MA_NOACTIVATE` 只对弹出层生效**：条件是 `!WantDwmChrome()`，而只有 `MenuWindowBase` 把 `WantDwmChrome()` 覆写成 `false`；`MessageBox` 继承 `true`，走**正常激活**路径。排查"弹窗首次点击穿透"时别一上来就怀疑这条。
@@ -156,9 +156,12 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
 
 ### 信号 / 生命周期
 - `UIElement::GetChildren()` 返回内部缓冲引用，**遍历期不得对同一元素再次调 `GetChildren()`**。
-- `UIElement::Connect(signal, slot)` **不返回** `Connection`（登记在元素 `ConnectionGroup`，随元素析构断开）；需要手动断开才用 `signal.connect(...)`。
+- `UIElement::Connect(signal, slot)` 返回 `Connection`；连接登记在接收者 `ConnectionGroup`，随接收者析构断开。可忽略返回值；手动断开用 `Connection::disconnect()`。
+- `ConnectWeak(self, signal, slot)`：槽第一个参数为 `T*` / `T&` 或成员函数指针；弱引用、执行期间保活。`NewThread` + 裸 `this` 必须优先考虑它。
 - 全局信号 `UIZSignals::*` 都带 `Window*`，订阅者**必须按 `GetWindow()` 过滤**，禁止跨窗口处理。
-- `ZSignal::Fire` 的异步/重入分支要用**左值**（`std::apply(slot, tuple)` 右值绑不到 `T&`）。
+- `ZSignal` **不可拷贝/移动**；`Fire` 与信号析构并发是 UB。`Fire` 的异步/重入分支保留左值约束。
+- `ConnectionState::disconnectNow()` 持状态锁执行内部 `disconnect` 回调；回调只允许 `ZSignal::removeConnection`，禁止日志、用户代码或其它库锁。锁顺序固定为 `ConnectionState::mutex → ZSignal::mutex_`。
+- `Fire` 默认要求在 UI 线程；后台 Fire + `CurrentThread` 槽属于调用方违约。`Connection` 不是 RAII，临时句柄析构不断连。
 - 池只增不减（`ListView/TableView` 数据量骤降不收缩），大量反复切换需注意显存。
 - `~UIElement` 会从窗口的 `pendingRepaint_` / `lastActiveAnimElements_` / UIA 表**反向注销**——新增“窗口持有裸元素指针”的集合时，别忘了在析构里擦除，否则随机 UAF（本轮修过 `lastActiveAnimElements_`）。
 

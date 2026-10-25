@@ -65,12 +65,14 @@ namespace dsl {
             return *this;
         }
         // 信号：引用形式 on(elem->Clicked, slot) 或模板形式 on<&Button::Clicked>(slot)
-        template<class Sig, class F> Ref& on(Sig& sig, F&& f) {
-            if (p_) p_->Connect(sig, std::forward<F>(f));
+        template<class Sig, class F> Ref& on(Sig& sig, F&& f,
+            ConnectionThread thread = ConnectionThread::CurrentThread) {
+            if (p_) p_->Connect(sig, std::forward<F>(f), thread);
             return *this;
         }
-        template<auto SigMem, class F> Ref& on(F&& f) {
-            if (p_) p_->Connect(p_.get()->*SigMem, std::forward<F>(f));
+        template<auto SigMem, class F> Ref& on(F&& f,
+            ConnectionThread thread = ConnectionThread::CurrentThread) {
+            if (p_) p_->Connect(p_.get()->*SigMem, std::forward<F>(f), thread);
             return *this;
         }
         // 逃生口：with() 只接“成员函数指针”，多步 / 条件 / 需要迭代的操作走 apply(lambda)
@@ -341,9 +343,9 @@ namespace dsl {
         WindowApp& menuBarInTitleBar(bool on = true) { menuBarInTitleBar_ = on; menuBarInTitleBarSet_ = true; return *this; }
 
         // 窗口信号（与 Ref::on 同形）：dsl::ZApp().on<&ZufyUI::Window::Closed>([]{ ... })
-        //   Window 没有 Connect，信号是裸成员，所以用成员指针形式。
-        template<auto SigMem, class F> WindowApp& on(F&& f) {
-            (win_.get()->*SigMem).connect(std::forward<F>(f));
+        template<auto SigMem, class F> WindowApp& on(F&& f,
+            ConnectionThread thread = ConnectionThread::CurrentThread) {
+            if (win_) win_->Connect(win_.get()->*SigMem, std::forward<F>(f), thread);
             return *this;
         }
 

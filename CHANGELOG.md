@@ -2,7 +2,21 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.23.3**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.24.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-25 — 信号生命周期、接收者上下文、ConnectWeak（v1.24.0）
+
+- **破坏性 · `ZSignal` 非移动**：删除 `ZSignal` 的移动构造/赋值；信号作为控件/窗口成员使用，不要放进可移动容器。旧代码若移动 `ZSignal` 会编译失败。
+- **破坏性 · 成员函数指针连接**：`elem->Connect(sig, &Class::Method)` 不再支持；改用 `Connect(elem, sig, &Class::Method)`（编译期检查）或 `ConnectWeak(elem, sig, &Class::Method)`。
+- **破坏性 · `Connection` 语义**：`disconnect()` 现在会逻辑取消已排队的 `UIThread` / `NewThread` 任务；不会中断已经执行中的槽。
+- **修复 · 信号存活竞争**：`ConnectionState::alive` 改为原子；`disconnect` 在状态锁内执行内部移除回调，信号析构先 `kill()` 再释放；修复 `alive` 数据竞争和 check-then-call UAF。
+- **修复 · 队列任务**：`UIThread` / `NewThread` 任务捕获连接状态，执行前检查存活；接收者析构或手动断开后不再执行。
+- **新增 · 接收者上下文**：`ConnectionOwner` 基类；`UIElement` / `Window` 继承它。`elem->Connect(...)`、自由 `Connect(elem, ...)`、`sig.connect(elem, ...)` 的自动断开跟随接收者，而不是信号拥有者。
+- **新增 · `ConnectWeak`**：弱引用接收者，槽第一个参数为 `T*` / `T&` 或成员函数指针；槽执行期间保活，对象已销毁则跳过。适用于 `NewThread` 或无法保证生命周期的场景。
+- **改进**：`Window` 的 `ReloadAcrylic` / `ThemeChanged` / `ThemeReapply` 三条全局连接改走 `Window::ConnectionGroup`；删除手工 `Connection` 成员。`ConnectionGroup::size()` 只统计存活连接，并定期清理已断开弱引用。
+- **范围**：`Menu` / `MenuItem` / `Timer` 仍使用 `signal.connect`，不自动断开。
+- **测试**：DSL 自检 140 → **161** 项；新增接收者析构断开、自由 `Connect`、`ConnectWeak`、`Connection` 拷贝/移动、信号先析构等回归。
+- **验证**：x64 Debug/Release、x86 Debug 构建通过；DSL 161 项通过。x86 Release 本轮未重跑。
 
 ### 2026-10-23 — Button 富文本/下拉、SetBackdrop 修复、ListView 除零（v1.23.3）
 

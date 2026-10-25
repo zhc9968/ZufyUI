@@ -2,7 +2,21 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.23.3** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.24.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-25 — Signal lifetime, receiver context, ConnectWeak (v1.24.0)
+
+- **Breaking · `ZSignal` is non-movable**: removed its move constructor/assignment; signals are control/window members, so do not put them in movable containers. Old code that moves a `ZSignal` now fails to compile.
+- **Breaking · member-function pointer connections**: `elem->Connect(sig, &Class::Method)` is no longer supported; use `Connect(elem, sig, &Class::Method)` (compile-time checked) or `ConnectWeak(elem, sig, &Class::Method)`.
+- **Breaking · `Connection` semantics**: `disconnect()` now logically cancels pending `UIThread` / `NewThread` tasks; it does not interrupt a slot already running.
+- **Fix · signal liveness race**: `ConnectionState::alive` is now atomic; `disconnect` runs its internal removal callback under the state lock; signal destruction `kill()`s states before releasing them, fixing the `alive` data race and the check-then-call UAF.
+- **Fix · queued tasks**: `UIThread` / `NewThread` tasks capture the connection state and check liveness before running; they no longer execute after receiver destruction or a manual disconnect.
+- **New · receiver context**: a `ConnectionOwner` base class; `UIElement` / `Window` derive from it. `elem->Connect(...)`, free `Connect(elem, ...)` and `sig.connect(elem, ...)` follow the receiver's lifetime, not the signal owner's.
+- **New · `ConnectWeak`**: weakly-referenced receiver; the slot's first parameter is `T*` / `T&` or a member-function pointer; the receiver stays alive while the slot runs, and the slot is skipped after destruction. Useful for `NewThread` or uncertain lifetimes.
+- **Improvement**: `Window`'s `ReloadAcrylic` / `ThemeChanged` / `ThemeReapply` global connections now go through `Window::ConnectionGroup`; manual `Connection` members were removed. `ConnectionGroup::size()` counts live connections only and periodically prunes dead weak references.
+- **Scope**: `Menu` / `MenuItem` / `Timer` still use `signal.connect` and do not auto-disconnect.
+- **Tests**: DSL self-test 140 → **161**; added receiver-destruction disconnect, free `Connect`, `ConnectWeak`, `Connection` copy/move, signal-destroyed-first, and related regressions.
+- **Verification**: x64 Debug/Release and x86 Debug builds pass; DSL 161 assertions pass. x86 Release was not rerun this round.
 
 ### 2026-10-23 — Button rich content/split, SetBackdrop fix, ListView division (v1.23.3)
 

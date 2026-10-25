@@ -47,6 +47,7 @@
 #include <condition_variable>
 #include <thread>
 #include <atomic>
+#include <type_traits>
 #include <utility>
 #include <tuple>
 #include <wrl/client.h>
@@ -88,9 +89,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 23
-#define ZufyUI_VERSION_PATCH 3
-#define ZufyUI_VERSION_STRING L"1.23.3"
+#define ZufyUI_VERSION_MINOR 24
+#define ZufyUI_VERSION_PATCH 0
+#define ZufyUI_VERSION_STRING L"1.24.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -609,10 +610,27 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         struct ConnectionState {
+            std::mutex mutex;
             std::function<void()> disconnect;
-            std::weak_ptr<ConnectionGroup> group;
-            std::shared_ptr<bool> alive;
-            ConnectionState() : alive(std::make_shared<bool>(true)) {}
+            std::atomic<bool> alive{ true };
+
+            // 内置断开回调只允许做 ZSignal::removeConnection；
+            // 不得在这里写日志、调用户代码或拿其它库锁。
+            void disconnectNow() {
+                std::lock_guard<std::mutex> lock(mutex);
+                if (!alive.load(std::memory_order_acquire)) return;
+                alive.store(false, std::memory_order_release);
+                auto fn = std::move(disconnect);
+                disconnect = nullptr;
+                if (fn) fn();
+            }
+
+            // 信号析构：只标记死亡并清空回调，不回调已析构的信号。
+            void kill() {
+                std::lock_guard<std::mutex> lock(mutex);
+                alive.store(false, std::memory_order_release);
+                disconnect = nullptr;
+            }
         };
     }
 
@@ -625,31 +643,39 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         ConnectionGroup& operator=(const ConnectionGroup&) = delete;
 
         void disconnectAll() {
-            std::lock_guard<std::mutex> lock(mutex_);
-            for (auto& weak : connections_) {
-                if (auto state = weak.lock()) {
-                    if (state->disconnect && state->alive && *state->alive) {
-                        state->disconnect();
-                    }
-                    state->disconnect = nullptr;
-                }
+            std::vector<std::weak_ptr<detail::ConnectionState>> doomed;
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                doomed.swap(connections_);
             }
-            connections_.clear();
+            for (auto& weak : doomed) {
+                if (auto state = weak.lock()) state->disconnectNow();
+            }
         }
 
         size_t size() const {
             std::lock_guard<std::mutex> lock(mutex_);
             size_t count = 0;
             for (auto& weak : connections_) {
-                if (!weak.expired()) ++count;
+                if (auto state = weak.lock()) {
+                    if (state->alive.load(std::memory_order_acquire)) ++count;
+                }
             }
             return count;
         }
 
         void addState(const std::shared_ptr<detail::ConnectionState>& state) {
             std::lock_guard<std::mutex> lock(mutex_);
+            if (connections_.size() > 32) {
+                connections_.erase(
+                    std::remove_if(connections_.begin(), connections_.end(),
+                        [](const auto& weak) {
+                            auto s = weak.lock();
+                            return !s || !s->alive.load(std::memory_order_acquire);
+                        }),
+                    connections_.end());
+            }
             connections_.push_back(state);
-            state->group = weak_from_this();
         }
 
     private:
@@ -674,17 +700,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         void disconnect() {
             if (state_) {
-                // 信号已析构时 alive 为 false：绝不能再回调其 disconnect（捕获了已销毁对象的 this）
-                if (state_->disconnect && state_->alive && *state_->alive) {
-                    state_->disconnect();
-                }
-                state_->disconnect = nullptr;
+                state_->disconnectNow();
                 state_.reset();
             }
         }
 
         bool isConnected() const {
-            return state_ && state_->disconnect != nullptr && state_->alive && *state_->alive;
+            return state_ && state_->alive.load(std::memory_order_acquire);
         }
         explicit operator bool() const { return isConnected(); }
 
@@ -700,29 +722,20 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         ZSignal() = default;
         ~ZSignal() {
-            std::lock_guard<std::mutex> lock(mutex_);
-            for (auto& data : connections_) {
-                if (data && data->state && data->state->alive) {
-                    *(data->state->alive) = false;
-                }
+            std::vector<std::shared_ptr<ConnectionData>> doomed;
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                doomed.swap(connections_);
             }
-            connections_.clear();
+            for (auto& data : doomed) {
+                if (data && data->state) data->state->kill();
+            }
         }
 
         ZSignal(const ZSignal&) = delete;
         ZSignal& operator=(const ZSignal&) = delete;
-        ZSignal(ZSignal&& other) noexcept {
-            std::lock_guard<std::mutex> lock(other.mutex_);
-            connections_ = std::move(other.connections_);
-        }
-        ZSignal& operator=(ZSignal&& other) noexcept {
-            if (this != &other) {
-                std::lock_guard<std::mutex> lock1(mutex_);
-                std::lock_guard<std::mutex> lock2(other.mutex_);
-                connections_ = std::move(other.connections_);
-            }
-            return *this;
-        }
+        ZSignal(ZSignal&&) = delete;
+        ZSignal& operator=(ZSignal&&) = delete;
 
         Connection connect(SlotType slot,
             ConnectionThread thread = ConnectionThread::CurrentThread,
@@ -746,6 +759,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
 
             return Connection(state);
+        }
+
+        template<class Receiver, class Slot>
+        Connection connect(Receiver* receiver, Slot&& slot,
+            ConnectionThread thread = ConnectionThread::CurrentThread) {
+            if (!receiver) return Connection();
+            return receiver->Connect(*this, std::forward<Slot>(slot), thread);
         }
 
         void Fire(TArgs... targs) const {
@@ -778,21 +798,25 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             } depthGuard{ &mutex_, &tlDepth, &tlSnapshot };
 
             for (auto& data : *snapshot) {
-                if (!data || !data->state || !*(data->state->alive)) continue;
+                if (!data || !data->state) continue;
+                auto state = data->state;
+                if (!state->alive.load(std::memory_order_acquire)) continue;
                 switch (data->thread) {
                 case ConnectionThread::CurrentThread:
                     data->slot(targs...);
                     break;
                 case ConnectionThread::NewThread: {
                     auto tupleArgs = std::make_tuple(targs...);
-                    std::thread([slot = data->slot, tupleArgs = std::move(tupleArgs)]() mutable {
+                    std::thread([state, slot = data->slot, tupleArgs = std::move(tupleArgs)]() mutable {
+                        if (!state->alive.load(std::memory_order_acquire)) return;
                         std::apply(slot, tupleArgs);
                         }).detach();
                     break;
                 }
                 case ConnectionThread::UIThread: {
                     auto tupleArgs = std::make_tuple(targs...);
-                    detail::PostToUIThread([slot = data->slot, tupleArgs = std::move(tupleArgs)]() mutable {
+                    detail::PostToUIThread([state, slot = data->slot, tupleArgs = std::move(tupleArgs)]() mutable {
+                        if (!state->alive.load(std::memory_order_acquire)) return;
                         std::apply(slot, tupleArgs);
                         });
                     break;
@@ -826,6 +850,83 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         mutable std::mutex mutex_;
         std::vector<std::shared_ptr<ConnectionData>> connections_;
     };
+
+    namespace detail {
+        template<class> struct MemberFunctionOwner;
+        template<class R, class C, class... A>
+        struct MemberFunctionOwner<R(C::*)(A...)> { using type = C; };
+        template<class R, class C, class... A>
+        struct MemberFunctionOwner<R(C::*)(A...) const> { using type = C; };
+        template<class R, class C, class... A>
+        struct MemberFunctionOwner<R(C::*)(A...) noexcept> { using type = C; };
+        template<class R, class C, class... A>
+        struct MemberFunctionOwner<R(C::*)(A...) const noexcept> { using type = C; };
+    }
+
+    class ConnectionOwner {
+    protected:
+        ConnectionOwner() : connectionGroup_(std::make_shared<ConnectionGroup>()) {}
+        ~ConnectionOwner() = default;
+
+        std::shared_ptr<ConnectionGroup> connectionGroup_;
+
+    public:
+        ConnectionOwner(const ConnectionOwner&) = delete;
+        ConnectionOwner& operator=(const ConnectionOwner&) = delete;
+        ConnectionOwner(ConnectionOwner&&) = delete;
+        ConnectionOwner& operator=(ConnectionOwner&&) = delete;
+
+        template<class... Args, class Slot>
+        Connection Connect(ZSignal<Args...>& signal, Slot&& slot,
+            ConnectionThread thread = ConnectionThread::CurrentThread) {
+            static_assert(!std::is_member_function_pointer_v<std::decay_t<Slot>>,
+                "Use Connect(receiver, signal, &Class::Method) or ConnectWeak for member functions");
+            return signal.connect(std::forward<Slot>(slot), thread, connectionGroup_);
+        }
+    };
+
+    template<class Receiver, class... Args, class Slot>
+    Connection Connect(Receiver* receiver, ZSignal<Args...>& signal, Slot&& slot,
+        ConnectionThread thread = ConnectionThread::CurrentThread) {
+        if (!receiver) return Connection();
+        if constexpr (std::is_member_function_pointer_v<std::decay_t<Slot>>) {
+            using Owner = typename detail::MemberFunctionOwner<std::decay_t<Slot>>::type;
+            static_assert(std::is_base_of_v<Owner, Receiver>,
+                "Connect(receiver, signal, &Class::Method): Class must be a base of Receiver");
+            return receiver->Connect(signal,
+                [receiver, fn = std::forward<Slot>(slot)](Args... args) mutable {
+                    std::invoke(fn, receiver, args...);
+                }, thread);
+        } else {
+            return receiver->Connect(signal, std::forward<Slot>(slot), thread);
+        }
+    }
+
+    template<class T, class... Args, class Slot>
+    Connection ConnectWeak(const std::shared_ptr<T>& self, ZSignal<Args...>& signal, Slot&& slot,
+        ConnectionThread thread = ConnectionThread::CurrentThread) {
+        if (!self) return Connection();
+        static_assert(
+            std::is_invocable_v<Slot&, T*, Args...> ||
+            std::is_invocable_v<Slot&, T&, Args...>,
+            "ConnectWeak: slot must accept T* or T& as its first parameter");
+        if constexpr (std::is_member_function_pointer_v<std::decay_t<Slot>>) {
+            using Owner = typename detail::MemberFunctionOwner<std::decay_t<Slot>>::type;
+            static_assert(std::is_base_of_v<Owner, T>,
+                "ConnectWeak: member function class must be a base of T");
+        }
+        std::weak_ptr<T> weak = self;
+        auto forwarder = [weak, fn = std::forward<Slot>(slot)](Args... args) mutable {
+            if (auto sp = weak.lock()) {
+                if constexpr (std::is_invocable_v<Slot&, T*, Args...>) {
+                    std::invoke(fn, sp.get(), args...);
+                } else {
+                    std::invoke(fn, *sp, args...);
+                }
+            }
+        };
+        return self->Connect(signal, std::move(forwarder), thread);
+    }
 
     // ========== 字体管理 ==========
     struct FontSpec {
@@ -1486,12 +1587,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     };
 
     // ---------- 基础元素 ----------
-    class UIElement {
+    class UIElement : public ConnectionOwner {
     public:
         UIElement() : parent_(nullptr), visible_(true), width_(0), height_(0), arrangedRect_(),
             minWidth_(0), minHeight_(0), maxWidth_(FLT_MAX), maxHeight_(FLT_MAX),
             fillWidth_(false), fillHeight_(false),
-            connectionGroup_(std::make_shared<ConnectionGroup>()),
             cacheValid_(false), useCache_(true) {
             // 订阅全局字体变更：未覆盖字体的控件自动重建（随本元素的 ConnectionGroup 自动断开）
             FontManager::Instance().GlobalFontChanged.connect(
@@ -1692,15 +1792,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         virtual D2D1::Matrix3x2F GetChildRenderTransform(UIElement* child) const {
             return D2D1::Matrix3x2F::Identity();
-        }
-
-        // ---------- 信号连接管理 ----------
-        // 连接登记进本元素的 ConnectionGroup，随元素析构自动断开；
-        // 同时返回一个 Qt 风格的被动 Connection 句柄：忽略返回值安全（析构不断连），
-        // 需要单独断开时调用 `auto c = Connect(...); ... c.disconnect();`。
-        template<typename Signal, typename Slot>
-        Connection Connect(Signal& signal, Slot&& slot) {
-            return signal.connect(std::forward<Slot>(slot), ConnectionThread::CurrentThread, connectionGroup_);
         }
 
         // 在 UIElement 类内（public 或 protected）
@@ -2075,7 +2166,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool draggableWhole_ = false;
         Rect dragRegion_{ 0, 0, 0, 0 };
 
-        std::shared_ptr<ConnectionGroup> connectionGroup_;
         AnimationGroup animations_;
 
         bool useCache_; // 默认 true，可被重写
@@ -3504,7 +3594,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     }
 
     // ---------- 窗口 ----------
-    class Window {
+    class Window : public ConnectionOwner {
     public:
         inline static Backdrop DefaultBackdrop = Backdrop::None;
         inline static DWORD DefaultBackdropColor = 0xFFFFFFFF;   // 默认纯白背景（Backdrop::None + 不透明白）
@@ -3587,6 +3677,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         virtual ~Window() {
+            if (connectionGroup_) connectionGroup_->disconnectAll();
             // 析构必须在 UI 线程执行。
             // 1) 置生存令牌死亡：render 线程此后不再 pin 本窗口（含队列里已存在的裸 Window* 项）；
             // 2) 等所有已 pin 的 render 帧跑完（inFlight 归零）。这一步必须在拿 renderLock_ 之前，
@@ -3601,9 +3692,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             dying_.store(true);   // 先置"将亡"：render 线程此后不再处理本窗口（避免用已释放的 this）
             detail::ReleaseAccessibility(this);   // 释放 UIA 根 provider / 元素缓存（定义在 ZufyUIWindowTool.h）
             std::lock_guard<std::recursive_mutex> lk(renderLock_);   // 与"正在出的一帧"串行
-            acrylicReloadConn_.disconnect();
-            themeConn_.disconnect();
-            themeReapplyConn_.disconnect();
             ClearFrameworkTimers();   // 通知框架定时器：窗口将亡（让 Timer 与窗口解绑）
             if (rootElement_) rootElement_->AttachWindowRecursive(nullptr);
             if (customTitleBar_) customTitleBar_->AttachWindowRecursive(nullptr); if (menuBar_) menuBar_->AttachWindowRecursive(nullptr); if (statusBar_) statusBar_->AttachWindowRecursive(nullptr);   // 析构路径同样清归属
@@ -3921,20 +4009,20 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (s_defaultAppIconBig_) SetAppIcon(s_defaultAppIconBig_, s_defaultAppIconSmall_);   // 应用全局默认图标（RegisterApp 设置）
 
             // 亚克力参数变化 → 重新加载亚克力（重建 DComp 效果图 + 重绘）
-            acrylicReloadConn_ = UIZSignals::ReloadAcrylic.connect([this]() {
+            Connect(UIZSignals::ReloadAcrylic, [this]() {
                 noiseBrush_.Reset();   // 噪点参数可能变了，重建
                 DestroyWallpaperLayer();   // 手动背景参数可能变了，强制重建图层
                 ApplyBackdrop();
                 if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE);
-                }, ConnectionThread::CurrentThread, nullptr);
+                });
 
             // 主题变化（应用级 nullptr 或本窗口）→ 失效缓存 + 背景跟随 + 重绘
-            themeConn_ = UIZSignals::ThemeChanged.connect([this](Window* w) {
+            Connect(UIZSignals::ThemeChanged, [this](Window* w) {
                 if (w == this || (!w && useAppTheme_)) OnThemeChanged();   // 应用主题变化：不用应用主题的窗口忽略
-                }, ConnectionThread::CurrentThread, nullptr);
-            themeReapplyConn_ = UIZSignals::ThemeReapply.connect([this](Window* w) {
+                });
+            Connect(UIZSignals::ThemeReapply, [this](Window* w) {
                 if (!w || w == this) RequestThemeReapply();
-                }, ConnectionThread::CurrentThread, nullptr);
+                });
             themeReapply_ = true;   // 首帧把当前主题套到可见子树
 
             auto defaultRoot = std::make_shared<ColumnBox>();
@@ -6803,7 +6891,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         ComPtr<ID2D1Bitmap> noiseBitmap_;
         ComPtr<ID2D1BitmapBrush> noiseBrush_;
         ComPtr<ID2D1SolidColorBrush> debugHighlightBrush_;   // 调试高亮框刷
-        Connection acrylicReloadConn_;   // ReloadAcrylic 信号的连接
         bool animationTimerActive_;   // 常驻定时器，始终 true
         std::shared_ptr<Menu> windowContextMenu_;
         std::shared_ptr<MenuWindow> activeMenuRoot_;   // 右键菜单（MenuWindow 定义在 Window 之后，用前向声明 + shared_ptr）
@@ -6854,8 +6941,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool  backdropUserTinted_ = false;   // 应用显式设过背景 tint → 主题不覆盖
         bool  backdropAlphaExplicit_ = false; // 是否显式设过叠加色 alpha（SetBackdrop 两参数 / SetDefaultBackdrop）
         DWORD backdropFollowAlpha_ = (DefaultBackdropColor >> 24) & 0xFF;   // "跟随主题"时使用的 alpha
-        Connection themeConn_;          // 订阅 UIZSignals::ThemeChanged
-        Connection themeReapplyConn_;   // 订阅 UIZSignals::ThemeReapply
         float customTitleBarHeight_ = 0.0f;
         bool titleBarVisible_ = true;
         bool resizable_ = true;
@@ -6950,6 +7035,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         return EnsureFontCache();
     }
     inline UIElement::~UIElement() {
+        if (connectionGroup_) connectionGroup_->disconnectAll();
         // 从所属窗口的待重绘集合里移除自己（防悬垂裸指针）
         if (detail::g_debugHighlight.load() == this) detail::g_debugHighlight.store(nullptr);
         if (Window* w = GetWindow()) { w->ForgetPendingRepaint(this); w->ForgetAccessibleElement(this); }

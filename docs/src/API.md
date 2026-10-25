@@ -156,9 +156,11 @@ struct Size { float width, height; Size(float w=0, float h=0); };
 enum class ConnectionThread { CurrentThread, NewThread, UIThread };
 ```
 - `CurrentThread`（默认）：槽在 Fire 的线程同步执行。
-- `NewThread`：**每次 Fire 起一个 detach 线程**执行槽——不要在槽里碰 UI。
-- `UIThread`：把槽投递到 UI 线程（后台线程改 UI 的唯一正确方式）。
-- **`版本`**：`v1.15.0` 起跨线程与锁语义收口。
+- `NewThread`：**每次 Fire 起一个 detach 线程**执行槽——不要在槽里碰 UI；已开始执行的槽无法中途取消；**不适合高频信号**，高频场景用 `UIThread` 或自行池化。
+- `UIThread`：把槽投递到 UI 线程（后台线程改 UI 的唯一正确方式）；`disconnect` / 接收者析构后，已排队任务执行时检查存活并跳过。
+- **`易错`**：`Fire` 默认应在 UI 线程执行；从后台线程 Fire 且槽使用 `CurrentThread` 会直接在后台执行 UI 槽，属于调用方违约。跨线程触发请让槽用 `UIThread`，或自行保证订阅者存活。
+- **`易错`**：`NewThread` + 捕获裸 `this` + 接收者可能提前析构 = UAF；需要保活用 `ConnectWeak`，或改用 `UIThread`。
+- **`版本`**：`v1.15.0` 起跨线程与锁语义收口；`v1.24.0` 起队列任务带存活检查。
 
 ## Connection（Qt 风格被动句柄）
 
@@ -169,9 +171,11 @@ class Connection {
     explicit operator bool() const;   // 析构不自动断开
 };
 ```
-- 默认随宿主元素的 `ConnectionGroup` 在其析构时断开；**`Connection` 自身析构不断开**。
-- **`易错`**：可以忽略 `connect` 的返回值；但若手动保存 `Connection` 后又手动 `disconnect`，注意信号对象可能已销毁——`isConnected`/`disconnect` 由 `alive` 标志保护。
-- **`版本`**：`v1.8.1` 起为被动句柄语义。
+- 默认随接收者的 `ConnectionGroup` 在其析构时断开；**`Connection` 自身析构不断开**。
+- `disconnect()` 会让已排队的 `UIThread` / `NewThread` 任务逻辑失效，但**不会中断已经执行中的槽**。
+- **`易错`**：`Connection` **不是 RAII 守卫**；临时句柄析构不会断开，必须显式 `disconnect()` 或依赖接收者 group。
+- **`易错`**：可以忽略 `connect` 的返回值；信号销毁后再 `disconnect` 是安全的（`alive` 为原子标志）。
+- **`版本`**：`v1.8.1` 起为被动句柄语义；`v1.24.0` 起存活标志原子化并取消排队任务。
 
 ## ConnectionGroup
 
@@ -180,7 +184,9 @@ class ConnectionGroup : public std::enable_shared_from_this<ConnectionGroup> {
     void disconnectAll(); size_t size() const;
 };
 ```
-- 元素内部用它批量断开自己注册的所有连接。
+- `UIElement` / `Window` 内部用它批量断开自己注册的所有连接。
+- `size()` 只统计仍存活的连接；已手动断开的连接不计数。
+- **`易错`**：`ConnectionGroup` 的 `disconnectAll()` 只移除连接，不执行用户槽。
 
 ## ZSignal
 
@@ -190,13 +196,39 @@ template<typename... TArgs> class ZSignal {
     Connection connect(SlotType slot,
                        ConnectionThread thread = ConnectionThread::CurrentThread,
                        std::shared_ptr<ConnectionGroup> group = nullptr);
+    template<class Receiver, class Slot>
+    Connection connect(Receiver* receiver, Slot&& slot,
+                       ConnectionThread thread = ConnectionThread::CurrentThread);
     void Fire(TArgs... targs) const;    // 触发
     void operator()(TArgs... targs) const;
 };
 ```
 - 触发用 `Fire`（**没有 `emit` 宏**）。
+- `ZSignal` **不可拷贝、不可移动**；信号是控件/窗口的成员，不要放进可移动容器。
 - **`易错`**：`Fire` 基于**快照**遍历，槽内可以安全 `disconnect`；槽内再次 `Fire` 同一信号会走“重入”分支（局部拷贝），**不要**在重入里做递归深链。
-- **`版本`**：`v1.18.0` 加 RAII 守卫：槽抛异常也会正确还原重入深度并释放快照。
+- **`易错`**：`Fire` 与 `ZSignal` 析构并发是 UB；信号必须在同一线程完成触发/析构。
+- **`易错`**：槽抛异常会直接穿出 `Fire`，后续槽不再执行；信号槽内不建议抛异常。
+- 信号参数按**左值**传给槽；槽不要写 `T&&` 形参，大对象建议 `const T&`。
+- **`版本`**：`v1.18.0` 加 RAII 守卫：槽抛异常也会正确还原重入深度并释放快照；`v1.24.0` 禁止移动。
+
+## 接收者上下文与 ConnectWeak
+
+- `elem->Connect(sig, slot)`、`Connect(elem, sig, slot)`、`sig.connect(elem, slot)` 都把连接登记到 `elem` 的 `ConnectionGroup`，`elem` 析构时自动断开；`Window` 同样支持。
+- `ConnectWeak(self, sig, slot)` 用弱引用；槽第一个参数为 `T*` 或 `T&`，执行期间 `self` 保活；对象已销毁则不调用。
+- 成员函数指针只走自由 `Connect` / `ConnectWeak`（有编译期类型检查）；`elem->Connect(sig, &Class::Method)` 不再支持。
+
+```cpp
+auto panel = std::make_shared<Panel>();
+
+panel->Connect(btn->Clicked, [this] { Refresh(); });
+Connect(panel, btn->Clicked, &Panel::OnClick);
+btn->Clicked.connect(panel, [this] { Refresh(); });
+
+ConnectWeak(panel, btn->Clicked, [](Panel* self) { self->Refresh(); });
+ConnectWeak(panel, btn->Clicked, &Panel::OnClick);
+```
+- **`易错`**：`ConnectWeak` 的槽里不要再按值捕获 `self` 的 `shared_ptr`，否则会形成“信号→槽→self→信号”的强引用环。
+- **`注意`**：`Menu` / `MenuItem` / `Timer` 仍用 `signal.connect`，**不自动断开**。
 
 ## 全局信号 UIZSignals
 
@@ -1428,7 +1460,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.23.3
+###chapter: 版本变化摘录 | v1.15.0 → v1.24.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1536,6 +1568,11 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **?? ? ??????**?`GetDpiScale()` ?? 96/144??? 1.0/1.5?????????????????????? `/96` ??????????demo ??? MessageBox?
   - **修复**：`SetBackdrop(Acrylic/Mica)` 在未显式设 tint 时不再用不透明白盖住系统材质；`ListView::SetItemHeight` 夹到 ≥1px，Draw/命中不再除零。
   - **文档/清理**：`HwndView` 跨进程风险说明；`WM_ACTIVATE` 冗余判断、`<cstring>`、demo 空回调清理。
+- **v1.24.0**（**含破坏性变更**）：
+  - **信号生命周期**：`ConnectionState::alive` 改为原子；`Connection::disconnect` / 接收者析构会逻辑取消已排队的 `UIThread` / `NewThread` 任务；`Fire` 与信号析构并发明确为 UB。
+  - **接收者上下文**：`UIElement` / `Window` 继承 `ConnectionOwner`，`elem->Connect(...)` / `Connect(elem, ...)` / `sig.connect(elem, ...)` 自动随接收者断开；新增自由 `Connect` 与 `ConnectWeak`。
+  - **破坏性**：`ZSignal` 不可拷贝/移动；成员函数指针改用 `Connect(elem, sig, &Class::Method)` / `ConnectWeak`；`elem->Connect(sig, &Class::Method)` 不再支持。
+  - **注意**：`Menu` / `MenuItem` / `Timer` 仍用 `signal.connect`，不自动断开；信号参数按左值传递。
 
 ###chapter: 易错点总表 | 按主题速查
 

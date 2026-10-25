@@ -67,7 +67,7 @@ Key points (what each step does):
 
 - `Window::Create` creates the window, initializes Direct2D, applies the background, and generates a default root `ColumnBox` (margin 20, spacing 10);
 - Create controls with `std::make_shared<T>()` and attach them with `AddChild`; **a parent owns its children via `shared_ptr`**;
-- Bind events with `Connect(signal, slot)`; connections auto-disconnect when the control is destroyed;
+- Bind events with `Connect(signal, slot)`; connections auto-disconnect when the receiver (control/window) is destroyed; use `ConnectWeak` when the receiver needs weak lifetime;
 - `win.Run()` enters the message loop; all windows/controls live on the **same UI thread**.
 - **⚠ Units**: coordinates/sizes are **DIP** (not physical pixels); the framework handles DPI snapping, so you don't.
 
@@ -335,9 +335,10 @@ ZufyUI/
 
 ## Version history
 
-> Current version: **1.23.3** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+> Current version: **1.24.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 > Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.24.0**: signal lifetime (atomic liveness, queued-task cancellation, non-movable `ZSignal`); receiver context (`ConnectionOwner`, `UIElement/Window::Connect`); `ConnectWeak`; member-function pointers now use free `Connect`.
 - **1.23.3**: Button rich content / custom content + drop 2x2 (write-back x open-menu); `SetBackdrop` no longer covers Acrylic/Mica by default; ListView row-height division fix.
 - **1.23.2**: Debug builds now use `/bigobj` (x64/x86); full Release/Debug build matrix passes.
 - **1.23.1**: `PageHost` measures its pages; README/docs layering; Debugger in-repo; build scripts without absolute paths; ASCII export; WinUI 3 / Fluent Design icon and docs.

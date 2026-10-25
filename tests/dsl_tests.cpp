@@ -506,6 +506,119 @@ static void test_backdrop_defaults() {
     CHECK(((w.GetBackdropColor() >> 24) & 0xFF) == 0x80);
 }
 
+struct SignalProbe : Label {
+    int total = 0;
+    SignalProbe() : Label(L"signal-probe") {}
+    void Add(int v) { total += v; }
+};
+
+static void test_signal_lifetime() {
+    std::printf("信号生命周期 / ConnectWeak\n");
+
+    static_assert(!std::is_copy_constructible_v<ZSignal<>>, "ZSignal must not be copyable");
+    static_assert(!std::is_move_constructible_v<ZSignal<>>, "ZSignal must not be movable");
+    static_assert(std::is_base_of_v<ConnectionOwner, Button>, "Button must be a ConnectionOwner");
+    static_assert(std::is_base_of_v<ConnectionOwner, Window>, "Window must be a ConnectionOwner");
+
+    {
+        ZSignal<> sig;
+        int calls = 0;
+        auto b = std::make_shared<Button>();
+        b->Connect(sig, [&calls]() { ++calls; });
+        sig.Fire();
+        CHECK(calls == 1);
+        b.reset();
+        sig.Fire();
+        CHECK(calls == 1);
+    }
+
+    {
+        ZSignal<int> sig;
+        auto p = std::make_shared<SignalProbe>();
+        auto weakConn = ConnectWeak(p, sig, &SignalProbe::Add);
+        sig.Fire(2);
+        CHECK(p->total == 2);
+
+        auto freeConn = Connect(p.get(), sig, &SignalProbe::Add);
+        sig.Fire(3);
+        CHECK(p->total == 8);
+        freeConn.disconnect();
+        CHECK(!freeConn.isConnected());
+        sig.Fire(4);
+        CHECK(p->total == 12);
+
+        weakConn.disconnect();
+        CHECK(!weakConn.isConnected());
+        sig.Fire(5);
+        CHECK(p->total == 12);
+
+        auto weakRef = ConnectWeak(p, sig, [](SignalProbe& self, int v) { self.total += v; });
+        sig.Fire(6);
+        CHECK(p->total == 18);
+        auto moved = std::move(weakRef);
+        CHECK(!weakRef.isConnected());
+        CHECK(moved.isConnected());
+        moved.disconnect();
+        sig.Fire(7);
+        CHECK(p->total == 18);
+
+        p.reset();
+        sig.Fire(8);
+        CHECK(!p);
+    }
+
+    {
+        ZSignal<int> sig;
+        auto p = std::make_shared<SignalProbe>();
+        int observed = 0;
+        auto conn = Connect(p.get(), sig, [&observed](int v) { observed += v; });
+        sig.Fire(2);
+        CHECK(observed == 2);
+        auto copy = conn;
+        conn.disconnect();
+        CHECK(!copy.isConnected());
+        sig.Fire(3);
+        CHECK(observed == 2);
+        p.reset();
+    }
+
+    {
+        Connection dangling;
+        {
+            ZSignal<int> sig;
+            dangling = sig.connect([](int) {});
+            CHECK(dangling.isConnected());
+        }
+        CHECK(!dangling.isConnected());
+        dangling.disconnect();
+    }
+
+    {
+        Window w;
+        ZSignal<> sig;
+        int calls = 0;
+        w.Connect(sig, [&calls]() { ++calls; });
+        sig.Fire();
+        CHECK(calls == 1);
+    }
+
+    {
+        auto btn = d::ZBtn(L"dsl-signal");
+        int calls = 0;
+        btn.on(btn->Clicked, [&calls]() { ++calls; });
+        btn->Clicked.Fire();
+        CHECK(calls == 1);
+    }
+
+    {
+        auto app = d::ZApp();
+        int closed = 0;
+        app.on<&Window::Closed>([&closed]() { ++closed; });
+        app.window().Closed.Fire();
+        CHECK(closed == 1);
+    }
+}
+
 static void test_button_and_listview_regressions() {
     Button b(L"x");
     b.RefreshChildren();
@@ -593,6 +706,7 @@ int main() {
     test_animation_primitives();
     test_button_animations();
     test_backdrop_defaults();
+    test_signal_lifetime();
     std::printf("\n通过 %d 项，失败 %d 项\n", g_pass, g_fail);
     if (g_fail) { std::printf("结果：FAILED\n"); return 1; }
     std::printf("结果：OK\n");
