@@ -528,6 +528,17 @@ std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
 - **`Pitfall`**: `Create` does **not** auto-`Show` (since v1.8.0). `RunModal` disables the owner (`EnableWindow(FALSE)`) and deliberately does **not** use `IsDialogMessage`.
 - **`Version`**: multi-window `v1.6.0`; `SetInputBlocked`/modal `v1.6.2`; `LockRender`/`RenderNowSync` `v1.16.0`.
 
+## Temporary key handlers (v1.25.0)
+
+```cpp
+using KeyHandler = std::function<bool(int)>;
+int  AddKeyHandler(KeyHandler handler);
+void RemoveKeyHandler(int id);
+```
+- Called after `OnWindowKeyDown` and before the focused element; returning true marks the key handled.
+- For temporary Esc handling in drawers/popups; remove on close/detach/destruction.
+- **`Version`**: `v1.25.0`.
+
 ## Three ways to create a window (which to pick)
 
 | Way | Code | Ownership | Message loop | Use for |
@@ -867,6 +878,30 @@ bool UseCache() const override { return false; }
 - **Collapse (`v1.21.0`)**: drag the splitter to within `CollapseThreshold` (default 28px) of one side's edge → a translucent accent **overlay plus an arrow pointing in the collapse direction fades in ON TOP OF that pane's content** (the content is *not* changed yet); the pane actually collapses **on mouse release** (its size eases from the current value to 0). Once collapsed, a small button appears at that edge (rounded light grey + arrow pointing in the expand direction + hover easing); clicking it eases that side from 0 to its **minimum limit** (`SetMinFirst/MinSecond`, or back to the pre-collapse ratio if no minimum is set). The whole feature can be turned off with `SetCollapseEnabled(false)`.
 - **`Pitfall`**: the overlay is an internal `Overlay` **child element placed last** (the framework draws children in order), which is why it naturally ends up above both panes; do not try to paint such decorations from `SplitView::Draw` (the children would cover them).
 - **`Version`**: `v1.12.0`; NaN/Inf guard `v1.14.0`; collapse + expand button `v1.21.0`.
+
+## Drawer (v1.25.0)
+
+```cpp
+enum class DrawerSide { Left, Right, Top, Bottom };
+enum class DrawerMode { Overlay, Push, Permanent };
+ZSignal<bool> OpenChanged;  ZSignal<> Opened, Closed, ScrimClicked;
+void SetContent/SetPanel(std::shared_ptr<UIElement>);
+void SetSide(DrawerSide);  void SetMode(DrawerMode);  void SetPanelSize(float);
+void SetPanelPadding(const Thickness&);  void SetPanelCornerRadius(float);
+void SetPanelBackgroundColor(Color);  void SetPanelBorderColor(Color);
+void SetPanelShadow(bool);  void SetPanelShadowColor(Color);
+void SetContentBorder(bool);  void SetContentBorderColor(Color);  void SetContentBorderCornerRadius(float);
+void SetScrimColor(Color);  void SetScrimOpacity(float);  void SetModal(bool);
+void SetDismissOnScrimClick(bool);  void SetDismissOnEscape(bool);
+void SetFocusOnOpen(std::shared_ptr<UIElement>);
+void SetAnimationDuration(float);  void SetAnimationEasing(Easing);
+void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgress() const;
+```
+- `Overlay`: rounded scrim over content; `Push`: content yields; `Permanent`: always open, no animation/scrim, `Close` ignored.
+- Rounded panel, border and a real outer shadow; `SetScrimOpacity(0)` removes the visual scrim but keeps modal click blocking; `SetModal(false)` lets clicks pass through.
+- Can be a root layout or a `GridLayout` cell; covers the content area only, not the custom title bar/menu bar.
+- **`Pitfall`**: `SetPanelShadow` is painted before the panel background, so the opaque background covers its inner layers; the border is painted last.
+- **`Version`**: `v1.25.0`.
 
 ## TabView
 
@@ -1439,7 +1474,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - Unified log: `detail::Log(level, tag, msg)` / `LogWarning/LogInfo/DebugLog` / `RecordError` (→ E level + fires `UIZSignals::Error`).
 - **`Pitfall`**: send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 
-###chapter: Version digest | v1.15.0 → v1.24.0
+###chapter: Version digest | v1.15.0 → v1.25.0
 
 > Only the changes that affect your code are listed.
 
@@ -1498,7 +1533,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **DSL**: `WindowApp::run()` **now calls `Show()`** — `Window::Create` does not show the window, so the previous implementation ran a **message loop with no window** (looked like a hang); added `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` and the window signal hook `on<&Window::Closed>` (`Window`'s signals are plain members, there is no `Connect`); `WindowApp` is now **movable** (it holds a `unique_ptr<Window>`, because `Window` itself is neither copyable nor movable).
   - **Fix**: null guards in `ColumnBox`/`RowBox`/`GridLayout::AddChild` — the DSL's variadic forwarding can pass `nullptr`, which used to dereference a null pointer.
   - **Fix**: `ZufyUIWindowTool.h` was **not self-contained** — it used `Label`/`Button`/`ColumnBox::AddChild` without including `ZufyUIWidgets.h`, relying on the caller to include it first (`pch.h` happened to do so); the include is now present and the header can be included on its own.
-  - **Tooling**: new `tools/build.ps1` (one shot: **auto-fix BOM before building** → kill processes holding files → build demo + `ZufyUIDebugger` → run self-tests), `tools/ensure_bom.ps1` (adds a UTF-8 BOM only to C++ sources that contain non-ASCII and lack one, preventing the GBK misparse behind `C2143/C2259/C2888/C4819`), and `tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1` (47 compile-time/runtime assertions, no window created, runnable from a shell or CI).
+  - **Tooling**: new `tools/build.ps1` (one shot: **auto-fix BOM before building** → kill processes holding files → build demo + `ZufyUIDebugger` → run self-tests), `tools/ensure_bom.ps1` (adds a UTF-8 BOM only to C++ sources that contain non-ASCII and lack one, preventing the GBK misparse behind `C2143/C2259/C2888/C4819`), and `tests/zufyui_tests.cpp` + `tools/run_tests.ps1` (47 compile-time/runtime assertions, no window created, runnable from a shell or CI).
 - **v1.21.0**:
   - **Fix**: `Card` flashed a **blue hover border** — the theme applier set `SetHoverBorderColor(Accent)` on cards, a behaviour cards never had; removed (hover still changes the background).
   - **Fix**: `ProgressBar` **inner fill radius no longer matched the outer frame after stretching** — the track, the clip geometry and the border still used the member `height_` (construction-time height) while only the fill used the arranged height; all three now use `arrangedRect_.height / 2`.
@@ -1511,7 +1546,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Fix**: `PieChart` **Ctrl+wheel zoom did nothing** — `PieChart`'s own `zoom_` shadows `ChartBase::zoom_`, so delegating to the base only changed the base's copy; the pie now handles Ctrl itself via `SetZoom`. Semantics are explicit: **Ctrl+wheel = zoom / plain wheel = pan only**.
   - **Fix**: chart wheel panning "did not move" — the wheel path was missing `SyncScrollPositions()` (it changed `scrollX_/scrollY_` but never recomputed `baseX_/baseY_`).
   - **Fix**: documented that `ColumnBox` arranges a child **without an explicit width** at the available width (horizontal stretch ignores the weight) — so "make a card hug its content" means wrapping it in a `Row`; and that a `SettingsList` placed in a `Card`'s built-in `GridLayout` (auto columns pass `FLT_MAX`) degenerates to zero width — use `SetLayout(Col(...))` + `SetFillWidth(true)`.
-  - **Tooling**: `tests/dsl_tests.cpp` 62 → **85** assertions (regressions for this batch: button auto-size on/off, label width follows text, progress/toggle easing convergence, SplitView collapse and expand-to-minimum).
+  - **Tooling**: `tests/zufyui_tests.cpp` 62 → **85** assertions (regressions for this batch: button auto-size on/off, label width follows text, progress/toggle easing convergence, SplitView collapse and expand-to-minimum).
 - **v1.22.0** (**contains breaking API changes**):
   - **Fix**: `MessageBox` (and any modal) **first click falling through to the window behind** — when a modal is opened from inside `Window::OnMouseUp`'s slot, that function's trailing `ReleaseCapture()` only runs after the modal loop ends, so the main window keeps `SetCapture` for the whole modal and Windows routes mouse input to the capture window; `Window::RunModal` now does `if (GetCapture()) ReleaseCapture();` before entering the loop.
   - **Fix**: `ScrollViewer` **scroll chaining** — it no longer swallows the wheel at the top/bottom (returns `false` to bubble up the parent chain when that axis can't scroll further), so the outer page keeps scrolling.
@@ -1551,6 +1586,10 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **Receiver context**: `UIElement` / `Window` derive from `ConnectionOwner`; `elem->Connect(...)` / `Connect(elem, ...)` / `sig.connect(elem, ...)` disconnect with the receiver; added free `Connect` and `ConnectWeak`.
   - **Breaking**: `ZSignal` is neither copyable nor movable; member-function pointers use `Connect(elem, sig, &Class::Method)` / `ConnectWeak`; `elem->Connect(sig, &Class::Method)` is no longer supported.
   - **Notes**: `Menu` / `MenuItem` / `Timer` still use `signal.connect` and do not auto-disconnect; signal arguments are passed as lvalues.
+- **v1.25.0**:
+  - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
+  - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
+  - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
 
 
 ###chapter: Pitfall index | Quick lookup by topic

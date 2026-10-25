@@ -270,6 +270,13 @@ namespace dsl {
     inline Ref<ProgressRing> ZRing(){ return ZMake<ProgressRing>(); }
     inline Ref<ScrollViewer> ZScroll(){ return ZMake<ScrollViewer>(); }
     inline Ref<SplitView> ZSplit(){ return ZMake<SplitView>(); }
+    template<class C = std::nullptr_t, class P = std::nullptr_t>
+    inline Ref<Drawer> ZDrawer(C&& content = nullptr, P&& panel = nullptr) {
+        auto r = ZMake<Drawer>();
+        r->SetContent(toElem(std::forward<C>(content)));
+        r->SetPanel(toElem(std::forward<P>(panel)));
+        return r;
+    }
     inline Ref<TabView> ZTabs(){ return ZMake<TabView>(); }
     inline Ref<ListView> ZList(){ return ZMake<ListView>(); }
     inline Ref<TableView> ZTable(){ return ZMake<TableView>(); }

@@ -533,6 +533,17 @@ std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
 - **`易错`**：`LockRender()` 仅在 `ZUFYUI_RENDER_THREAD=1` 且改元素树数据时需要；默认单线程无需。
 - **`版本`**：多窗口 `v1.6.0`；`SetInputBlocked`/模态 `v1.6.2`；`LockRender`/`RenderNowSync` `v1.16.0`。
 
+## 临时键处理器（v1.25.0）
+
+```cpp
+using KeyHandler = std::function<bool(int)>;
+int  AddKeyHandler(KeyHandler handler);
+void RemoveKeyHandler(int id);
+```
+- 在 `OnWindowKeyDown` 之后、焦点元素之前调用；返回 true 表示已处理。
+- 供抽屉/浮层临时拦截 Esc；组件关闭/detach/析构时必须移除。
+- **`版本`**：`v1.25.0`。
+
 ## 三种建窗方式（选哪个）
 
 | 方式 | 代码 | 所有权 | 消息循环 | 适用场景 |
@@ -880,6 +891,30 @@ bool UseCache() const override { return false; }
 - **折叠（`v1.21.0`）**：把分隔条拖到**距某侧边缘 `CollapseThreshold`（默认 28px）内** → 该侧内容**上方**浮出半透明强调色覆盖层 + 指向折叠方向的箭头（alpha 渐入渐出）；**此时不改内容**，**松手**才真正折叠（该侧尺寸带缓动从当前值变为 0）。折叠后该侧边缘出现小按钮（圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后该侧尺寸带缓动从 0 变为**最小极限值**（`SetMinFirst/MinSecond`；未设则回到折叠前比例）。整个功能可 `SetCollapseEnabled(false)` 关闭。
 - **`易错`**：覆盖层与本控件内部的 `Overlay` 子元素有关——它是**最后一个子元素**（框架按子元素顺序绘制），所以天生画在两栏内容**之上**；不要试图在 `SplitView::Draw` 里画这类装饰（会被内容盖住）。
 - **`版本`**：`v1.12.0`；NaN/Inf 守卫 `v1.14.0`；折叠/小按钮 `v1.21.0`。
+
+## Drawer（v1.25.0）
+
+```cpp
+enum class DrawerSide { Left, Right, Top, Bottom };
+enum class DrawerMode { Overlay, Push, Permanent };
+ZSignal<bool> OpenChanged;  ZSignal<> Opened, Closed, ScrimClicked;
+void SetContent/SetPanel(std::shared_ptr<UIElement>);
+void SetSide(DrawerSide);  void SetMode(DrawerMode);  void SetPanelSize(float);
+void SetPanelPadding(const Thickness&);  void SetPanelCornerRadius(float);
+void SetPanelBackgroundColor(Color);  void SetPanelBorderColor(Color);
+void SetPanelShadow(bool);  void SetPanelShadowColor(Color);
+void SetContentBorder(bool);  void SetContentBorderColor(Color);  void SetContentBorderCornerRadius(float);
+void SetScrimColor(Color);  void SetScrimOpacity(float);  void SetModal(bool);
+void SetDismissOnScrimClick(bool);  void SetDismissOnEscape(bool);
+void SetFocusOnOpen(std::shared_ptr<UIElement>);
+void SetAnimationDuration(float);  void SetAnimationEasing(Easing);
+void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgress() const;
+```
+- `Overlay`：圆角遮罩覆盖内容；`Push`：内容让位；`Permanent`：常驻、无动画/遮罩、`Close` 无效。
+- 面板圆角/边框/真实外侧阴影；`SetScrimOpacity(0)` 可去视觉遮罩但保留模态点击拦截，`SetModal(false)` 才会穿透。
+- 可当根布局或放在 `GridLayout` 的 cell；只覆盖内容区，不覆盖自定义标题栏/菜单栏。
+- **`易错`**：`SetPanelShadow` 画在面板背景之前，内层由不透明背景覆盖，边框最后绘制。
+- **`版本`**：`v1.25.0`。
 
 ## TabView
 
@@ -1460,7 +1495,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 统一日志：`detail::Log(level, tag, msg)`、`LogWarning/LogInfo/DebugLog`、`RecordError`（→ E 级并触发 `UIZSignals::Error`）。
 - **`易错`**：调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.24.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.25.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -1519,7 +1554,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **DSL**：`WindowApp::run()` **补上 `Show()`**——`Window::Create` 本身不显示窗口，原实现会跑一个**没有窗口的消息循环**（表现为卡死）；新增 `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` 与窗口信号 `on<&Window::Closed>`（`Window` 的信号是裸成员、没有 `Connect`）；`WindowApp` 改为**可移动**（内部改持 `unique_ptr<Window>`，因为 `Window` 自身既不可拷贝也不可移动）。
   - **修复**：`ColumnBox`/`RowBox`/`GridLayout::AddChild` 补**空值守卫**——DSL 的 variadic 转发可能送来 `nullptr`，原实现会解引用空指针。
   - **修复**：`ZufyUIWindowTool.h` **自身不完整**——它用到 `Label`/`Button`/`ColumnBox::AddChild` 却未 include `ZufyUIWidgets.h`，一直依赖调用方先包含（`pch.h` 恰好是这个顺序）；已补上，该头现在可单独包含。
-  - **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 `C2143/C2259/C2888/C4819`）、`tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1`（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。
+  - **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 `C2143/C2259/C2888/C4819`）、`tests/zufyui_tests.cpp` + `tools/run_tests.ps1`（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。
 - **v1.21.0**：
   - **修复**：`Card` 悬停**闪出蓝色边框**——主题套用器给卡片设了 `SetHoverBorderColor(Accent)`，而卡片本没有这个行为；已移除（悬停仍改背景色）。
   - **修复**：`ProgressBar` **拉伸后内填充圆角与外框对不上**——轨道、裁剪几何、边框三处用的仍是成员 `height_`（初始高度），只有填充用了实际高度；三处统一为 `arrangedRect_.height / 2`。
@@ -1532,7 +1567,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **修复**：`PieChart` Ctrl+滚轮**缩放无效**——`PieChart` 自己的 `zoom_` 遮蔽了 `ChartBase::zoom_`（委派基类只改基类那份）；现由饼图自己处理 Ctrl 并走 `SetZoom`。语义明确为 **Ctrl+滚轮 = 缩放 / 普通滚轮 = 只平移**。
   - **修复**：图表滚轮平移"画面不动"——平移路径缺 `SyncScrollPositions()`（只改了 `scrollX_/scrollY_`，未重算 `baseX_/baseY_`）。
   - **修复**：`ColumnBox` 会把**没有显式宽度的子元素**按可用宽度摆（横向不吃拉伸权值）→ 文档补充"想让卡片按内容收窄要放进 `Row`"；`SettingsList` 被放进 `Card` 自带 `GridLayout`（自动列给 `FLT_MAX`）时会退化成 0 宽 → 文档补充正确用法（`SetLayout(Col(...))` + `SetFillWidth(true)`）。
-  - **工程**：`tests/dsl_tests.cpp` 62 → **85** 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。
+  - **工程**：`tests/zufyui_tests.cpp` 62 → **85** 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。
 - **v1.22.0**（**含破坏性 API 变更**）：
   - **修复**：`MessageBox`（及一切模态框）**首次点击穿透到后面的主窗口**——模态若在 `Window::OnMouseUp` 的槽里弹出，该函数末尾的 `ReleaseCapture()` 要等模态循环结束才执行 → 整段模态期间主窗口仍持 `SetCapture`，系统把鼠标消息优先给捕获窗口；`Window::RunModal` 现于进入循环前 `if (GetCapture()) ReleaseCapture();`。
   - **修复**：`ScrollViewer` **滚动链**——滚到顶/底后不再吞掉滚轮（该方向不能再滚则返回 `false` 沿父链冒泡），外层页面可继续滚动。
@@ -1573,6 +1608,10 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **接收者上下文**：`UIElement` / `Window` 继承 `ConnectionOwner`，`elem->Connect(...)` / `Connect(elem, ...)` / `sig.connect(elem, ...)` 自动随接收者断开；新增自由 `Connect` 与 `ConnectWeak`。
   - **破坏性**：`ZSignal` 不可拷贝/移动；成员函数指针改用 `Connect(elem, sig, &Class::Method)` / `ConnectWeak`；`elem->Connect(sig, &Class::Method)` 不再支持。
   - **注意**：`Menu` / `MenuItem` / `Timer` 仍用 `signal.connect`，不自动断开；信号参数按左值传递。
+- **v1.25.0**：
+  - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
+  - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
+  - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。
 
 ###chapter: 易错点总表 | 按主题速查
 

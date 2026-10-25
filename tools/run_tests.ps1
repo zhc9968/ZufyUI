@@ -1,13 +1,13 @@
 # ============================================================================
-# tools/run_dsl_tests.ps1 -- compile and run the DSL self-test.
+# tools/run_tests.ps1 -- compile and run the ZufyUI self-test.
 #
 # ASCII-ONLY ON PURPOSE: see the note at the top of ensure_bom.ps1.
 #
 # USAGE
-#   powershell -ExecutionPolicy Bypass -File tools/run_dsl_tests.ps1
+#   powershell -ExecutionPolicy Bypass -File tools/run_tests.ps1
 #
 # Exit code: 0 = all assertions passed; non-zero = compile or assertion failure.
-# The test creates no window, so it runs from a plain shell or CI.
+# The test creates no visible window (one hidden dispatcher for UIThread tests).
 # ============================================================================
 [CmdletBinding()]
 param(
@@ -22,9 +22,9 @@ $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
 $root = Split-Path -Parent $PSScriptRoot
-$src = Join-Path $root 'tests\dsl_tests.cpp'
-$outDir = Join-Path $env:TEMP 'zufyui_dsl_tests'
-$exe = Join-Path $outDir 'dsl_tests.exe'
+$src = Join-Path $root 'tests\zufyui_tests.cpp'
+$outDir = Join-Path $env:TEMP 'zufyui_tests'
+$exe = Join-Path $outDir 'zufyui_tests.exe'
 
 if (-not (Test-Path -LiteralPath $src)) { throw "Test source not found: $src" }
 
@@ -62,6 +62,6 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "[2/2] run $exe" -ForegroundColor Cyan
 & $exe
 $code = $LASTEXITCODE
-if ($code -eq 0) { Write-Host 'DSL self-test passed.' -ForegroundColor Green }
-else { Write-Host "DSL self-test failed (exit $code)." -ForegroundColor Red }
+if ($code -eq 0) { Write-Host 'ZufyUI self-test passed.' -ForegroundColor Green }
+else { Write-Host "ZufyUI self-test failed (exit $code)." -ForegroundColor Red }
 exit $code

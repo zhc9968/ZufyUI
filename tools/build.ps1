@@ -11,7 +11,7 @@
 #   ... -Platform x86               build x86 (default x64)
 #   ... -VsRoot "C:\path\to\VS"     override Visual Studio auto-detection
 #   ... -SkipDebugger               do not build the in-repo ZufyUIDebugger
-#   ... -SkipTests                  do not run the DSL self-test
+#   ... -SkipTests                  do not run the ZufyUI self-test
 #   ... -SkipBomFix                 skip the BOM step
 #   ... -CheckBomOnly               only verify BOMs (no writes); exit 1 if missing
 #
@@ -20,7 +20,7 @@
 #   2. kill processes holding the output files
 #   3. build ZufyUI (the demo / smoke test)
 #   4. build ZufyUIDebugger (library changes must be verified against it too)
-#   5. run the DSL self-test
+#   5. run the ZufyUI self-test
 #
 # Exit code: 0 = everything passed; non-zero = the failing step's code.
 # ============================================================================
@@ -46,7 +46,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# The DSL test writes UTF-8; PowerShell 5.1 would otherwise decode its output as ANSI.
+# The ZufyUI test writes UTF-8; PowerShell 5.1 would otherwise decode its output as ANSI.
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
 $root = Split-Path -Parent $PSScriptRoot
@@ -119,13 +119,13 @@ if (-not $SkipDebugger) {
 # ---------- 4. self-test ----------
 $testExit = 0
 if (-not $SkipTests) {
-    Step '4/4 DSL self-test'
-    & (Join-Path $PSScriptRoot 'run_dsl_tests.ps1') -VsRoot $VsRoot -Platform $Platform
+    Step '4/4 ZufyUI self-test'
+    & (Join-Path $PSScriptRoot 'run_tests.ps1') -VsRoot $VsRoot -Platform $Platform
     $testExit = $LASTEXITCODE
-    if ($testExit -ne 0) { Bad "DSL self-test failed (exit $testExit)." }
+    if ($testExit -ne 0) { Bad "ZufyUI self-test failed (exit $testExit)." }
 }
 else {
-    Step '4/4 DSL self-test skipped (-SkipTests)'
+    Step '4/4 ZufyUI self-test skipped (-SkipTests)'
 }
 
 if ($testExit -ne 0) { exit $testExit }

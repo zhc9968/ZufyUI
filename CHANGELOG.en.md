@@ -2,7 +2,18 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.24.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.25.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-25 — Drawer side panel, temporary key handlers, signal tests (v1.25.0)
+
+- **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent. Overlay uses a rounded scrim; Push makes room; Permanent stays open with no animation/scrim and ignores `Close`. Rounded panel, border, and a real outer shadow (shadow first, opaque panel background covers its inner layers, border painted last).
+- **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers, called after `OnWindowKeyDown` and before the focused element; `Drawer` uses one for Esc while open and removes it on close/detach/destruction.
+- **New · Drawer demo**: side/mode selectors, open/close, panel-top X, search/category/active-only/result count/filter list; content includes BarChart, Slider, Toggle, CheckBox and ListView.
+- **Improvement · `ScrollViewer` bleed**: content clip bleed follows `GetBleed()` (default 4px) instead of a fixed 1px, so control borders/shadows inside the drawer are not clipped.
+- **Tooling · test rename**: `tests/dsl_tests.cpp` → `tests/zufyui_tests.cpp`, `tools/run_dsl_tests.ps1` → `tools/run_tests.ps1`.
+- **Tests**: signal reentrancy/slot exceptions/`NewThread` weak keep-alive/`UIThread` cancellation, Drawer layout/animation/scrim/Push/Permanent/vertical sides; ZufyUI self-test **213**.
+- **Demo default backdrop**: reapply Acrylic after `Show()` so the first DWM application always takes effect.
+- **Verification**: x64 Debug/Release and x86 Release builds pass; 213 self-test assertions pass.
 
 ### 2026-10-25 — Signal lifetime, receiver context, ConnectWeak (v1.24.0)
 
@@ -15,8 +26,8 @@
 - **New · `ConnectWeak`**: weakly-referenced receiver; the slot's first parameter is `T*` / `T&` or a member-function pointer; the receiver stays alive while the slot runs, and the slot is skipped after destruction. Useful for `NewThread` or uncertain lifetimes.
 - **Improvement**: `Window`'s `ReloadAcrylic` / `ThemeChanged` / `ThemeReapply` global connections now go through `Window::ConnectionGroup`; manual `Connection` members were removed. `ConnectionGroup::size()` counts live connections only and periodically prunes dead weak references.
 - **Scope**: `Menu` / `MenuItem` / `Timer` still use `signal.connect` and do not auto-disconnect.
-- **Tests**: DSL self-test 140 → **161**; added receiver-destruction disconnect, free `Connect`, `ConnectWeak`, `Connection` copy/move, signal-destroyed-first, and related regressions.
-- **Verification**: x64 Debug/Release and x86 Debug builds pass; DSL 161 assertions pass. x86 Release was not rerun this round.
+- **Tests**: ZufyUI self-test 140 → **175**; added receiver-destruction disconnect, free `Connect`, `ConnectWeak`, `Connection` copy/move, signal-destroyed-first, reentrancy, slot exceptions, `NewThread` weak keep-alive and `UIThread` cancellation regressions.
+- **Verification**: x64 Debug/Release and x86 Debug builds pass; DSL 175 assertions pass. x86 Release was not rerun this round.
 
 ### 2026-10-23 — Button rich content/split, SetBackdrop fix, ListView division (v1.23.3)
 
@@ -31,14 +42,14 @@
 ### 2026-10-22 — Debug builds: add `/bigobj` (v1.23.2)
 
 - **Build**: added `/bigobj` to the **Debug|Win32** and **Debug|x64** configurations of `ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` (Release already had it). Full Debug builds previously failed in `ZufyUI.cpp` / `ZufyUIDebugger.cpp` with `C1128: number of sections exceeded object file format limit`.
-- **Verification**: Release / Debug × x64 / x86 demo + Debugger + DSL self-test all pass.
+- **Verification**: Release / Debug × x64 / x86 demo + Debugger + ZufyUI self-test all pass.
 - **Docs**: README / AGENTS / API now document the ASCII-only export and the encoding rule; `dist/ascii` is gitignored and never committed.
 
 ### 2026-10-22 — PageHost page measurement + docs & tooling (v1.23.1)
 
 - **Fix (layout / hit-testing)**: `PageHost` used to only `Arrange` its pages and **never `Measure` them**, while `Page::Arrange` re-measures only when the arranged size changes. When a page element becomes visible at runtime (typically an `Expander` card shown by `SetVisible(true)` after a combo-box selection), the dirty measure never reached the page → the newly shown element kept a zero `desiredSize`/`arrangedRect` → it was drawn but had no border and failed `HitTest`, until the user resized the window (a size change) once. `PageHost::MeasureOverride` now measures every page; clean pages hit the `Measure` cache, so no duplicate work is added.
 - **Docs**: the README first screen now leads with positioning, differentiators, the Release link, a screenshot and a one-line experimental note; the full feature list is collapsed; added issue/PR templates; sources moved to `docs/src/` with a new `docs/README.md`; Chinese and English first screens aligned.
-- **Engineering**: `ZufyUIDebugger` moved into this repository and the solution; `tools/build.ps1` / `run_dsl_tests.ps1` locate Visual Studio via `vswhere` (no hard-coded paths) and map x86 to the Win32 output correctly; added `tools/export_ascii.py` (ASCII-only, BOM-free export), `tools/build_docs.py` (ZufyUI docs wrapper) and `tools/make_icon.py` (icons: `docs/icon.*` plus the app icons `ZufyUI.ico` / `small.ico`).
+- **Engineering**: `ZufyUIDebugger` moved into this repository and the solution; `tools/build.ps1` / `run_tests.ps1` locate Visual Studio via `vswhere` (no hard-coded paths) and map x86 to the Win32 output correctly; added `tools/export_ascii.py` (ASCII-only, BOM-free export), `tools/build_docs.py` (ZufyUI docs wrapper) and `tools/make_icon.py` (icons: `docs/icon.*` plus the app icons `ZufyUI.ico` / `small.ico`).
 - **Docs tooling**: the generic `md2html` no longer probes for ZufyUI; it accepts `--var KEY=VALUE` and `--icon`; ZufyUI version/icon injection lives in `tools/build_docs.py`.
 - **Repo hygiene**: `TODO.md` is no longer published (removed from the index and gitignored); `dist/` build outputs are ignored.
 
@@ -83,7 +94,7 @@
 - **Fixes · charts**: `PieChart`'s `zoom_` shadowed `ChartBase::zoom_`, so **Ctrl+wheel zoom did nothing** (the pie now handles Ctrl itself); wheel panning "did not move" (the pan path was missing `SyncScrollPositions()`). Semantics are explicit: **Ctrl+wheel = zoom / plain wheel = pan only**.
 - **Docs**: added two pitfalls — "`ColumnBox` arranges a child without an explicit width at the available width (horizontal stretch ignores the weight), so wrap a card in a `Row` to make it hug its content" and "a `SettingsList` inside a `Card`'s built-in `GridLayout` degenerates to zero width"; `ThemeRole::Shadow` (appended at the end of the enum) and `Window::SetBackdrop(Backdrop)` following the theme.
 - **demo**: new **home page** (settings-card navigation that jumps to each page); the **multi-window page** became 7 collapsible cards; the **menu bar** grew to 6 menus (with sub-menus that really change state: jump to page / backdrop / window size / frame-rate limit); the **status bar** became 5 live panels (page / theme / backdrop / DPI·client area / window state, refreshed by theme switches and window signals); every `MessageBoxW` was replaced by the library `MessageBox` with click feedback on all buttons; duplicated boilerplate removed (14 `section` helpers, 7 `accent` helpers, 14 Scroll wrappers → 3 shared helpers).
-- **Self-tests**: `tests/dsl_tests.cpp` 62 → **85** assertions (including regressions for this batch).
+- **Self-tests**: `tests/zufyui_tests.cpp` 62 → **85** assertions (including regressions for this batch).
 
 ### 2026-10-11 — DSL polish + one-shot build script + null/self-containment fixes (v1.20.0)
 
@@ -91,7 +102,7 @@
 - **DSL**: `WindowApp::run()` now calls `Show()` (`Window::Create` does not show the window, so the old code ran a message loop with no window); added `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` and the window signal hook `on<&Window::Closed>`; `WindowApp` is now movable.
 - **Fixes**: null guards in `ColumnBox`/`RowBox`/`GridLayout::AddChild` (the DSL's variadic forwarding can pass `nullptr`).
 - **Fix**: `ZufyUIWindowTool.h` now includes `ZufyUIWidgets.h` — it used `Label`/`Button` while depending on the caller to include it first.
-- **Tooling**: new `tools/build.ps1` (one shot: **auto-fix BOM before building** → kill processes holding files → build demo + `ZufyUIDebugger` → run self-tests), `tools/ensure_bom.ps1` (BOM guard), and `tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1` (47 assertions, no window needed, runnable from a shell or CI).
+- **Tooling**: new `tools/build.ps1` (one shot: **auto-fix BOM before building** → kill processes holding files → build demo + `ZufyUIDebugger` → run self-tests), `tools/ensure_bom.ps1` (BOM guard), and `tests/zufyui_tests.cpp` + `tools/run_tests.ps1` (47 assertions, no window needed, runnable from a shell or CI).
 
 ### 2026-10-11 — Theme system + fluent DSL + card/drag-drop controls + fixes (v1.18.1 → v1.19.7)
 

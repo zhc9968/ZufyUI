@@ -58,10 +58,10 @@ SRC_PROJECT = [
 ]
 SRC_XML = ["ZufyUI.vcxproj.filters"]
 SRC_TOOLS = [
-    "tools/build.ps1", "tools/ensure_bom.ps1", "tools/run_dsl_tests.ps1",
+    "tools/build.ps1", "tools/ensure_bom.ps1", "tools/run_tests.ps1",
     "tools/vs_tools.ps1",
 ]
-SRC_TESTS = ["tests/dsl_tests.cpp"]
+SRC_TESTS = ["tests/zufyui_tests.cpp"]
 SRC_DEBUGGER = [
     "ZufyUIDebugger/pch.h", "ZufyUIDebugger/pch.cpp",
     "ZufyUIDebugger/ZufyUIDebugger.cpp", "ZufyUIDebugger/ZufyUIDebugger.vcxproj",

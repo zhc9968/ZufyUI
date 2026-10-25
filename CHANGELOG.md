@@ -2,7 +2,18 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.24.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.25.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-25 — Drawer 侧边抽屉、临时键处理器、信号测试（v1.25.0）
+
+- **新增 · `Drawer` 侧边抽屉**：左/右/上/下四方向 × Overlay / Push / Permanent 三模式。Overlay 使用圆角遮罩；Push 让内容让位；Permanent 常驻、无动画/遮罩、`Close` 无效。面板支持圆角、边框、真实外侧阴影（先画阴影，再用不透明面板背景盖住内层，边框最后绘制）。
+- **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器，在 `OnWindowKeyDown` 之后、焦点元素之前调用；Drawer 打开时处理 Esc，关闭/detach/析构时移除。
+- **新增 · Drawer Demo**：下拉选择左/右/上/下与模式、打开/关闭、面板顶部 X、搜索/类别/只看活动/结果计数/筛选列表；内容含 BarChart、Slider、Toggle、CheckBox、ListView。
+- **改进 · `ScrollViewer` 出血**：内容裁剪出血从固定 1px 改为跟随内容 `GetBleed()`（默认 4px），避免抽屉内控件边框/阴影被裁掉。
+- **工程 · 测试改名**：`tests/dsl_tests.cpp` → `tests/zufyui_tests.cpp`，`tools/run_dsl_tests.ps1` → `tools/run_tests.ps1`。
+- **测试**：新增信号重入/槽异常/`NewThread` 弱引用保活/`UIThread` 取消、Drawer 布局/动画/遮罩/Push/Permanent/上下面；ZufyUI 自检 **213** 项。
+- **Demo 默认背景**：启动 `Show()` 后再次应用 Acrylic，避免首次 DWM 应用不生效。
+- **验证**：x64 Debug/Release、x86 Release 构建通过；自检 213 项通过。
 
 ### 2026-10-25 — 信号生命周期、接收者上下文、ConnectWeak（v1.24.0）
 
@@ -15,8 +26,8 @@
 - **新增 · `ConnectWeak`**：弱引用接收者，槽第一个参数为 `T*` / `T&` 或成员函数指针；槽执行期间保活，对象已销毁则跳过。适用于 `NewThread` 或无法保证生命周期的场景。
 - **改进**：`Window` 的 `ReloadAcrylic` / `ThemeChanged` / `ThemeReapply` 三条全局连接改走 `Window::ConnectionGroup`；删除手工 `Connection` 成员。`ConnectionGroup::size()` 只统计存活连接，并定期清理已断开弱引用。
 - **范围**：`Menu` / `MenuItem` / `Timer` 仍使用 `signal.connect`，不自动断开。
-- **测试**：DSL 自检 140 → **161** 项；新增接收者析构断开、自由 `Connect`、`ConnectWeak`、`Connection` 拷贝/移动、信号先析构等回归。
-- **验证**：x64 Debug/Release、x86 Debug 构建通过；DSL 161 项通过。x86 Release 本轮未重跑。
+- **测试**：ZufyUI 自检 140 → **175** 项；新增接收者析构断开、自由 `Connect`、`ConnectWeak`、`Connection` 拷贝/移动、信号先析构、重入、槽异常、`NewThread` 弱引用保活、`UIThread` 取消等回归。
+- **验证**：x64 Debug/Release、x86 Debug 构建通过；DSL 175 项通过。x86 Release 本轮未重跑。
 
 ### 2026-10-23 — Button 富文本/下拉、SetBackdrop 修复、ListView 除零（v1.23.3）
 
@@ -31,14 +42,14 @@
 ### 2026-10-22 — Debug 构建补 `/bigobj`（v1.23.2）
 
 - **构建**：`ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` 的 **Debug|Win32** 与 **Debug|x64** 补 `/bigobj`（Release 已有）。全量 Debug 构建此前会在 `ZufyUI.cpp` / `ZufyUIDebugger.cpp` 报 `C1128: 节数超过对象文件格式限制`。
-- **验证**：Release / Debug × x64 / x86 的 demo + Debugger + DSL 自检全部通过。
+- **验证**：Release / Debug × x64 / x86 的 demo + Debugger + ZufyUI 自检全部通过。
 - **文档**：README / AGENTS / API 补充“纯 ASCII 导出”与编码要求；`dist/ascii` 已加入 `.gitignore`，不会提交。
 
 ### 2026-10-22 — PageHost 页面测量 + 文档 / 工程整理（v1.23.1）
 
 - **修复（布局 / 命中）**：`PageHost` 此前只 `Arrange` 页面、**从不 `Measure` 页面**，而 `Page::Arrange` 仅在“尺寸变化”时补测。页面内元素由隐藏变为可见（典型：选择下拉后 `SetVisible(true)` 的 `Expander` 卡片）时，脏的 measure 传不到页面 → 新显示元素的 `desiredSize/arrangedRect` 为 0 → 画面能画出来却没有边框、`HitTest` 命中失败，必须手动改变一次窗口大小才恢复。现 `PageHost::MeasureOverride` 测量所有页面；未变脏的页面命中 `Measure` 缓存，不增加重复测量。
 - **文档**：README 首屏改为“定位 + 差异点 + Release + 截图 + 单行实验提示”；完整功能总览折叠；新增 Issue/PR 模板；文档源移至 `docs/src/` 并新增 `docs/README.md`；中英文首屏对齐。
-- **工程**：`ZufyUIDebugger` 收入本仓库并加入解决方案；`tools/build.ps1` / `run_dsl_tests.ps1` 通过 `vswhere` 自动定位 VS（不再写死路径），并修正 x86→Win32 输出路径；新增 `tools/export_ascii.py`（纯 ASCII 分发，无 BOM）、`tools/build_docs.py`（ZufyUI 专用文档包装）、`tools/make_icon.py`（图标生成：`docs/icon.*` + 应用图标 `ZufyUI.ico` / `small.ico`）。
+- **工程**：`ZufyUIDebugger` 收入本仓库并加入解决方案；`tools/build.ps1` / `run_tests.ps1` 通过 `vswhere` 自动定位 VS（不再写死路径），并修正 x86→Win32 输出路径；新增 `tools/export_ascii.py`（纯 ASCII 分发，无 BOM）、`tools/build_docs.py`（ZufyUI 专用文档包装）、`tools/make_icon.py`（图标生成：`docs/icon.*` + 应用图标 `ZufyUI.ico` / `small.ico`）。
 - **文档工具**：通用 `md2html` 移除 ZufyUI 专用版本探测，改为 `--var KEY=VALUE`；新增 `--icon` favicon；ZufyUI 的版本注入/图标改由 `tools/build_docs.py` 负责。
 - **仓库卫生**：`TODO.md` 不再随仓库发布（已移出索引并加入 `.gitignore`）；`dist/` 构建产物忽略。
 
@@ -83,7 +94,7 @@
 - **修复 · 图表**：`PieChart` 的 `zoom_` 遮蔽了 `ChartBase::zoom_` 导致 **Ctrl+滚轮缩放无效**（现由饼图自己处理）；滚轮平移"画面不动"（平移路径缺 `SyncScrollPositions()`）。语义明确为 **Ctrl+滚轮 = 缩放 / 普通滚轮 = 只平移**。
 - **文档**：补充"`ColumnBox` 会把无显式宽度的子元素按可用宽摆（横向不吃拉伸权值）→ 卡片想按内容收窄要放进 `Row`"、"`SettingsList` 放进 `Card` 自带 `GridLayout` 会退化成 0 宽"两条易错点；`ThemeRole::Shadow`（枚举末尾追加）+ `Window::SetBackdrop(Backdrop)` 跟随主题。
 - **demo**：新增**首页**（设置卡片式导航，点击跳转对应页）；**多窗口页**改为 7 张可折叠卡片；**菜单栏**扩到 6 个菜单（含跳转页面/背景层/窗口尺寸/帧率上限等真改状态的子菜单）；**状态栏**改为 5 个实时面板（页面/主题/背景/DPI·客户区/窗口状态，随主题切换与窗口信号刷新）；全部 `MessageBoxW` 换成库自带 `MessageBox` 并补齐按钮点击反馈；抽掉重复样板（`section` 14 份、`accent` 7 份、Scroll 包装 14 处 → 3 个共用助手）。
-- **自检**：`tests/dsl_tests.cpp` 62 → **85** 项断言（含本批修复的回归断言）。
+- **自检**：`tests/zufyui_tests.cpp` 62 → **85** 项断言（含本批修复的回归断言）。
 
 ### 2026-10-11 — DSL 完善 + 一键构建脚本 + 空值/自洽修复（v1.20.0）
 
@@ -91,7 +102,7 @@
 - **DSL**：`WindowApp::run()` 补上 `Show()`（`Window::Create` 本身不显示窗口，原实现会跑一个没有窗口的消息循环）；新增 `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` 与窗口信号 `on<&Window::Closed>`；`WindowApp` 改为可移动。
 - **修复**：`ColumnBox`/`RowBox`/`GridLayout::AddChild` 补**空值守卫**（DSL 的 variadic 转发可能送来 `nullptr`）。
 - **修复**：`ZufyUIWindowTool.h` 补 `#include "ZufyUIWidgets.h"` —— 它用到 `Label`/`Button` 却一直依赖调用方先包含。
-- **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（BOM 守卫）、`tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1`（47 项断言，不建窗口，可命令行 / CI 直接跑）。
+- **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（BOM 守卫）、`tests/zufyui_tests.cpp` + `tools/run_tests.ps1`（47 项断言，不建窗口，可命令行 / CI 直接跑）。
 
 ### 2026-10-11 — 主题系统 + 链式构造 DSL + 卡片/拖放控件 + 一批修复（v1.18.1 → v1.19.7）
 

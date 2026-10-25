@@ -3530,8 +3530,8 @@ namespace ZufyUI {
 
             if (vScrollBar_) vScrollBar_->SetRange(scrollOffsetY_, maxScrollY_, viewportHeight);
             if (hScrollBar_) hScrollBar_->SetRange(scrollOffsetX_, maxScrollX_, viewportWidth);
-            // 裁到视口；四周留 1px 出血，避免内容边缘（卡片边框/阴影）正好压在裁剪线被裁掉一半
-            const float bleed = 1.0f;
+            // 裁到视口；出血量跟随内容自身 bleed（默认 4px），避免卡片边框/阴影被裁掉。
+            const float bleed = max(1.0f, content_->GetBleed());
             content_->SetClipRect(Rect(finalRect.x - bleed, finalRect.y - bleed,
                 viewportWidth + bleed * 2.0f, viewportHeight + bleed * 2.0f));
 
@@ -6462,6 +6462,542 @@ namespace ZufyUI {
     };
 
     // ============================================================================
+    // Drawer —— 侧边抽屉（Overlay / Push / Permanent）
+    // ============================================================================
+    enum class DrawerSide { Left, Right, Top, Bottom };
+    enum class DrawerMode { Overlay, Push, Permanent };
+
+    class Drawer : public Layout {
+    private:
+        class Scrim : public UIElement {
+        public:
+            explicit Scrim(Drawer* owner) : owner_(owner) {}
+            bool UseCache() const override { return false; }
+            Size MeasureOverride(const Size& availableSize) override { return availableSize; }
+            void ArrangeOverride(const Rect& finalRect) override { UIElement::ArrangeOverride(finalRect); }
+            void Draw(ID2D1RenderTarget* rt) override { if (owner_) owner_->DrawScrim(rt, arrangedRect_); }
+            UIElement* HitTest(float x, float y) override {
+                if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
+                return (owner_ && owner_->ScrimInteractive()) ? this : nullptr;
+            }
+            void OnMouseDown(float, float) override { if (owner_) owner_->OnScrimPressed(); }
+            void RefreshChildren() override { childrenDirty_ = false; childrenView_.clear(); }
+            const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
+            void AttachWindowRecursive(Window* w) override { windowId_ = WindowIdOf(w); }
+            void ReleaseDeviceResources() override {}
+        private:
+            Drawer* owner_ = nullptr;
+        };
+
+        class PanelHost : public UIElement {
+        public:
+            explicit PanelHost(Drawer* owner) : owner_(owner) {}
+            bool UseCache() const override { return false; }
+            void SetContent(std::shared_ptr<UIElement> content) {
+                if (content_ == content) return;
+                if (content_) content_->SetParent(nullptr);
+                content_ = std::move(content);
+                if (content_) content_->SetParent(this);
+                childrenDirty_ = true;
+                InvalidateLayout();
+                RequestRepaint();
+            }
+            Size MeasureOverride(const Size& availableSize) override {
+                float w = availableSize.width == FLT_MAX ? 0.0f : availableSize.width;
+                float h = availableSize.height == FLT_MAX ? 0.0f : availableSize.height;
+                if (owner_ && content_) {
+                    Thickness p = owner_->PanelPadding();
+                    content_->Measure(Size(max(0.0f, w - p.left - p.right),
+                                          max(0.0f, h - p.top - p.bottom)));
+                }
+                return Size(w, h);
+            }
+            void ArrangeOverride(const Rect& finalRect) override {
+                UIElement::ArrangeOverride(finalRect);
+                if (!content_) return;
+                Thickness p = owner_ ? owner_->PanelPadding() : Thickness();
+                content_->Arrange(Rect(finalRect.x + p.left, finalRect.y + p.top,
+                    max(0.0f, finalRect.width - p.left - p.right),
+                    max(0.0f, finalRect.height - p.top - p.bottom)));
+            }
+            void Draw(ID2D1RenderTarget* rt) override { if (owner_) owner_->DrawPanelSurface(rt, arrangedRect_); }
+            UIElement* HitTest(float x, float y) override {
+                if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
+                if (content_) { if (UIElement* hit = content_->HitTest(x, y)) return hit; }
+                return this;
+            }
+            void RefreshChildren() override {
+                if (!childrenDirty_) return;
+                childrenDirty_ = false;
+                childrenView_.clear();
+                if (content_) childrenView_.push_back(content_.get());
+            }
+            const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
+            void AttachWindowRecursive(Window* w) override {
+                windowId_ = WindowIdOf(w);
+                if (content_) content_->AttachWindowRecursive(w);
+            }
+            void UpdateAnimation(float dt) override { if (content_) content_->UpdateAnimation(dt); }
+            bool HasActiveAnimation() const override { return content_ && content_->HasActiveAnimation(); }
+        private:
+            Drawer* owner_ = nullptr;
+            std::shared_ptr<UIElement> content_;
+        };
+
+        class ContentFrame : public UIElement {
+        public:
+            explicit ContentFrame(Drawer* owner) : owner_(owner) {}
+            bool UseCache() const override { return false; }
+            Size MeasureOverride(const Size& availableSize) override { return availableSize; }
+            void ArrangeOverride(const Rect& finalRect) override { UIElement::ArrangeOverride(finalRect); }
+            void Draw(ID2D1RenderTarget* rt) override { if (owner_) owner_->DrawContentBorder(rt, arrangedRect_); }
+            UIElement* HitTest(float, float) override { return nullptr; }
+            void RefreshChildren() override { childrenDirty_ = false; childrenView_.clear(); }
+            const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
+            void AttachWindowRecursive(Window* w) override { windowId_ = WindowIdOf(w); }
+            void ReleaseDeviceResources() override {}
+        private:
+            Drawer* owner_ = nullptr;
+        };
+
+        std::shared_ptr<UIElement> content_;
+        std::shared_ptr<UIElement> panel_;
+        std::shared_ptr<Scrim> scrim_;
+        std::shared_ptr<PanelHost> panelHost_;
+        std::shared_ptr<ContentFrame> contentFrame_;
+        FloatAnimation progress_;
+        DrawerSide side_ = DrawerSide::Left;
+        DrawerMode mode_ = DrawerMode::Overlay;
+        bool openRequested_ = false;
+        float panelSize_ = DefaultPanelSize;
+        float panelMin_ = 0.0f;
+        float panelMax_ = FLT_MAX;
+        Thickness panelPadding_{ 16.0f, 16.0f, 16.0f, 16.0f };
+        float panelCorner_ = 8.0f;
+        Color panelBgColor_;
+        Color panelBorderColor_;
+        Color scrimColor_;
+        bool contentBorder_ = true;
+        Color contentBorderColor_;
+        float contentBorderCorner_ = 8.0f;
+        Rect contentRect_{};
+        bool panelShadow_ = true;
+        Color panelShadowColor_;
+        float scrimOpacity_ = 1.0f;
+        bool modal_ = true;
+        bool dismissOnScrim_ = true;
+        bool dismissOnEscape_ = true;
+        float animDuration_ = DefaultAnimationDuration;
+        Easing easing_ = Easing::EaseOut;
+        std::shared_ptr<UIElement> focusOnOpen_;
+        int escapeHandlerId_ = 0;
+        ComPtr<ID2D1SolidColorBrush> panelBgBrush_, panelBorderBrush_, scrimBrush_, contentBorderBrush_;
+
+        float PanelLength(float totalW, float totalH) const {
+            float total = (side_ == DrawerSide::Left || side_ == DrawerSide::Right) ? totalW : totalH;
+            float len = panelSize_;
+            if (panelMin_ > 0.0f) len = max(len, panelMin_);
+            if (panelMax_ < FLT_MAX) len = min(len, panelMax_);
+            if (total > 0.0f) len = min(len, total);
+            return max(0.0f, len);
+        }
+        Size PanelSizeFor(float w, float h) const {
+            float len = PanelLength(w, h);
+            return (side_ == DrawerSide::Left || side_ == DrawerSide::Right)
+                ? Size(len, h) : Size(w, len);
+        }
+        bool IsOpenTarget() const { return mode_ == DrawerMode::Permanent || openRequested_; }
+        bool ScrimInteractive() const {
+            return mode_ == DrawerMode::Overlay && modal_ && progress_.Value() > 0.001f;
+        }
+        void RemoveEscapeHandler() {
+            if (escapeHandlerId_) {
+                if (Window* w = GetWindow()) w->RemoveKeyHandler(escapeHandlerId_);
+                escapeHandlerId_ = 0;
+            }
+        }
+        void UpdateEscapeHandler() {
+            bool want = dismissOnEscape_ && mode_ != DrawerMode::Permanent && openRequested_;
+            Window* w = GetWindow();
+            if (want && w && !escapeHandlerId_) {
+                escapeHandlerId_ = w->AddKeyHandler([this](int vk) {
+                    if (vk == VK_ESCAPE && openRequested_ && mode_ != DrawerMode::Permanent) {
+                        Close();
+                        return true;
+                    }
+                    return false;
+                    });
+            }
+            else if (!want) {
+                RemoveEscapeHandler();
+            }
+        }
+        void FocusOnOpen() {
+            if (auto w = GetWindow()) {
+                if (focusOnOpen_) w->FocusElement(focusOnOpen_.get());
+            }
+        }
+        void FinishTransition() {
+            if (openRequested_) {
+                FocusOnOpen();
+                Opened();
+            }
+            else {
+                Closed();
+            }
+            UpdateEscapeHandler();
+            ApplyArrange(arrangedRect_);
+            RequestRepaint();
+        }
+        void ApplyArrange(const Rect& r) {
+            if (!(r.width > 0.0f && r.height > 0.0f)) return;
+            const float t = clamp(progress_.Value(), 0.0f, 1.0f);
+            const float plen = PanelLength(r.width, r.height);
+            float cx = r.x, cy = r.y, cw = r.width, ch = r.height;
+            if (mode_ != DrawerMode::Overlay) {
+                if (side_ == DrawerSide::Left) {
+                    cx = r.x + plen * t;
+                    cw = max(0.0f, r.width - plen * t);
+                }
+                else if (side_ == DrawerSide::Right) {
+                    cw = max(0.0f, r.width - plen * t);
+                }
+                else if (side_ == DrawerSide::Top) {
+                    cy = r.y + plen * t;
+                    ch = max(0.0f, r.height - plen * t);
+                }
+                else {
+                    ch = max(0.0f, r.height - plen * t);
+                }
+            }
+            const Rect contentRect(cx, cy, cw, ch);
+            contentRect_ = contentRect;
+            if (content_) content_->Arrange(contentRect);
+            if (scrim_) scrim_->Arrange(r);
+            if (contentFrame_) contentFrame_->Arrange(contentRect);
+            Rect pr = r;
+            switch (side_) {
+            case DrawerSide::Left:   pr = Rect(r.x - plen * (1.0f - t), r.y, plen, r.height); break;
+            case DrawerSide::Right:  pr = Rect(r.x + r.width - plen * t, r.y, plen, r.height); break;
+            case DrawerSide::Top:    pr = Rect(r.x, r.y - plen * (1.0f - t), r.width, plen); break;
+            case DrawerSide::Bottom: pr = Rect(r.x, r.y + r.height - plen * t, r.width, plen); break;
+            }
+            if (panelHost_) panelHost_->Arrange(pr);
+            if (scrim_) {
+                bool show = mode_ == DrawerMode::Overlay && t > 0.001f &&
+                    (modal_ || scrimColor_.a * scrimOpacity_ > 0.001f);
+                scrim_->SetVisibleNoInvalidate(show);
+            }
+            if (contentFrame_) {
+                bool show = contentBorder_ && content_ && mode_ == DrawerMode::Overlay && t > 0.001f;
+                contentFrame_->SetVisibleNoInvalidate(show);
+            }
+            if (panelHost_) {
+                panelHost_->SetVisibleNoInvalidate(t > 0.001f || mode_ == DrawerMode::Permanent);
+            }
+        }
+        void DrawScrim(ID2D1RenderTarget* rt, const Rect& r);
+        void DrawPanelSurface(ID2D1RenderTarget* rt, const Rect& r);
+        void DrawContentBorder(ID2D1RenderTarget* rt, const Rect& r);
+
+    public:
+        inline static float DefaultPanelSize = 320.0f;
+        inline static float DefaultAnimationDuration = 0.22f;
+
+        ZSignal<bool> OpenChanged;
+        ZSignal<> Opened;
+        ZSignal<> Closed;
+        ZSignal<> ScrimClicked;
+
+        Drawer() {
+            fillWidth_ = true;
+            fillHeight_ = true;
+            panelBgColor_ = ThemeManager::AppTheme().Get(ThemeRole::SurfaceRaised);
+            panelBorderColor_ = ThemeManager::AppTheme().Get(ThemeRole::Border);
+            scrimColor_ = ThemeManager::AppTheme().Get(ThemeRole::Overlay);
+            contentBorderColor_ = ThemeManager::AppTheme().Get(ThemeRole::Border);
+            panelShadowColor_ = ThemeManager::AppTheme().Get(ThemeRole::Shadow);
+            panelCorner_ = ThemeManager::AppTheme().cornerRadius;
+            contentBorderCorner_ = ThemeManager::AppTheme().cornerRadius;
+            progress_.Snap(0.0f);
+            Animations().Add(&progress_);
+            scrim_ = std::make_shared<Scrim>(this);
+            scrim_->SetParent(this);
+            scrim_->SetVisibleNoInvalidate(false);
+            contentFrame_ = std::make_shared<ContentFrame>(this);
+            contentFrame_->SetParent(this);
+            contentFrame_->SetVisibleNoInvalidate(false);
+            panelHost_ = std::make_shared<PanelHost>(this);
+            panelHost_->SetParent(this);
+            panelHost_->SetVisibleNoInvalidate(false);
+            MarkChildrenDirty();
+        }
+        ~Drawer() override { RemoveEscapeHandler(); }
+
+        void SetContent(std::shared_ptr<UIElement> content) {
+            if (content_ == content) return;
+            if (content_) content_->SetParent(nullptr);
+            content_ = std::move(content);
+            if (content_) content_->SetParent(this);
+            MarkChildrenDirty();
+            InvalidateLayout();
+            RequestRepaint();
+        }
+        std::shared_ptr<UIElement> GetContent() const { return content_; }
+
+        void SetPanel(std::shared_ptr<UIElement> panel) {
+            if (panel_ == panel) return;
+            if (panel_) panel_->SetParent(nullptr);
+            panel_ = std::move(panel);
+            if (panelHost_) panelHost_->SetContent(panel_);
+            MarkChildrenDirty();
+            InvalidateLayout();
+            RequestRepaint();
+        }
+        std::shared_ptr<UIElement> GetPanel() const { return panel_; }
+
+        void SetSide(DrawerSide side) {
+            if (side_ == side) return;
+            side_ = side;
+            InvalidateLayout();
+            ApplyArrange(arrangedRect_);
+            RequestRepaint();
+        }
+        DrawerSide GetSide() const { return side_; }
+
+        void SetMode(DrawerMode mode) {
+            if (mode_ == mode) return;
+            mode_ = mode;
+            if (mode_ == DrawerMode::Permanent) {
+                const bool changed = !openRequested_;
+                openRequested_ = true;
+                progress_.Snap(1.0f);
+                UpdateEscapeHandler();
+                if (changed) OpenChanged(true);
+                InvalidateLayout();
+                FinishTransition();
+            }
+            else {
+                UpdateEscapeHandler();
+                InvalidateLayout();
+                ApplyArrange(arrangedRect_);
+                RequestRepaint();
+            }
+        }
+        DrawerMode GetMode() const { return mode_; }
+
+        void SetPanelSize(float px) {
+            px = max(0.0f, px);
+            if (panelSize_ == px) return;
+            panelSize_ = px;
+            InvalidateLayout();
+            ApplyArrange(arrangedRect_);
+            RequestRepaint();
+        }
+        float GetPanelSize() const { return panelSize_; }
+        void SetPanelMinSize(float px) { panelMin_ = max(0.0f, px); InvalidateLayout(); }
+        void SetPanelMaxSize(float px) { panelMax_ = max(0.0f, px); InvalidateLayout(); }
+
+        void SetPanelPadding(const Thickness& t) {
+            panelPadding_ = t;
+            if (panelHost_) panelHost_->InvalidateLayout();
+            InvalidateLayout();
+            RequestRepaint();
+        }
+        Thickness PanelPadding() const { return panelPadding_; }
+        void SetPanelCornerRadius(float r) { panelCorner_ = max(0.0f, r); RequestRepaint(); }
+        void SetPanelBackgroundColor(Color c) { MarkUserColor(); panelBgColor_ = c; RequestRepaint(); }
+        void SetPanelBorderColor(Color c) { MarkUserColor(); panelBorderColor_ = c; RequestRepaint(); }
+        void SetPanelShadow(bool on) { panelShadow_ = on; RequestRepaint(); }
+        void SetPanelShadowColor(Color c) { MarkUserColor(); panelShadowColor_ = c; RequestRepaint(); }
+        void SetContentBorder(bool on) { contentBorder_ = on; ApplyArrange(arrangedRect_); RequestRepaint(); }
+        void SetContentBorderColor(Color c) { MarkUserColor(); contentBorderColor_ = c; RequestRepaint(); }
+        void SetContentBorderCornerRadius(float r) { contentBorderCorner_ = max(0.0f, r); RequestRepaint(); }
+
+        void SetScrimColor(Color c) {
+            MarkUserColor();
+            scrimColor_ = c;
+            ApplyArrange(arrangedRect_);
+            RequestRepaint();
+        }
+        void SetScrimOpacity(float a) {
+            scrimOpacity_ = clamp(a, 0.0f, 1.0f);
+            ApplyArrange(arrangedRect_);
+            RequestRepaint();
+        }
+        void SetModal(bool on) { modal_ = on; ApplyArrange(arrangedRect_); RequestRepaint(); }
+        bool IsModal() const { return modal_; }
+        void SetDismissOnScrimClick(bool on) { dismissOnScrim_ = on; }
+        void SetDismissOnEscape(bool on) { dismissOnEscape_ = on; UpdateEscapeHandler(); }
+        void SetFocusOnOpen(std::shared_ptr<UIElement> focusTarget) { focusOnOpen_ = std::move(focusTarget); }
+
+        void SetAnimationDuration(float seconds) { animDuration_ = max(0.0f, seconds); }
+        void SetAnimationEasing(Easing easing) { easing_ = easing; }
+
+        void SetOpen(bool open, bool animate = true) {
+            if (mode_ == DrawerMode::Permanent) {
+                if (!openRequested_) {
+                    openRequested_ = true;
+                    progress_.Snap(1.0f);
+                    OpenChanged(true);
+                    FinishTransition();
+                }
+                return;
+            }
+            if (openRequested_ == open) return;
+            openRequested_ = open;
+            OpenChanged(open);
+            UpdateEscapeHandler();
+            ApplyArrange(arrangedRect_);
+            if (!animate || animDuration_ <= 0.0f) {
+                progress_.Snap(open ? 1.0f : 0.0f);
+                FinishTransition();
+                return;
+            }
+            progress_.SetOnComplete([this]() { FinishTransition(); });
+            if (!progress_.To(open ? 1.0f : 0.0f, animDuration_, easing_)) {
+                FinishTransition();
+            }
+        }
+        void Open() { SetOpen(true); }
+        void Close() { SetOpen(false); }
+        void Toggle() { SetOpen(!openRequested_); }
+
+        bool IsOpen() const { return IsOpenTarget(); }
+        bool IsAnimating() const { return progress_.Active(); }
+        float GetOpenProgress() const { return progress_.Value(); }
+
+        void ApplyTheme(const Theme& t) {
+            if (!IsThemeManaged()) return;
+            SetPanelBackgroundColor(t.Get(ThemeRole::SurfaceRaised));
+            SetPanelBorderColor(t.Get(ThemeRole::Border));
+            SetPanelShadowColor(t.Get(ThemeRole::Shadow));
+            SetContentBorderColor(t.Get(ThemeRole::Border));
+            SetScrimColor(t.Get(ThemeRole::Overlay));
+            SetPanelCornerRadius(t.cornerRadius);
+            SetContentBorderCornerRadius(t.cornerRadius);
+        }
+
+        bool UseCache() const override { return false; }
+        Size MeasureOverride(const Size& availableSize) override {
+            float w = width_ > 0.0f ? width_ : (availableSize.width != FLT_MAX ? availableSize.width : 800.0f);
+            float h = height_ > 0.0f ? height_ : (availableSize.height != FLT_MAX ? availableSize.height : 600.0f);
+            float plen = PanelLength(w, h);
+            float cw = w, ch = h;
+            if (mode_ != DrawerMode::Overlay && IsOpenTarget()) {
+                if (side_ == DrawerSide::Left || side_ == DrawerSide::Right) cw = max(0.0f, w - plen);
+                else ch = max(0.0f, h - plen);
+            }
+            if (content_) content_->Measure(Size(cw, ch));
+            if (scrim_) scrim_->Measure(Size(w, h));
+            if (contentFrame_) contentFrame_->Measure(Size(w, h));
+            if (panelHost_) panelHost_->Measure(PanelSizeFor(w, h));
+            return Size(w, h);
+        }
+        void ArrangeOverride(const Rect& finalRect) override {
+            UIElement::ArrangeOverride(finalRect);
+            ApplyArrange(arrangedRect_);
+        }
+        void Draw(ID2D1RenderTarget*) override {}
+        void OnAnimationUpdate(float) override { ApplyArrange(arrangedRect_); }
+        void UpdateAnimation(float dt) override {
+            UIElement::UpdateAnimation(dt);
+            if (content_) content_->UpdateAnimation(dt);
+            if (panelHost_) panelHost_->UpdateAnimation(dt);
+        }
+        bool HasActiveAnimation() const override {
+            return UIElement::HasActiveAnimation() ||
+                (content_ && content_->HasActiveAnimation()) ||
+                (panelHost_ && panelHost_->HasActiveAnimation());
+        }
+        UIElement* HitTest(float x, float y) override {
+            if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
+            if (panelHost_ && panelHost_->IsVisible()) {
+                if (UIElement* hit = panelHost_->HitTest(x, y)) return hit;
+            }
+            if (scrim_ && scrim_->IsVisible()) {
+                if (UIElement* hit = scrim_->HitTest(x, y)) return hit;
+            }
+            if (content_) {
+                if (UIElement* hit = content_->HitTest(x, y)) return hit;
+                return this;
+            }
+            return nullptr;
+        }
+        void RefreshChildren() override {
+            if (!childrenDirty_) return;
+            childrenDirty_ = false;
+            childrenView_.clear();
+            if (content_) childrenView_.push_back(content_.get());
+            if (scrim_) childrenView_.push_back(scrim_.get());
+            if (contentFrame_) childrenView_.push_back(contentFrame_.get());
+            if (panelHost_) childrenView_.push_back(panelHost_.get());
+        }
+        const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
+        void AttachWindowRecursive(Window* w) override {
+            if (w != GetWindow()) RemoveEscapeHandler();
+            windowId_ = WindowIdOf(w);
+            if (content_) content_->AttachWindowRecursive(w);
+            if (scrim_) scrim_->AttachWindowRecursive(w);
+            if (contentFrame_) contentFrame_->AttachWindowRecursive(w);
+            if (panelHost_) panelHost_->AttachWindowRecursive(w);
+            UpdateEscapeHandler();
+        }
+        void ReleaseDeviceResources() override {
+            panelBgBrush_.Reset();
+            panelBorderBrush_.Reset();
+            scrimBrush_.Reset();
+            contentBorderBrush_.Reset();
+        }
+        void OnScrimPressed() {
+            ScrimClicked();
+            if (dismissOnScrim_) Close();
+        }
+    };
+
+    inline void Drawer::DrawScrim(ID2D1RenderTarget* rt, const Rect& r) {
+        if (!rt || mode_ != DrawerMode::Overlay) return;
+        float a = scrimColor_.a * scrimOpacity_ * progress_.Value();
+        if (a <= 0.001f) return;
+        D2D1_COLOR_F c = scrimColor_.ToD2D(); c.a = a;
+        if (!scrimBrush_) rt->CreateSolidColorBrush(c, scrimBrush_.GetAddressOf());
+        else scrimBrush_->SetColor(c);
+        const float radius = min(contentBorderCorner_, min(r.width, r.height) * 0.5f);
+        if (scrimBrush_)
+            rt->FillRoundedRectangle(D2D1::RoundedRect(r.ToD2D(), radius, radius), scrimBrush_.Get());
+    }
+
+    inline void Drawer::DrawPanelSurface(ID2D1RenderTarget* rt, const Rect& r) {
+        if (!rt || r.width <= 0.0f || r.height <= 0.0f) return;
+        float t = progress_.Value();
+        if (t <= 0.001f && mode_ != DrawerMode::Permanent) return;
+        float radius = min(panelCorner_, min(r.width, r.height) * 0.5f);
+        if (panelShadow_ && t > 0.001f) {
+            detail::DrawSoftShadow(rt, r.ToD2D(), radius, 0.0f, 0.0f, 10.0f,
+                panelShadowColor_.ToD2D(), 24, t);
+        }
+        D2D1_COLOR_F bg = panelBgColor_.ToD2D();
+        if (!panelBgBrush_) rt->CreateSolidColorBrush(bg, panelBgBrush_.GetAddressOf());
+        else panelBgBrush_->SetColor(bg);
+        if (panelBgBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(r.ToD2D(), radius, radius), panelBgBrush_.Get());
+        D2D1_COLOR_F bd = panelBorderColor_.ToD2D();
+        if (!panelBorderBrush_) rt->CreateSolidColorBrush(bd, panelBorderBrush_.GetAddressOf());
+        else panelBorderBrush_->SetColor(bd);
+        if (panelBorderBrush_)
+            rt->DrawRoundedRectangle(D2D1::RoundedRect(r.ToD2D(), radius, radius), panelBorderBrush_.Get(), 1.0f);
+    }
+
+    inline void Drawer::DrawContentBorder(ID2D1RenderTarget* rt, const Rect& r) {
+        if (!rt || !contentBorder_ || mode_ != DrawerMode::Overlay || r.width <= 0.0f || r.height <= 0.0f) return;
+        float radius = min(contentBorderCorner_, min(r.width, r.height) * 0.5f);
+        D2D1_COLOR_F c = contentBorderColor_.ToD2D();
+        if (!contentBorderBrush_) rt->CreateSolidColorBrush(c, contentBorderBrush_.GetAddressOf());
+        else contentBorderBrush_->SetColor(c);
+        if (contentBorderBrush_)
+            rt->DrawRoundedRectangle(D2D1::RoundedRect(r.ToD2D(), radius, radius), contentBorderBrush_.Get(), 1.0f);
+    }
+
+    // ============================================================================
     // TextEdit —— 多行文本编辑器 / 查看器（对标 Qt 的 QPlainTextEdit / QTextEdit）
     //   * 多行、可选行号、可选换行、Tab 缩进（空格数）、只读模式
     //   * 跨行选择、光标（按 行/列 或 字符索引）、剪贴板、撤销/重做、查找
@@ -7902,6 +8438,7 @@ namespace ZufyUI {
         else if (auto* nb = dynamic_cast<NumberBox*>(e)) { nb->SetColors(t.Get(ThemeRole::SurfaceAlt), t.Get(ThemeRole::TextSecondary), t.Get(ThemeRole::Accent)); { Color hv = t.Get(ThemeRole::Text); hv.a = 0.12f; nb->SetHoverColors(hv, t.Get(ThemeRole::Danger)); } }
         else if (auto* tv = dynamic_cast<TabView*>(e)) { tv->SetBackgroundColor(t.Get(ThemeRole::Surface)); tv->SetContentColor(t.Get(ThemeRole::Surface)); tv->SetIndicatorColor(t.Get(ThemeRole::Accent)); tv->SetTextColor(t.Get(ThemeRole::TextSecondary), t.Get(ThemeRole::Text)); tv->SetSelectedTabColor(t.Get(ThemeRole::Control)); { Color hv = t.Get(ThemeRole::Text); hv.a = 0.08f; tv->SetHoverColor(hv); } }
         else if (auto* card = dynamic_cast<Card*>(e)) { card->SetBackgroundColor(t.Get(ThemeRole::SurfaceRaised)); card->SetHoverBackgroundColor(t.Get(ThemeRole::SurfaceAlt)); card->SetBorderColor(t.Get(ThemeRole::Border)); /* 悬停不改边框色：原设 Accent → 卡片一悬停就闪蓝框 */ }
+        else if (auto* dr = dynamic_cast<Drawer*>(e)) { dr->ApplyTheme(t); }
         else if (auto* sv = dynamic_cast<SplitView*>(e)) { Color hv = t.Get(ThemeRole::Accent); hv.a = 0.35f; sv->SetSplitterColor(t.Get(ThemeRole::Divider)); sv->SetHoverColor(hv); sv->SetExpandButtonColors(t.Get(ThemeRole::Control), t.Get(ThemeRole::ControlHover), t.Get(ThemeRole::Text)); }
         else if (auto* mb = dynamic_cast<MenuBar*>(e)) { mb->SetTextColor(t.Get(ThemeRole::Text)); mb->SetHoverColor(t.Get(ThemeRole::ControlHover)); mb->SetOpenColor(t.Get(ThemeRole::ControlPressed)); }
         else if (auto* stb = dynamic_cast<StatusBar*>(e)) { stb->SetColors(t.Get(ThemeRole::SurfaceAlt), t.Get(ThemeRole::Divider), t.Get(ThemeRole::TextSecondary)); }

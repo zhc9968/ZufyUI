@@ -89,9 +89,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 24
+#define ZufyUI_VERSION_MINOR 25
 #define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.24.0"
+#define ZufyUI_VERSION_STRING L"1.25.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -3730,6 +3730,21 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 窗口级按键钩子（在派发给焦点元素之前调用；返回 true 表示已处理）。供弹窗 ESC/Enter 等使用。
         virtual bool OnWindowKeyDown(int vk) { (void)vk; return false; }
 
+        // 可注册的临时键处理器（抽屉/浮层用）。在 OnWindowKeyDown 之后、焦点元素之前调用。
+        using KeyHandler = std::function<bool(int)>;
+        int AddKeyHandler(KeyHandler handler) {
+            if (!handler) return 0;
+            int id = nextKeyHandlerId_++;
+            keyHandlers_.push_back({ id, std::move(handler) });
+            return id;
+        }
+        void RemoveKeyHandler(int id) {
+            keyHandlers_.erase(
+                std::remove_if(keyHandlers_.begin(), keyHandlers_.end(),
+                    [id](const auto& entry) { return entry.first == id; }),
+                keyHandlers_.end());
+        }
+
         // 窗口级定时器钩子（WM_TIMER；返回 true 表示已处理）。id 为 SetTimer 传入的 id。
         virtual bool OnWindowTimer(int id) { (void)id; return false; }
 
@@ -3753,6 +3768,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         UINT_PTR nextFrameworkTimerId_ = 0x7F00;   // 框架定时器 id 段（避开库内部 1/应用自定义）
         std::vector<std::pair<int, std::function<void()>>> overlaySync_;   // 外部浮窗同步回调（HwndView）
         int nextOverlaySyncId_ = 0;
+        std::vector<std::pair<int, KeyHandler>> keyHandlers_;
+        int nextKeyHandlerId_ = 1;
         inline static constexpr UINT_PTR kOverlaySyncTimer = 0x7E01;
     public:
 
@@ -5224,6 +5241,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 // 菜单打开时：菜单是"临时顶层交互"，键盘优先级高于窗口
                 if (detail::ForwardKeyToActiveMenu((int)wParam)) return 0;
                 if (OnWindowKeyDown((int)wParam)) return 0;
+                if (!keyHandlers_.empty()) {
+                    auto handlers = keyHandlers_;
+                    for (auto& entry : handlers) {
+                        if (entry.second && entry.second((int)wParam)) return 0;
+                    }
+                }
                 // 键盘弹出右键菜单：菜单键 / Shift+F10
                 if (wParam == VK_APPS || (wParam == VK_F10 && (GetKeyState(VK_SHIFT) & 0x8000))) {
                     UIElement* t = focusedElement_ ? focusedElement_ : currentHovered_;

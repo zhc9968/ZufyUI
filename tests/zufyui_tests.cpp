@@ -1,18 +1,24 @@
 ﻿// ============================================================================
-// tests/dsl_tests.cpp —— ZufyUI DSL 自检（编译期断言 + 运行期断言）
+// tests/zufyui_tests.cpp —— ZufyUI 自检（编译期断言 + 运行期断言）
 //
 //   构建并运行：
-//       powershell -ExecutionPolicy Bypass -File tools/run_dsl_tests.ps1
+//       powershell -ExecutionPolicy Bypass -File tools/run_tests.ps1
 //   退出码 0 = 全部通过；非 0 = 有断言失败（失败项会打印到 stdout）。
 //
-//   本测试**不创建窗口**（不需要 D2D / DComp / 消息循环），所以能在命令行 / CI 里直接跑。
-//   覆盖：容器加子分派、空值过滤、布局快捷、Grid 坐标、数据视图与菜单构建糖、新工厂、Wrap。
+//   本测试默认**不创建可见窗口**（不需要 D2D / DComp / 消息循环），所以能在命令行 / CI 里直接跑。
+//   UIThread 取消测试会创建一个**隐藏 dispatcher 窗口**；没有桌面会话时自动跳过。
+//   覆盖：容器加子分派、空值过滤、布局快捷、Grid 坐标、数据视图与菜单构建糖、新工厂、Wrap、信号生命周期。
 // ============================================================================
 // 包含顺序刻意保持“WindowTool 在前”：它自己会 include ZufyUIWidgets.h，
 // 所以这里不再手动包含 —— 这个测试同时验证 WindowTool 是否自洽。
 #include "ZufyUIWindowTool.h"   // 无障碍提供程序：UIElement 析构要用其中的定义（ForgetAccessibleElement 等）
 #include "ZufyUIDsl.h"
+#include <chrono>
 #include <cstdio>
+#include <future>
+#include <latch>
+#include <stdexcept>
+#include <thread>
 
 namespace d = ZufyUI::dsl;
 using namespace ZufyUI;
@@ -481,6 +487,121 @@ static void test_animation_primitives() {
     CHECK(!group.Active());
 }
 
+static void test_drawer() {
+    std::printf("Drawer 抽屉\n");
+
+    {
+        Drawer d;
+        auto content = std::make_shared<Label>(L"content");
+        auto panel = std::make_shared<Label>(L"panel");
+        d.SetContent(content);
+        d.SetPanel(panel);
+        d.SetPanelSize(200.0f);
+        d.Arrange(Rect(0, 0, 800, 600));
+        CHECK(content->GetArrangedRect().width == 800.0f);
+
+        int opened = 0, closed = 0, changes = 0;
+        d.Opened.connect([&]() { ++opened; });
+        d.Closed.connect([&]() { ++closed; });
+        d.OpenChanged.connect([&](bool) { ++changes; });
+
+        d.Open();
+        CHECK(d.IsOpen());
+        CHECK(d.IsAnimating());
+        CHECK(changes == 1);
+        CHECK(opened == 0);
+        d.UpdateAnimation(1.0f);
+        CHECK(d.GetOpenProgress() == 1.0f);
+        CHECK(!d.IsAnimating());
+        CHECK(opened == 1);
+        CHECK(content->GetArrangedRect().width == 800.0f);   // Overlay keeps content full
+        CHECK(panel->GetArrangedRect().width == 168.0f);     // default 16px panel padding
+        CHECK(panel->GetArrangedRect().x == 16.0f);
+
+        d.Close();
+        CHECK(!d.IsOpen());
+        d.UpdateAnimation(1.0f);
+        CHECK(closed == 1);
+        CHECK(content->GetArrangedRect().width == 800.0f);
+        CHECK(changes == 2);
+    }
+
+    {
+        Drawer d;
+        auto content = std::make_shared<Label>(L"content");
+        auto panel = std::make_shared<Label>(L"panel");
+        d.SetContent(content);
+        d.SetPanel(panel);
+        d.SetMode(DrawerMode::Push);
+        d.SetPanelSize(200.0f);
+        d.Arrange(Rect(0, 0, 800, 600));
+        d.SetOpen(true, false);
+        CHECK(content->GetArrangedRect().x == 200.0f);        // left Push shifts content right
+        CHECK(content->GetArrangedRect().width == 600.0f);
+        CHECK(panel->GetArrangedRect().width == 168.0f);
+
+        d.SetSide(DrawerSide::Right);
+        CHECK(content->GetArrangedRect().x == 0.0f);
+        CHECK(panel->GetArrangedRect().x == 616.0f);
+        d.SetSide(DrawerSide::Top);
+        CHECK(content->GetArrangedRect().y == 200.0f);        // top Push shifts content down
+        CHECK(content->GetArrangedRect().height == 400.0f);
+        CHECK(panel->GetArrangedRect().height == 168.0f);
+        d.SetSide(DrawerSide::Bottom);
+        CHECK(content->GetArrangedRect().y == 0.0f);
+        CHECK(content->GetArrangedRect().height == 400.0f);
+        CHECK(panel->GetArrangedRect().height == 168.0f);
+    }
+
+    {
+        Drawer d;
+        auto content = std::make_shared<Label>(L"content");
+        d.SetContent(content);
+        d.SetMode(DrawerMode::Permanent);
+        d.SetPanelSize(200.0f);
+        d.Arrange(Rect(0, 0, 800, 600));
+        CHECK(d.IsOpen());
+        CHECK(d.GetOpenProgress() == 1.0f);
+        CHECK(content->GetArrangedRect().x == 200.0f);
+        CHECK(content->GetArrangedRect().width == 600.0f);    // permanent reserves panel width
+        d.SetSide(DrawerSide::Left);
+        d.SetPanel(std::make_shared<Label>(L"side"));
+        d.Arrange(Rect(0, 0, 800, 600));
+        CHECK(content->GetArrangedRect().width == 600.0f);
+        d.Close();
+        CHECK(d.IsOpen());
+    }
+
+    {
+        Drawer d;
+        auto content = std::make_shared<Label>(L"content");
+        auto panel = std::make_shared<Label>(L"panel");
+        d.SetContent(content);
+        d.SetPanel(panel);
+        d.SetPanelSize(200.0f);
+        d.Arrange(Rect(0, 0, 800, 600));
+        d.Open();
+        d.UpdateAnimation(1.0f);
+        UIElement* scrim = d.HitTest(500.0f, 100.0f);
+        CHECK(scrim != nullptr);
+        CHECK(scrim != content.get());
+        scrim->OnMouseDown(500.0f, 100.0f);
+        CHECK(!d.IsOpen());
+        d.UpdateAnimation(1.0f);
+
+        d.SetModal(false);
+        d.Open();
+        d.UpdateAnimation(1.0f);
+        CHECK(d.HitTest(500.0f, 100.0f) == content.get());
+    }
+
+    {
+        auto drawer = d::ZDrawer(d::ZLbl(L"content"), d::ZLbl(L"panel"));
+        CHECK(drawer->GetContent() != nullptr);
+        CHECK(drawer->GetPanel() != nullptr);
+    }
+}
+
 static void test_button_animations() {
     Button b;
     b.OnMouseEnter();
@@ -619,6 +740,121 @@ static void test_signal_lifetime() {
     }
 }
 
+static void test_signal_reentrancy_and_exception() {
+    std::printf("信号重入 / 槽异常\n");
+
+    {
+        ZSignal<int> sig;
+        std::vector<int> order;
+        sig.connect([&](int v) {
+            order.push_back(v);
+            if (v == 1) sig.Fire(2);
+        });
+        sig.connect([&](int v) {
+            order.push_back(v * 10);
+        });
+        sig.Fire(1);
+        CHECK(order.size() == 4);
+        CHECK(order[0] == 1);
+        CHECK(order[1] == 2);
+        CHECK(order[2] == 20);
+        CHECK(order[3] == 10);
+    }
+
+    {
+        ZSignal<> sig;
+        int after = 0;
+        bool caught = false;
+        auto throwing = sig.connect([]() { throw std::runtime_error("slot"); });
+        sig.connect([&]() { ++after; });
+        try {
+            sig.Fire();
+        } catch (const std::runtime_error&) {
+            caught = true;
+        }
+        CHECK(caught);
+        CHECK(after == 0);                 // exception stops later slots
+        throwing.disconnect();
+        sig.Fire();                        // depth guard restored
+        CHECK(after == 1);
+    }
+}
+
+static void test_signal_threading() {
+    std::printf("信号线程 / 取消 / 弱引用保活\n");
+
+    {
+        ZSignal<int> sig;
+        auto p = std::make_shared<SignalProbe>();
+        std::promise<int> got;
+        auto future = got.get_future();
+        ConnectWeak(p, sig, [&](SignalProbe*, int v) {
+            got.set_value(v);
+        }, ConnectionThread::NewThread);
+        sig.Fire(5);
+        CHECK(future.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+        CHECK(future.get() == 5);
+
+        p.reset();
+        sig.Fire(6);   // weak receiver gone; detached task must no-op
+    }
+
+    {
+        ZSignal<int> sig;
+        auto p = std::make_shared<SignalProbe>();
+        std::latch started(1);
+        std::latch release(1);
+        std::promise<void> finished;
+        auto done = finished.get_future();
+        ConnectWeak(p, sig, [&](SignalProbe*, int) {
+            started.count_down();
+            release.wait();
+            finished.set_value();
+        }, ConnectionThread::NewThread);
+        sig.Fire(1);
+        started.wait();
+
+        std::weak_ptr<SignalProbe> weak = p;
+        p.reset();
+        CHECK(!weak.expired());            // slot holds a shared_ptr while running
+        release.count_down();
+        CHECK(done.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+        for (int i = 0; i < 200 && !weak.expired(); ++i)
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        CHECK(weak.expired());
+    }
+
+    {
+        detail::InitializeUIThread();
+        if (!detail::g_uiDispatcherWindow) {
+            std::printf("  [skip] UI dispatcher unavailable\n");
+            return;
+        }
+
+        ZSignal<> sig;
+        auto p = std::make_shared<Button>();
+        int calls = 0;
+        auto conn = p->Connect(sig, [&]() { ++calls; }, ConnectionThread::UIThread);
+
+        std::promise<void> posted;
+        auto postedFuture = posted.get_future();
+        std::thread worker([&]() {
+            sig.Fire();
+            posted.set_value();
+        });
+        postedFuture.wait();
+        worker.join();
+
+        conn.disconnect();
+        MSG msg;
+        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+        CHECK(calls == 0);                 // queued task sees alive == false
+    }
+}
+
 static void test_button_and_listview_regressions() {
     Button b(L"x");
     b.RefreshChildren();
@@ -693,7 +929,7 @@ static void test_button_and_listview_regressions() {
 
 int main() {
     SetConsoleOutputCP(CP_UTF8);   // 源码是 UTF-8：不改代码页的话中文断言输出在 cmd 里是乱码
-    std::printf("=== ZufyUI DSL 自检 ===\n");
+    std::printf("=== ZufyUI 自检 ===\n");
     test_containers();
     test_apply();
     test_layout_sugar();
@@ -705,8 +941,11 @@ int main() {
     test_button_and_listview_regressions();
     test_animation_primitives();
     test_button_animations();
+    test_drawer();
     test_backdrop_defaults();
     test_signal_lifetime();
+    test_signal_reentrancy_and_exception();
+    test_signal_threading();
     std::printf("\n通过 %d 项，失败 %d 项\n", g_pass, g_fail);
     if (g_fail) { std::printf("结果：FAILED\n"); return 1; }
     std::printf("结果：OK\n");

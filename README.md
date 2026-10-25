@@ -151,6 +151,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - **ProgressBar / ProgressRing**：确定/不确定进度、百分比文本、数值缓动、主题配色。
 - **ScrollViewer / ScrollBar**：横竖滚动、平滑滚动、滚动链（到边界把滚轮交还父级）、滚动条 `Auto/Visible/Hidden`、内容边距、两遍测量、空闲惰性缩窄。
 - **SplitView**：拖拽分栏、边缘阈值折叠/展开（覆盖提示 + 缓动）、折叠小按钮、最小极限。
+- **Drawer**：左/右/上/下四边；Overlay（圆角遮罩）/ Push（内容让位）/ Permanent（常驻）；面板圆角、边框、真实阴影；Esc/点外部关闭（`Window::AddKeyHandler`）。
 - **TabView**：页签可用任意 `Label`（含图标）、可关闭页签 + `TabCloseRequested`、指示条动画、内部 `PageHost` 转场。
 - **Expander**：可折叠卡片（标题/副标题/图标）、smoothstep 高度动画、箭头旋转、标题悬停高亮。
 - **SettingsList**：设置行列表（标题/说明/右侧控件）。
@@ -231,12 +232,12 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - `Ref<T>`：`with / on / add / apply`；`Make / Wrap / Col / Row / Grid`；`Cell(row,col,...)` 坐标。
 - 各控件短工厂 + `make_*` 无歧义别名；SFINAE 门控的尺寸/权重/配色/间距/对齐/数据视图/菜单糖。
 - `dsl::App()` / `WindowApp`：链式配置、`hidden`、窗口信号、自动 `Show()`、`run()`。
-- `tests/dsl_tests.cpp`：140 项编译期+运行期断言，不建窗口。
+- `tests/zufyui_tests.cpp`：175 项编译期+运行期断言；不建可见窗口（`UIThread` 取消测试用隐藏 dispatcher）。
 
 ### 工程、工具与示例
 
 - Visual Studio 解决方案/工程；任意工具集，C++20；支持 x64 / x86。
-- `tools/build.ps1`（补 BOM → 构建 demo + Debugger → 跑自检）、`ensure_bom.ps1`、`run_dsl_tests.ps1`、`check_api_parity.py`、`colorscan.py`。
+- `tools/build.ps1`（补 BOM → 构建 demo + Debugger → 跑自检）、`ensure_bom.ps1`、`run_tests.ps1`、`check_api_parity.py`、`colorscan.py`。
 - `ZufyUIDebugger`：进程外调试器（UIA + 调试通道）。
 - `ZufyUI.cpp`：23 页综合 demo（布局/控件/数据视图/图表/主题/多窗口/原生 HWND/进程外生产者/DSL…），兼作冒烟测试。
 - 双语文档 23 章 + 易错点总表 + 完整 CHANGELOG。
@@ -319,11 +320,11 @@ ZufyUI/
 │   │   └── API.en.md     # 完整 API 文档（English）
 │   └── pitfalls.md       # 易错点总表
 ├── tests/
-│   └── dsl_tests.cpp     # DSL 自检（编译期 + 运行期断言，不建窗口）
+│   └── zufyui_tests.cpp     # ZufyUI 自检（编译期 + 运行期断言，不建窗口）
 └── tools/
     ├── build.ps1         # 一键构建：补 BOM → 构建 demo + Debugger → 跑自检
     ├── ensure_bom.ps1    # BOM 守卫（构建前自动补 UTF-8 BOM）
-    ├── run_dsl_tests.ps1 # 编译并运行 DSL 自检
+    ├── run_tests.ps1 # 编译并运行 ZufyUI 自检
     ├── check_api_parity.py # 双语文档代码块一致性校验
     ├── build_docs.py     # 生成 API HTML（读版本 + 图标；内部调用通用 md2html）
     ├── make_icon.py      # 生成 docs/icon.{png,ico,svg}（草稿图标）
@@ -335,9 +336,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.24.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.25.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.25.0**：`Drawer` 侧边抽屉（Overlay / Push / Permanent、四边、圆角遮罩、面板阴影、Esc）；`Window::AddKeyHandler`；信号专项测试与测试改名；`ScrollViewer` 出血跟随内容 bleed。
 - **1.24.0**：信号生命周期（原子存活、队列任务取消、`ZSignal` 非移动）；接收者上下文（`ConnectionOwner`、`UIElement/Window::Connect`）；`ConnectWeak`；成员函数指针改走自由 `Connect`。
 - **1.23.3**：Button 富文本 / 自定义内容 + 下拉模式（Split / Dropdown / Menu）；`SetBackdrop` 默认不再盖住亚克力/云母；ListView 行高除零修复。
 - **1.23.2**：Debug 配置补 `/bigobj`（x64/x86）；全量 Release/Debug 构建通过。

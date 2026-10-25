@@ -1,7 +1,7 @@
 # ZufyUI 交接文档（HANDOFF）
 
 > 给**下一位接手者 / AI 智能体**：读这一份即可上手。配套：`AGENTS.md`（硬规则）、`TODO.md`（本地待办，不发布）、`docs/src/API.md`（API 参考）、`docs/src/API.en.md`（英文）、`README.md`（构建/快速开始）。
-> 版本基线：`1.24.0`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
+> 版本基线：`1.25.0`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
 > ⚠️ **一批反馈工作已随 `v1.21.0` 发布**（commit `cf78c54`，tag `v1.21.0`，已推 gitee/github；gh-pages 站点同步）：逐项记录与**尚未解决**的问题见 **§10**，接手前先读 §10（尤其 §10.4 未决项）。
 
 ---
@@ -50,13 +50,13 @@
 **推荐：一键脚本**（构建前自动补 BOM，不会再因 BOM 被剥而编译失败）：
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools/build.ps1
-#   流程：补 BOM → 杀占用进程 → 构建 ZufyUI(demo) → 构建 ZufyUIDebugger → 跑 DSL 自检
+#   流程：补 BOM → 杀占用进程 → 构建 ZufyUI(demo) → 构建 ZufyUIDebugger → 跑 ZufyUI 自检
 #   开关：-Configuration Debug | -SkipDebugger | -SkipTests | -SkipBomFix | -CheckBomOnly
 ```
 - `tools/ensure_bom.ps1`：BOM 守卫。只给「含非 ASCII 且缺 BOM」的 `.h/.hpp/.cpp/.cxx/.ps1` 补 BOM
   （纯 ASCII 的不动，避免无谓 diff）；`-Check` 只检查、缺失返回 1（CI 用）。
   **编辑工具常会静默剥掉 BOM** → 它会以 GBK 解析中文，报一堆 `C2143/C2259/C2888/C4819/C2001`。
-- `tools/run_dsl_tests.ps1`：编译并运行 `tests/dsl_tests.cpp`（不建窗口，可命令行 / CI 直接跑）。
+- `tools/run_tests.ps1`：编译并运行 `tests/zufyui_tests.cpp`（不建窗口，可命令行 / CI 直接跑）。
 - **⚠ `tools/` 下这三个 `.ps1` 故意写成「纯 ASCII、无 BOM」，请不要给它们加中文注释/中文输出。**
   原因：BOM 守卫不能自己依赖 BOM —— PowerShell 5.1 会把无 BOM 的含中文脚本按 GBK 读，
   于是守卫恰好在最需要它的时候解析失败（本项目实测踩过：`build.ps1` 被剥 BOM 后整脚本报假语法错，
@@ -212,15 +212,15 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
 
 > **状态：已发版** —— commit `cf78c54`、tag `v1.21.0`，已推 `origin`(gitee) 与 `github`（master + tag 均已核对）；gh-pages 站点同版本已发布（站点仓库 commit `7aaf42a`，两远端已推）。
 > 版本号 `1.20.0` → **`1.21.0`**（`ZufyUI.h` 单一来源）；`docs/API*.md`、`README*.md`、`HANDOFF.md` 已同步。提交规模 **16 文件 / +2595 −1599**。
-> 发布时验证：`tools/build.ps1` **exit 0**；DSL 自检 **85/85**（起点 62）；`python tools/check_api_parity.py` OK；`tools/ensure_bom.ps1 -Check` OK。
+> 发布时验证：`tools/build.ps1` **exit 0**；ZufyUI 自检 **85/85**（起点 62）；`python tools/check_api_parity.py` OK；`tools/ensure_bom.ps1 -Check` OK。
 > **§10.2 是已发布的内容，§10.4 是仍未解决的 —— 接手请直接从 §10.4 开始。**
 
 ### 10.1 两批工作概览
 
 | 批次 | 内容 |
 |---|---|
-| **A（已完成）** | demo `ZufyUI.cpp` 的 **21 个页面全部改用 `ZufyUIDsl.h` 的 DSL 重排**（`Scroll(fill) → Col(spacing/margin) → 小节标题 + Row/Grid`）；新增**「环境组合」极端情况页**（3 主题 × 3 背景 = 9 组合、DPI/尺寸边界、深层嵌套、控件墙、超长文本/空列表/极值进度/极窄容器/超长下拉项）；DSL 自检 **47 → 62**。顺手修了 3 个缺陷：卡片阴影不跟主题、ComboBox 下拉无阴影、弹窗按钮纵向只显示一半。 |
-| **B（本轮 16 项反馈）** | 见 §10.2；DSL 自检 **62 → 85**（新增本批修复的回归断言，见 `tests/dsl_tests.cpp::test_fix_regressions`）。 |
+| **A（已完成）** | demo `ZufyUI.cpp` 的 **21 个页面全部改用 `ZufyUIDsl.h` 的 DSL 重排**（`Scroll(fill) → Col(spacing/margin) → 小节标题 + Row/Grid`）；新增**「环境组合」极端情况页**（3 主题 × 3 背景 = 9 组合、DPI/尺寸边界、深层嵌套、控件墙、超长文本/空列表/极值进度/极窄容器/超长下拉项）；ZufyUI 自检 **47 → 62**。顺手修了 3 个缺陷：卡片阴影不跟主题、ComboBox 下拉无阴影、弹窗按钮纵向只显示一半。 |
+| **B（本轮 16 项反馈）** | 见 §10.2；ZufyUI 自检 **62 → 85**（新增本批修复的回归断言，见 `tests/zufyui_tests.cpp::test_fix_regressions`）。 |
 
 ### 10.2 B 批逐项：现象 → 根因 → 修法
 
@@ -286,7 +286,7 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
 ### 10.5 发版流程（`v1.21.0` 已按此执行，供下次照做）
 
 1. 先让用户**目视验收 §10.4**（尤其 SplitView 与弹窗穿透）—— 本次发布**在未完成目视验收前就发了**，用户知情；
-2. 跑 `tools/build.ps1`（含 DSL 自检）+ `python tools/check_api_parity.py` + `tools/ensure_bom.ps1 -Check`；
+2. 跑 `tools/build.ps1`（含 ZufyUI 自检）+ `python tools/check_api_parity.py` + `tools/ensure_bom.ps1 -Check`；
 3. 按 §7 的发版流程：改 `ZufyUI.h` 版本号 → `docs/src/API*.md`（章节内容 + 版本摘录章标题与条目）→ `README*.md`（当前版本 + changelog 条目）→ HANDOFF；
 4. `git add -A` → commit（消息格式：`vX.Y.Z: <中文长摘要>`）→ `git tag -a vX.Y.Z`；
 5. 推 `origin`(gitee) 与 `github` 的 **master + tag**（github 偶发超时，重试）；

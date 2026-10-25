@@ -14,7 +14,7 @@ namespace {
     inline const wchar_t* kPageNames[] = {
         L"首页", L"基础控件", L"输入与滚动", L"嵌套与联动", L"列表视图", L"表格视图",
         L"树形视图", L"树形增强", L"图像", L"多窗口", L"窗口属性", L"新控件A", L"新控件B",
-        L"多行文本", L"条形图", L"折线图", L"饼图", L"拖放", L"设置卡片", L"主题", L"DSL", L"环境组合", L"原生HWND"
+        L"多行文本", L"条形图", L"折线图", L"饼图", L"拖放", L"设置卡片", L"主题", L"DSL", L"环境组合", L"原生HWND", L"抽屉"
     };
     inline constexpr int kPageCount = (int)(sizeof(kPageNames) / sizeof(kPageNames[0]));
 
@@ -342,6 +342,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     navList->AddItem(L"DSL");
     navList->AddItem(L"环境组合");
     navList->AddItem(L"原生HWND");
+    navList->AddItem(L"抽屉");
     navList->SetSelectedIndex(0);
     mainRow->AddChild(navList);
 
@@ -2592,6 +2593,147 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
     mainHost->AddPage(pageHwnd);
 
+    // ---------- 抽屉（Drawer）----------
+    auto pageDrawer = std::make_shared<Page>();
+    {
+        using namespace ::ZufyUI::dsl;
+
+        auto contentCol = ZCol().spacing(10.0f).margin(Thickness(20, 20, 20, 20));
+        auto panelCol = ZCol().spacing(10.0f);
+
+        auto drawerState = ZLbl(L"抽屉：关闭").shared();
+        auto modeInfo = ZLbl(L"Overlay：圆角遮罩压暗内容，点外部/按 Esc 可关闭").shared();
+        auto sideCombo = ZCombo().items({ L"左侧", L"右侧", L"上侧", L"下侧" }).width(110.0f);
+        auto modeCombo = ZCombo().items({ L"Overlay", L"Push", L"Permanent" }).width(130.0f);
+        auto openBtn = ZBtn(L"打开");
+        auto closeBtn = ZBtn(L"关闭");
+        auto panelCloseBtn = ZBtn(L"").size(30.0f, 30.0f)
+            .with(&Button::SetIcon, Icon::Close, 12.0f);
+        panelCloseBtn->SetAccessibleName(L"关闭抽屉");
+
+        auto tip = ZLbl(L"Drawer 组合测试：下拉选择左/右/上/下 + 三种模式，按钮打开/关闭；面板顶部 X 可关闭。");
+        tip->SetTextOverflow(Label::TextOverflow::Wrap);
+        contentCol->AddChild(tip.shared());
+        contentCol->AddChild(ZRow(sideCombo, modeCombo, openBtn, closeBtn).spacing(8.0f).shared());
+        contentCol->AddChild(drawerState);
+        contentCol->AddChild(modeInfo);
+
+        auto chart = ZBar().width(540.0f).height(170.0f)
+            .category(L"一月").category(L"二月").category(L"三月")
+            .category(L"四月").category(L"五月").category(L"六月")
+            .series(L"访问", { 120, 160, 90, 200, 150, 180 })
+            .series(L"转化", { 40, 70, 30, 90, 60, 75 });
+        contentCol->AddChild(chart.shared());
+
+        auto threshold = ZSlider().value(42.0f).width(180.0f);
+        auto liveToggle = ZToggle(true);
+        auto autoRefresh = ZCheck(L"自动刷新");
+        contentCol->AddChild(ZRow(
+            ZLbl(L"阈值"), threshold, liveToggle, autoRefresh
+        ).spacing(12.0f).shared());
+
+        auto mainList = ZList().height(110.0f)
+            .items({ L"北区 · 在线设备 128", L"南区 · 在线设备 96", L"东区 · 在线设备 74", L"西区 · 在线设备 61" });
+        contentCol->AddChild(mainList.shared());
+
+        auto search = ZTxt().fillWidth(true);
+        search->SetPlaceholder(L"搜索名称...");
+        auto category = ZCombo().fillWidth(true).items({ L"全部", L"设备", L"告警", L"用户" });
+        auto onlyActive = ZCheck(L"只看活动");
+        auto countLabel = ZLbl(L"0 项").shared();
+        auto filterList = ZList().height(220.0f).fillWidth(true);
+
+        struct FilterRow { std::wstring name; int category; bool active; };
+        const std::vector<FilterRow> rows = {
+            { L"摄像头 A-01", 1, true },
+            { L"摄像头 B-07", 1, false },
+            { L"网关 C-12", 1, true },
+            { L"高温告警", 2, true },
+            { L"离线告警", 2, false },
+            { L"用户 张工", 3, true },
+            { L"用户 李工", 3, false },
+        };
+        auto filterListRaw = filterList.ptr();
+        auto countLabelRaw = countLabel.get();
+        auto applyFilter = [searchRaw = search.ptr(), categoryRaw = category.ptr(),
+                            activeRaw = onlyActive.ptr(), filterListRaw, countLabelRaw, rows]() {
+            const std::wstring query = searchRaw->GetText();
+            const int cat = categoryRaw->GetSelectedIndex();
+            const bool only = activeRaw->IsChecked();
+            filterListRaw->Clear();
+            int shown = 0;
+            for (const auto& row : rows) {
+                if (cat > 0 && row.category != cat) continue;
+                if (only && !row.active) continue;
+                if (!query.empty() && row.name.find(query) == std::wstring::npos) continue;
+                filterListRaw->AddItem(row.name + (row.active ? L" · 活动" : L" · 停用"));
+                ++shown;
+            }
+            countLabelRaw->SetText(L"筛选结果：" + std::to_wstring(shown) + L" 项");
+        };
+        applyFilter();
+        search->Connect(search->TextChanged, [applyFilter](const std::wstring&) { applyFilter(); });
+        category->Connect(category->SelectionChanged, [applyFilter](int) { applyFilter(); });
+        onlyActive->Connect(onlyActive->Toggled, [applyFilter](bool) { applyFilter(); });
+
+        auto panelHeader = ZRow(ZLbl(L"筛选").fillWidth(true), panelCloseBtn).spacing(8.0f);
+        panelCol->AddChild(panelHeader.shared());
+        panelCol->AddChild(search.shared());
+        panelCol->AddChild(category.shared());
+        panelCol->AddChild(onlyActive.shared());
+        panelCol->AddChild(countLabel);
+        panelCol->AddChild(filterList.shared());
+
+        auto contentScroll = ZScroll().fillWidth(true).fillHeight(true)
+            .with(&ScrollViewer::SetContent, contentCol.shared());
+        auto panelScroll = ZScroll().fillWidth(true).fillHeight(true)
+            .with(&ScrollViewer::SetContentMargin, Thickness(4, 4, 4, 4))
+            .with(&ScrollViewer::SetContent, panelCol.shared());
+
+        auto drawer = ZDrawer(contentScroll, panelScroll);
+        drawer->SetPanelSize(320.0f);
+        drawer->SetPanelCornerRadius(12.0f);
+        drawer->SetContentBorderCornerRadius(12.0f);
+        Color hostBorder = ThemeColor(ThemeRole::Border);
+        hostBorder.a = max(hostBorder.a, 0.28f);
+        drawer->SetContentBorderColor(hostBorder);
+        drawer->SetPanelBorderColor(hostBorder);
+        drawer->SetDismissOnScrimClick(true);
+        drawer->SetDismissOnEscape(true);
+        auto d = drawer.ptr();
+
+        auto modeInfoRaw = modeInfo.get();
+        auto closeBtnRaw = closeBtn.ptr();
+        auto panelCloseBtnRaw = panelCloseBtn.ptr();
+        sideCombo->Connect(sideCombo->SelectionChanged, [d](int index) {
+            d->SetSide(index == 1 ? DrawerSide::Right : index == 2 ? DrawerSide::Top : index == 3 ? DrawerSide::Bottom : DrawerSide::Left);
+        });
+        modeCombo->Connect(modeCombo->SelectionChanged, [d, modeInfoRaw, closeBtnRaw, panelCloseBtnRaw](int index) {
+            const DrawerMode mode = index == 1 ? DrawerMode::Push
+                : (index == 2 ? DrawerMode::Permanent : DrawerMode::Overlay);
+            d->SetMode(mode);
+            d->SetModal(mode == DrawerMode::Overlay);
+            const bool permanent = mode == DrawerMode::Permanent;
+            closeBtnRaw->SetVisible(!permanent);
+            panelCloseBtnRaw->SetVisible(!permanent);
+            modeInfoRaw->SetText(
+                mode == DrawerMode::Push ? L"Push：内容让位，面板可关闭"
+                : (mode == DrawerMode::Permanent ? L"Permanent：常驻侧栏，Close 无效"
+                    : L"Overlay：圆角遮罩压暗内容，点外部/按 Esc 可关闭"));
+        });
+        openBtn->Connect(openBtn->Clicked, [d]() { d->Open(); });
+        closeBtn->Connect(closeBtn->Clicked, [d]() { d->Close(); });
+        panelCloseBtn->Connect(panelCloseBtn->Clicked, [d]() { d->Close(); });
+
+        auto drawerStateRaw = drawerState.get();
+        drawer->Connect(drawer->OpenChanged, [drawerStateRaw](bool open) {
+            drawerStateRaw->SetText(open ? L"抽屉：打开" : L"抽屉：关闭");
+        });
+
+        pageDrawer->SetLayout(drawer.shared());
+    }
+    mainHost->AddPage(pageDrawer);
+
     // 主页面导航：记录当前索引，根据相对位置设置上下方向
     auto currentMainIndex = std::make_shared<int>(0);
     navList->Connect(navList->SelectionChanged, [mainHost, currentMainIndex](int index) {
@@ -2612,6 +2754,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     win.SetFrameRateLimit(0);
 
     win.Show();            // 显示由应用决定
+    win.SetBackdrop(Backdrop::Acrylic, 0x80FFFFFF);   // DWM 在窗口可见后应用一次，确保默认就是亚克力
     win.SetMinSize(800, 600);
     win.Run();
 
