@@ -232,18 +232,18 @@ template&lt;class T&gt; class Ref {                      // 包装 shared_ptr&lt
     Ref&amp; cell(int row, int col, const std::wstring&amp;);   // TableView 单元格
     Ref&amp; root(const std::wstring&amp;); Ref&amp; separator(); Ref&amp; submenu(const std::wstring&amp;, Menu);
 };
-template&lt;class T, class...A&gt; Ref&lt;T&gt; Make(A&amp;&amp;... a);          // 通用工厂
-template&lt;class T&gt; Ref&lt;T&gt; Wrap(std::shared_ptr&lt;T&gt; p);         // 把已有 shared_ptr 接进链
-Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);
-Ref&lt;GridLayout&gt; Grid(children...);                          // 也接受 Cell(row,col,child)
-CellSpec Cell(int row, int col, child, int rowSpan=1, int colSpan=1);
+template&lt;class T, class...A&gt; Ref&lt;T&gt; ZMake(A&amp;&amp;... a);          // 通用工厂
+template&lt;class T&gt; Ref&lt;T&gt; ZWrap(std::shared_ptr&lt;T&gt; p);         // 把已有 shared_ptr 接进链
+Ref&lt;ColumnBox&gt; ZCol(children...);   Ref&lt;RowBox&gt; ZRow(...);
+Ref&lt;GridLayout&gt; ZGrid(children...);                          // 也接受 ZCell(row,col,child)
+CellSpec ZCell(int row, int col, child, int rowSpan=1, int colSpan=1);
 using Align = GridLayout::Alignment;                        // 供 Ref::align 使用
-// 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
-//         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
-//         RadioGroup ScrollBar Glyph
-// 与类同名者用无歧义别名（避免 using namespace 同时命中两类 → C2872）：
-//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander
-class WindowApp {                                  // dsl::App()
+// 短工厂统一 Z 前缀：ZLbl ZBtn ZTxt ZEdit ZCombo ZCheck ZRadio ZToggle
+//   ZSlider ZNum ZProgress ZRing ZScroll ZSplit ZTabs ZList ZTable ZTree
+//   ZBar ZLine ZPie ZCard ZExpander ZPages ZPage ZMenu ZSettings
+//   ZMenuBar ZStatusBar ZRadioGroup ZScrollBar ZGlyph
+// 因此与类同名也不会冲突；不需要额外别名。
+class WindowApp {                                  // dsl::ZApp()
     WindowApp&amp; size(int,int);   WindowApp&amp; title(const std::wstring&amp;);
     WindowApp&amp; resizable(bool=true);   WindowApp&amp; corner(Window::WindowCorner);
     WindowApp&amp; backdrop(Backdrop, DWORD tint=0);   WindowApp&amp; hidden(bool=true);
@@ -257,23 +257,23 @@ class WindowApp {                                  // dsl::App()
     template&lt;auto SigMem, class F&gt; WindowApp&amp; on(F&amp;&amp; f);      // 如 on&lt;&amp;Window::Closed&gt;
     Window&amp; window();   int run();                 // run(): Create → 应用配置 → Show() → Run()
 };
-WindowApp App();
+WindowApp ZApp();
 }
 ```
-- 用法：`using namespace ZufyUI::dsl;` 后 `Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)`。与 `using namespace ZufyUI;` 同时用时，**与类同名的短工厂改用无歧义别名** `make_slider` / `make_card` / `make_page` / `make_menu` / `make_menu_bar` / `make_status_bar` / `make_radio_group` / `make_scroll_bar` / `make_expander`（或 `dsl::` 限定）。
+- 用法：`using namespace ZufyUI::dsl;` 后 `ZRow(ZBtn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)`。所有短工厂统一 `Z` 前缀，因此与 `using namespace ZufyUI;` 同时用时也不会和类名冲突。
 - **`易错`**：`with(&amp;T::Setter, args...)` 传**成员函数指针**；setter 重载需 `static_cast&lt;...&gt;(&amp;T::SetX)` 消歧。**带默认参数的函数不能直接用于 `with`**（成员指针含全部形参 → “参数太少”）；这类函数自 **v1.22.0** 起已拆成**无默认参数的重载**（如 `TreeView::SetCheckable(bool)` / `SetCheckableShallow(bool)`，`ListView::AddItem(text)` / `AddItemWidget(shared_ptr&lt;Label&gt;)`，`RadioGroup::AddItem` / `AddItemSelected`，`Menu::AddCheckItem` / `AddCheckItemCb` / `AddCheckItemRadio`）。
 - **`易错`**：不宜用 `with` 表达的（多步、条件、需要迭代）用 `apply(lambda)`，避免链断掉。普通类型转换告警也顺手消掉：`.with(&amp;TextBox::SetWidth, 220)` 传 `int` 会报 `C4244`，直接用 `.width(220.0f)`。
-- **容器 `add()` 按真实接口分派**：`ColumnBox`/`RowBox`/`Label` → `AddChild`；`PageHost` → `AddPage`（非 `Page` 实参会被跳过）；`GridLayout` 需要坐标，用 `.cell(row,col,child[,rowSpan,colSpan])` 或 `dsl::Cell(...)`。空元素（`nullptr` / 空 `Ref`）一律被忽略，不会解引用空指针。
-- **Grid 坐标**：`Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))` 显式定位；也仍接受**裸子元素**（沿用旧行为，按出现顺序排 `(i,0)`，现有代码不受影响）。
-- **窗口构建器**：`dsl::App()` → `WindowApp`（链式 `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`；信号用 `on&lt;&amp;Window::Closed&gt;(...)`）。`root()` 接受**任意 `Layout` 子类**（`Col`/`Row`/`Grid` 都行），`titleBar/menuBar/statusBar` 可直接收 `Ref&lt;T&gt;`。
+- **容器 `add()` 按真实接口分派**：`ColumnBox`/`RowBox`/`Label` → `AddChild`；`PageHost` → `AddPage`（非 `Page` 实参会被跳过）；`GridLayout` 需要坐标，用 `.cell(row,col,child[,rowSpan,colSpan])` 或 `dsl::ZCell(...)`。空元素（`nullptr` / 空 `Ref`）一律被忽略，不会解引用空指针。
+- **ZGrid 坐标**：`ZGrid(ZCell(1,2,ZLbl(L"x")), ZCell(0,0,btn,1,2))` 显式定位；也仍接受**裸子元素**（沿用旧行为，按出现顺序排 `(i,0)`，现有代码不受影响）。
+- **窗口构建器**：`dsl::ZApp()` → `WindowApp`（链式 `size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden`；信号用 `on&lt;&amp;Window::Closed&gt;(...)`）。`root()` 接受**任意 `Layout` 子类**（`ZCol`/`ZRow`/`ZGrid` 都行），`titleBar/menuBar/statusBar` 可直接收 `Ref&lt;T&gt;`。
 - **`易错`**：`Window::Create` **不显示窗口**（何时显示由应用决定），所以 `WindowApp::run()` 内部会补 `Show()`；要隐藏启动就调 `.hidden()`。`WindowApp` 可移动、不可拷贝。`Window::Run()` 返回 `void`；`Window` 无公开 `SetContent`，根内容走 `root(...)`。
-- **控件专属糖**（**SFINAE 门控**：仅当控件有该方法时才存在）：`text/checked/value/placeholder/padding(float 与 Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f 与 h,v)/align/image/imageFit`；短工厂另有 `Page()`/`Menu()`/`Settings()`/`RadioGroup()`/`ScrollBar()`/`Glyph()`。
+- **控件专属糖**（**SFINAE 门控**：仅当控件有该方法时才存在）：`text/checked/value/placeholder/padding(float 与 Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f 与 h,v)/align/image/imageFit`；短工厂另有 `ZPage()`/`ZMenu()`/`ZSettings()`/`ZRadioGroup()`/`ZScrollBar()`/`ZGlyph()`。
 - **`易错`**：`Image` 不是 `UIElement`（是资源对象），所以没有 `Ref&lt;Image&gt;` 工厂 —— 用 `Label` 上的 `.image(Image::FromFile(...)).imageFit(true)`。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 19 章 · DSL</span></div>
 <header class="chapter-header"><span class="chapter-eyebrow">第 19 章</span><h1>DSL</h1><p class="chapter-summary">链式构造（ZufyUIDsl.h，v1.19.4；v1.20.0 扩充）</p></header><div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-fd92c646', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-3aa527c4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）</span>
 <span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="o">::</span><span class="nn">dsl</span><span class="w"> </span><span class="p">{</span>
@@ -304,18 +304,18 @@ WindowApp App();
 <span class="w">    </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">cell</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// TableView 单元格</span>
 <span class="w">    </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">root</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">separator</span><span class="p">();</span><span class="w"> </span><span class="n">Ref</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">submenu</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="n">Menu</span><span class="p">);</span>
 <span class="p">};</span>
-<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="p">...</span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Make</span><span class="p">(</span><span class="n">A</span><span class="o">&amp;&amp;</span><span class="p">...</span><span class="w"> </span><span class="n">a</span><span class="p">);</span><span class="w">          </span><span class="c1">// 通用工厂</span>
-<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Wrap</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">p</span><span class="p">);</span><span class="w">         </span><span class="c1">// 把已有 shared_ptr 接进链</span>
-<span class="n">Ref</span><span class="o">&lt;</span><span class="n">ColumnBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Col</span><span class="p">(</span><span class="n">children</span><span class="p">...);</span><span class="w">   </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">RowBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Row</span><span class="p">(...);</span>
-<span class="n">Ref</span><span class="o">&lt;</span><span class="n">GridLayout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Grid</span><span class="p">(</span><span class="n">children</span><span class="p">...);</span><span class="w">                          </span><span class="c1">// 也接受 Cell(row,col,child)</span>
-<span class="n">CellSpec</span><span class="w"> </span><span class="nf">Cell</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="n">child</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">rowSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">colSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">);</span>
+<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="p">...</span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ZMake</span><span class="p">(</span><span class="n">A</span><span class="o">&amp;&amp;</span><span class="p">...</span><span class="w"> </span><span class="n">a</span><span class="p">);</span><span class="w">          </span><span class="c1">// 通用工厂</span>
+<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ZWrap</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="w"> </span><span class="n">p</span><span class="p">);</span><span class="w">         </span><span class="c1">// 把已有 shared_ptr 接进链</span>
+<span class="n">Ref</span><span class="o">&lt;</span><span class="n">ColumnBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ZCol</span><span class="p">(</span><span class="n">children</span><span class="p">...);</span><span class="w">   </span><span class="n">Ref</span><span class="o">&lt;</span><span class="n">RowBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ZRow</span><span class="p">(...);</span>
+<span class="n">Ref</span><span class="o">&lt;</span><span class="n">GridLayout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ZGrid</span><span class="p">(</span><span class="n">children</span><span class="p">...);</span><span class="w">                          </span><span class="c1">// 也接受 ZCell(row,col,child)</span>
+<span class="n">CellSpec</span><span class="w"> </span><span class="nf">ZCell</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="n">child</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">rowSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">colSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">);</span>
 <span class="k">using</span><span class="w"> </span><span class="n">Align</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GridLayout</span><span class="o">::</span><span class="n">Alignment</span><span class="p">;</span><span class="w">                        </span><span class="c1">// 供 Ref::align 使用</span>
-<span class="c1">// 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring</span>
-<span class="c1">//         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar</span>
-<span class="c1">//         RadioGroup ScrollBar Glyph</span>
-<span class="c1">// 与类同名者用无歧义别名（避免 using namespace 同时命中两类 → C2872）：</span>
-<span class="c1">//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">WindowApp</span><span class="w"> </span><span class="p">{</span><span class="w">                                  </span><span class="c1">// dsl::App()</span>
+<span class="c1">// 短工厂统一 Z 前缀：ZLbl ZBtn ZTxt ZEdit ZCombo ZCheck ZRadio ZToggle</span>
+<span class="c1">//   ZSlider ZNum ZProgress ZRing ZScroll ZSplit ZTabs ZList ZTable ZTree</span>
+<span class="c1">//   ZBar ZLine ZPie ZCard ZExpander ZPages ZPage ZMenu ZSettings</span>
+<span class="c1">//   ZMenuBar ZStatusBar ZRadioGroup ZScrollBar ZGlyph</span>
+<span class="c1">// 因此与类同名也不会冲突；不需要额外别名。</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">WindowApp</span><span class="w"> </span><span class="p">{</span><span class="w">                                  </span><span class="c1">// dsl::ZApp()</span>
 <span class="w">    </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">size</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">);</span><span class="w">   </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">title</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 <span class="w">    </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">resizable</span><span class="p">(</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">   </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">corner</span><span class="p">(</span><span class="n">Window</span><span class="o">::</span><span class="n">WindowCorner</span><span class="p">);</span>
 <span class="w">    </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">backdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">tint</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w">   </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">hidden</span><span class="p">(</span><span class="kt">bool</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span>
@@ -329,10 +329,10 @@ WindowApp App();
 <span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">auto</span><span class="w"> </span><span class="n">SigMem</span><span class="p">,</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">F</span><span class="o">&gt;</span><span class="w"> </span><span class="n">WindowApp</span><span class="o">&amp;</span><span class="w"> </span><span class="n">on</span><span class="p">(</span><span class="n">F</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">f</span><span class="p">);</span><span class="w">      </span><span class="c1">// 如 on&lt;&amp;Window::Closed&gt;</span>
 <span class="w">    </span><span class="n">Window</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">window</span><span class="p">();</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">run</span><span class="p">();</span><span class="w">                 </span><span class="c1">// run(): Create → 应用配置 → Show() → Run()</span>
 <span class="p">};</span>
-<span class="n">WindowApp</span><span class="w"> </span><span class="nf">App</span><span class="p">();</span>
+<span class="n">WindowApp</span><span class="w"> </span><span class="nf">ZApp</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-fd92c646" style="display: none;">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
+<pre id="code-3aa527c4" style="display: none;">// 头文件：ZufyUIDsl.h（可选，零侵入；不改任何现有控件）
 namespace ZufyUI::dsl {
 template&lt;class T&gt; class Ref {                      // 包装 shared_ptr&lt;T&gt;
     T* operator-&gt;() const;   std::shared_ptr&lt;T&gt; shared() const;
@@ -361,18 +361,18 @@ template&lt;class T&gt; class Ref {                      // 包装 shared_ptr&lt
     Ref&amp; cell(int row, int col, const std::wstring&amp;);   // TableView 单元格
     Ref&amp; root(const std::wstring&amp;); Ref&amp; separator(); Ref&amp; submenu(const std::wstring&amp;, Menu);
 };
-template&lt;class T, class...A&gt; Ref&lt;T&gt; Make(A&amp;&amp;... a);          // 通用工厂
-template&lt;class T&gt; Ref&lt;T&gt; Wrap(std::shared_ptr&lt;T&gt; p);         // 把已有 shared_ptr 接进链
-Ref&lt;ColumnBox&gt; Col(children...);   Ref&lt;RowBox&gt; Row(...);
-Ref&lt;GridLayout&gt; Grid(children...);                          // 也接受 Cell(row,col,child)
-CellSpec Cell(int row, int col, child, int rowSpan=1, int colSpan=1);
+template&lt;class T, class...A&gt; Ref&lt;T&gt; ZMake(A&amp;&amp;... a);          // 通用工厂
+template&lt;class T&gt; Ref&lt;T&gt; ZWrap(std::shared_ptr&lt;T&gt; p);         // 把已有 shared_ptr 接进链
+Ref&lt;ColumnBox&gt; ZCol(children...);   Ref&lt;RowBox&gt; ZRow(...);
+Ref&lt;GridLayout&gt; ZGrid(children...);                          // 也接受 ZCell(row,col,child)
+CellSpec ZCell(int row, int col, child, int rowSpan=1, int colSpan=1);
 using Align = GridLayout::Alignment;                        // 供 Ref::align 使用
-// 短工厂：Lbl Btn Txt Edit Combo Check Radio Toggle Slider Num Progress Ring
-//         Scroll Split Tabs List Table Tree Bar Line Pie Card Expander Pages MenuBar StatusBar
-//         RadioGroup ScrollBar Glyph
-// 与类同名者用无歧义别名（避免 using namespace 同时命中两类 → C2872）：
-//   make_slider/make_card/make_page/make_menu/make_menu_bar/make_status_bar/make_radio_group/make_scroll_bar/make_expander
-class WindowApp {                                  // dsl::App()
+// 短工厂统一 Z 前缀：ZLbl ZBtn ZTxt ZEdit ZCombo ZCheck ZRadio ZToggle
+//   ZSlider ZNum ZProgress ZRing ZScroll ZSplit ZTabs ZList ZTable ZTree
+//   ZBar ZLine ZPie ZCard ZExpander ZPages ZPage ZMenu ZSettings
+//   ZMenuBar ZStatusBar ZRadioGroup ZScrollBar ZGlyph
+// 因此与类同名也不会冲突；不需要额外别名。
+class WindowApp {                                  // dsl::ZApp()
     WindowApp&amp; size(int,int);   WindowApp&amp; title(const std::wstring&amp;);
     WindowApp&amp; resizable(bool=true);   WindowApp&amp; corner(Window::WindowCorner);
     WindowApp&amp; backdrop(Backdrop, DWORD tint=0);   WindowApp&amp; hidden(bool=true);
@@ -386,18 +386,18 @@ class WindowApp {                                  // dsl::App()
     template&lt;auto SigMem, class F&gt; WindowApp&amp; on(F&amp;&amp; f);      // 如 on&lt;&amp;Window::Closed&gt;
     Window&amp; window();   int run();                 // run(): Create → 应用配置 → Show() → Run()
 };
-WindowApp App();
+WindowApp ZApp();
 }</pre>
 </div>
 <ul>
-<li>用法：<code>using namespace ZufyUI::dsl;</code> 后 <code>Row(Btn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)</code>。与 <code>using namespace ZufyUI;</code> 同时用时，<strong>与类同名的短工厂改用无歧义别名</strong> <code>make_slider</code> / <code>make_card</code> / <code>make_page</code> / <code>make_menu</code> / <code>make_menu_bar</code> / <code>make_status_bar</code> / <code>make_radio_group</code> / <code>make_scroll_bar</code> / <code>make_expander</code>（或 <code>dsl::</code> 限定）。</li>
+<li>用法：<code>using namespace ZufyUI::dsl;</code> 后 <code>ZRow(ZBtn(L"OK").size(100,36).on&lt;&amp;Button::Clicked&gt;([]{...}), ...)</code>。所有短工厂统一 <code>Z</code> 前缀，因此与 <code>using namespace ZufyUI;</code> 同时用时也不会和类名冲突。</li>
 <li><strong><code>易错</code></strong>：<code>with(&amp;T::Setter, args...)</code> 传<strong>成员函数指针</strong>；setter 重载需 <code>static_cast&lt;...&gt;(&amp;T::SetX)</code> 消歧。<strong>带默认参数的函数不能直接用于 <code>with</code></strong>（成员指针含全部形参 → “参数太少”）；这类函数自 <strong>v1.22.0</strong> 起已拆成<strong>无默认参数的重载</strong>（如 <code>TreeView::SetCheckable(bool)</code> / <code>SetCheckableShallow(bool)</code>，<code>ListView::AddItem(text)</code> / <code>AddItemWidget(shared_ptr&lt;Label&gt;)</code>，<code>RadioGroup::AddItem</code> / <code>AddItemSelected</code>，<code>Menu::AddCheckItem</code> / <code>AddCheckItemCb</code> / <code>AddCheckItemRadio</code>）。</li>
 <li><strong><code>易错</code></strong>：不宜用 <code>with</code> 表达的（多步、条件、需要迭代）用 <code>apply(lambda)</code>，避免链断掉。普通类型转换告警也顺手消掉：<code>.with(&amp;TextBox::SetWidth, 220)</code> 传 <code>int</code> 会报 <code>C4244</code>，直接用 <code>.width(220.0f)</code>。</li>
-<li><strong>容器 <code>add()</code> 按真实接口分派</strong>：<code>ColumnBox</code>/<code>RowBox</code>/<code>Label</code> → <code>AddChild</code>；<code>PageHost</code> → <code>AddPage</code>（非 <code>Page</code> 实参会被跳过）；<code>GridLayout</code> 需要坐标，用 <code>.cell(row,col,child[,rowSpan,colSpan])</code> 或 <code>dsl::Cell(...)</code>。空元素（<code>nullptr</code> / 空 <code>Ref</code>）一律被忽略，不会解引用空指针。</li>
-<li><strong>Grid 坐标</strong>：<code>Grid(Cell(1,2,Lbl(L"x")), Cell(0,0,btn,1,2))</code> 显式定位；也仍接受<strong>裸子元素</strong>（沿用旧行为，按出现顺序排 <code>(i,0)</code>，现有代码不受影响）。</li>
-<li><strong>窗口构建器</strong>：<code>dsl::App()</code> → <code>WindowApp</code>（链式 <code>size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden</code>；信号用 <code>on&lt;&amp;Window::Closed&gt;(...)</code>）。<code>root()</code> 接受<strong>任意 <code>Layout</code> 子类</strong>（<code>Col</code>/<code>Row</code>/<code>Grid</code> 都行），<code>titleBar/menuBar/statusBar</code> 可直接收 <code>Ref&lt;T&gt;</code>。</li>
+<li><strong>容器 <code>add()</code> 按真实接口分派</strong>：<code>ColumnBox</code>/<code>RowBox</code>/<code>Label</code> → <code>AddChild</code>；<code>PageHost</code> → <code>AddPage</code>（非 <code>Page</code> 实参会被跳过）；<code>GridLayout</code> 需要坐标，用 <code>.cell(row,col,child[,rowSpan,colSpan])</code> 或 <code>dsl::ZCell(...)</code>。空元素（<code>nullptr</code> / 空 <code>Ref</code>）一律被忽略，不会解引用空指针。</li>
+<li><strong>ZGrid 坐标</strong>：<code>ZGrid(ZCell(1,2,ZLbl(L"x")), ZCell(0,0,btn,1,2))</code> 显式定位；也仍接受<strong>裸子元素</strong>（沿用旧行为，按出现顺序排 <code>(i,0)</code>，现有代码不受影响）。</li>
+<li><strong>窗口构建器</strong>：<code>dsl::ZApp()</code> → <code>WindowApp</code>（链式 <code>size/title/resizable/corner/backdrop/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar/root/titleBar/menuBar/statusBar/hidden</code>；信号用 <code>on&lt;&amp;Window::Closed&gt;(...)</code>）。<code>root()</code> 接受<strong>任意 <code>Layout</code> 子类</strong>（<code>ZCol</code>/<code>ZRow</code>/<code>ZGrid</code> 都行），<code>titleBar/menuBar/statusBar</code> 可直接收 <code>Ref&lt;T&gt;</code>。</li>
 <li><strong><code>易错</code></strong>：<code>Window::Create</code> <strong>不显示窗口</strong>（何时显示由应用决定），所以 <code>WindowApp::run()</code> 内部会补 <code>Show()</code>；要隐藏启动就调 <code>.hidden()</code>。<code>WindowApp</code> 可移动、不可拷贝。<code>Window::Run()</code> 返回 <code>void</code>；<code>Window</code> 无公开 <code>SetContent</code>，根内容走 <code>root(...)</code>。</li>
-<li><strong>控件专属糖</strong>（<strong>SFINAE 门控</strong>：仅当控件有该方法时才存在）：<code>text/checked/value/placeholder/padding(float 与 Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f 与 h,v)/align/image/imageFit</code>；短工厂另有 <code>Page()</code>/<code>Menu()</code>/<code>Settings()</code>/<code>RadioGroup()</code>/<code>ScrollBar()</code>/<code>Glyph()</code>。</li>
+<li><strong>控件专属糖</strong>（<strong>SFINAE 门控</strong>：仅当控件有该方法时才存在）：<code>text/checked/value/placeholder/padding(float 与 Thickness)/category/series/slice/item/menu/separator/submenu/items/rows/cols/header/cell/root(s)/background/textColor/spacing(f 与 h,v)/align/image/imageFit</code>；短工厂另有 <code>ZPage()</code>/<code>ZMenu()</code>/<code>ZSettings()</code>/<code>ZRadioGroup()</code>/<code>ZScrollBar()</code>/<code>ZGlyph()</code>。</li>
 <li><strong><code>易错</code></strong>：<code>Image</code> 不是 <code>UIElement</code>（是资源对象），所以没有 <code>Ref&lt;Image&gt;</code> 工厂 —— 用 <code>Label</code> 上的 <code>.image(Image::FromFile(...)).imageFit(true)</code>。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.18.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">主题系统</span><span class="nav-desc">Theme（v1.19.0+）</span></a><a class="next" href="API.20.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a></nav>

@@ -247,7 +247,7 @@ pre { line-height: 125%; }
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.23.2`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.25.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
@@ -259,7 +259,7 @@ pre { line-height: 125%; }
   - **DSL**：`WindowApp::run()` **补上 `Show()`**——`Window::Create` 本身不显示窗口，原实现会跑一个**没有窗口的消息循环**（表现为卡死）；新增 `hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar` 与窗口信号 `on&lt;&amp;Window::Closed&gt;`（`Window` 的信号是裸成员、没有 `Connect`）；`WindowApp` 改为**可移动**（内部改持 `unique_ptr&lt;Window&gt;`，因为 `Window` 自身既不可拷贝也不可移动）。
   - **修复**：`ColumnBox`/`RowBox`/`GridLayout::AddChild` 补**空值守卫**——DSL 的 variadic 转发可能送来 `nullptr`，原实现会解引用空指针。
   - **修复**：`ZufyUIWindowTool.h` **自身不完整**——它用到 `Label`/`Button`/`ColumnBox::AddChild` 却未 include `ZufyUIWidgets.h`，一直依赖调用方先包含（`pch.h` 恰好是这个顺序）；已补上，该头现在可单独包含。
-  - **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 `C2143/C2259/C2888/C4819`）、`tests/dsl_tests.cpp` + `tools/run_dsl_tests.ps1`（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。
+  - **工程**：新增 `tools/build.ps1`（一键：**构建前自动补 BOM** → 杀占用进程 → 构建 demo + `ZufyUIDebugger` → 跑自检）、`tools/ensure_bom.ps1`（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 `C2143/C2259/C2888/C4819`）、`tests/zufyui_tests.cpp` + `tools/run_tests.ps1`（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。
 - **v1.21.0**：
   - **修复**：`Card` 悬停**闪出蓝色边框**——主题套用器给卡片设了 `SetHoverBorderColor(Accent)`，而卡片本没有这个行为；已移除（悬停仍改背景色）。
   - **修复**：`ProgressBar` **拉伸后内填充圆角与外框对不上**——轨道、裁剪几何、边框三处用的仍是成员 `height_`（初始高度），只有填充用了实际高度；三处统一为 `arrangedRect_.height / 2`。
@@ -272,7 +272,7 @@ pre { line-height: 125%; }
   - **修复**：`PieChart` Ctrl+滚轮**缩放无效**——`PieChart` 自己的 `zoom_` 遮蔽了 `ChartBase::zoom_`（委派基类只改基类那份）；现由饼图自己处理 Ctrl 并走 `SetZoom`。语义明确为 **Ctrl+滚轮 = 缩放 / 普通滚轮 = 只平移**。
   - **修复**：图表滚轮平移"画面不动"——平移路径缺 `SyncScrollPositions()`（只改了 `scrollX_/scrollY_`，未重算 `baseX_/baseY_`）。
   - **修复**：`ColumnBox` 会把**没有显式宽度的子元素**按可用宽度摆（横向不吃拉伸权值）→ 文档补充"想让卡片按内容收窄要放进 `Row`"；`SettingsList` 被放进 `Card` 自带 `GridLayout`（自动列给 `FLT_MAX`）时会退化成 0 宽 → 文档补充正确用法（`SetLayout(Col(...))` + `SetFillWidth(true)`）。
-  - **工程**：`tests/dsl_tests.cpp` 62 → **85** 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。
+  - **工程**：`tests/zufyui_tests.cpp` 62 → **85** 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。
 - **v1.22.0**（**含破坏性 API 变更**）：
   - **修复**：`MessageBox`（及一切模态框）**首次点击穿透到后面的主窗口**——模态若在 `Window::OnMouseUp` 的槽里弹出，该函数末尾的 `ReleaseCapture()` 要等模态循环结束才执行 → 整段模态期间主窗口仍持 `SetCapture`，系统把鼠标消息优先给捕获窗口；`Window::RunModal` 现于进入循环前 `if (GetCapture()) ReleaseCapture();`。
   - **修复**：`ScrollViewer` **滚动链**——滚到顶/底后不再吞掉滚轮（该方向不能再滚则返回 `false` 沿父链冒泡），外层页面可继续滚动。
@@ -302,9 +302,23 @@ pre { line-height: 125%; }
 - **v1.23.1**：
   - **修复（布局 / 命中）**：`PageHost::MeasureOverride` **测量所有页面**。此前 `PageHost` 只 `Arrange` 页面，而 `Page::Arrange` 仅在尺寸变化时补测 → 页面内元素由隐藏变可见（如选下拉后 `SetVisible(true)` 的 `Expander` 卡片）不会重测，新元素 `arrangedRect` 为 0（无边框、`HitTest` 点不到），直到窗口尺寸变化才恢复。未变脏的页面命中 `Measure` 缓存，不增加重复测量。
 - **v1.23.2**：
-  - **构建**：`ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` 的 **Debug|Win32** / **Debug|x64** 补 `/bigobj`（Release 已有）；全量 Release/Debug 构建通过。</pre></div></div>
+  - **构建**：`ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` 的 **Debug|Win32** / **Debug|x64** 补 `/bigobj`（Release 已有）；全量 Release/Debug 构建通过。
+- **v1.23.3**：
+  - **Button**：内部 `Label` 成为真正的子元素（富文本 `GetLabel()-&gt;AddChild` / `SetContent`）；新增右侧下拉区 `SplitClicked` / `SetSplitMenu` / `SetSplitButton`。
+  - **?? ? ??????**?`GetDpiScale()` ?? 96/144??? 1.0/1.5?????????????????????? `/96` ??????????demo ??? MessageBox?
+  - **修复**：`SetBackdrop(Acrylic/Mica)` 在未显式设 tint 时不再用不透明白盖住系统材质；`ListView::SetItemHeight` 夹到 ≥1px，Draw/命中不再除零。
+  - **文档/清理**：`HwndView` 跨进程风险说明；`WM_ACTIVATE` 冗余判断、`&lt;cstring&gt;`、demo 空回调清理。
+- **v1.24.0**（**含破坏性变更**）：
+  - **信号生命周期**：`ConnectionState::alive` 改为原子；`Connection::disconnect` / 接收者析构会逻辑取消已排队的 `UIThread` / `NewThread` 任务；`Fire` 与信号析构并发明确为 UB。
+  - **接收者上下文**：`UIElement` / `Window` 继承 `ConnectionOwner`，`elem-&gt;Connect(...)` / `Connect(elem, ...)` / `sig.connect(elem, ...)` 自动随接收者断开；新增自由 `Connect` 与 `ConnectWeak`。
+  - **破坏性**：`ZSignal` 不可拷贝/移动；成员函数指针改用 `Connect(elem, sig, &amp;Class::Method)` / `ConnectWeak`；`elem-&gt;Connect(sig, &amp;Class::Method)` 不再支持。
+  - **注意**：`Menu` / `MenuItem` / `Timer` 仍用 `signal.connect`，不自动断开；信号参数按左值传递。
+- **v1.25.0**：
+  - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
+  - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
+  - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 21 章 · 版本变化摘录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.23.2</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.25.0</p></header><blockquote>
 <p>只列<strong>对你写代码有影响</strong>的显著变化。</p>
 </blockquote>
 <ul>
@@ -351,7 +365,7 @@ pre { line-height: 125%; }
 <li><strong>v1.19.6</strong>：</li>
 <li>修复：<code>ListView</code> 按钮模式下勾选框<strong>命中位置少偏移 4px</strong>（与绘制/子元素左边界对齐）。</li>
 <li>修复：<code>Label::MeasureOverride</code> 的 Wrap 分支<strong>漏算内联子控件宽度</strong>（带 <code>AddChild</code> 的换行 Label 文本会挤压/溢出）。</li>
-<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.23.2</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
+<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.25.0</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
 <li><strong>v1.19.7</strong>：</li>
 <li>修复：<code>ChartBase</code> 横/纵滚动条占位写反（<code>viewW</code> 用竖条、<code>viewH</code> 用横条）→ 最右/最底滚不到；<code>NumberBox</code> 滚轮焦点判断（焦点在内部 <code>TextBox</code>）；<code>lastActiveAnimElements_</code> 悬垂（析构时从动画集合擦除，防随机崩溃）；<code>Menu::ShowAt</code> 非 <code>shared_ptr</code> 时抛 <code>bad_weak_ptr</code>；<code>ChildrenSig</code> 缺 <code>EnsureView</code>；<code>TreeView::SetDefaultExpandDepth</code> 对 <code>AddRoot</code>/<code>AddChild</code> 不生效。</li>
 <li>修复：<code>ColumnBox</code>/<code>RowBox</code> spacing 按“参与布局的子元素数”算；<code>GridLayout</code> 行列数过滤不可见元素；<code>Label</code> 换行漏算子控件宽度 / 多算一个间距；<code>ListView</code>/<code>TableView</code> 释放 Label 前清 <code>childrenView_</code>、补释放池化/富项/单元格 Label；<code>Window::defaultIMC_</code> 改 <code>ImmAssociateContext</code>；<code>DragData::GetFiles</code> 缓冲 <code>len+1</code>；<code>TextEdit</code> 清选区补发 <code>SelectionChanged</code>；<code>MessageBox</code> 默认标题本地化。</li>
@@ -363,7 +377,7 @@ pre { line-height: 125%; }
 <li><strong>DSL</strong>：<code>WindowApp::run()</code> <strong>补上 <code>Show()</code></strong>——<code>Window::Create</code> 本身不显示窗口，原实现会跑一个<strong>没有窗口的消息循环</strong>（表现为卡死）；新增 <code>hidden/minSize/position/frameRateLimit/theme/useAppTheme/dropTarget/icon/titleBarVisible/showTitleText/menuBarInTitleBar</code> 与窗口信号 <code>on&lt;&amp;Window::Closed&gt;</code>（<code>Window</code> 的信号是裸成员、没有 <code>Connect</code>）；<code>WindowApp</code> 改为<strong>可移动</strong>（内部改持 <code>unique_ptr&lt;Window&gt;</code>，因为 <code>Window</code> 自身既不可拷贝也不可移动）。</li>
 <li><strong>修复</strong>：<code>ColumnBox</code>/<code>RowBox</code>/<code>GridLayout::AddChild</code> 补<strong>空值守卫</strong>——DSL 的 variadic 转发可能送来 <code>nullptr</code>，原实现会解引用空指针。</li>
 <li><strong>修复</strong>：<code>ZufyUIWindowTool.h</code> <strong>自身不完整</strong>——它用到 <code>Label</code>/<code>Button</code>/<code>ColumnBox::AddChild</code> 却未 include <code>ZufyUIWidgets.h</code>，一直依赖调用方先包含（<code>pch.h</code> 恰好是这个顺序）；已补上，该头现在可单独包含。</li>
-<li><strong>工程</strong>：新增 <code>tools/build.ps1</code>（一键：<strong>构建前自动补 BOM</strong> → 杀占用进程 → 构建 demo + <code>ZufyUIDebugger</code> → 跑自检）、<code>tools/ensure_bom.ps1</code>（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 <code>C2143/C2259/C2888/C4819</code>）、<code>tests/dsl_tests.cpp</code> + <code>tools/run_dsl_tests.ps1</code>（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。</li>
+<li><strong>工程</strong>：新增 <code>tools/build.ps1</code>（一键：<strong>构建前自动补 BOM</strong> → 杀占用进程 → 构建 demo + <code>ZufyUIDebugger</code> → 跑自检）、<code>tools/ensure_bom.ps1</code>（只对「含非 ASCII 且缺 BOM」的 C++ 源文件补 BOM，顺带挡下 GBK 误解析导致的 <code>C2143/C2259/C2888/C4819</code>）、<code>tests/zufyui_tests.cpp</code> + <code>tools/run_tests.ps1</code>（47 项编译期/运行期断言，不创建窗口，可在命令行 / CI 直接跑）。</li>
 <li><strong>v1.21.0</strong>：</li>
 <li><strong>修复</strong>：<code>Card</code> 悬停<strong>闪出蓝色边框</strong>——主题套用器给卡片设了 <code>SetHoverBorderColor(Accent)</code>，而卡片本没有这个行为；已移除（悬停仍改背景色）。</li>
 <li><strong>修复</strong>：<code>ProgressBar</code> <strong>拉伸后内填充圆角与外框对不上</strong>——轨道、裁剪几何、边框三处用的仍是成员 <code>height_</code>（初始高度），只有填充用了实际高度；三处统一为 <code>arrangedRect_.height / 2</code>。</li>
@@ -376,7 +390,7 @@ pre { line-height: 125%; }
 <li><strong>修复</strong>：<code>PieChart</code> Ctrl+滚轮<strong>缩放无效</strong>——<code>PieChart</code> 自己的 <code>zoom_</code> 遮蔽了 <code>ChartBase::zoom_</code>（委派基类只改基类那份）；现由饼图自己处理 Ctrl 并走 <code>SetZoom</code>。语义明确为 <strong>Ctrl+滚轮 = 缩放 / 普通滚轮 = 只平移</strong>。</li>
 <li><strong>修复</strong>：图表滚轮平移"画面不动"——平移路径缺 <code>SyncScrollPositions()</code>（只改了 <code>scrollX_/scrollY_</code>，未重算 <code>baseX_/baseY_</code>）。</li>
 <li><strong>修复</strong>：<code>ColumnBox</code> 会把<strong>没有显式宽度的子元素</strong>按可用宽度摆（横向不吃拉伸权值）→ 文档补充"想让卡片按内容收窄要放进 <code>Row</code>"；<code>SettingsList</code> 被放进 <code>Card</code> 自带 <code>GridLayout</code>（自动列给 <code>FLT_MAX</code>）时会退化成 0 宽 → 文档补充正确用法（<code>SetLayout(Col(...))</code> + <code>SetFillWidth(true)</code>）。</li>
-<li><strong>工程</strong>：<code>tests/dsl_tests.cpp</code> 62 → <strong>85</strong> 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。</li>
+<li><strong>工程</strong>：<code>tests/zufyui_tests.cpp</code> 62 → <strong>85</strong> 项断言（新增本批修复的回归断言：按钮自动撑宽/可关闭、Label 宽度跟随文本、进度条与开关缓动收敛、SplitView 折叠与展开到最小状态）。</li>
 <li><strong>v1.22.0</strong>（<strong>含破坏性 API 变更</strong>）：</li>
 <li><strong>修复</strong>：<code>MessageBox</code>（及一切模态框）<strong>首次点击穿透到后面的主窗口</strong>——模态若在 <code>Window::OnMouseUp</code> 的槽里弹出，该函数末尾的 <code>ReleaseCapture()</code> 要等模态循环结束才执行 → 整段模态期间主窗口仍持 <code>SetCapture</code>，系统把鼠标消息优先给捕获窗口；<code>Window::RunModal</code> 现于进入循环前 <code>if (GetCapture()) ReleaseCapture();</code>。</li>
 <li><strong>修复</strong>：<code>ScrollViewer</code> <strong>滚动链</strong>——滚到顶/底后不再吞掉滚轮（该方向不能再滚则返回 <code>false</code> 沿父链冒泡），外层页面可继续滚动。</li>
@@ -407,6 +421,20 @@ pre { line-height: 125%; }
 <li><strong>修复（布局 / 命中）</strong>：<code>PageHost::MeasureOverride</code> <strong>测量所有页面</strong>。此前 <code>PageHost</code> 只 <code>Arrange</code> 页面，而 <code>Page::Arrange</code> 仅在尺寸变化时补测 → 页面内元素由隐藏变可见（如选下拉后 <code>SetVisible(true)</code> 的 <code>Expander</code> 卡片）不会重测，新元素 <code>arrangedRect</code> 为 0（无边框、<code>HitTest</code> 点不到），直到窗口尺寸变化才恢复。未变脏的页面命中 <code>Measure</code> 缓存，不增加重复测量。</li>
 <li><strong>v1.23.2</strong>：</li>
 <li><strong>构建</strong>：<code>ZufyUI.vcxproj</code> / <code>ZufyUIDebugger.vcxproj</code> 的 <strong>Debug|Win32</strong> / <strong>Debug|x64</strong> 补 <code>/bigobj</code>（Release 已有）；全量 Release/Debug 构建通过。</li>
+<li><strong>v1.23.3</strong>：</li>
+<li><strong>Button</strong>：内部 <code>Label</code> 成为真正的子元素（富文本 <code>GetLabel()-&gt;AddChild</code> / <code>SetContent</code>）；新增右侧下拉区 <code>SplitClicked</code> / <code>SetSplitMenu</code> / <code>SetSplitButton</code>。</li>
+<li><strong>?? ? ??????</strong>?<code>GetDpiScale()</code> ?? 96/144??? 1.0/1.5?????????????????????? <code>/96</code> ??????????demo ??? MessageBox?</li>
+<li><strong>修复</strong>：<code>SetBackdrop(Acrylic/Mica)</code> 在未显式设 tint 时不再用不透明白盖住系统材质；<code>ListView::SetItemHeight</code> 夹到 ≥1px，Draw/命中不再除零。</li>
+<li><strong>文档/清理</strong>：<code>HwndView</code> 跨进程风险说明；<code>WM_ACTIVATE</code> 冗余判断、<code>&lt;cstring&gt;</code>、demo 空回调清理。</li>
+<li><strong>v1.24.0</strong>（<strong>含破坏性变更</strong>）：</li>
+<li><strong>信号生命周期</strong>：<code>ConnectionState::alive</code> 改为原子；<code>Connection::disconnect</code> / 接收者析构会逻辑取消已排队的 <code>UIThread</code> / <code>NewThread</code> 任务；<code>Fire</code> 与信号析构并发明确为 UB。</li>
+<li><strong>接收者上下文</strong>：<code>UIElement</code> / <code>Window</code> 继承 <code>ConnectionOwner</code>，<code>elem-&gt;Connect(...)</code> / <code>Connect(elem, ...)</code> / <code>sig.connect(elem, ...)</code> 自动随接收者断开；新增自由 <code>Connect</code> 与 <code>ConnectWeak</code>。</li>
+<li><strong>破坏性</strong>：<code>ZSignal</code> 不可拷贝/移动；成员函数指针改用 <code>Connect(elem, sig, &amp;Class::Method)</code> / <code>ConnectWeak</code>；<code>elem-&gt;Connect(sig, &amp;Class::Method)</code> 不再支持。</li>
+<li><strong>注意</strong>：<code>Menu</code> / <code>MenuItem</code> / <code>Timer</code> 仍用 <code>signal.connect</code>，不自动断开；信号参数按左值传递。</li>
+<li><strong>v1.25.0</strong>：</li>
+<li><strong>新增 · <code>Drawer</code></strong>：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。</li>
+<li><strong>新增 · <code>Window::AddKeyHandler / RemoveKeyHandler</code></strong>：临时窗口级键处理器。</li>
+<li><strong>改进</strong>：<code>ScrollViewer</code> 裁剪出血跟随内容 <code>GetBleed()</code>；测试改名 <code>zufyui_tests</code>，新增信号专项与 Drawer 测试（213 项）。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.20.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a><a class="next" href="API.22.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">易错点总表</span><span class="nav-desc">按主题速查</span></a></nav>
         </main>

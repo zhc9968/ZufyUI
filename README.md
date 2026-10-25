@@ -67,7 +67,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 
 - `Window::Create` 会创建窗口、初始化 Direct2D、应用背景并生成一个默认的根 `ColumnBox`（margin 20、spacing 10）；
 - 控件用 `std::make_shared<T>()` 创建，`AddChild` 挂到布局上；**父容器用 `shared_ptr` 拥有子元素**；
-- 用 `Connect(信号, 槽)` 绑定事件，连接会随控件析构自动断开；
+- 用 `Connect(信号, 槽)` 绑定事件，连接会随接收者（控件/窗口）析构自动断开；需要弱引用保活时用 `ConnectWeak`；
 - 最后 `win.Run()` 进入消息循环；所有窗口/控件都在**同一 UI 线程**创建与操作。
 - **⚠ 单位**：坐标与尺寸都是 **DIP**（不是物理像素），框架自动做 DPI 吸附，你不必自己换算。
 
@@ -140,7 +140,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 ### 基础控件
 
 - **Label**：多行/换行/省略号/最大行数、水平/垂直对齐、字体与颜色、内联子控件、前导图标、图片 + `SetImageFit`、省略时自动 ToolTip。
-- **Button**：文本/图标、悬停/按下/禁用、`Clicked`；按文案自动撑宽（可关）；`CaptionButton` 提供最小化/最大化/关闭/Pin。
+- **Button**：文本/图标、悬停/按下/禁用、`Clicked`；按文案自动撑宽（可关）；富文本/任意内容（`GetLabel()->AddChild` / `SetContent`）；下拉 2×2（`SetDropWriteBack` × `SetDropOpenOnClick`，单选菜单，`DropSelected` / `DropMenuOpened`）；`CaptionButton` 提供最小化/最大化/关闭/Pin。
 - **TextBox**：placeholder、密码模式、最大长度、只读、选区/光标、复制/剪切/粘贴、撤销、IME 组合输入与候选框定位、UTF-16 代理对、拖放、Shift+点击。
 - **TextEdit**：多行编辑器 / 只读查看器、标准撤销/重做（还原选区与光标）、Tab 缩进、滚动、只读富文本 `TextRun`。
 - **ComboBox**：可编辑、过滤（`SetFilterEnabled`）、源索引与可见索引、最大可见项、禁用项、键盘导航、chevron 展开动画、懒连接全局 `DrawOverlay`。
@@ -151,6 +151,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - **ProgressBar / ProgressRing**：确定/不确定进度、百分比文本、数值缓动、主题配色。
 - **ScrollViewer / ScrollBar**：横竖滚动、平滑滚动、滚动链（到边界把滚轮交还父级）、滚动条 `Auto/Visible/Hidden`、内容边距、两遍测量、空闲惰性缩窄。
 - **SplitView**：拖拽分栏、边缘阈值折叠/展开（覆盖提示 + 缓动）、折叠小按钮、最小极限。
+- **Drawer**：左/右/上/下四边；Overlay（圆角遮罩）/ Push（内容让位）/ Permanent（常驻）；面板圆角、边框、真实阴影；Esc/点外部关闭（`Window::AddKeyHandler`）。
 - **TabView**：页签可用任意 `Label`（含图标）、可关闭页签 + `TabCloseRequested`、指示条动画、内部 `PageHost` 转场。
 - **Expander**：可折叠卡片（标题/副标题/图标）、smoothstep 高度动画、箭头旋转、标题悬停高亮。
 - **SettingsList**：设置行列表（标题/说明/右侧控件）。
@@ -231,12 +232,12 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - `Ref<T>`：`with / on / add / apply`；`Make / Wrap / Col / Row / Grid`；`Cell(row,col,...)` 坐标。
 - 各控件短工厂 + `make_*` 无歧义别名；SFINAE 门控的尺寸/权重/配色/间距/对齐/数据视图/菜单糖。
 - `dsl::App()` / `WindowApp`：链式配置、`hidden`、窗口信号、自动 `Show()`、`run()`。
-- `tests/dsl_tests.cpp`：85 项编译期+运行期断言，不建窗口。
+- `tests/zufyui_tests.cpp`：175 项编译期+运行期断言；不建可见窗口（`UIThread` 取消测试用隐藏 dispatcher）。
 
 ### 工程、工具与示例
 
 - Visual Studio 解决方案/工程；任意工具集，C++20；支持 x64 / x86。
-- `tools/build.ps1`（补 BOM → 构建 demo + Debugger → 跑自检）、`ensure_bom.ps1`、`run_dsl_tests.ps1`、`check_api_parity.py`、`colorscan.py`。
+- `tools/build.ps1`（补 BOM → 构建 demo + Debugger → 跑自检）、`ensure_bom.ps1`、`run_tests.ps1`、`check_api_parity.py`、`colorscan.py`。
 - `ZufyUIDebugger`：进程外调试器（UIA + 调试通道）。
 - `ZufyUI.cpp`：23 页综合 demo（布局/控件/数据视图/图表/主题/多窗口/原生 HWND/进程外生产者/DSL…），兼作冒烟测试。
 - 双语文档 23 章 + 易错点总表 + 完整 CHANGELOG。
@@ -319,11 +320,11 @@ ZufyUI/
 │   │   └── API.en.md     # 完整 API 文档（English）
 │   └── pitfalls.md       # 易错点总表
 ├── tests/
-│   └── dsl_tests.cpp     # DSL 自检（编译期 + 运行期断言，不建窗口）
+│   └── zufyui_tests.cpp     # ZufyUI 自检（编译期 + 运行期断言，不建窗口）
 └── tools/
     ├── build.ps1         # 一键构建：补 BOM → 构建 demo + Debugger → 跑自检
     ├── ensure_bom.ps1    # BOM 守卫（构建前自动补 UTF-8 BOM）
-    ├── run_dsl_tests.ps1 # 编译并运行 DSL 自检
+    ├── run_tests.ps1 # 编译并运行 ZufyUI 自检
     ├── check_api_parity.py # 双语文档代码块一致性校验
     ├── build_docs.py     # 生成 API HTML（读版本 + 图标；内部调用通用 md2html）
     ├── make_icon.py      # 生成 docs/icon.{png,ico,svg}（草稿图标）
@@ -335,9 +336,12 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.23.2**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.25.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.25.0**：`Drawer` 侧边抽屉（Overlay / Push / Permanent、四边、圆角遮罩、面板阴影、Esc）；`Window::AddKeyHandler`；信号专项测试与测试改名；`ScrollViewer` 出血跟随内容 bleed。
+- **1.24.0**：信号生命周期（原子存活、队列任务取消、`ZSignal` 非移动）；接收者上下文（`ConnectionOwner`、`UIElement/Window::Connect`）；`ConnectWeak`；成员函数指针改走自由 `Connect`。
+- **1.23.3**：Button 富文本 / 自定义内容 + 下拉模式（Split / Dropdown / Menu）；`SetBackdrop` 默认不再盖住亚克力/云母；ListView 行高除零修复。
 - **1.23.2**：Debug 配置补 `/bigobj`（x64/x86）；全量 Release/Debug 构建通过。
 - **1.23.1**：`PageHost` 测量页面；README/docs 分层；Debugger 入仓；构建脚本去绝对路径；ASCII 导出；WinUI 3 / Fluent Design 图标与文档。
 - **1.23.0**：`HwndView` 原生窗口宿主；`Window` 外部视觉挂载；浮窗同步/性能；`NumberBox` 错误态；数据视图填充。

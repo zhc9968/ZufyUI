@@ -262,7 +262,8 @@ public:
 };
 ```
 
-- 实现：创建一个**普通 Win32 顶层 owned 弹窗**作为宿主；`SetContentHwnd` 会把外部 HWND `SetParent` 成它的 `WS_CHILD`（可跨线程/跨进程）并显式显示。移动/缩放宿主时子窗口由系统一起走；宿主客户区负责裁剪，再叠加 `SetWindowRgn`（元素矩形 ∩ 主窗口客户区 ∩ 所有祖先 `GetClipRect`，含 `ScrollViewer` 视口）。
+- 实现：创建一个**普通 Win32 顶层 owned 弹窗**作为宿主；`SetContentHwnd` 会把外部 HWND `SetParent` 成它的 `WS_CHILD` 并显式显示。移动/缩放宿主时子窗口由系统一起走；宿主客户区负责裁剪，再叠加 `SetWindowRgn`（元素矩形 ∩ 主窗口客户区 ∩ 所有祖先 `GetClipRect`，含 `ScrollViewer` 视口）。
+- **`跨进程风险`**：跨进程 `SetParent` 技术合法但不推荐——会串联输入队列（一方卡死拖死另一方）、阻止部分窗口消息、可能出现间歇性不稳定，且目标进程可能不知道窗口被重父化。**优先同进程**；跨进程仅作最后手段。
 - **`易错`**：主窗口是 `WS_EX_NOREDIRECTIONBITMAP + DComp`，**子 HWND 不会被合成**，不能用普通子控件；`HwndView` 是 **airspace 浮窗**——永远在主窗口内容之上、窗口内自绘的下拉/ToolTip 压不住它（菜单是独立顶层窗口，不受影响）。
 - **`约定`**：需要“内容进合成、无 airspace”的网页/视频 → 用下面的 `CreateExternalVisual` / WebView2 `CompositionController`。
 
@@ -287,12 +288,12 @@ void Window::SyncOverlays();
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-6ce21b85', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-d298f44c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Image</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">Width</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">Height</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsNull</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// 从文件/资源/HICON/流加载</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ImageDeviceCache</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* 按渲染目标缓存的设备位图 */</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-6ce21b85" style="display: none;">class Image { int Width() const; int Height() const; bool IsNull() const; ... };   // 从文件/资源/HICON/流加载
+<pre id="code-d298f44c" style="display: none;">class Image { int Width() const; int Height() const; bool IsNull() const; ... };   // 从文件/资源/HICON/流加载
 class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };</pre>
 </div>
 <ul>
@@ -303,7 +304,7 @@ class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2262f57b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b422b135', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">Add</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">icon</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">tooltip</span><span class="p">,</span><span class="w"> </span><span class="n">UINT</span><span class="w"> </span><span class="n">id</span><span class="o">=</span><span class="mi">1</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">HICON</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetToolTip</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span>
@@ -312,7 +313,7 @@ class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">ShowBalloon</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">BalloonIcon</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BalloonIcon</span><span class="o">::</span><span class="n">Custom</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="p">...);</span>
 <span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">,</span><span class="w"> </span><span class="n">DoubleClicked</span><span class="p">,</span><span class="w"> </span><span class="n">RightClicked</span><span class="p">,</span><span class="w"> </span><span class="n">HoverEnter</span><span class="p">,</span><span class="w"> </span><span class="n">HoverLeave</span><span class="p">,</span><span class="w"> </span><span class="n">BalloonClicked</span><span class="p">,</span><span class="w"> </span><span class="p">...;</span>
 </pre></div>
-<pre id="code-2262f57b" style="display: none;">bool Add(HICON icon, const std::wstring&amp; tooltip, UINT id=1);
+<pre id="code-b422b135" style="display: none;">bool Add(HICON icon, const std::wstring&amp; tooltip, UINT id=1);
 void SetIcon(HICON);  void SetToolTip(const std::wstring&amp;);  void SetMenu(std::shared_ptr&lt;Menu&gt;);
 void SetBadge(Color = ...);   void ClearBadge();
 enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
@@ -328,7 +329,7 @@ ZSignal&lt;&gt; Clicked, DoubleClicked, RightClicked, HoverEnter, HoverLeave, Ba
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d9a896ed', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-caaa09c2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FileFilter</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">label</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;</span><span class="w"> </span><span class="n">patterns</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">FileDialogOptions</span><span class="w"> </span><span class="p">{</span>
@@ -337,7 +338,7 @@ ZSignal&lt;&gt; Clicked, DoubleClicked, RightClicked, HoverEnter, HoverLeave, Ba
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">addAllFiles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="n">pickFolders</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">multiSelect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">save</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">forceFilesystem</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-d9a896ed" style="display: none;">struct FileFilter { std::wstring label; std::vector&lt;std::wstring&gt; patterns; };
+<pre id="code-caaa09c2" style="display: none;">struct FileFilter { std::wstring label; std::vector&lt;std::wstring&gt; patterns; };
 struct FileDialogOptions {
     std::wstring title, initialDir, defaultFileName, defaultExtension;
     std::vector&lt;FileFilter&gt; filters; int filterIndex = 1;
@@ -351,12 +352,12 @@ struct FileDialogOptions {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7cca2514', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e08f8b20', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">AppInfo</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">displayName</span><span class="p">,</span><span class="w"> </span><span class="n">aumid</span><span class="p">;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">RegisterApp</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">AppInfo</span><span class="o">&amp;</span><span class="p">);</span><span class="w">     </span><span class="c1">// 或 Application::Instance().RegisterApp(info)</span>
 </pre></div>
-<pre id="code-7cca2514" style="display: none;">struct AppInfo { std::wstring displayName, aumid; std::shared_ptr&lt;Image&gt; icon; };
+<pre id="code-e08f8b20" style="display: none;">struct AppInfo { std::wstring displayName, aumid; std::shared_ptr&lt;Image&gt; icon; };
 bool RegisterApp(const AppInfo&amp;);     // 或 Application::Instance().RegisterApp(info)</pre>
 </div>
 <ul>
@@ -369,7 +370,7 @@ bool RegisterApp(const AppInfo&amp;);     // 或 Application::Instance().Registe
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-00c4b464', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e2c1f1b0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">HwndView</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="k">public</span><span class="o">:</span>
@@ -382,7 +383,7 @@ bool RegisterApp(const AppInfo&amp;);     // 或 Application::Instance().Registe
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetOnBoundsChanged</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">HWND</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="p">)</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-00c4b464" style="display: none;">class HwndView : public UIElement {
+<pre id="code-e2c1f1b0" style="display: none;">class HwndView : public UIElement {
 public:
     explicit HwndView(HWND owner, bool activate = false);
     HWND GetHostHwnd() const;
@@ -394,7 +395,8 @@ public:
 };</pre>
 </div>
 <ul>
-<li>实现：创建一个<strong>普通 Win32 顶层 owned 弹窗</strong>作为宿主；<code>SetContentHwnd</code> 会把外部 HWND <code>SetParent</code> 成它的 <code>WS_CHILD</code>（可跨线程/跨进程）并显式显示。移动/缩放宿主时子窗口由系统一起走；宿主客户区负责裁剪，再叠加 <code>SetWindowRgn</code>（元素矩形 ∩ 主窗口客户区 ∩ 所有祖先 <code>GetClipRect</code>，含 <code>ScrollViewer</code> 视口）。</li>
+<li>实现：创建一个<strong>普通 Win32 顶层 owned 弹窗</strong>作为宿主；<code>SetContentHwnd</code> 会把外部 HWND <code>SetParent</code> 成它的 <code>WS_CHILD</code> 并显式显示。移动/缩放宿主时子窗口由系统一起走；宿主客户区负责裁剪，再叠加 <code>SetWindowRgn</code>（元素矩形 ∩ 主窗口客户区 ∩ 所有祖先 <code>GetClipRect</code>，含 <code>ScrollViewer</code> 视口）。</li>
+<li><strong><code>跨进程风险</code></strong>：跨进程 <code>SetParent</code> 技术合法但不推荐——会串联输入队列（一方卡死拖死另一方）、阻止部分窗口消息、可能出现间歇性不稳定，且目标进程可能不知道窗口被重父化。<strong>优先同进程</strong>；跨进程仅作最后手段。</li>
 <li><strong><code>易错</code></strong>：主窗口是 <code>WS_EX_NOREDIRECTIONBITMAP + DComp</code>，<strong>子 HWND 不会被合成</strong>，不能用普通子控件；<code>HwndView</code> 是 <strong>airspace 浮窗</strong>——永远在主窗口内容之上、窗口内自绘的下拉/ToolTip 压不住它（菜单是独立顶层窗口，不受影响）。</li>
 <li><strong><code>约定</code></strong>：需要“内容进合成、无 airspace”的网页/视频 → 用下面的 <code>CreateExternalVisual</code> / WebView2 <code>CompositionController</code>。</li>
 </ul>
@@ -403,7 +405,7 @@ public:
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9f55797b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-bb65ade8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">IUnknown</span><span class="o">*</span><span class="w"> </span><span class="nf">Window::CreateExternalVisual</span><span class="p">();</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">Window::SetExternalVisualBounds</span><span class="p">(</span><span class="n">IUnknown</span><span class="o">*</span><span class="w"> </span><span class="n">visual</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="p">);</span>
@@ -412,7 +414,7 @@ public:
 <span class="kt">void</span><span class="w"> </span><span class="nf">Window::RemoveOverlaySync</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">Window::SyncOverlays</span><span class="p">();</span>
 </pre></div>
-<pre id="code-9f55797b" style="display: none;">IUnknown* Window::CreateExternalVisual();
+<pre id="code-bb65ade8" style="display: none;">IUnknown* Window::CreateExternalVisual();
 void Window::SetExternalVisualBounds(IUnknown* visual, float x, float y, float w, float h);
 void Window::RemoveExternalVisual(IUnknown* visual);
 int  Window::AddOverlaySync(std::function&lt;void()&gt;);

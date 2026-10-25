@@ -67,7 +67,7 @@ Key points (what each step does):
 
 - `Window::Create` creates the window, initializes Direct2D, applies the background, and generates a default root `ColumnBox` (margin 20, spacing 10);
 - Create controls with `std::make_shared<T>()` and attach them with `AddChild`; **a parent owns its children via `shared_ptr`**;
-- Bind events with `Connect(signal, slot)`; connections auto-disconnect when the control is destroyed;
+- Bind events with `Connect(signal, slot)`; connections auto-disconnect when the receiver (control/window) is destroyed; use `ConnectWeak` when the receiver needs weak lifetime;
 - `win.Run()` enters the message loop; all windows/controls live on the **same UI thread**.
 - **⚠ Units**: coordinates/sizes are **DIP** (not physical pixels); the framework handles DPI snapping, so you don't.
 
@@ -140,7 +140,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 ### Basic controls
 
 - **Label**: multi-line/wrap/ellipsis/max lines, horizontal & vertical alignment, font and colours, inline child controls, leading icon, image + `SetImageFit`, automatic tooltip when elided.
-- **Button**: text/icon, hover/pressed/disabled, `Clicked`; auto-widens to its text (can be disabled); `CaptionButton` for minimize/maximize/close/Pin.
+- **Button**: text/icon, hover/pressed/disabled, `Clicked`; auto-widens to its text (can be disabled); rich/arbitrary content (`GetLabel()->AddChild` / `SetContent`); drop 2x2 (`SetDropWriteBack` x `SetDropOpenOnClick`, single-select menu, `DropSelected` / `DropMenuOpened`); `CaptionButton` for minimize/maximize/close/Pin.
 - **TextBox**: placeholder, password mode, max length, read-only, selection/caret, copy/cut/paste, undo, IME composition & candidate positioning, UTF-16 surrogate pairs, drag & drop, shift+click.
 - **TextEdit**: multi-line editor / read-only viewer, standard undo/redo (restores selection and caret), Tab indentation, scrolling, read-only rich text `TextRun`.
 - **ComboBox**: editable, filtering (`SetFilterEnabled`), source vs visible index, max visible items, disabled items, keyboard navigation, chevron expand animation, lazily connected global `DrawOverlay`.
@@ -151,6 +151,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 - **ProgressBar / ProgressRing**: determinate/indeterminate, percentage text, value animation, theme colours.
 - **ScrollViewer / ScrollBar**: horizontal/vertical scrolling, smooth scrolling, scroll chaining (hands the wheel back to the parent at the edge), scrollbar `Auto/Visible/Hidden`, content margin, two-pass measure, lazy idle shrinking.
 - **SplitView**: draggable split, edge-threshold collapse/expand (overlay hint + easing), collapse button, minimum extent.
+- **Drawer**: left/right/top/bottom; Overlay (rounded scrim) / Push (content yields) / Permanent (always open); rounded panel, border, real shadow; Esc/outside-click dismiss (`Window::AddKeyHandler`).
 - **TabView**: tabs can be any `Label` (with icon), closable tabs + `TabCloseRequested`, animated indicator, internal `PageHost` transition.
 - **Expander**: collapsible card (title/subtitle/icon), smoothstep height animation, rotating arrow, header hover highlight.
 - **SettingsList**: settings rows (title/description/right-hand control).
@@ -229,14 +230,14 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 ### Fluent construction DSL (optional)
 
 - `Ref<T>`: `with / on / add / apply`; `Make / Wrap / Col / Row / Grid`; `Cell(row,col,...)`.
-- Per-control short factories + unambiguous `make_*` aliases; SFINAE-gated sugar for size/weights/colours/spacing/alignment/data views/menus.
-- `dsl::App()` / `WindowApp`: fluent configuration, `hidden`, window signals, automatic `Show()`, `run()`.
-- `tests/dsl_tests.cpp`: 85 compile-time + runtime assertions, no window created.
+- All short factories use a `Z` prefix (`ZLbl` / `ZBtn` / `ZSlider` / `ZCard` / `ZPage` ...), so they no longer collide with class names; SFINAE-gated sugar for size/weights/colours/spacing/alignment/data views/menus.
+- `dsl::ZApp()` / `WindowApp`: fluent configuration, `hidden`, window signals, automatic `Show()`, `run()`.
+- `tests/zufyui_tests.cpp`: 175 compile-time + runtime assertions; no visible window (the UIThread cancellation test uses a hidden dispatcher).
 
 ### Engineering, tools & demo
 
 - Visual Studio solution/project; any toolset, C++20; x64 / x86.
-- `tools/build.ps1` (BOM → build demo + Debugger → run self-tests), `ensure_bom.ps1`, `run_dsl_tests.ps1`, `check_api_parity.py`, `colorscan.py`.
+- `tools/build.ps1` (BOM → build demo + Debugger → run self-tests), `ensure_bom.ps1`, `run_tests.ps1`, `check_api_parity.py`, `colorscan.py`.
 - `ZufyUIDebugger`: out-of-process debugger (UIA + debug channel).
 - `ZufyUI.cpp`: 23-page demo (layout/controls/data views/charts/theme/multi-window/native HWND/out-of-process producer/DSL…), also serving as a smoke test.
 - Bilingual 23-chapter docs + pitfall index + full CHANGELOG.
@@ -305,7 +306,7 @@ ZufyUI/
 ├── ZufyUIWindowTool.h    # Tray / custom title bar / accessibility (UIA) / system dialogs / debug channel
 ├── ZufyUIHwndView.h      # Native HWND host (HwndView) for WebView2 / camera / third-party windows
 ├── ZufyUIDragDrop.h      # Drag & drop: DragData / DragDataBuilder / Window::BeginDrag / element hooks
-├── ZufyUIDsl.h           # Optional: fluent construction DSL (Ref / Col / Row / Grid / short factories / dsl::App)
+├── ZufyUIDsl.h           # Optional: fluent construction DSL (Ref / ZCol / ZRow / ZGrid / Z-prefixed factories / dsl::ZApp)
 ├── ZufyUI.cpp            # Demo program entry point (wWinMain)
 ├── ZufyUIDebugger/       # Out-of-process debugger (UIA + debug channel)
 ├── ZufyUI.slnx           # Solution
@@ -319,11 +320,11 @@ ZufyUI/
 │   │   └── API.en.md     # Full API documentation (English)
 │   └── pitfalls.md       # Pitfall index
 ├── tests/
-│   └── dsl_tests.cpp     # DSL self-test (compile-time + runtime assertions, no window)
+│   └── zufyui_tests.cpp     # ZufyUI self-test (compile-time + runtime assertions, no window)
 └── tools/
     ├── build.ps1         # One-shot build: fix BOM → build demo + Debugger → run self-tests
     ├── ensure_bom.ps1    # BOM guard (restores UTF-8 BOM before building)
-    ├── run_dsl_tests.ps1 # Compile and run the DSL self-test
+    ├── run_tests.ps1 # Compile and run the ZufyUI self-test
     ├── check_api_parity.py # zh/en API code-block parity check
     ├── build_docs.py     # Build API HTML (version + icon; calls generic md2html)
     ├── make_icon.py      # Generate docs/icon.{png,ico,svg} (draft icon)
@@ -335,9 +336,12 @@ ZufyUI/
 
 ## Version history
 
-> Current version: **1.23.2** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+> Current version: **1.25.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 > Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.25.0**: `Drawer` side panel (Overlay / Push / Permanent, four sides, rounded scrim, panel shadow, Esc); `Window::AddKeyHandler`; signal-focused tests and test rename; `ScrollViewer` bleed follows content bleed.
+- **1.24.0**: signal lifetime (atomic liveness, queued-task cancellation, non-movable `ZSignal`); receiver context (`ConnectionOwner`, `UIElement/Window::Connect`); `ConnectWeak`; member-function pointers now use free `Connect`.
+- **1.23.3**: Button rich content / custom content + drop 2x2 (write-back x open-menu); `SetBackdrop` no longer covers Acrylic/Mica by default; ListView row-height division fix.
 - **1.23.2**: Debug builds now use `/bigobj` (x64/x86); full Release/Debug build matrix passes.
 - **1.23.1**: `PageHost` measures its pages; README/docs layering; Debugger in-repo; build scripts without absolute paths; ASCII export; WinUI 3 / Fluent Design icon and docs.
 - **1.23.0**: `HwndView` native window host; `Window` external visual attachment; overlay sync/performance; `NumberBox` error state; data-view fill.
