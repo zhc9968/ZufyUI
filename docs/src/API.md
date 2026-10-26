@@ -579,12 +579,17 @@ class Layout : public UIElement { bool UseCache() const override { return false;
 ## ColumnBox（垂直）/ RowBox（水平）
 
 ```cpp
+enum class LayoutAlignment { Start, Center, End, Stretch };
+enum class Justify { Start, Center, End, SpaceBetween, SpaceAround };
 ColumnBox(); RowBox();
 void AddChild(std::shared_ptr<UIElement>);
 void ClearChildren();
 void SetSpacing(float);
+void SetJustify(Justify);              // 主轴：Start/Center/End/SpaceBetween/SpaceAround
+void SetCrossAlign(LayoutAlignment);   // 交叉轴，默认 Stretch（兼容旧行为）
 ```
 - `ColumnBox` 默认水平填满、垂直不拉伸；`RowBox` 相反。
+- `Justify` 只在没有 flex/拉伸子元素时分配剩余空间；`CrossAlign` 设为 Center/Start/End 时按子元素 desiredSize 摆放，不再强制拉满。
 
 ###block_red_start
 **易错**
@@ -597,23 +602,34 @@ void SetSpacing(float);
 ## GridLayout（网格）
 
 ```cpp
-enum class Alignment { Start, Center, End };
-void AddChild(std::shared_ptr<UIElement>, int row, int col, int rowSpan=1, int colSpan=1);
+using Alignment = LayoutAlignment;   // Start / Center / End / Stretch
+void AddChild(std::shared_ptr<UIElement>, int row, int col, int rowSpan=1, int colSpan=1,
+              Alignment hAlign=Alignment::Stretch, Alignment vAlign=Alignment::Stretch);
+void SetColumnCount(int);  void SetRowCount(int);
 void SetSpacing(float h, float v);
 void SetColumnStretch(int col, float weight);  void SetRowStretch(int row, float weight);
 void SetHorizontalAlignment(Alignment);        void SetVerticalAlignment(Alignment);
+void SetCellAlignment(int row, int col, Alignment h, Alignment v);
 ```
-- 未显式设行/列拉伸时，单元格权重取**所跨子元素权值的最大者**。
+- 行/列数由 `SetColumnCount/SetRowCount`（或 `SetColumnStretch/SetRowStretch`）定义；**空轨道仍然存在**，不需要占位元素。
+- `SetCellAlignment` 控制子元素在自己的 cell 内如何摆放，默认 `Stretch`；`SetHorizontalAlignment/SetVerticalAlignment` 控制整个 Grid 内容在剩余空间中的位置。
+- 1×1 Grid 也可以使用内容对齐；`SetColumnStretch(2, ...)` 会建立第 3 列。
+- 未显式设行/列拉伸时，单元格轨道权重取**所跨子元素权值的最大者**。
 
 ## LayoutHost / Card / Page
 
 ```cpp
-class LayoutHost : public UIElement { std::shared_ptr<UIElement> GetLayout() const; void SetLayout(...); };
+class LayoutHost : public UIElement {
+    std::shared_ptr<UIElement> GetLayout() const;  void SetLayout(...);
+    std::shared_ptr<UIElement> GetContent() const; void SetContent(...);   // 单内容别名
+    void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // 默认 Stretch
+};
 class Card  : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
 class Page  : public LayoutHost { DefaultPadding=10; ... };
 void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // 一行套 ScrollViewer(fill)+8px 边距
 ```
-- `LayoutHost` 是“单槽容器”，内部装一个布局元素；`Card` 是带圆角/描边/悬停的卡片；`Page` 是 `TabView`/`PageHost` 的页面容器。
+- `LayoutHost` 是“单内容宿主”；`Card` 是带圆角/描边/悬停的卡片；`Page` 是 `TabView`/`PageHost` 的页面容器。
+- `SetContentAlignment(Center, Center)` 可让 Page/Card 的内容整体居中；默认 `Stretch` 保持旧行为。
 - `Card::UseCache()` = `HasShadow()`；`Page::UseCache()` = false。
 
 ## PageHost（页面宿主 / 过渡）
@@ -876,7 +892,7 @@ std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 ```cpp
 enum class TextOverflow { Wrap, Ellipsis };
 enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bottom };
-Label(const std::wstring& text = L"Label");
+Label(const std::wstring& text = L"");   // 默认空文本；不再自动显示 "Label"
 void SetText(const std::wstring&);   std::wstring GetText() const;      // 失效布局 + 重绘
 void SetTextFast(const std::wstring&);   // 仅池化 rebind：自身脏、不冒泡、不重绘
 void SetTextColor(Color);   void SetTextOverflow(TextOverflow);

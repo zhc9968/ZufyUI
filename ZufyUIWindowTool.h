@@ -745,6 +745,7 @@ namespace ZufyUI {
             if (buttons_ != FastButton::None) {
                 buttonRow_ = std::make_shared<RowBox>();
                 buttonRow_->SetSpacing(8.0f);
+                buttonRow_->SetJustify(Justify::End);
                 root->AddChild(buttonRow_);
                 ApplyButtons();
             }
@@ -791,35 +792,11 @@ namespace ZufyUI {
         RightAlignButtons();
     }
 
-    // 按钮靠右：RowBox 不分配剩余空间，用左外边距把整排推到右边（按真实客户区宽）
+    // 按钮靠右：RowBox 的主轴 justify 直接处理，不再手算宽度/外边距。
     inline void MessageBox::RightAlignButtons() {
         if (!buttonRow_) return;
-        int n = (int)buttonsView_.size();
-        if (n <= 0) { buttonRow_->SetMargin(Thickness(0, 0, 0, 0)); return; }
-        // 按每个按钮“实际宽度”求和（不写死宽度）：优先已布局宽度，其次期望宽度，最后显式宽度
-        float total = 0.0f;
-        for (auto& b : buttonsView_) {
-            float w = b->GetArrangedRect().width;
-            if (w <= 0.0f) w = b->GetDesiredSize().width;
-            if (w <= 0.0f) w = b->GetWidth();
-            if (w <= 0.0f) w = 100.0f;
-            total += w;
-        }
-        if (n > 1) total += (n - 1) * buttonRow_->GetSpacing();
-        float clientW = (float)builtWidth_;
-        if (GetHwnd()) {
-            RECT cr; GetClientRect(GetHwnd(), &cr);
-            int dpi = (int)GetDpiForWindow(GetHwnd()); if (dpi <= 0) dpi = 96;
-            if (cr.right > cr.left) clientW = (float)(cr.right - cr.left) * 96.0f / (float)dpi;
-        }
-        float contentW = clientW;
-        if (auto root = GetRootColumnBox()) {
-            Thickness m = root->GetMargin();
-            contentW = clientW - m.left - m.right;
-        }
-        float left = contentW - total;
-        if (left < 0.0f) left = 0.0f;
-        buttonRow_->SetMargin(Thickness(left, 0, 0, 0));
+        buttonRow_->SetJustify(Justify::End);
+        buttonRow_->SetMargin(Thickness(0));
     }
 
     // ============================================================================

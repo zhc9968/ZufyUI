@@ -33,7 +33,12 @@
 | 2.4 | 易错 | `ScrollViewer` 内容按**视口宽**测、**两遍测**（竖条出现后按变窄宽度重测）、尊重内容自身 `margin`、裁剪留 **1px 出血**。 |
 | 2.5 | 易错 | `D2D1::RectF(l,t,r,b)` 的 3/4 参是**右/下**（不是宽/高）；传反直接不画。 |
 | 2.6 | 约定 | `Measure`/`Arrange` 是**非虚包装器**；子类只实现 `MeasureOverride`（**纯虚**，漏实现编译失败）/`ArrangeOverride`。Arrange 里用 `GetDesiredSize()`，别在 Arrange 里再 Measure。 |
-| 2.7 | 约定 | 两级脏位：`InvalidateLayout()` **冒泡到根**；`InvalidateLayoutSelf()` 不冒泡（池化/virtual rebind 用）。 |
+| 2.7 | 易错 | `GridLayout` 的行/列数现在由 `SetColumnCount/SetRowCount` 或 `SetColumnStretch/SetRowStretch` 明确建立；空轨道仍然存在，**不要再用 Label/ColumnBox 占位**。`SetColumnStretch(2, ...)` 会建立第 3 列。 |
+| 2.8 | 约定 | `GridLayout::SetCellAlignment` 管“子元素在 cell 内”；`SetHorizontalAlignment/SetVerticalAlignment` 管“整个 Grid 内容在剩余空间里”。两者不是一回事。 |
+| 2.9 | 约定 | `ColumnBox/RowBox::SetJustify` 分配主轴剩余空间；`SetCrossAlign` 默认 `Stretch` 保持旧行为，设成 `Center/Start/End` 时按子元素 desiredSize 摆放，不再强制拉满。 |
+| 2.10 | 约定 | `Page/Card::SetContentAlignment` 默认 `Stretch`；需要整页内容居中时设 `Center/Center`，不要再用外层 Grid 占位。 |
+| 2.11 | 约定 | `UIElement::Arrange` 只在最终矩形小于 `desiredSize`（父级压缩）时重测；容器不要在对齐后的 Arrange 里再次 Measure 子元素。 |
+| 2.12 | 约定 | 两级脏位：`InvalidateLayout()` **冒泡到根**；`InvalidateLayoutSelf()` 不冒泡（池化/virtual rebind 用）。 |
 
 ## 3. 绘制 / 缓存
 
@@ -47,6 +52,7 @@
 | 3.6 | 易错 | **父元素先画、子元素后画**（按 `GetChildren()` 顺序）→ “画在内容之上”的覆盖层必须做成**排在最后的子元素**（如 `SplitView::Overlay`）。 |
 | 3.7 | 约定 | CJK 行高用**拉丁度量**（拿“中文国”取 max 会把行高撑到 ~2 倍）。`Snap()` 后偏移算 firstVisible。 |
 | 3.8 | 约定 | Windows 宏：`max/min` 是宏（用 `max(...)`，别 `std::max`）；`far` 是宏（用 `farEnd`）。 |
+| 3.9 | 约定 | `Label()` 默认文本已改为空字符串；不要再用无参 Label 当占位/Spacer，布局空白请用空容器或专用 Spacer。 |
 
 ## 4. 控件 / 窗口
 

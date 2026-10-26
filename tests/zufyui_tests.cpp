@@ -927,6 +927,211 @@ static void test_button_and_listview_regressions() {
     CHECK(settings.Measure(Size(FLT_MAX, FLT_MAX)).width >= SettingsList::DefaultWidth);
 }
 
+// ---------------------------------------------------------------------------
+// 布局 RFC：显式轨道 / 对齐 / justify / 不重测
+// ---------------------------------------------------------------------------
+class CountingElement : public UIElement {
+public:
+    int measures = 0;
+    Size MeasureOverride(const Size&) override { ++measures; return Size(20.0f, 20.0f); }
+    void Draw(ID2D1RenderTarget*) override {}
+};
+
+static void test_layout_rfc() {
+    std::printf("布局 RFC：轨道 / 对齐 / justify\n");
+
+    // 3x3 只放中间：空轨道仍存在，中间元素居中
+    {
+        GridLayout grid;
+        grid.SetFillWidth(true);
+        grid.SetFillHeight(true);
+        grid.SetColumnStretch(0, 1.0f);
+        grid.SetColumnStretch(2, 1.0f);
+        grid.SetRowStretch(0, 1.0f);
+        grid.SetRowStretch(2, 1.0f);
+        CHECK(grid.GetColumnCount() == 3);
+        CHECK(grid.GetRowCount() == 3);
+
+        auto center = std::make_shared<ColumnBox>();
+        center->SetWidth(100.0f);
+        center->SetHeight(50.0f);
+        grid.AddChild(center, 1, 1);
+        grid.Measure(Size(300.0f, 200.0f));
+        grid.Arrange(Rect(0, 0, 300.0f, 200.0f));
+        CHECK(fabs(center->GetArrangedRect().x - 100.0f) < 0.01f);
+        CHECK(fabs(center->GetArrangedRect().y - 75.0f) < 0.01f);
+    }
+
+    // 1x1 + 内容对齐
+    {
+        GridLayout grid;
+        grid.SetFillWidth(true);
+        grid.SetFillHeight(true);
+        grid.SetHorizontalAlignment(GridLayout::Alignment::Center);
+        grid.SetVerticalAlignment(GridLayout::Alignment::Center);
+        auto child = std::make_shared<ColumnBox>();
+        child->SetWidth(100.0f);
+        child->SetHeight(50.0f);
+        child->SetHorizontalStretchWeight(0.0f);
+        child->SetVerticalStretchWeight(0.0f);
+        grid.AddChild(child, 0, 0);
+        grid.Measure(Size(300.0f, 200.0f));
+        grid.Arrange(Rect(0, 0, 300.0f, 200.0f));
+        CHECK(fabs(child->GetArrangedRect().x - 100.0f) < 0.01f);
+        CHECK(fabs(child->GetArrangedRect().y - 75.0f) < 0.01f);
+    }
+
+    // Grid cell 内对齐：ProgressRing 之类不被强制拉满
+    {
+        GridLayout grid;
+        grid.SetFillWidth(true);
+        grid.SetFillHeight(true);
+        grid.SetColumnStretch(0, 1.0f);
+        grid.SetRowStretch(0, 1.0f);
+        auto child = std::make_shared<ColumnBox>();
+        child->SetWidth(100.0f);
+        child->SetHeight(50.0f);
+        grid.AddChild(child, 0, 0);
+        grid.SetCellAlignment(0, 0, GridLayout::Alignment::Center, GridLayout::Alignment::Center);
+        grid.Measure(Size(300.0f, 200.0f));
+        grid.Arrange(Rect(0, 0, 300.0f, 200.0f));
+        CHECK(fabs(child->GetArrangedRect().x - 100.0f) < 0.01f);
+        CHECK(fabs(child->GetArrangedRect().y - 75.0f) < 0.01f);
+    }
+
+    // Arrange 不再触发子元素 Measure（含 cell 内对齐）
+    {
+        GridLayout grid;
+        grid.SetColumnStretch(0, 1.0f);
+        grid.SetRowStretch(0, 1.0f);
+        auto child = std::make_shared<CountingElement>();
+        grid.AddChild(child, 0, 0);
+        grid.SetCellAlignment(0, 0, GridLayout::Alignment::Center, GridLayout::Alignment::Center);
+        grid.Measure(Size(100.0f, 100.0f));
+        const int before = child->measures;
+        grid.Arrange(Rect(0, 0, 100.0f, 100.0f));
+        CHECK(child->measures == before);
+        CHECK(fabs(child->GetArrangedRect().x - 40.0f) < 0.01f);
+        CHECK(fabs(child->GetArrangedRect().y - 40.0f) < 0.01f);
+    }
+
+    // Grid cell 约束下 wrap 文本按 cell 宽度折行
+    {
+        GridLayout grid;
+        grid.SetColumnStretch(0, 1.0f);
+        auto label = std::make_shared<Label>(L"a very long line that must wrap inside the cell");
+        label->SetTextOverflow(Label::TextOverflow::Wrap);
+        grid.AddChild(label, 0, 0);
+        grid.Measure(Size(100.0f, 200.0f));
+        CHECK(label->GetDesiredSize().height > 20.0f);
+    }
+
+    // FillWidth 的数据控件放在等宽 Grid 里，不能把整张 Grid 撑到两倍宽
+    {
+        GridLayout grid;
+        grid.SetFillWidth(true);
+        grid.SetColumnCount(2);
+        grid.SetColumnStretch(0, 1.0f);
+        grid.SetColumnStretch(1, 1.0f);
+        auto left = std::make_shared<TableView>();
+        left->SetFillWidth(true);
+        left->SetHeight(120.0f);
+        auto right = std::make_shared<TreeView>();
+        right->SetFillWidth(true);
+        right->SetHeight(120.0f);
+        grid.AddChild(left, 0, 0);
+        grid.AddChild(right, 0, 1);
+        grid.Measure(Size(400.0f, 300.0f));
+        CHECK(grid.GetDesiredSize().width <= 400.01f);
+        CHECK(left->GetDesiredSize().width <= 200.01f);
+        CHECK(right->GetDesiredSize().width <= 200.01f);
+    }
+
+    // 4×4 + 跨列的数据控件混排：Grid 必须按 656 的上限收敛，而不是让数据控件默认宽撑开
+    {
+        GridLayout grid;
+        grid.SetFillWidth(true);
+        grid.SetColumnCount(4);
+        grid.SetRowCount(4);
+        for (int c = 0; c < 4; ++c) grid.SetColumnStretch(c, 1.0f);
+        for (int r = 0; r < 4; ++r) grid.SetRowStretch(r, 1.0f);
+        auto table = std::make_shared<TableView>();
+        table->SetFillWidth(true);
+        table->SetHeight(120.0f);
+        auto tree = std::make_shared<TreeView>();
+        tree->SetFillWidth(true);
+        tree->SetHeight(120.0f);
+        auto bar = std::make_shared<BarChart>();
+        bar->SetWidth(180.0f);
+        bar->SetHeight(100.0f);
+        grid.AddChild(bar, 0, 0, 1, 2);
+        grid.AddChild(table, 1, 0, 1, 3);
+        grid.AddChild(tree, 1, 3, 2, 1);
+        grid.Measure(Size(656.0f, 380.0f));
+        CHECK(grid.GetDesiredSize().width <= 656.01f);
+    }
+
+    // RowBox 主轴 justify + 交叉轴对齐
+    {
+        RowBox row;
+        auto child = std::make_shared<ColumnBox>();
+        child->SetWidth(100.0f);
+        child->SetHeight(50.0f);
+        row.AddChild(child);
+        row.SetJustify(Justify::End);
+        row.SetCrossAlign(LayoutAlignment::Center);
+        row.Measure(Size(300.0f, 100.0f));
+        row.Arrange(Rect(0, 0, 300.0f, 100.0f));
+        CHECK(fabs(child->GetArrangedRect().x - 200.0f) < 0.01f);
+        CHECK(fabs(child->GetArrangedRect().y - 25.0f) < 0.01f);
+    }
+
+    // ColumnBox 交叉轴对齐
+    {
+        ColumnBox col;
+        auto child = std::make_shared<ColumnBox>();
+        child->SetWidth(100.0f);
+        child->SetHeight(50.0f);
+        col.AddChild(child);
+        col.SetCrossAlign(LayoutAlignment::Center);
+        col.Measure(Size(300.0f, 100.0f));
+        col.Arrange(Rect(0, 0, 300.0f, 100.0f));
+        CHECK(fabs(child->GetArrangedRect().x - 100.0f) < 0.01f);
+    }
+
+    // Page 内容居中
+    {
+        Page page;
+        page.SetPadding(10.0f);
+        page.SetContentAlignment(LayoutAlignment::Center, LayoutAlignment::Center);
+        auto child = std::make_shared<ColumnBox>();
+        child->SetWidth(100.0f);
+        child->SetHeight(50.0f);
+        page.SetContent(child);
+        page.Measure(Size(300.0f, 200.0f));
+        page.Arrange(Rect(0, 0, 300.0f, 200.0f));
+        CHECK(fabs(child->GetArrangedRect().x - 100.0f) < 0.01f);
+        CHECK(fabs(child->GetArrangedRect().y - 75.0f) < 0.01f);
+    }
+
+    // Label 不再默认显示 "Label"
+    {
+        Label label;
+        CHECK(label.GetText().empty());
+    }
+
+    // 显式 Card/Page 高度必须进入 Measure，不能只按内容高度排
+    {
+        Card card;
+        card.SetHeight(200.0f);
+        auto content = std::make_shared<ColumnBox>();
+        content->SetHeight(50.0f);
+        card.SetContent(content);
+        card.Measure(Size(400.0f, 400.0f));
+        CHECK(fabs(card.GetDesiredSize().height - 200.0f) < 0.01f);
+    }
+}
+
 int main() {
     SetConsoleOutputCP(CP_UTF8);   // 源码是 UTF-8：不改代码页的话中文断言输出在 cmd 里是乱码
     std::printf("=== ZufyUI 自检 ===\n");
@@ -942,6 +1147,7 @@ int main() {
     test_animation_primitives();
     test_button_animations();
     test_drawer();
+    test_layout_rfc();
     test_backdrop_defaults();
     test_signal_lifetime();
     test_signal_reentrancy_and_exception();

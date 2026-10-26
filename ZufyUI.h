@@ -1683,8 +1683,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 && finalRect.width == arrangedRect_.width && finalRect.height == arrangedRect_.height);
             bool sizeChanged = (finalRect.width != arrangedRect_.width || finalRect.height != arrangedRect_.height);
             if (!selfArrangeDirty_ && !subtreeDirty_ && !rectChanged) return;
-            // 仅在"约束变了"时重测（C2）；命中缓存则 O(1)
-            if (finalRect.width != previousAvailableSize_.width || finalRect.height != previousAvailableSize_.height)
+            // 只有父级把最终矩形压到比 desiredSize 更小时才重测（换行/压缩）。
+            // 对齐产生的“小于可用空间但等于 desiredSize”的矩形不应触发重测，
+            // 否则 Center/End/CrossAlign 会冲掉 Measure 缓存并导致每帧重复测量子树。
+            if (finalRect.width < desiredSize_.width || finalRect.height < desiredSize_.height)
                 Measure(Size(finalRect.width, finalRect.height));
             const double _a0 = detail::DebugEnabled() ? detail::NowMs() : 0.0;
             ArrangeOverride(finalRect);   // arrangedRect_ 由 ArrangeOverride（或其基类默认实现）设置，包装器不再覆盖
@@ -2181,6 +2183,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         mutable std::atomic<bool> cachedFontValid_{ false };
     };
 
+    // ---------- 布局通用对齐 ----------
+    enum class LayoutAlignment { Start, Center, End, Stretch };
+    enum class Justify { Start, Center, End, SpaceBetween, SpaceAround };
+
     // ---------- 布局基类 ----------
     class Layout : public UIElement {
     public:
@@ -2207,6 +2213,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
         void SetSpacing(float spacing) { spacing_ = spacing; InvalidateLayout(); }
         float GetSpacing() const { return spacing_; }
+        void SetJustify(Justify j) { justify_ = j; InvalidateLayout(); }
+        Justify GetJustify() const { return justify_; }
+        void SetCrossAlign(LayoutAlignment a) { crossAlign_ = a; InvalidateLayout(); }
+        LayoutAlignment GetCrossAlign() const { return crossAlign_; }
 
         float GetDefaultHorizontalStretchWeight() const override { return 1.0f; }
         float GetDefaultVerticalStretchWeight() const override { return 0.0f; }
@@ -2217,7 +2227,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             for (auto& child : children_) {
                 if (!child->IsVisible() || !child->ParticipatesInLayout()) continue;
                 Thickness m = child->GetMargin();
-                float availW = availableSize.width - m.left - m.right;
+                const float parentW = width_ > 0.0f ? width_ : availableSize.width;
+                float availW = parentW - m.left - m.right;
                 // 易错：没有显式宽度(width_<=0)的子元素按**可用宽**测量/摆放 → 会被“隐式拉满”。
                 //   想按内容收窄：放进 Row，或显式 SetWidth；想拉满：可继续依赖此行为或显式 SetFillWidth(true)。
                 float childW = child->GetWidth() > 0 ? child->GetWidth() : availW;
@@ -2235,8 +2246,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
-            // 先量 base 高度；剩余空间按「拉伸权值」分配给参与拉伸的孩子（FillHeight 或显式权值>0）。
-            struct It { UIElement* c; float base, weight, mt, mb, ml, w; };
+            // 主轴：先量 base 高度；交叉轴：默认拉伸，显式非 Stretch 时按 desired/显式宽。
+            struct It { UIElement* c; float base, weight, mt, mb, ml, xoff, w; };
             std::vector<It> its; its.reserve(children_.size());
             float totalBase = 0.0f;
             for (auto& child : children_) {
@@ -2244,29 +2255,48 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 Thickness m = child->GetMargin();
                 float availW = finalRect.width - m.left - m.right;
                 float childW = child->GetWidth() > 0 ? child->GetWidth() : availW;
-                if (child->GetFillWidth() || child->GetHorizontalStretchWeightRaw() > 0.0f) childW = availW;   // 交叉轴也认拉伸权值
+                const bool stretchCross = child->GetFillWidth() || child->GetHorizontalStretchWeightRaw() > 0.0f
+                    || crossAlign_ == LayoutAlignment::Stretch;
+                if (stretchCross) childW = availW;
+                else if (child->GetWidth() <= 0.0f) childW = child->GetDesiredSize().width;
                 childW = clamp(childW, child->GetMinWidth(), child->GetMaxWidth());
+                float xoff = 0.0f;
+                if (crossAlign_ == LayoutAlignment::Center) xoff = max(0.0f, (availW - childW) * 0.5f);
+                else if (crossAlign_ == LayoutAlignment::End) xoff = max(0.0f, availW - childW);
                 float base = child->GetHeight() > 0 ? child->GetHeight() : child->GetDesiredSize().height;
                 base = clamp(base, child->GetMinHeight(), child->GetMaxHeight());   // 先夹到 min/max 再算 leftover（否则 minHeight+拉伸子元素会溢出）
                 float raw = child->GetVerticalStretchWeightRaw();
                 float weight = (child->GetFillHeight() || raw > 0.0f) ? (raw > 0.0f ? raw : 1.0f) : 0.0f;
-                its.push_back({ child.get(), base, weight, m.top, m.bottom, m.left, childW });
+                its.push_back({ child.get(), base, weight, m.top, m.bottom, m.left, xoff, childW });
                 totalBase += m.top + base + m.bottom;
             }
             if (!its.empty()) totalBase += spacing_ * ((float)its.size() - 1.0f);
             float leftover = finalRect.height - totalBase;
             float totalWeight = 0.0f;
             for (auto& it : its) totalWeight += it.weight;
+            // 主轴 justify：只有没有任何 flex 子元素时才把 leftover 当作外部空白分配。
+            float start = finalRect.y;
+            float extraGap = 0.0f;
+            if (leftover > 0.0f && totalWeight <= 0.0f) {
+                const int n = (int)its.size();
+                switch (justify_) {
+                case Justify::Center: start += leftover * 0.5f; break;
+                case Justify::End: start += leftover; break;
+                case Justify::SpaceBetween: if (n > 1) extraGap = leftover / (float)(n - 1); break;
+                case Justify::SpaceAround: extraGap = leftover / (float)max(1, n); start += extraGap * 0.5f; break;
+                default: break;
+                }
+            }
             // 桌面 UI 不“缩小”内容：空间不足即溢出（由外层 ScrollViewer 滚动）；这里只把多余空间分给拉伸子元素
-            float y = finalRect.y;
+            float y = start;
             for (size_t i = 0; i < its.size(); ++i) {
                 auto& it = its[i];
                 float h = it.base;
                 if (leftover > 0.0f && totalWeight > 0.0f) h += leftover * (it.weight / totalWeight);
                 h = clamp(h, it.c->GetMinHeight(), it.c->GetMaxHeight());
-                it.c->Arrange(Rect(finalRect.x + it.ml, y + it.mt, it.w, h));
+                it.c->Arrange(Rect(finalRect.x + it.ml + it.xoff, y + it.mt, it.w, h));
                 y += it.mt + h + it.mb;
-                if (i + 1 < its.size()) y += spacing_;   // 末尾不再多余累加一个 spacing
+                if (i + 1 < its.size()) y += spacing_ + extraGap;
             }
         }
 
@@ -2312,7 +2342,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
     private:
         std::vector<std::shared_ptr<UIElement>> children_;
-        float spacing_;
+        float spacing_ = 0.0f;
+        Justify justify_ = Justify::Start;
+        LayoutAlignment crossAlign_ = LayoutAlignment::Stretch;
     };
 
     // ---------- 水平布局容器 ----------
@@ -2333,6 +2365,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
         void SetSpacing(float spacing) { spacing_ = spacing; InvalidateLayout(); }
         float GetSpacing() const { return spacing_; }
+        void SetJustify(Justify j) { justify_ = j; InvalidateLayout(); }
+        Justify GetJustify() const { return justify_; }
+        void SetCrossAlign(LayoutAlignment a) { crossAlign_ = a; InvalidateLayout(); }
+        LayoutAlignment GetCrossAlign() const { return crossAlign_; }
 
         float GetDefaultHorizontalStretchWeight() const override { return 0.0f; }
         float GetDefaultVerticalStretchWeight() const override { return 1.0f; }
@@ -2343,7 +2379,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             for (auto& child : children_) {
                 if (!child->IsVisible() || !child->ParticipatesInLayout()) continue;
                 Thickness m = child->GetMargin();
-                float availH = availableSize.height - m.top - m.bottom;
+                const float parentH = height_ > 0.0f ? height_ : availableSize.height;
+                float availH = parentH - m.top - m.bottom;
                 float childH = child->GetHeight() > 0 ? child->GetHeight() : availH;
                 if (child->GetFillHeight() || child->GetVerticalStretchWeightRaw() > 0.0f) childH = availH;   // 交叉轴也认拉伸权值
                 childH = clamp(childH, child->GetMinHeight(), child->GetMaxHeight());
@@ -2359,8 +2396,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
-            // 先量 base 宽度；剩余空间按「拉伸权值」分配（FillWidth 或显式权值>0）。
-            struct It { UIElement* c; float base, weight, ml, mr, mt, h; };
+            // 主轴：先量 base 宽度；交叉轴：默认拉伸，显式非 Stretch 时按 desired/显式高。
+            struct It { UIElement* c; float base, weight, ml, mr, mt, yoff, h; };
             std::vector<It> its; its.reserve(children_.size());
             float totalBase = 0.0f;
             for (auto& child : children_) {
@@ -2368,29 +2405,47 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 Thickness m = child->GetMargin();
                 float availH = finalRect.height - m.top - m.bottom;
                 float childH = child->GetHeight() > 0 ? child->GetHeight() : availH;
-                if (child->GetFillHeight() || child->GetVerticalStretchWeightRaw() > 0.0f) childH = availH;   // 交叉轴也认拉伸权值
+                const bool stretchCross = child->GetFillHeight() || child->GetVerticalStretchWeightRaw() > 0.0f
+                    || crossAlign_ == LayoutAlignment::Stretch;
+                if (stretchCross) childH = availH;
+                else if (child->GetHeight() <= 0.0f) childH = child->GetDesiredSize().height;
                 childH = clamp(childH, child->GetMinHeight(), child->GetMaxHeight());
+                float yoff = 0.0f;
+                if (crossAlign_ == LayoutAlignment::Center) yoff = max(0.0f, (availH - childH) * 0.5f);
+                else if (crossAlign_ == LayoutAlignment::End) yoff = max(0.0f, availH - childH);
                 float base = child->GetWidth() > 0 ? child->GetWidth() : child->GetDesiredSize().width;
                 base = clamp(base, child->GetMinWidth(), child->GetMaxWidth());   // 先夹到 min/max 再算 leftover（否则 minWidth+拉伸子元素会溢出）
                 float raw = child->GetHorizontalStretchWeightRaw();
                 float weight = (child->GetFillWidth() || raw > 0.0f) ? (raw > 0.0f ? raw : 1.0f) : 0.0f;
-                its.push_back({ child.get(), base, weight, m.left, m.right, m.top, childH });
+                its.push_back({ child.get(), base, weight, m.left, m.right, m.top, yoff, childH });
                 totalBase += m.left + base + m.right;
             }
             if (!its.empty()) totalBase += spacing_ * ((float)its.size() - 1.0f);
             float leftover = finalRect.width - totalBase;
             float totalWeight = 0.0f;
             for (auto& it : its) totalWeight += it.weight;
+            float start = finalRect.x;
+            float extraGap = 0.0f;
+            if (leftover > 0.0f && totalWeight <= 0.0f) {
+                const int n = (int)its.size();
+                switch (justify_) {
+                case Justify::Center: start += leftover * 0.5f; break;
+                case Justify::End: start += leftover; break;
+                case Justify::SpaceBetween: if (n > 1) extraGap = leftover / (float)(n - 1); break;
+                case Justify::SpaceAround: extraGap = leftover / (float)max(1, n); start += extraGap * 0.5f; break;
+                default: break;
+                }
+            }
             // 桌面 UI 不“缩小”内容：空间不足即溢出（由外层 ScrollViewer 滚动）
-            float x = finalRect.x;
+            float x = start;
             for (size_t i = 0; i < its.size(); ++i) {
                 auto& it = its[i];
                 float w = it.base;
                 if (leftover > 0.0f && totalWeight > 0.0f) w += leftover * (it.weight / totalWeight);
                 w = clamp(w, it.c->GetMinWidth(), it.c->GetMaxWidth());
-                it.c->Arrange(Rect(x + it.ml, finalRect.y + it.mt, w, it.h));
+                it.c->Arrange(Rect(x + it.ml, finalRect.y + it.mt + it.yoff, w, it.h));
                 x += it.ml + w + it.mr;
-                if (i + 1 < its.size()) x += spacing_;   // 末尾不再多余累加一个 spacing
+                if (i + 1 < its.size()) x += spacing_ + extraGap;
             }
         }
 
@@ -2436,32 +2491,41 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
     private:
         std::vector<std::shared_ptr<UIElement>> children_;
-        float spacing_;
+        float spacing_ = 0.0f;
+        Justify justify_ = Justify::Start;
+        LayoutAlignment crossAlign_ = LayoutAlignment::Stretch;
     };
 
     // ---------- 网格布局 ----------
     class GridLayout : public Layout {
     public:
-        enum class Alignment { Start, Center, End };
+        using Alignment = LayoutAlignment;
 
         struct GridItem {
             std::shared_ptr<UIElement> element;
             int row, col;
             int rowSpan, colSpan;
+            Alignment hAlign = Alignment::Stretch;
+            Alignment vAlign = Alignment::Stretch;
         };
 
         GridLayout() : horizontalSpacing_(0), verticalSpacing_(0),
             horizontalAlignment_(Alignment::Start), verticalAlignment_(Alignment::Start) {}
 
-        void AddChild(std::shared_ptr<UIElement> child, int row, int col, int rowSpan = 1, int colSpan = 1) {
+        void AddChild(std::shared_ptr<UIElement> child, int row, int col, int rowSpan = 1, int colSpan = 1,
+                      Alignment hAlign = Alignment::Stretch, Alignment vAlign = Alignment::Stretch) {
             if (!child) return;   // 空子元素直接忽略
             GridItem item;
             item.element = child;
-            item.row = row;
-            item.col = col;
+            item.row = max(0, row);
+            item.col = max(0, col);
             item.rowSpan = max(1, rowSpan);
             item.colSpan = max(1, colSpan);
+            item.hAlign = hAlign;
+            item.vAlign = vAlign;
             items_.push_back(item);
+            rowCount_ = max(rowCount_, item.row + item.rowSpan);
+            columnCount_ = max(columnCount_, item.col + item.colSpan);
             child->SetParent(this);
             InvalidateLayout();
         }
@@ -2472,19 +2536,33 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             InvalidateLayout();
         }
 
+        void SetColumnCount(int count) { columnCount_ = max(0, count); InvalidateLayout(); }
+        void SetRowCount(int count) { rowCount_ = max(0, count); InvalidateLayout(); }
+        int GetColumnCount() const { return columnCount_; }
+        int GetRowCount() const { return rowCount_; }
+
         void SetColumnStretch(int col, float weight) {
             if (col >= 0) {
-                if (colStretch_.size() <= col) colStretch_.resize(col + 1, 0.0f);
+                if ((int)colStretch_.size() <= col) colStretch_.resize((size_t)col + 1, 0.0f);
                 colStretch_[col] = weight;
+                columnCount_ = max(columnCount_, col + 1);
                 InvalidateLayout();
             }
         }
         void SetRowStretch(int row, float weight) {
             if (row >= 0) {
-                if (rowStretch_.size() <= row) rowStretch_.resize(row + 1, 0.0f);
+                if ((int)rowStretch_.size() <= row) rowStretch_.resize((size_t)row + 1, 0.0f);
                 rowStretch_[row] = weight;
+                rowCount_ = max(rowCount_, row + 1);
                 InvalidateLayout();
             }
+        }
+
+        void SetCellAlignment(int row, int col, Alignment h, Alignment v) {
+            for (auto& item : items_) {
+                if (item.row == row && item.col == col) { item.hAlign = h; item.vAlign = v; }
+            }
+            InvalidateLayout();
         }
 
         void SetHorizontalAlignment(Alignment align) { horizontalAlignment_ = align; InvalidateLayout(); }
@@ -2494,7 +2572,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float GetDefaultVerticalStretchWeight() const override { return 1.0f; }
 
         Size MeasureOverride(const Size& availableSize) override {
-            int maxRow = 0, maxCol = 0;
+            int maxRow = rowCount_, maxCol = columnCount_;
             for (auto& item : items_) {
                 if (!item.element || !item.element->IsVisible() || !item.element->ParticipatesInLayout()) continue;   // 不可见元素不撑大行列数
                 maxRow = max(maxRow, item.row + item.rowSpan);
@@ -2502,28 +2580,127 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
             if (maxRow == 0 || maxCol == 0) return Size(0, 0);
 
-            std::vector<float> rowHeights(maxRow, 0.0f);
-            std::vector<float> colWidths(maxCol, 0.0f);
+            std::vector<float> rowMin(maxRow, 0.0f), colMin(maxCol, 0.0f);
 
+            // 第一遍不能用“整张 Grid 的可用宽”去测每个子元素：FillWidth 的 TableView/ListView
+            // 会直接返回整张 Grid 宽，导致列宽被撑到整页、横向滚动条爆掉。先按轨道数给一个
+            // 平均 cell 上限，第二遍再用真实轨道尺寸测。
+            const float baseCellW = (std::isfinite(availableSize.width) && maxCol > 0)
+                ? max(0.0f, availableSize.width - (maxCol - 1) * horizontalSpacing_) / (float)maxCol
+                : FLT_MAX;
+            const float baseCellH = (std::isfinite(availableSize.height) && maxRow > 0)
+                ? max(0.0f, availableSize.height - (maxRow - 1) * verticalSpacing_) / (float)maxRow
+                : FLT_MAX;
+            std::vector<float> rowCaps(maxRow, baseCellH), colCaps(maxCol, baseCellW);
+
+            auto measureNatural = [&]() {
+                rowMin.assign(maxRow, 0.0f);
+                colMin.assign(maxCol, 0.0f);
+                for (auto& item : items_) {
+                    if (!item.element->IsVisible() || !item.element->ParticipatesInLayout()) continue;
+                    float cellW = 0.0f, cellH = 0.0f;
+                    for (int c = item.col; c < item.col + item.colSpan; ++c) {
+                        cellW += colCaps[c];
+                        if (c < item.col + item.colSpan - 1) cellW += horizontalSpacing_;
+                    }
+                    for (int r = item.row; r < item.row + item.rowSpan; ++r) {
+                        cellH += rowCaps[r];
+                        if (r < item.row + item.rowSpan - 1) cellH += verticalSpacing_;
+                    }
+                    const Size childSize = item.element->Measure(Size(
+                        cellW > 0.0f ? cellW : availableSize.width,
+                        cellH > 0.0f ? cellH : availableSize.height));
+                    const float hPerRow = childSize.height / item.rowSpan;
+                    const float wPerCol = childSize.width / item.colSpan;
+                    for (int r = item.row; r < item.row + item.rowSpan; ++r) rowMin[r] = max(rowMin[r], hPerRow);
+                    for (int c = item.col; c < item.col + item.colSpan; ++c) colMin[c] = max(colMin[c], wPerCol);
+                }
+            };
+
+            auto gridSizes = [&](float availW, float availH,
+                                 std::vector<float>& rowSizes, std::vector<float>& colSizes) {
+                rowSizes = rowMin;
+                colSizes = colMin;
+                std::vector<float> rowWeights(maxRow, 0.0f), colWeights(maxCol, 0.0f);
+                if (!rowStretch_.empty()) {
+                    for (int r = 0; r < maxRow; ++r) if (r < (int)rowStretch_.size()) rowWeights[r] = rowStretch_[r];
+                }
+                else {
+                    for (auto& item : items_) {
+                        if (!item.element->IsVisible() || !item.element->ParticipatesInLayout()) continue;
+                        const float w = item.element->GetVerticalStretchWeight();
+                        for (int r = item.row; r < item.row + item.rowSpan; ++r) rowWeights[r] = max(rowWeights[r], w);
+                    }
+                }
+                if (!colStretch_.empty()) {
+                    for (int c = 0; c < maxCol; ++c) if (c < (int)colStretch_.size()) colWeights[c] = colStretch_[c];
+                }
+                else {
+                    for (auto& item : items_) {
+                        if (!item.element->IsVisible() || !item.element->ParticipatesInLayout()) continue;
+                        const float w = item.element->GetHorizontalStretchWeight();
+                        for (int c = item.col; c < item.col + item.colSpan; ++c) colWeights[c] = max(colWeights[c], w);
+                    }
+                }
+                float totalW = (maxCol > 1) ? (maxCol - 1) * horizontalSpacing_ : 0.0f;
+                for (float w : colSizes) totalW += w;
+                float totalH = (maxRow > 1) ? (maxRow - 1) * verticalSpacing_ : 0.0f;
+                for (float h : rowSizes) totalH += h;
+                const float extraW = (std::isfinite(availW) && availW > totalW) ? (availW - totalW) : 0.0f;
+                const float extraH = (std::isfinite(availH) && availH > totalH) ? (availH - totalH) : 0.0f;
+                float sumW = 0.0f, sumH = 0.0f;
+                for (float w : colWeights) sumW += w;
+                for (float h : rowWeights) sumH += h;
+                if (extraW > 0.0f && sumW > 0.0f)
+                    for (int c = 0; c < maxCol; ++c) colSizes[c] += extraW * (colWeights[c] / sumW);
+                if (extraH > 0.0f && sumH > 0.0f)
+                    for (int r = 0; r < maxRow; ++r) rowSizes[r] += extraH * (rowWeights[r] / sumH);
+            };
+
+            // 第一遍：自然尺寸 + 轨道；第二遍：用 cell 约束测量（wrap 文本必须按 cell 宽换行），
+            // 然后重新汇总轨道。只为拿到可信的 desiredSize，不在 Arrange 里重测。
+            measureNatural();
+            std::vector<float> rowSizes, colSizes;
+            gridSizes(availableSize.width, availableSize.height, rowSizes, colSizes);
             for (auto& item : items_) {
                 if (!item.element->IsVisible() || !item.element->ParticipatesInLayout()) continue;
-                Size childSize = item.element->Measure(availableSize);
-                float heightPerRow = childSize.height / item.rowSpan;
-                float widthPerCol = childSize.width / item.colSpan;
-                for (int r = item.row; r < item.row + item.rowSpan; ++r) rowHeights[r] = max(rowHeights[r], heightPerRow);
-                for (int c = item.col; c < item.col + item.colSpan; ++c) colWidths[c] = max(colWidths[c], widthPerCol);
+                float cellW = 0.0f, cellH = 0.0f;
+                for (int c = item.col; c < item.col + item.colSpan; ++c) {
+                    cellW += colSizes[c];
+                    if (c < item.col + item.colSpan - 1) cellW += horizontalSpacing_;
+                }
+                for (int r = item.row; r < item.row + item.rowSpan; ++r) {
+                    cellH += rowSizes[r];
+                    if (r < item.row + item.rowSpan - 1) cellH += verticalSpacing_;
+                }
+                if (cellW > 0.0f || cellH > 0.0f)
+                    item.element->Measure(Size(cellW > 0.0f ? cellW : availableSize.width,
+                                               cellH > 0.0f ? cellH : availableSize.height));
             }
-
-            float totalWidth = (maxCol > 1) ? (maxCol - 1) * horizontalSpacing_ : 0;
-            for (float w : colWidths) totalWidth += w;
-            float totalHeight = (maxRow > 1) ? (maxRow - 1) * verticalSpacing_ : 0;
-            for (float h : rowHeights) totalHeight += h;
+            // 第二遍的 desiredSize 已写入子元素，直接用它更新轨道；
+            // 这里不能再调用 Measure(FLT_MAX, FLT_MAX)，否则 wrap/缓存全部失效。
+            rowMin.assign(maxRow, 0.0f);
+            colMin.assign(maxCol, 0.0f);
+            for (auto& item : items_) {
+                if (!item.element->IsVisible() || !item.element->ParticipatesInLayout()) continue;
+                const Size s = item.element->GetDesiredSize();
+                const float hPerRow = s.height / item.rowSpan;
+                const float wPerCol = s.width / item.colSpan;
+                for (int r = item.row; r < item.row + item.rowSpan; ++r) rowMin[r] = max(rowMin[r], hPerRow);
+                for (int c = item.col; c < item.col + item.colSpan; ++c) colMin[c] = max(colMin[c], wPerCol);
+            }
+            float totalWidth = (maxCol > 1) ? (maxCol - 1) * horizontalSpacing_ : 0.0f;
+            for (float w : colMin) totalWidth += w;
+            float totalHeight = (maxRow > 1) ? (maxRow - 1) * verticalSpacing_ : 0.0f;
+            for (float h : rowMin) totalHeight += h;
+            if (width_ > 0.0f) totalWidth = width_;
+            if (height_ > 0.0f) totalHeight = height_;
             return Size(totalWidth, totalHeight);
         }
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
-            int maxRow = 0, maxCol = 0;
+            int maxRow = rowCount_, maxCol = columnCount_;
             for (auto& item : items_) {
                 if (!item.element->ParticipatesInLayout()) continue;
                 maxRow = max(maxRow, item.row + item.rowSpan);
@@ -2535,7 +2712,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             std::vector<float> colMinWidths(maxCol, 0.0f);
             for (auto& item : items_) {
                 if (!item.element->IsVisible() || !item.element->ParticipatesInLayout()) continue;
-                Size childSize = item.element->Measure(Size(FLT_MAX, FLT_MAX));
+                const Size childSize = item.element->GetDesiredSize();   // 使用 Measure 阶段结果，禁止在 Arrange 里重测
                 float hPerRow = childSize.height / item.rowSpan;
                 float wPerCol = childSize.width / item.colSpan;
                 for (int r = item.row; r < item.row + item.rowSpan; ++r)
@@ -2560,7 +2737,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
             if (!rowStretch_.empty()) {
                 for (int r = 0; r < maxRow; ++r)
-                    if (r < rowStretch_.size()) rowStretchWeights[r] = rowStretch_[r];
+                    if (r < (int)rowStretch_.size()) rowStretchWeights[r] = rowStretch_[r];
             }
             else {
                 for (auto& item : items_) {
@@ -2573,7 +2750,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
             if (!colStretch_.empty()) {
                 for (int c = 0; c < maxCol; ++c)
-                    if (c < colStretch_.size()) colStretchWeights[c] = colStretch_[c];
+                    if (c < (int)colStretch_.size()) colStretchWeights[c] = colStretch_[c];
             }
             else {
                 for (auto& item : items_) {
@@ -2611,18 +2788,21 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             float offsetX = 0.0f, offsetY = 0.0f;
             // 只有“没有任何列/行带拉伸权值”时才用 Alignment 分配多余空间（原先写成 .empty() → 恒 false，对齐永不生效）
             auto allZero = [](const std::vector<float>& v) { for (float x : v) if (x != 0.0f) return false; return true; };
-            if (extraWidth > 0 && allZero(colStretchWeights) && maxCol > 1) {
+            const bool anyColStretch = !allZero(colStretchWeights);
+            const bool anyRowStretch = !allZero(rowStretchWeights);
+            // 显式轨道下，1×1 也应该能用 Center/End；Stretch 等价于 Start（空间已被轨道吃掉）。
+            if (extraWidth > 0 && !anyColStretch) {
                 switch (horizontalAlignment_) {
-                case Alignment::Start: offsetX = 0.0f; break;
                 case Alignment::Center: offsetX = extraWidth / 2.0f; break;
                 case Alignment::End: offsetX = extraWidth; break;
+                default: offsetX = 0.0f; break;
                 }
             }
-            if (extraHeight > 0 && allZero(rowStretchWeights) && maxRow > 1) {
+            if (extraHeight > 0 && !anyRowStretch) {
                 switch (verticalAlignment_) {
-                case Alignment::Start: offsetY = 0.0f; break;
                 case Alignment::Center: offsetY = extraHeight / 2.0f; break;
                 case Alignment::End: offsetY = extraHeight; break;
+                default: offsetY = 0.0f; break;
                 }
             }
 
@@ -2655,7 +2835,19 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     itemH += rowHeights[r];
                     if (r < item.row + item.rowSpan - 1) itemH += verticalSpacing_;
                 }
-                item.element->Arrange(Rect(itemX, itemY, itemW, itemH));
+                float childW = itemW;
+                float childH = itemH;
+                if (item.hAlign != Alignment::Stretch && !item.element->GetFillWidth())
+                    childW = min(itemW, item.element->GetDesiredSize().width);
+                if (item.vAlign != Alignment::Stretch && !item.element->GetFillHeight())
+                    childH = min(itemH, item.element->GetDesiredSize().height);
+                float childX = itemX;
+                float childY = itemY;
+                if (item.hAlign == Alignment::Center) childX += max(0.0f, (itemW - childW) * 0.5f);
+                else if (item.hAlign == Alignment::End) childX += max(0.0f, itemW - childW);
+                if (item.vAlign == Alignment::Center) childY += max(0.0f, (itemH - childH) * 0.5f);
+                else if (item.vAlign == Alignment::End) childY += max(0.0f, itemH - childH);
+                item.element->Arrange(Rect(childX, childY, childW, childH));
             }
         }
 
@@ -2705,6 +2897,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float verticalSpacing_;
         std::vector<float> colStretch_;
         std::vector<float> rowStretch_;
+        int columnCount_ = 0;
+        int rowCount_ = 0;
         Alignment horizontalAlignment_;
         Alignment verticalAlignment_;
     };
@@ -2712,11 +2906,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     // ---------- 可替换布局容器基类 ----------
     class LayoutHost : public UIElement {
     public:
-        LayoutHost() {
-            auto grid = std::make_shared<GridLayout>();
-            grid->SetParent(this);
-            layout_ = grid;
-        }
+        LayoutHost() = default;
         virtual ~LayoutHost() = default;
 
         std::shared_ptr<UIElement> GetLayout() const { return layout_; }
@@ -2728,8 +2918,31 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             InvalidateLayout();
         }
 
+        // 单内容语义别名：新代码优先用 SetContent/GetContent。
+        void SetContent(std::shared_ptr<UIElement> content) { SetLayout(std::move(content)); }
+        std::shared_ptr<UIElement> GetContent() const { return layout_; }
+
+        void SetContentAlignment(LayoutAlignment h, LayoutAlignment v) {
+            contentHAlign_ = h;
+            contentVAlign_ = v;
+            InvalidateLayout();
+        }
+        LayoutAlignment GetContentHorizontalAlignment() const { return contentHAlign_; }
+        LayoutAlignment GetContentVerticalAlignment() const { return contentVAlign_; }
+
         template<typename T>
         std::shared_ptr<T> GetLayoutAs() const {
+            return std::dynamic_pointer_cast<T>(layout_);
+        }
+
+        // 兼容旧代码：未设置内容时首次请求 GridLayout 会惰性创建；新代码请用 SetContent。
+        template<typename T>
+        std::shared_ptr<T> GetLayoutAs() {
+            if (!layout_ && std::is_same_v<T, GridLayout>) {
+                auto grid = std::make_shared<GridLayout>();
+                SetLayout(grid);
+                return grid;
+            }
             return std::dynamic_pointer_cast<T>(layout_);
         }
 
@@ -2754,6 +2967,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
     protected:
         std::shared_ptr<UIElement> layout_;
+        LayoutAlignment contentHAlign_ = LayoutAlignment::Stretch;
+        LayoutAlignment contentVAlign_ = LayoutAlignment::Stretch;
     };
 
     // ---------- 卡片控件 ----------
@@ -2792,15 +3007,30 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         Size MeasureOverride(const Size& availableSize) override {
             if (!layout_) return Size(0, 0);
-            Size childSize = layout_->Measure(Size(availableSize.width - padding_ * 2, availableSize.height - padding_ * 2));
-            return Size(childSize.width + padding_ * 2, childSize.height + padding_ * 2);
+            const float innerW = (width_ > 0.0f ? width_ : availableSize.width) - padding_ * 2;
+            const float innerH = (height_ > 0.0f ? height_ : availableSize.height) - padding_ * 2;
+            Size childSize = layout_->Measure(Size(innerW, innerH));
+            Size out(childSize.width + padding_ * 2, childSize.height + padding_ * 2);
+            if (width_ > 0.0f) out.width = width_;    // 显式尺寸必须参与 Measure，否则父布局按内容高度排、Arrange 又按固定高排 → 卡片互相覆盖
+            if (height_ > 0.0f) out.height = height_;
+            return out;
         }
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
-            if (layout_) {
-                layout_->Arrange(Rect(finalRect.x + padding_, finalRect.y + padding_, finalRect.width - padding_ * 2, finalRect.height - padding_ * 2));
-            }
+            if (!layout_) return;
+            const Rect area(finalRect.x + padding_, finalRect.y + padding_,
+                max(0.0f, finalRect.width - padding_ * 2), max(0.0f, finalRect.height - padding_ * 2));
+            const Size desired = layout_->GetDesiredSize();
+            const float w = contentHAlign_ == LayoutAlignment::Stretch ? area.width : min(area.width, desired.width);
+            const float h = contentVAlign_ == LayoutAlignment::Stretch ? area.height : min(area.height, desired.height);
+            float x = area.x;
+            float y = area.y;
+            if (contentHAlign_ == LayoutAlignment::Center) x += (area.width - w) * 0.5f;
+            else if (contentHAlign_ == LayoutAlignment::End) x += area.width - w;
+            if (contentVAlign_ == LayoutAlignment::Center) y += (area.height - h) * 0.5f;
+            else if (contentVAlign_ == LayoutAlignment::End) y += area.height - h;
+            layout_->Arrange(Rect(x, y, w, h));
         }
 
         void Draw(ID2D1RenderTarget* rt) override {
@@ -2902,15 +3132,30 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         Size MeasureOverride(const Size& availableSize) override {
             if (!layout_) return Size(0, 0);
-            Size childSize = layout_->Measure(Size(availableSize.width - padding_ * 2, availableSize.height - padding_ * 2));
-            return Size(childSize.width + padding_ * 2, childSize.height + padding_ * 2);
+            const float innerW = (width_ > 0.0f ? width_ : availableSize.width) - padding_ * 2;
+            const float innerH = (height_ > 0.0f ? height_ : availableSize.height) - padding_ * 2;
+            Size childSize = layout_->Measure(Size(innerW, innerH));
+            Size out(childSize.width + padding_ * 2, childSize.height + padding_ * 2);
+            if (width_ > 0.0f) out.width = width_;    // 显式尺寸必须参与 Measure，否则父布局按内容高度排、Arrange 又按固定高排 → 卡片互相覆盖
+            if (height_ > 0.0f) out.height = height_;
+            return out;
         }
 
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
-            if (layout_) {
-                layout_->Arrange(Rect(finalRect.x + padding_, finalRect.y + padding_, finalRect.width - padding_ * 2, finalRect.height - padding_ * 2));
-            }
+            if (!layout_) return;
+            const Rect area(finalRect.x + padding_, finalRect.y + padding_,
+                max(0.0f, finalRect.width - padding_ * 2), max(0.0f, finalRect.height - padding_ * 2));
+            const Size desired = layout_->GetDesiredSize();
+            const float w = contentHAlign_ == LayoutAlignment::Stretch ? area.width : min(area.width, desired.width);
+            const float h = contentVAlign_ == LayoutAlignment::Stretch ? area.height : min(area.height, desired.height);
+            float x = area.x;
+            float y = area.y;
+            if (contentHAlign_ == LayoutAlignment::Center) x += (area.width - w) * 0.5f;
+            else if (contentHAlign_ == LayoutAlignment::End) x += area.width - w;
+            if (contentVAlign_ == LayoutAlignment::Center) y += (area.height - h) * 0.5f;
+            else if (contentVAlign_ == LayoutAlignment::End) y += area.height - h;
+            layout_->Arrange(Rect(x, y, w, h));
         }
 
         void Draw(ID2D1RenderTarget* rt) override {

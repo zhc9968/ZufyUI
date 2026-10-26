@@ -573,12 +573,17 @@ class Layout : public UIElement { bool UseCache() const override { return false;
 ## ColumnBox (vertical) / RowBox (horizontal)
 
 ```cpp
+enum class LayoutAlignment { Start, Center, End, Stretch };
+enum class Justify { Start, Center, End, SpaceBetween, SpaceAround };
 ColumnBox(); RowBox();
 void AddChild(std::shared_ptr<UIElement>);
 void ClearChildren();
 void SetSpacing(float);
+void SetJustify(Justify);              // main axis: Start/Center/End/SpaceBetween/SpaceAround
+void SetCrossAlign(LayoutAlignment);   // cross axis; Stretch is the compatibility default
 ```
 - `ColumnBox` fills width, no vertical stretch; `RowBox` the opposite.
+- `Justify` distributes leftover only when no child is flex/stretching; `CrossAlign` set to Center/Start/End uses the child's desiredSize instead of forcing a fill.
 
 ###block_red_start
 **Pitfall**
@@ -591,23 +596,34 @@ void SetSpacing(float);
 ## GridLayout
 
 ```cpp
-enum class Alignment { Start, Center, End };
-void AddChild(std::shared_ptr<UIElement>, int row, int col, int rowSpan=1, int colSpan=1);
+using Alignment = LayoutAlignment;   // Start / Center / End / Stretch
+void AddChild(std::shared_ptr<UIElement>, int row, int col, int rowSpan=1, int colSpan=1,
+              Alignment hAlign=Alignment::Stretch, Alignment vAlign=Alignment::Stretch);
+void SetColumnCount(int);  void SetRowCount(int);
 void SetSpacing(float h, float v);
-void SetColumnStretch(int col, float weight);   void SetRowStretch(int row, float weight);
-void SetHorizontalAlignment(Alignment);         void SetVerticalAlignment(Alignment);
+void SetColumnStretch(int col, float weight);  void SetRowStretch(int row, float weight);
+void SetHorizontalAlignment(Alignment);        void SetVerticalAlignment(Alignment);
+void SetCellAlignment(int row, int col, Alignment h, Alignment v);
 ```
+- Row/column counts come from `SetColumnCount/SetRowCount` (or `SetColumnStretch/SetRowStretch`); **empty tracks still exist**, so no placeholder children are needed.
+- `SetCellAlignment` controls how a child sits inside its own cell (default `Stretch`); `SetHorizontalAlignment/SetVerticalAlignment` align the whole grid content in the leftover space.
+- A 1×1 grid can also use content alignment; `SetColumnStretch(2, ...)` creates a third column.
 - Without explicit row/col stretch, the cell weight is the **max** of spanned children's weights.
 
 ## LayoutHost / Card / Page
 
 ```cpp
-class LayoutHost : public UIElement { std::shared_ptr<UIElement> GetLayout() const; void SetLayout(...); };
+class LayoutHost : public UIElement {
+    std::shared_ptr<UIElement> GetLayout() const;  void SetLayout(...);
+    std::shared_ptr<UIElement> GetContent() const; void SetContent(...);   // single-content alias
+    void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // default Stretch
+};
 class Card : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
 class Page : public LayoutHost { DefaultPadding=10; ... };
 void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // one line: wrap in ScrollViewer(fill)+8px
 ```
-- `LayoutHost` is a single-slot container; `Card` is a rounded/bordered/hover card; `Page` is the page container for `TabView`/`PageHost`.
+- `LayoutHost` is a single-content host; `Card` is a rounded/bordered/hover card; `Page` is the page container for `TabView`/`PageHost`.
+- `SetContentAlignment(Center, Center)` centers Page/Card content; default `Stretch` keeps old behaviour.
 - `Card::UseCache()` = `HasShadow()`; `Page::UseCache()` = false.
 
 ## PageHost (page host / transitions)
@@ -869,7 +885,7 @@ std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 ```cpp
 enum class TextOverflow { Wrap, Ellipsis };
 enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bottom };
-Label(const std::wstring& text = L"Label");
+Label(const std::wstring& text = L"");   // default empty; no automatic "Label" text
 void SetText(const std::wstring&);   std::wstring GetText() const;
 void SetTextFast(const std::wstring&);   // pool rebind only: self-dirty, no bubble, no repaint
 void SetTextColor(Color);   void SetTextOverflow(TextOverflow);

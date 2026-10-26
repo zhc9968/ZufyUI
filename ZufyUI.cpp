@@ -14,7 +14,8 @@ namespace {
     inline const wchar_t* kPageNames[] = {
         L"首页", L"基础控件", L"输入与滚动", L"嵌套与联动", L"列表视图", L"表格视图",
         L"树形视图", L"树形增强", L"图像", L"多窗口", L"窗口属性", L"新控件A", L"新控件B",
-        L"多行文本", L"条形图", L"折线图", L"饼图", L"拖放", L"设置卡片", L"主题", L"DSL", L"环境组合", L"原生HWND", L"抽屉"
+        L"多行文本", L"条形图", L"折线图", L"饼图", L"拖放", L"设置卡片", L"主题", L"DSL", L"环境组合", L"原生HWND", L"抽屉",
+        L"布局压力测试"
     };
     inline constexpr int kPageCount = (int)(sizeof(kPageNames) / sizeof(kPageNames[0]));
 
@@ -343,6 +344,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     navList->AddItem(L"环境组合");
     navList->AddItem(L"原生HWND");
     navList->AddItem(L"抽屉");
+    navList->AddItem(L"布局压力测试");
     navList->SetSelectedIndex(0);
     mainRow->AddChild(navList);
 
@@ -522,7 +524,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         homeCard(L"图表", {
             { Icon::View,     L"条形图",     L"BarChart：分组 / 堆叠 / 百分比 / 参考线 / 拖拽平移",    14 },
             { Icon::View,     L"折线图",     L"LineChart：多系列 / 平滑 / 虚线 / 面积填充",           15 },
-            { Icon::View,     L"饼图",       L"PieChart：环形 / 标签模式 / Ctrl\+滚轮 缩放 / 滚轮·拖拽 平移",      16 },
+            { Icon::View,     L"饼图",       L"PieChart：环形 / 标签模式 / Ctrl+滚轮 缩放 / 滚轮·拖拽 平移",      16 },
         });
         homeCard(L"窗口与系统", {
             { Icon::Settings, L"多窗口",     L"独立窗口 / 子窗口 / 模态 / 托盘 / 任务栏 / 跳转列表",  9 },
@@ -2733,6 +2735,654 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         pageDrawer->SetLayout(drawer.shared());
     }
     mainHost->AddPage(pageDrawer);
+
+    // ===================== 布局实验室：5 个超级复杂页 =====================
+    // 每个 tab 都不是单一 demo，而是 5~6 组布局/控件组合；内容使用真实 TextBox/Button/
+    // ComboBox/ListView/TableView/TreeView/Chart/Expander/SplitView，而不是只放色块。
+    {
+        auto tint = [](ThemeRole role, float alpha = 0.20f) {
+            Color c = ThemeColor(role);
+            c.a = alpha;
+            return c;
+        };
+        auto tag = [](const std::wstring& text, float w, float h, Color bg) {
+            auto l = std::make_shared<Label>(text);
+            l->SetWidth(w);
+            l->SetHeight(h);
+            l->SetAlignment(Label::HAlign::Center, Label::VAlign::Center);
+            l->SetBackgroundColor(bg);
+            l->SetBackgroundCornerRadius(6.0f);
+            return l;
+        };
+        auto wrapLabel = [](const std::wstring& text, float w) {
+            auto l = std::make_shared<Label>(text);
+            l->SetWidth(w);
+            l->SetTextOverflow(Label::TextOverflow::Wrap);
+            return l;
+        };
+        auto section = [](const std::wstring& title, const std::shared_ptr<UIElement>& content) {
+            auto box = std::make_shared<Card>();
+            box->SetFillWidth(true);
+            auto col = std::make_shared<ColumnBox>();
+            col->SetSpacing(8.0f);
+            auto t = std::make_shared<Label>(title);
+            t->SetFontSize(15.0f);
+            col->AddChild(t);
+            col->AddChild(content);
+            box->SetContent(col);
+            return box;
+        };
+        auto makeInput = [](const std::wstring& placeholder, float w) {
+            auto e = std::make_shared<TextBox>();
+            e->SetPlaceholder(placeholder);
+            e->SetWidth(w);
+            e->SetHeight(34.0f);
+            return e;
+        };
+        auto makeButton = [](const std::wstring& text, float w = 92.0f) {
+            auto b = std::make_shared<Button>(text);
+            b->SetWidth(w);
+            b->SetHeight(34.0f);
+            return b;
+        };
+        auto makeList = [](float h) {
+            auto l = std::make_shared<ListView>();
+            l->SetFillWidth(true);
+            l->SetHeight(h);
+            return l;
+        };
+        auto makeTable = [](float h) {
+            auto t = std::make_shared<TableView>();
+            t->SetFillWidth(true);
+            t->SetHeight(h);
+            t->SetRowCount(8);
+            t->SetColumnCount(3);
+            t->SetHeaderLabel(0, L"名称");
+            t->SetHeaderLabel(1, L"状态");
+            t->SetHeaderLabel(2, L"数值");
+            for (int r = 0; r < 8; ++r) {
+                t->SetItem(r, 0, L"节点 " + std::to_wstring(r + 1));
+                t->SetItem(r, 1, (r % 3) ? L"在线" : L"离线");
+                t->SetItem(r, 2, std::to_wstring((r + 1) * 17));
+            }
+            return t;
+        };
+        auto makeTree = [](float h) {
+            auto t = std::make_shared<TreeView>();
+            t->SetFillWidth(true);
+            t->SetHeight(h);
+            t->SetColumnCount(1);
+            auto root = t->AddRoot(L"根节点");
+            for (int i = 0; i < 5; ++i) {
+                auto c = t->AddChild(root, L"子节点 " + std::to_wstring(i + 1));
+                t->AddChild(c, L"孙节点 " + std::to_wstring(i + 1));
+            }
+            t->ExpandAll();
+            return t;
+        };
+        auto makeBar = [](float w, float h) {
+            auto c = std::make_shared<BarChart>();
+            c->SetWidth(w);
+            c->SetHeight(h);
+            c->AddSeries(L"访问");
+            c->AddSeries(L"转化");
+            c->AddCategory(L"一");
+            c->AddCategory(L"二");
+            c->AddCategory(L"三");
+            c->AddCategory(L"四");
+            c->SetSeriesValues(0, { 12.0, 28.0, 19.0, 35.0 });
+            c->SetSeriesValues(1, { 5.0, 11.0, 8.0, 16.0 });
+            return c;
+        };
+
+        auto tabs = std::make_shared<TabView>();
+        tabs->SetFillWidth(true);
+        tabs->SetFillHeight(true);
+        tabs->SetVerticalStretchWeight(1.0f);
+
+        auto addTab = [&](const std::wstring& name, const std::wstring& expected,
+                          const std::shared_ptr<ColumnBox>& body) {
+            auto page = std::make_shared<Page>();
+            auto col = std::make_shared<ColumnBox>();
+            // 不固定宽度：Page ScrollViewer 给视口宽，Card 用 FillWidth 正常铺满；
+            // 只有内容最小尺寸确实超过视口时才由 ScrollViewer 出横向滚动。
+            col->SetSpacing(10.0f);
+            col->SetMargin(Thickness(14, 14, 14, 14));
+            auto title = std::make_shared<Label>(name);
+            title->SetWidth(660.0f);
+            title->SetFontSize(20.0f);
+            title->SetAlignment(Label::HAlign::Center, Label::VAlign::Center);
+            auto expect = wrapLabel(L"预期：" + expected, 660.0f);
+            expect->SetTextColor(ThemeColor(ThemeRole::TextSecondary));
+            expect->SetAlignment(Label::HAlign::Center, Label::VAlign::Top);
+            col->AddChild(title);
+            col->AddChild(expect);
+            col->AddChild(body);
+            page->SetScrollableContent(col);
+            tabs->AddTab(name, page);
+        };
+
+        // ------------------------------------------------------------------
+        // 01 对齐组合：居中表单 / 右对齐 / 垂直居中 / SpaceBetween / SpaceAround / 嵌套 Page
+        // ------------------------------------------------------------------
+        {
+            auto body = std::make_shared<ColumnBox>();
+            body->SetSpacing(12.0f);
+
+            auto form = std::make_shared<ColumnBox>();
+            form->SetSpacing(8.0f);
+            form->SetCrossAlign(LayoutAlignment::Center);
+            form->AddChild(tag(L"登录", 300.0f, 34.0f, tint(ThemeRole::Accent)));
+            form->AddChild(makeInput(L"用户名", 300.0f));
+            form->AddChild(makeInput(L"密码", 300.0f));
+            form->AddChild(makeButton(L"登录", 300.0f));
+            auto formCard = std::make_shared<Card>();
+            formCard->SetWidth(360.0f);
+            formCard->SetHeight(250.0f);
+            formCard->SetContentAlignment(LayoutAlignment::Center, LayoutAlignment::Center);
+            formCard->SetContent(form);
+            auto centerRow = std::make_shared<RowBox>();
+            centerRow->SetFillWidth(true);
+            centerRow->SetJustify(Justify::Center);
+            centerRow->AddChild(formCard);
+            body->AddChild(section(L"A. 居中表单（Row justify Center + Card 内容居中）", centerRow));
+
+            auto toolbar = std::make_shared<RowBox>();
+            toolbar->SetFillWidth(true);
+            toolbar->SetSpacing(8.0f);
+            toolbar->SetJustify(Justify::End);
+            toolbar->SetCrossAlign(LayoutAlignment::Center);
+            toolbar->AddChild(makeInput(L"搜索名称", 220.0f));
+            auto cat = std::make_shared<ComboBox>();
+            cat->SetWidth(110.0f);
+            cat->AddItem(L"全部");
+            cat->AddItem(L"设备");
+            cat->AddItem(L"告警");
+            toolbar->AddChild(cat);
+            toolbar->AddChild(makeButton(L"查询"));
+            toolbar->AddChild(makeButton(L"重置"));
+            body->AddChild(section(L"B. 右对齐工具栏（justify End；输入框/下拉/按钮同一基线）", toolbar));
+
+            auto vertical = std::make_shared<ColumnBox>();
+            vertical->SetFillWidth(true);
+            vertical->SetFillHeight(true);
+            vertical->SetSpacing(10.0f);
+            vertical->SetJustify(Justify::Center);
+            vertical->SetCrossAlign(LayoutAlignment::Center);
+            auto ring = std::make_shared<ProgressRing>(54.0f);
+            ring->SetIndeterminate(true);
+            vertical->AddChild(ring);
+            vertical->AddChild(tag(L"正在同步数据", 220.0f, 32.0f, tint(ThemeRole::Success)));
+            auto pb = std::make_shared<ProgressBar>();
+            pb->SetWidth(240.0f);
+            pb->SetHeight(18.0f);
+            pb->SetValue(0.67f);
+            vertical->AddChild(pb);
+            auto verticalCard = std::make_shared<Card>();
+            verticalCard->SetFillWidth(true);
+            verticalCard->SetHeight(230.0f);
+            verticalCard->SetContent(vertical);
+            body->AddChild(section(L"C. 垂直居中（Column justify Center + cross Center）", verticalCard));
+
+            auto between = std::make_shared<RowBox>();
+            between->SetFillWidth(true);
+            between->SetHeight(66.0f);
+            between->SetJustify(Justify::SpaceBetween);
+            between->SetCrossAlign(LayoutAlignment::Center);
+            between->AddChild(tag(L"左侧", 100.0f, 34.0f, tint(ThemeRole::Accent)));
+            auto combo = std::make_shared<ComboBox>();
+            combo->SetWidth(130.0f);
+            combo->AddItem(L"选项 A");
+            combo->AddItem(L"选项 B");
+            between->AddChild(combo);
+            between->AddChild(makeInput(L"中间输入", 160.0f));
+            between->AddChild(makeButton(L"右侧按钮"));
+            body->AddChild(section(L"D. SpaceBetween（首尾贴边，中间元素等距）", between));
+
+            auto around = std::make_shared<RowBox>();
+            around->SetFillWidth(true);
+            around->SetHeight(76.0f);
+            around->SetJustify(Justify::SpaceAround);
+            around->SetCrossAlign(LayoutAlignment::Center);
+            auto t1 = std::make_shared<ToggleSwitch>(); t1->SetOn(true);
+            auto t2 = std::make_shared<CheckBox>(L"自动刷新"); t2->SetChecked(true);
+            auto s1 = std::make_shared<Slider>(); s1->SetWidth(140.0f); s1->SetRange(0.0f, 100.0f); s1->SetValue(42.0f);
+            around->AddChild(tag(L"环绕 A", 90.0f, 34.0f, tint(ThemeRole::Success)));
+            around->AddChild(t1);
+            around->AddChild(t2);
+            around->AddChild(s1);
+            around->AddChild(tag(L"环绕 B", 90.0f, 34.0f, tint(ThemeRole::Danger)));
+            body->AddChild(section(L"E. SpaceAround（两端各半空隙，元素之间完整空隙）", around));
+
+            auto innerPage = std::make_shared<Page>();
+            innerPage->SetWidth(340.0f);
+            innerPage->SetHeight(170.0f);
+            innerPage->SetContentAlignment(LayoutAlignment::Center, LayoutAlignment::Center);
+            auto innerCard = std::make_shared<Card>();
+            innerCard->SetWidth(260.0f);
+            innerCard->SetHeight(120.0f);
+            innerCard->SetContent(tag(L"嵌套 Page 内容居中", 220.0f, 40.0f, tint(ThemeRole::Warning)));
+            innerPage->SetContent(innerCard);
+            auto pageRow = std::make_shared<RowBox>();
+            pageRow->SetFillWidth(true);
+            pageRow->SetJustify(Justify::Center);
+            pageRow->AddChild(innerPage);
+            body->AddChild(section(L"F. 嵌套 Page：Page::SetContentAlignment(Center, Center)", pageRow));
+
+            addTab(L"01 对齐组合", L"六组对齐同时存在：居中表单、右侧工具栏、垂直居中、首尾对齐、环绕分布、嵌套 Page 居中。", body);
+        }
+
+        // ------------------------------------------------------------------
+        // 02 Grid 轨道组合：3×3 / 空轨道 / cell align / 嵌套 / 跨格 / wrap
+        // ------------------------------------------------------------------
+        {
+            auto body = std::make_shared<ColumnBox>();
+            body->SetSpacing(12.0f);
+
+            auto g1 = std::make_shared<GridLayout>();
+            g1->SetFillWidth(true); g1->SetFillHeight(true);
+            g1->SetColumnCount(3); g1->SetRowCount(3);
+            g1->SetColumnStretch(0, 1.0f); g1->SetColumnStretch(2, 1.0f);
+            g1->SetRowStretch(0, 1.0f); g1->SetRowStretch(2, 1.0f);
+            auto center = std::make_shared<Card>();
+            center->SetWidth(260.0f); center->SetHeight(120.0f);
+            auto centerCol = std::make_shared<ColumnBox>();
+            centerCol->SetSpacing(6.0f); centerCol->SetCrossAlign(LayoutAlignment::Center);
+            centerCol->AddChild(tag(L"3×3 中间", 180.0f, 36.0f, tint(ThemeRole::Accent)));
+            centerCol->AddChild(makeButton(L"真实按钮", 140.0f));
+            center->SetContent(centerCol);
+            g1->AddChild(center, 1, 1);
+            g1->SetSpacing(8.0f, 8.0f);
+            g1->SetHeight(300.0f);
+            body->AddChild(section(L"A. 3×3 只放 (1,1)：空轨道仍然存在，中间卡片居中", g1));
+
+            auto g2 = std::make_shared<GridLayout>();
+            g2->SetFillWidth(true); g2->SetFillHeight(true);
+            g2->SetColumnCount(4); g2->SetRowCount(3);
+            g2->SetColumnStretch(0, 1.0f); g2->SetColumnStretch(3, 1.0f);
+            g2->SetRowStretch(1, 1.0f);
+            g2->AddChild(tag(L"左上", 100.0f, 34.0f, tint(ThemeRole::Accent)), 0, 0);
+            g2->AddChild(tag(L"中右", 110.0f, 34.0f, tint(ThemeRole::Success)), 1, 2);
+            g2->AddChild(tag(L"右下", 100.0f, 34.0f, tint(ThemeRole::Danger)), 2, 3);
+            g2->SetSpacing(8.0f, 8.0f);
+            g2->SetHeight(250.0f);
+            body->AddChild(section(L"B. 4×3 空轨道：三个控件分散放置，空列/空行不显示占位", g2));
+
+            auto g3 = std::make_shared<GridLayout>();
+            g3->SetFillWidth(true); g3->SetFillHeight(true);
+            g3->SetColumnCount(3); g3->SetRowCount(3);
+            for (int c = 0; c < 3; ++c) g3->SetColumnStretch(c, 1.0f);
+            for (int r = 0; r < 3; ++r) g3->SetRowStretch(r, 1.0f);
+            g3->AddChild(tag(L"左", 96.0f, 34.0f, tint(ThemeRole::Accent)), 1, 0);
+            g3->AddChild(tag(L"中", 96.0f, 34.0f, tint(ThemeRole::Success)), 1, 1);
+            g3->AddChild(tag(L"右", 96.0f, 34.0f, tint(ThemeRole::Danger)), 1, 2);
+            g3->SetCellAlignment(1, 0, GridLayout::Alignment::Start, GridLayout::Alignment::Center);
+            g3->SetCellAlignment(1, 1, GridLayout::Alignment::Center, GridLayout::Alignment::Center);
+            g3->SetCellAlignment(1, 2, GridLayout::Alignment::End, GridLayout::Alignment::Center);
+            g3->SetSpacing(8.0f, 8.0f);
+            g3->SetHeight(220.0f);
+            body->AddChild(section(L"C. Cell 内对齐：左/中/右三个 cell 使用 Start/Center/End", g3));
+
+            auto g4 = std::make_shared<GridLayout>();
+            g4->SetFillWidth(true); g4->SetFillHeight(true);
+            g4->SetColumnCount(2); g4->SetRowCount(2);
+            g4->SetColumnStretch(0, 1.0f); g4->SetColumnStretch(1, 1.0f);
+            g4->SetRowStretch(0, 1.0f); g4->SetRowStretch(1, 1.0f);
+            auto inner = std::make_shared<GridLayout>();
+            inner->SetColumnCount(2); inner->SetRowCount(2);
+            inner->SetColumnStretch(0, 1.0f); inner->SetColumnStretch(1, 1.0f);
+            inner->SetRowStretch(0, 1.0f); inner->SetRowStretch(1, 1.0f);
+            inner->AddChild(makeList(80.0f), 0, 0);
+            inner->AddChild(makeTable(80.0f), 0, 1);
+            inner->AddChild(makeTree(80.0f), 1, 0);
+            inner->AddChild(makeBar(180.0f, 80.0f), 1, 1);
+            g4->AddChild(makeList(130.0f), 0, 0);
+            g4->AddChild(makeTable(130.0f), 0, 1);
+            g4->AddChild(inner, 1, 0, 1, 2);
+            g4->SetSpacing(8.0f, 8.0f);
+            g4->SetHeight(360.0f);
+            body->AddChild(section(L"D. Grid 嵌套 + 跨列：外层 2×2，内层 2×2，真实数据控件", g4));
+
+            auto g5 = std::make_shared<GridLayout>();
+            g5->SetFillWidth(true); g5->SetFillHeight(true);
+            g5->SetColumnCount(4); g5->SetRowCount(4);
+            for (int c = 0; c < 4; ++c) g5->SetColumnStretch(c, 1.0f);
+            for (int r = 0; r < 4; ++r) g5->SetRowStretch(r, 1.0f);
+            g5->AddChild(makeBar(180.0f, 100.0f), 0, 0, 1, 2);
+            g5->AddChild(makeList(90.0f), 0, 2, 1, 2);
+            g5->AddChild(makeTable(120.0f), 1, 0, 1, 3);
+            g5->AddChild(makeTree(120.0f), 1, 3, 2, 1);
+            g5->AddChild(tag(L"跨两列", 180.0f, 34.0f, tint(ThemeRole::Warning)), 3, 0, 1, 2);
+            g5->AddChild(makeButton(L"跨格按钮"), 3, 2);
+            g5->SetCellAlignment(3, 2, GridLayout::Alignment::Center, GridLayout::Alignment::End);
+            g5->SetSpacing(8.0f, 8.0f);
+            g5->SetHeight(380.0f);
+            body->AddChild(section(L"E. 4×4 跨行跨列：图表/列表/表格/树/按钮混排", g5));
+
+            auto g6 = std::make_shared<GridLayout>();
+            g6->SetFillWidth(true);
+            g6->SetColumnCount(1); g6->SetColumnStretch(0, 1.0f);
+            g6->SetRowCount(2); g6->SetRowStretch(0, 1.0f); g6->SetRowStretch(1, 1.0f);
+            g6->AddChild(wrapLabel(L"这段长文本放在 Grid 的 cell 里，必须按 cell 宽度换行；如果布局在 Arrange 阶段重新用无限宽测量，这里就会变成一行被裁剪，下面的按钮会压到文字上。", 560.0f), 0, 0);
+            auto wrapRow = std::make_shared<RowBox>();
+            wrapRow->SetJustify(Justify::End);
+            wrapRow->AddChild(makeButton(L"确认"));
+            wrapRow->AddChild(makeButton(L"取消"));
+            g6->AddChild(wrapRow, 1, 0);
+            g6->SetSpacing(8.0f, 8.0f);
+            g6->SetHeight(230.0f);
+            body->AddChild(section(L"F. Grid cell 约束换行 + 底部右对齐按钮", g6));
+
+            addTab(L"02 Grid 轨道", L"六组 Grid：显式 3×3/4×3/4×4、空轨道、cell 对齐、嵌套、跨格和 cell 宽度换行。", body);
+        }
+
+        // ------------------------------------------------------------------
+        // 03 表单 / 设置 / 数据组合：Grid 表单 + SettingsList + Expander + SplitView + Tree + Chart
+        // ------------------------------------------------------------------
+        {
+            auto body = std::make_shared<ColumnBox>();
+            body->SetSpacing(12.0f);
+
+            auto form = std::make_shared<GridLayout>();
+            form->SetFillWidth(true);
+            form->SetColumnCount(2); form->SetRowCount(5);
+            form->SetColumnStretch(1, 1.0f);
+            form->SetSpacing(8.0f, 8.0f);
+            form->AddChild(tag(L"名称", 80.0f, 30.0f, tint(ThemeRole::Control)), 0, 0);
+            form->AddChild(makeInput(L"设备名称", 260.0f), 0, 1);
+            form->AddChild(tag(L"类型", 80.0f, 30.0f, tint(ThemeRole::Control)), 1, 0);
+            auto type = std::make_shared<ComboBox>(); type->AddItem(L"摄像头"); type->AddItem(L"网关"); type->AddItem(L"传感器");
+            form->AddChild(type, 1, 1);
+            form->AddChild(tag(L"阈值", 80.0f, 30.0f, tint(ThemeRole::Control)), 2, 0);
+            auto slider = std::make_shared<Slider>(); slider->SetRange(0.0f, 100.0f); slider->SetValue(64.0f);
+            form->AddChild(slider, 2, 1);
+            form->AddChild(tag(L"启用", 80.0f, 30.0f, tint(ThemeRole::Control)), 3, 0);
+            auto on = std::make_shared<ToggleSwitch>(); on->SetOn(true);
+            form->AddChild(on, 3, 1);
+            auto actions = std::make_shared<RowBox>();
+            actions->SetJustify(Justify::End);
+            actions->AddChild(makeButton(L"保存"));
+            actions->AddChild(makeButton(L"取消"));
+            form->AddChild(actions, 4, 0, 1, 2);
+            form->SetHeight(260.0f);
+            body->AddChild(section(L"A. Grid 两列表单：标签列 + 输入列 + 底部右对齐按钮", form));
+
+            auto settings = std::make_shared<SettingsList>();
+            settings->SetFillWidth(true);
+            settings->AddRow(Icon::Settings, L"常规设置", L"启动、刷新间隔、默认页面", []() {});
+            settings->AddRow(Icon::View, L"外观", L"主题、背景层、字体", []() {});
+            settings->AddRow(Icon::Copy, L"数据与缓存", L"池化上限、缓存策略", []() {});
+            settings->AddRow(Icon::Warning, L"高级", L"实验性选项与调试通道", []() {});
+            body->AddChild(section(L"B. SettingsList：真实设置列表行，放在布局里", settings));
+
+            auto expCol = std::make_shared<ColumnBox>();
+            expCol->SetSpacing(8.0f);
+            auto filter = std::make_shared<RowBox>();
+            filter->SetSpacing(8.0f);
+            filter->AddChild(makeInput(L"筛选", 220.0f));
+            filter->AddChild(makeButton(L"应用"));
+            expCol->AddChild(filter);
+            auto list = makeList(130.0f);
+            list->AddItem(L"摄像头 A-01 · 在线");
+            list->AddItem(L"网关 C-12 · 在线");
+            list->AddItem(L"高温告警 · 活动");
+            list->AddItem(L"用户 张工 · 在线");
+            expCol->AddChild(list);
+            auto exp = std::make_shared<Expander>(L"筛选与列表", L"Expander 内再嵌 Row + ListView");
+            exp->SetContent(expCol);
+            exp->SetExpanded(true);
+            body->AddChild(section(L"C. Expander 内嵌 Row + ListView：折叠时父布局应收拢", exp));
+
+            auto split = std::make_shared<SplitView>();
+            split->SetFillWidth(true);
+            split->SetHeight(280.0f);
+            split->SetFirst(makeList(180.0f));
+            split->SetSecond(makeTable(180.0f));
+            split->SetSplitRatio(0.36f);
+            body->AddChild(section(L"D. SplitView：左列表 / 右表格，拖动分隔条 + 折叠", split));
+
+            auto treeRow = std::make_shared<RowBox>();
+            treeRow->SetSpacing(8.0f);
+            treeRow->SetFillWidth(true);
+            auto treeTools = std::make_shared<ColumnBox>();
+            treeTools->SetWidth(180.0f);
+            treeTools->SetSpacing(6.0f);
+            treeTools->AddChild(makeButton(L"展开全部"));
+            treeTools->AddChild(makeButton(L"折叠全部"));
+            treeTools->AddChild(makeInput(L"搜索节点", 160.0f));
+            treeRow->AddChild(treeTools);
+            treeRow->AddChild(makeTree(220.0f));
+            body->AddChild(section(L"E. 树 + 工具列：Row 内固定宽工具列 + 拉伸树", treeRow));
+
+            auto charts = std::make_shared<RowBox>();
+            charts->SetSpacing(10.0f);
+            charts->AddChild(makeBar(300.0f, 180.0f));
+            auto pie = std::make_shared<PieChart>();
+            pie->SetWidth(180.0f); pie->SetHeight(180.0f);
+            pie->AddSlice(L"A", 3.0); pie->AddSlice(L"B", 5.0); pie->AddSlice(L"C", 2.0);
+            charts->AddChild(pie);
+            charts->AddChild(tag(L"真实图表\n参与布局", 110.0f, 80.0f, tint(ThemeRole::Warning)));
+            body->AddChild(section(L"F. 图表 + 文本块混合：Row 内不同宽度元素", charts));
+
+            addTab(L"03 表单与数据", L"表单 Grid、SettingsList、Expander + ListView、SplitView、Tree + 工具栏、图表混排，全部是真实控件。", body);
+        }
+
+        // ------------------------------------------------------------------
+        // 04 应用壳组合：工具栏 + 侧栏/内容 + 嵌套 TabView + 表格 + 图表
+        // ------------------------------------------------------------------
+        {
+            auto body = std::make_shared<ColumnBox>();
+            body->SetSpacing(12.0f);
+
+            auto toolbar = std::make_shared<RowBox>();
+            toolbar->SetFillWidth(true);
+            toolbar->SetSpacing(8.0f);
+            toolbar->SetJustify(Justify::End);
+            toolbar->SetCrossAlign(LayoutAlignment::Center);
+            toolbar->AddChild(makeInput(L"全局搜索", 220.0f));
+            toolbar->AddChild(makeButton(L"刷新"));
+            toolbar->AddChild(makeButton(L"设置"));
+            body->AddChild(section(L"A. 应用工具栏：输入 + 两个按钮整体贴右", toolbar));
+
+            auto shell = std::make_shared<GridLayout>();
+            shell->SetFillWidth(true);
+            shell->SetColumnCount(3); shell->SetRowCount(3);
+            shell->SetColumnStretch(1, 1.0f);
+            shell->SetRowStretch(1, 1.0f);
+            shell->SetColumnStretch(2, 1.0f);
+            auto nav = makeList(260.0f);
+            nav->AddItem(L"总览"); nav->AddItem(L"设备"); nav->AddItem(L"告警"); nav->AddItem(L"用户"); nav->AddItem(L"设置");
+            shell->AddChild(nav, 0, 0, 3, 1);
+            shell->AddChild(makeTable(150.0f), 1, 1);
+            shell->AddChild(makeTree(150.0f), 1, 2);
+            shell->AddChild(makeBar(320.0f, 90.0f), 2, 1, 1, 2);
+            shell->AddChild(tag(L"顶部标题区", 300.0f, 30.0f, tint(ThemeRole::Accent)), 0, 1, 1, 2);
+            shell->SetSpacing(8.0f, 8.0f);
+            shell->SetHeight(380.0f);
+            body->AddChild(section(L"B. 应用壳 Grid：左侧导航跨 3 行 + 右侧表格/树/图表", shell));
+
+            auto innerTabs = std::make_shared<TabView>();
+            innerTabs->SetFillWidth(true);
+            innerTabs->SetHeight(280.0f);
+            for (int i = 0; i < 3; ++i) {
+                auto p = std::make_shared<Page>();
+                p->SetContentAlignment(LayoutAlignment::Center, LayoutAlignment::Center);
+                auto c = std::make_shared<ColumnBox>();
+                c->SetSpacing(8.0f);
+                c->SetCrossAlign(LayoutAlignment::Center);
+                c->AddChild(tag(L"内层 Tab " + std::to_wstring(i + 1), 220.0f, 36.0f, tint(ThemeRole::Success)));
+                c->AddChild(makeInput(L"输入点东西", 220.0f));
+                c->AddChild(makeButton(L"执行"));
+                p->SetContent(c);
+                innerTabs->AddTab(L"内页" + std::to_wstring(i + 1), p);
+            }
+            body->AddChild(section(L"C. 页面里再嵌 TabView：每个内页内容居中", innerTabs));
+
+            auto cardRow = std::make_shared<RowBox>();
+            cardRow->SetSpacing(10.0f);
+            cardRow->SetFillWidth(true);
+            auto leftCard = std::make_shared<Card>();
+            leftCard->SetWidth(260.0f);
+            leftCard->SetHeight(180.0f);
+            leftCard->SetContent(makeList(120.0f));
+            auto rightCard = std::make_shared<Card>();
+            rightCard->SetWidth(260.0f);
+            rightCard->SetHeight(180.0f);
+            rightCard->SetContent(makeTree(120.0f));
+            auto centerBtn = makeButton(L"中间按钮", 100.0f);
+            cardRow->AddChild(leftCard);
+            cardRow->AddChild(centerBtn);
+            cardRow->AddChild(rightCard);
+            body->AddChild(section(L"D. 两张固定宽卡片 + 中间按钮：Row 自然宽度/间距", cardRow));
+
+            auto progress = std::make_shared<RowBox>();
+            progress->SetSpacing(12.0f);
+            progress->SetFillWidth(true);
+            progress->SetCrossAlign(LayoutAlignment::Center);
+            auto pr = std::make_shared<ProgressRing>(44.0f); pr->SetIndeterminate(true);
+            auto pbar = std::make_shared<ProgressBar>(); pbar->SetWidth(260.0f); pbar->SetHeight(18.0f); pbar->SetValue(0.48f);
+            progress->AddChild(pr);
+            progress->AddChild(pbar);
+            progress->AddChild(tag(L"同步中", 90.0f, 32.0f, tint(ThemeRole::Warning)));
+            body->AddChild(section(L"E. 进度组合：Ring + Bar + 文本，交叉轴居中", progress));
+
+            auto longCol = std::make_shared<ColumnBox>();
+            longCol->SetSpacing(6.0f);
+            for (int i = 0; i < 18; ++i) longCol->AddChild(tag(L"压力行 " + std::to_wstring(i + 1), 520.0f, 26.0f, tint(i % 2 ? ThemeRole::Control : ThemeRole::Accent)));
+            auto sc = std::make_shared<ScrollViewer>();
+            sc->SetFillWidth(true);
+            sc->SetHeight(160.0f);
+            sc->SetContent(longCol);
+            body->AddChild(section(L"F. ScrollViewer + 18 行：父布局高度受限，内容滚动", sc));
+
+            addTab(L"04 应用壳", L"工具栏、侧栏/表格/树/图表应用壳、内层 TabView、固定宽卡片、进度组合、滚动压力。", body);
+        }
+
+        // ------------------------------------------------------------------
+        // 05 神秘乱摆：大量控件、嵌套、跨格、空轨道、奇怪尺寸
+        // ------------------------------------------------------------------
+        {
+            auto body = std::make_shared<ColumnBox>();
+            body->SetSpacing(12.0f);
+
+            auto chaos = std::make_shared<GridLayout>();
+            chaos->SetFillWidth(true);
+            chaos->SetColumnCount(5); chaos->SetRowCount(5);
+            for (int c = 0; c < 5; ++c) chaos->SetColumnStretch(c, 1.0f);
+            for (int r = 0; r < 5; ++r) chaos->SetRowStretch(r, 1.0f);
+            chaos->AddChild(makeInput(L"0,0", 120.0f), 0, 0);
+            chaos->AddChild(makeButton(L"0,1"), 0, 1);
+            chaos->AddChild(tag(L"0,2", 80.0f, 30.0f, tint(ThemeRole::Accent)), 0, 2);
+            auto toggle = std::make_shared<ToggleSwitch>(); toggle->SetOn(true);
+            chaos->AddChild(toggle, 0, 3);
+            chaos->AddChild(makeInput(L"0,4", 110.0f), 0, 4);
+            chaos->AddChild(makeList(60.0f), 1, 0, 1, 2);
+            chaos->AddChild(makeButton(L"跨两列"), 1, 2, 1, 2);
+            chaos->AddChild(tag(L"跨两行", 80.0f, 80.0f, tint(ThemeRole::Danger)), 1, 4, 2, 1);
+            chaos->AddChild(makeTable(60.0f), 2, 0, 1, 2);
+            auto slider = std::make_shared<Slider>(); slider->SetRange(0, 100); slider->SetValue(30);
+            chaos->AddChild(slider, 2, 2, 1, 2);
+            chaos->AddChild(makeTree(60.0f), 3, 0, 1, 3);
+            chaos->AddChild(makeButton(L"3,3"), 3, 3);
+            chaos->AddChild(makeInput(L"3,4", 110.0f), 3, 4);
+            chaos->AddChild(tag(L"4,0", 60.0f, 26.0f, tint(ThemeRole::Warning)), 4, 0);
+            chaos->AddChild(makeButton(L"4,1"), 4, 1);
+            chaos->AddChild(makeButton(L"4,2"), 4, 2);
+            chaos->AddChild(makeInput(L"4,3", 100.0f), 4, 3);
+            chaos->AddChild(makeButton(L"4,4"), 4, 4);
+            chaos->SetCellAlignment(1, 2, GridLayout::Alignment::Center, GridLayout::Alignment::Center);
+            chaos->SetCellAlignment(4, 4, GridLayout::Alignment::End, GridLayout::Alignment::End);
+            chaos->SetSpacing(6.0f, 6.0f);
+            chaos->SetHeight(480.0f);
+            body->AddChild(section(L"A. 5×5 乱摆：19 个真实控件 + 跨行跨列 + 空轨道", chaos));
+
+            auto nested = std::make_shared<ColumnBox>();
+            nested->SetSpacing(8.0f);
+            auto r1 = std::make_shared<RowBox>(); r1->SetSpacing(8.0f); r1->SetJustify(Justify::SpaceBetween);
+            r1->AddChild(makeInput(L"嵌套左", 160.0f)); r1->AddChild(makeButton(L"中")); r1->AddChild(makeInput(L"嵌套右", 160.0f));
+            auto r2 = std::make_shared<RowBox>(); r2->SetSpacing(8.0f); r2->SetJustify(Justify::SpaceAround); r2->SetCrossAlign(LayoutAlignment::Center);
+            r2->AddChild(tag(L"藏", 60.0f, 30.0f, tint(ThemeRole::Accent)));
+            r2->AddChild(tag(L"得", 60.0f, 30.0f, tint(ThemeRole::Success)));
+            r2->AddChild(tag(L"很", 60.0f, 30.0f, tint(ThemeRole::Danger)));
+            r2->AddChild(tag(L"深", 60.0f, 30.0f, tint(ThemeRole::Warning)));
+            auto g = std::make_shared<GridLayout>();
+            g->SetFillWidth(true); g->SetColumnCount(2); g->SetColumnStretch(0, 1.0f); g->SetColumnStretch(1, 2.0f);
+            g->SetSpacing(8.0f, 8.0f);
+            g->AddChild(makeList(90.0f), 0, 0); g->AddChild(makeTable(90.0f), 0, 1);
+            auto r3 = std::make_shared<RowBox>(); r3->SetSpacing(8.0f);
+            r3->AddChild(makeInput(L"最深一层", 180.0f)); r3->AddChild(makeButton(L"执行"));
+            nested->AddChild(r1); nested->AddChild(r2); nested->AddChild(g); nested->AddChild(r3);
+            body->AddChild(section(L"B. Row/Column/Grid 三层嵌套：SpaceBetween/SpaceAround/2 列比例", nested));
+
+            auto weird = std::make_shared<GridLayout>();
+            weird->SetFillWidth(true); weird->SetColumnCount(3); weird->SetRowCount(2);
+            weird->SetColumnStretch(0, 1.0f); weird->SetColumnStretch(2, 1.0f);
+            auto exp = std::make_shared<Expander>(L"乱放里的 Expander", L"内容再嵌 Slider + Toggle");
+            auto expBody = std::make_shared<RowBox>(); expBody->SetSpacing(8.0f); expBody->SetCrossAlign(LayoutAlignment::Center);
+            auto sl = std::make_shared<Slider>(); sl->SetWidth(160.0f); sl->SetRange(0, 100); sl->SetValue(72);
+            auto tg = std::make_shared<ToggleSwitch>(); tg->SetOn(true);
+            expBody->AddChild(sl); expBody->AddChild(tg); expBody->AddChild(makeButton(L"应用"));
+            exp->SetContent(expBody); exp->SetExpanded(true);
+            weird->AddChild(exp, 0, 0, 1, 2);
+            weird->AddChild(makeInput(L"右上", 120.0f), 0, 2);
+            weird->AddChild(makeList(80.0f), 1, 0);
+            auto split = std::make_shared<SplitView>();
+            split->SetFirst(makeList(80.0f)); split->SetSecond(makeTable(80.0f));
+            split->SetSplitRatio(0.4f);
+            weird->AddChild(split, 1, 1, 1, 2);
+            weird->SetSpacing(8.0f, 8.0f);
+            weird->SetHeight(260.0f);
+            body->AddChild(section(L"C. 乱放 Expander + SplitView：跨两列、空轨道、嵌套数据控件", weird));
+
+            auto pageRow = std::make_shared<RowBox>();
+            pageRow->SetFillWidth(true); pageRow->SetJustify(Justify::Center); pageRow->SetCrossAlign(LayoutAlignment::Center);
+            auto p = std::make_shared<Page>();
+            p->SetWidth(360.0f); p->SetHeight(180.0f);
+            p->SetContentAlignment(LayoutAlignment::Center, LayoutAlignment::Center);
+            auto pc = std::make_shared<Card>();
+            pc->SetWidth(280.0f); pc->SetHeight(120.0f);
+            auto pcc = std::make_shared<ColumnBox>(); pcc->SetSpacing(6.0f); pcc->SetCrossAlign(LayoutAlignment::Center);
+            pcc->AddChild(tag(L"神秘 Page", 220.0f, 34.0f, tint(ThemeRole::Accent)));
+            pcc->AddChild(makeButton(L"按钮"));
+            pc->SetContent(pcc); p->SetContent(pc);
+            pageRow->AddChild(p);
+            body->AddChild(section(L"D. 乱放里的 Page：内容对齐 + 固定尺寸 + 外层 Row 居中", pageRow));
+
+            auto sc = std::make_shared<ScrollViewer>();
+            sc->SetFillWidth(true); sc->SetHeight(180.0f);
+            auto tall = std::make_shared<ColumnBox>(); tall->SetSpacing(4.0f);
+            for (int i = 0; i < 22; ++i) {
+                auto r = std::make_shared<RowBox>(); r->SetSpacing(6.0f); r->SetJustify(i % 2 ? Justify::End : Justify::Start);
+                r->AddChild(tag(L"行 " + std::to_wstring(i + 1), 90.0f, 24.0f, tint(i % 3 ? ThemeRole::Control : ThemeRole::Accent)));
+                r->AddChild(makeButton(L"操作", 70.0f));
+                tall->AddChild(r);
+            }
+            sc->SetContent(tall);
+            body->AddChild(section(L"E. ScrollViewer + 22 行：行内 Start/End 交替，验证滚动与主轴对齐", sc));
+
+            auto finalRow = std::make_shared<RowBox>();
+            finalRow->SetFillWidth(true); finalRow->SetSpacing(8.0f); finalRow->SetCrossAlign(LayoutAlignment::Center);
+            finalRow->AddChild(makeInput(L"最后一行", 220.0f));
+            finalRow->AddChild(makeButton(L"取消"));
+            finalRow->AddChild(makeButton(L"保存"));
+            finalRow->SetJustify(Justify::End);
+            body->AddChild(section(L"F. 最后一行：输入 + 取消 + 保存，整体右对齐", finalRow));
+
+            addTab(L"05 神秘乱摆", L"五组高压组合：5×5 跨格、三层嵌套、Expander+SplitView、Page 居中、22 行滚动、右对齐收尾。", body);
+        }
+
+        auto labPage = std::make_shared<Page>();
+        auto labRoot = std::make_shared<ColumnBox>();
+        labRoot->SetSpacing(8.0f);
+        labRoot->SetMargin(Thickness(12, 12, 12, 12));
+        labRoot->SetFillHeight(true);
+        auto labTitle = std::make_shared<Label>(L"布局压力测试：5 个 Tab，每个 Tab 组合 5~6 组复杂布局与真实控件");
+        labTitle->SetFontSize(18.0f);
+        labRoot->AddChild(labTitle);
+        labRoot->AddChild(tabs);
+        labPage->SetLayout(labRoot);
+        mainHost->AddPage(labPage);
+    }
 
     // 主页面导航：记录当前索引，根据相对位置设置上下方向
     auto currentMainIndex = std::make_shared<int>(0);

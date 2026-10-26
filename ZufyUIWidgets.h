@@ -212,7 +212,7 @@ namespace ZufyUI {
             return s;
             }();
 
-        Label(const std::wstring& text = L"Label") : text_(text), textColor_(DefaultTextColor),
+        Label(const std::wstring& text = L"") : text_(text), textColor_(DefaultTextColor),
             overflow_(DefaultOverflow), hAlign_(DefaultHAlign), vAlign_(DefaultVAlign) {}
 
         ZSignal<const std::wstring&> TextChanged;   // SetText / SetTextFast 内容变化时触发
