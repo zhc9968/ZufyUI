@@ -131,7 +131,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 ### Layout
 
 - **Three layout containers**: `ColumnBox` (vertical), `RowBox` (horizontal), `GridLayout` (rows/columns, row/column spans, row/column stretch weights, alignment).
-- **Sizing semantics**: explicit `SetWidth/Height`, `min/max`, `SetFillWidth/SetFillHeight`, horizontal/vertical stretch weights (distribute leftover), `margin` / `padding` / `spacing`.
+- **Sizing semantics**: explicit `SetWidth/Height`, `min/max`, `SetFillWidth/SetFillHeight`, horizontal/vertical stretch weights (distribute leftover), `margin` / `padding` / `spacing`; an explicit Grid width/height also constrains cell measurement.
 - **Overflow scrolls**: content is **not shrunk** when space runs out — the outer `ScrollViewer` scrolls (desktop-UI semantics).
 - **Dynamic layout**: `InvalidateLayout()` bubbles, Measure/Arrange dirty flags, visibility changes re-layout automatically; `LayoutParticipation` lets an element opt out of layout.
 - **Container controls**: `Card` (rounded corners/border/hover/optional shadow), `LayoutHost` (single-slot), `Page` (`SetScrollableContent` makes a whole page scrollable in one line), `PageHost` (page transitions: four directions, three easings, configurable duration; delayed hidden-page cache release).
@@ -145,15 +145,15 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 - **TextEdit**: multi-line editor / read-only viewer, standard undo/redo (restores selection and caret), Tab indentation, scrolling, read-only rich text `TextRun`.
 - **ComboBox**: editable, filtering (`SetFilterEnabled`), source vs visible index, max visible items, disabled items, keyboard navigation, chevron expand animation, lazily connected global `DrawOverlay`.
 - **CheckBox / RadioButton / RadioGroup**: checked, indeterminate, labels, radio groups, button style.
-- **ToggleSwitch**: ease-in-out animation; mouse, keyboard and code paths behave consistently.
-- **Slider**: range/step/snap, track/fill/thumb colours, dragging, value animation, UIA `RangeValue`.
+- **ToggleSwitch**: click toggles on mouse-up; press-drag left/right makes the knob follow the pointer and commits by drag progress; duration-driven ease-in-out (0.18 s default); mouse, keyboard and code paths behave consistently.
+- **Slider**: range/step/snap, track/fill/thumb colours, dragging, UIA `RangeValue`; normal dragging is immediate, click/snap eases the display value; `GetDisplayValue()` exposes the animated value.
 - **NumberBox**: range/step/decimals, invalid-text error state, mouse-wheel adjustment, step/clear buttons (fire on press), `ResetToDefault`.
 - **ProgressBar / ProgressRing**: determinate/indeterminate, percentage text, value animation, theme colours.
 - **ScrollViewer / ScrollBar**: horizontal/vertical scrolling, smooth scrolling, scroll chaining (hands the wheel back to the parent at the edge), scrollbar `Auto/Visible/Hidden`, content margin, two-pass measure, lazy idle shrinking.
 - **SplitView**: draggable split, edge-threshold collapse/expand (overlay hint + easing), collapse button, minimum extent.
 - **Drawer**: left/right/top/bottom; Overlay (rounded scrim) / Push (content yields) / Permanent (always open); rounded panel, border, real shadow; Esc/outside-click dismiss (`Window::AddKeyHandler`).
 - **TabView**: tabs can be any `Label` (with icon), closable tabs + `TabCloseRequested`, animated indicator, internal `PageHost` transition.
-- **Expander**: collapsible card (title/subtitle/icon), smoothstep height animation, rotating arrow, header hover highlight.
+- **Expander**: collapsible card (title/subtitle/icon), smoothstep height animation, rotating arrow, header hover highlight; content is pre-measured before the first expand, survives collapse/re-expand, and clips with bleed.
 - **SettingsList**: settings rows (title/description/right-hand control).
 - **MenuBar / StatusBar**: VS-style top menu bar, bottom left/right status panels (icon + text).
 - **ToolTip / ContextMenu**: automatic tooltip for elided text; element-level and window-level context menus (fixed or factory-built).
@@ -211,7 +211,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 
 - **Input**: hover/press/capture, mouse wheel, double-click (data views/tray), keyboard focus, Tab / Shift+Tab focus navigation, Enter/Space, Esc closes popups, Shift selection.
 - **Text**: UTF-16 surrogate pairs, IME composition and candidate positioning, reset on focus loss, clipboard, undo/redo, drag selection.
-- **UIA accessibility**: `AutomationId` (automatic/explicit, unique per window), role-driven Patterns, `ElementProviderFromPoint` (children before parents), `RangeValue`, etc.
+- **UIA accessibility**: `AutomationId` (automatic/explicit, unique per window), role-driven Patterns, `ElementProviderFromPoint` (children before parents), `RangeValue`, etc.; provider cache/context lifetime is synchronized with COM callback threads.
 - **Debug/automation channel**: `SetDebugEnabled`, commands 1–23 (windows/element tree/text/focus/highlight/stats/theme), unified logging, `UIZSignals::Error`, companion `ZufyUIDebugger`.
 
 ### Animation
@@ -239,7 +239,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 - Visual Studio solution/project; any toolset, C++20; x64 / x86.
 - `tools/build.ps1` (BOM → build demo + Debugger → run self-tests), `ensure_bom.ps1`, `run_tests.ps1`, `check_api_parity.py`, `colorscan.py`.
 - `ZufyUIDebugger`: out-of-process debugger (UIA + debug channel).
-- `ZufyUI.cpp`: 23-page demo (layout/controls/data views/charts/theme/multi-window/native HWND/out-of-process producer/DSL…), also serving as a smoke test.
+- `ZufyUI.cpp`: 26-page demo (layout/controls/data views/charts/theme/multi-window/native HWND/out-of-process producer/DSL/all-controls overview…), also serving as a smoke test.
 - Bilingual 23-chapter docs + pitfall index + full CHANGELOG.
 
 </details>
@@ -336,9 +336,10 @@ ZufyUI/
 
 ## Version history
 
-> Current version: **1.25.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+> Current version: **1.26.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 > Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.26.0**: layout measurement contract (Grid/Row/Column/Card/Page/ScrollViewer, explicit sizing and Fill); ToggleSwitch press-drag; Slider immediate drag/snap easing; Expander first-expand and collapse/re-expand fixes; UIA provider lifetime/CFG crash fix; all-controls overlay page and 280 self-tests.
 - **1.25.0**: `Drawer` side panel (Overlay / Push / Permanent, four sides, rounded scrim, panel shadow, Esc); `Window::AddKeyHandler`; signal-focused tests and test rename; `ScrollViewer` bleed follows content bleed.
 - **1.24.0**: signal lifetime (atomic liveness, queued-task cancellation, non-movable `ZSignal`); receiver context (`ConnectionOwner`, `UIElement/Window::Connect`); `ConnectWeak`; member-function pointers now use free `Connect`.
 - **1.23.3**: Button rich content / custom content + drop 2x2 (write-back x open-menu); `SetBackdrop` no longer covers Acrylic/Mica by default; ListView row-height division fix.

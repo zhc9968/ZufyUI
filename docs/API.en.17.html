@@ -281,10 +281,12 @@ class SettingsList : public UIElement {
 **Pitfall**
 
 - `DragEventArgs.x/y` are **element-relative DIP** (not screen pixels).
-- `Expander` collapses via an explicit `SetHeight`, so the parent layout actually shrinks with it.
+- `Expander` drives its expanded height through `Measure`; it no longer writes the user-visible `height_`. The parent layout still shrinks/grows with the animation.
+- The content is measured once even while initially collapsed; while expanded it always stays in `childrenView_`, so collapse/re-expand no longer loses the content.
+- Content clipping keeps at least a 4 px bleed (plus the content's own bleed), so ComboBox borders/shadows/focus rings are not cut off.
 ###block_red_end
 
-- **`Version`**: collapse/expand uses the same **smoothstep easing** as page transitions; the arrow **rotates** with that easing (collapsed points down → expanded points up).
+- **`Version`**: collapse/expand uses the same **smoothstep easing** as page transitions; the arrow **rotates** with that easing (collapsed points down → expanded points up). `v1.26.0` fixes first-expand measurement, lost content after collapse/re-expand, and content clipping.
 - **`Version`**: the header **highlights** on hover (rounded); the `ComboBox` dropdown arrow is likewise a chevron that **rotates** with expansion.
 - Image display uses `Label`: `SetImage` + `SetImageFit(true)` (scale to fully visible) + `SetDragSource` (drag-out).
 - **`Version`**: whole-window receive — `Window::SetDropTargetEnabled(true)` + window-level `DragEnter/DragOver/DragLeave/Drop` (`x/y` = client-area DIP).
@@ -296,7 +298,7 @@ class SettingsList : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9a9b5f80', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-59f2aa29', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// ---- drag &amp; drop: payload / events ----</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DragData</span><span class="w"> </span><span class="p">{</span><span class="w">                                   </span><span class="c1">// read-only for the drop target</span>
@@ -345,7 +347,7 @@ class SettingsList : public UIElement {
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">RowClicked</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-9a9b5f80" style="display: none;">// ---- drag &amp; drop: payload / events ----
+<pre id="code-59f2aa29" style="display: none;">// ---- drag &amp; drop: payload / events ----
 class DragData {                                   // read-only for the drop target
     bool HasText() const;   std::wstring GetText() const;
     bool HasFiles() const;  std::vector&lt;std::wstring&gt; GetFiles() const;
@@ -399,11 +401,13 @@ class SettingsList : public UIElement {
 <p><strong>Pitfall</strong></p>
 <ul>
 <li><code>DragEventArgs.x/y</code> are <strong>element-relative DIP</strong> (not screen pixels).</li>
-<li><code>Expander</code> collapses via an explicit <code>SetHeight</code>, so the parent layout actually shrinks with it.</li>
+<li><code>Expander</code> drives its expanded height through <code>Measure</code>; it no longer writes the user-visible <code>height_</code>. The parent layout still shrinks/grows with the animation.</li>
+<li>The content is measured once even while initially collapsed; while expanded it always stays in <code>childrenView_</code>, so collapse/re-expand no longer loses the content.</li>
+<li>Content clipping keeps at least a 4 px bleed (plus the content's own bleed), so ComboBox borders/shadows/focus rings are not cut off.</li>
 </ul>
 </div>
 <ul>
-<li><strong><code>Version</code></strong>: collapse/expand uses the same <strong>smoothstep easing</strong> as page transitions; the arrow <strong>rotates</strong> with that easing (collapsed points down → expanded points up).</li>
+<li><strong><code>Version</code></strong>: collapse/expand uses the same <strong>smoothstep easing</strong> as page transitions; the arrow <strong>rotates</strong> with that easing (collapsed points down → expanded points up). <code>v1.26.0</code> fixes first-expand measurement, lost content after collapse/re-expand, and content clipping.</li>
 <li><strong><code>Version</code></strong>: the header <strong>highlights</strong> on hover (rounded); the <code>ComboBox</code> dropdown arrow is likewise a chevron that <strong>rotates</strong> with expansion.</li>
 <li>Image display uses <code>Label</code>: <code>SetImage</code> + <code>SetImageFit(true)</code> (scale to fully visible) + <code>SetDragSource</code> (drag-out).</li>
 <li><strong><code>Version</code></strong>: whole-window receive — <code>Window::SetDropTargetEnabled(true)</code> + window-level <code>DragEnter/DragOver/DragLeave/Drop</code> (<code>x/y</code> = client-area DIP).</li>

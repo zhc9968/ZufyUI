@@ -262,25 +262,28 @@ class RadioGroup  { enum class Orientation { Vertical, Horizontal };
 ```cpp
 ZSignal&lt;bool&gt; Toggled;   void SetOn(bool);  bool IsOn() const;
 void SetIndeterminate(bool);   // 半选外观
-inline static float DefaultAnimationDuration;   // 一次完整动画时长(秒)，默认 0.25
+inline static float DefaultAnimationDuration;   // 一次完整动画时长(秒)，默认 0.18
 ```
 - 默认 50×24。
-- **`版本`**：`v1.21.0` 起滑块/底色/悬停改为**时长驱动 ease-in-out**（`DefaultAnimationDuration`，默认 0.25s），到点精确结束、不再持续重绘；此前是线性推进（`animSpeed_=9.6` 时 0→1 仅约 0.10s，看起来像瞬变）。`SetAnimationSpeed` 仍保留"越大越快"（换算成时长倍率）。
+- 点击在**松开时**切换；按住左右拖动时 knob 跟随鼠标，松开按拖动进度 &gt;= 0.5 决定开/关。拖动期间轨道颜色同步变化。
+- **`版本`**：`v1.21.0` 起滑块/底色/悬停改为**时长驱动 ease-in-out**；`v1.26.0` 支持 WinUI3 风格按住拖动，默认时长调为 0.18s。`SetAnimationSpeed` 仍保留"越大越快"（换算成时长倍率）。
 
 ## Slider
 
 ```cpp
 ZSignal&lt;float&gt; ValueChanged;   ZSignal&lt;&gt; SliderReleased;
 void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);  void SetSnapToStep(bool);
+float GetDisplayValue() const;   // 动画中的显示值（刻度位置），用于调试/测试
 ```
 
 ###block_red_start
 **易错**
 
 - `ValueChanged` 在拖动中**连续**触发；提交用 `SliderReleased`。
+- 普通拖动**不做显示缓动**（跟手）；点击轨道和开启 `SetSnapToStep` 时才缓动到目标/吸附点。
 ###block_red_end
 
-- **`版本`**：`v1.18.0` 修 0 宽时 0/0→NaN 静默把值设成 min/max。
+- **`版本`**：`v1.18.0` 修 0 宽时 0/0→NaN 静默把值设成 min/max；`v1.26.0` 区分拖动/点击/吸附缓动并新增 `GetDisplayValue()`。
 
 ## NumberBox（+ 内部 SpinButton）
 
@@ -306,14 +309,14 @@ void SetDefaultValue(double);  void ResetToDefault();
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d5f1865e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-1cae5874', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">State</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Unchecked</span><span class="p">,</span><span class="w"> </span><span class="n">PartiallyChecked</span><span class="p">,</span><span class="w"> </span><span class="n">Checked</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">State</span><span class="o">&gt;</span><span class="w"> </span><span class="n">StateChanged</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetChecked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetState</span><span class="p">(</span><span class="n">State</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">Toggle</span><span class="p">();</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTriState</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">DrawBox</span><span class="p">(...);</span><span class="w">   </span><span class="c1">// 可复用的勾选框绘制（数据视图也用）</span>
 </pre></div>
-<pre id="code-d5f1865e" style="display: none;">enum class State { Unchecked, PartiallyChecked, Checked };
+<pre id="code-1cae5874" style="display: none;">enum class State { Unchecked, PartiallyChecked, Checked };
 ZSignal&lt;bool&gt; Toggled;   ZSignal&lt;State&gt; StateChanged;
 void SetChecked(bool);  void SetState(State);  void Toggle();  void SetTriState(bool);
 static void DrawBox(...);   // 可复用的勾选框绘制（数据视图也用）</pre>
@@ -325,7 +328,7 @@ static void DrawBox(...);   // 可复用的勾选框绘制（数据视图也用�
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c486b25c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e18fed35', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">RadioButton</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CheckedChanged</span><span class="p">;</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetChecked</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RadioGroup</span><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Orientation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Vertical</span><span class="p">,</span><span class="w"> </span><span class="n">Horizontal</span><span class="w"> </span><span class="p">};</span>
@@ -335,7 +338,7 @@ static void DrawBox(...);   // 可复用的勾选框绘制（数据视图也用�
 <span class="w">                    </span><span class="kt">int</span><span class="w"> </span><span class="nf">AddButton</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">RadioButton</span><span class="o">&gt;</span><span class="p">);</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">AddButtonSelected</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">RadioButton</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">selected</span><span class="p">);</span>
 <span class="w">                    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">RadioButton</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetButton</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetItemCount</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelectedIndex</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-c486b25c" style="display: none;">class RadioButton { ZSignal&lt;bool&gt; CheckedChanged; ZSignal&lt;&gt; Clicked; void SetChecked(bool); ... };
+<pre id="code-e18fed35" style="display: none;">class RadioButton { ZSignal&lt;bool&gt; CheckedChanged; ZSignal&lt;&gt; Clicked; void SetChecked(bool); ... };
 class RadioGroup  { enum class Orientation { Vertical, Horizontal };
                     ZSignal&lt;int&gt; SelectionChanged;
                     std::function&lt;bool(int newIdx, int oldIdx)&gt; SelectionChanging;   // 返回 false 可否决
@@ -356,53 +359,57 @@ class RadioGroup  { enum class Orientation { Vertical, Horizontal };
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-070c8b6b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b5c8ffc6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetOn</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsOn</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetIndeterminate</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// 半选外观</span>
-<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">DefaultAnimationDuration</span><span class="p">;</span><span class="w">   </span><span class="c1">// 一次完整动画时长(秒)，默认 0.25</span>
+<span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">DefaultAnimationDuration</span><span class="p">;</span><span class="w">   </span><span class="c1">// 一次完整动画时长(秒)，默认 0.18</span>
 </pre></div>
-<pre id="code-070c8b6b" style="display: none;">ZSignal&lt;bool&gt; Toggled;   void SetOn(bool);  bool IsOn() const;
+<pre id="code-b5c8ffc6" style="display: none;">ZSignal&lt;bool&gt; Toggled;   void SetOn(bool);  bool IsOn() const;
 void SetIndeterminate(bool);   // 半选外观
-inline static float DefaultAnimationDuration;   // 一次完整动画时长(秒)，默认 0.25</pre>
+inline static float DefaultAnimationDuration;   // 一次完整动画时长(秒)，默认 0.18</pre>
 </div>
 <ul>
 <li>默认 50×24。</li>
-<li><strong><code>版本</code></strong>：<code>v1.21.0</code> 起滑块/底色/悬停改为<strong>时长驱动 ease-in-out</strong>（<code>DefaultAnimationDuration</code>，默认 0.25s），到点精确结束、不再持续重绘；此前是线性推进（<code>animSpeed_=9.6</code> 时 0→1 仅约 0.10s，看起来像瞬变）。<code>SetAnimationSpeed</code> 仍保留"越大越快"（换算成时长倍率）。</li>
+<li>点击在<strong>松开时</strong>切换；按住左右拖动时 knob 跟随鼠标，松开按拖动进度 &gt;= 0.5 决定开/关。拖动期间轨道颜色同步变化。</li>
+<li><strong><code>版本</code></strong>：<code>v1.21.0</code> 起滑块/底色/悬停改为<strong>时长驱动 ease-in-out</strong>；<code>v1.26.0</code> 支持 WinUI3 风格按住拖动，默认时长调为 0.18s。<code>SetAnimationSpeed</code> 仍保留"越大越快"（换算成时长倍率）。</li>
 </ul>
 <h2 id="slider">Slider</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9bc2b2c1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-fee5dd6b', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">SliderReleased</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetRange</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">min</span><span class="p">,</span><span class="kt">float</span><span class="w"> </span><span class="n">max</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetStep</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSnapToStep</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
+<span class="kt">float</span><span class="w"> </span><span class="nf">GetDisplayValue</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 动画中的显示值（刻度位置），用于调试/测试</span>
 </pre></div>
-<pre id="code-9bc2b2c1" style="display: none;">ZSignal&lt;float&gt; ValueChanged;   ZSignal&lt;&gt; SliderReleased;
-void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);  void SetSnapToStep(bool);</pre>
+<pre id="code-fee5dd6b" style="display: none;">ZSignal&lt;float&gt; ValueChanged;   ZSignal&lt;&gt; SliderReleased;
+void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);  void SetSnapToStep(bool);
+float GetDisplayValue() const;   // 动画中的显示值（刻度位置），用于调试/测试</pre>
 </div>
 <div class="red">
 <p><strong>易错</strong></p>
 <ul>
 <li><code>ValueChanged</code> 在拖动中<strong>连续</strong>触发；提交用 <code>SliderReleased</code>。</li>
+<li>普通拖动<strong>不做显示缓动</strong>（跟手）；点击轨道和开启 <code>SetSnapToStep</code> 时才缓动到目标/吸附点。</li>
 </ul>
 </div>
 <ul>
-<li><strong><code>版本</code></strong>：<code>v1.18.0</code> 修 0 宽时 0/0→NaN 静默把值设成 min/max。</li>
+<li><strong><code>版本</code></strong>：<code>v1.18.0</code> 修 0 宽时 0/0→NaN 静默把值设成 min/max；<code>v1.26.0</code> 区分拖动/点击/吸附缓动并新增 <code>GetDisplayValue()</code>。</li>
 </ul>
 <h2 id="numberbox-内部-spinbutton">NumberBox（+ 内部 SpinButton）</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c9c7c567', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-21cfa1b0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ValueChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetValue</span><span class="p">(</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">fire</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRange</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">lo</span><span class="p">,</span><span class="kt">double</span><span class="w"> </span><span class="n">hi</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetStep</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDecimals</span><span class="p">(</span><span class="kt">int</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetWrap</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultValue</span><span class="p">(</span><span class="kt">double</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ResetToDefault</span><span class="p">();</span>
 </pre></div>
-<pre id="code-c9c7c567" style="display: none;">ZSignal&lt;double&gt; ValueChanged;   ZSignal&lt;const std::wstring&amp;&gt; TextChanged;
+<pre id="code-21cfa1b0" style="display: none;">ZSignal&lt;double&gt; ValueChanged;   ZSignal&lt;const std::wstring&amp;&gt; TextChanged;
 void SetValue(double, bool fire=true);  void SetRange(double lo,double hi);
 void SetStep(double);  void SetDecimals(int);  void SetWrap(bool);
 void SetDefaultValue(double);  void ResetToDefault();</pre>

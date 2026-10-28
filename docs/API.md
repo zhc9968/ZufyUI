@@ -8,7 +8,7 @@
 
 > **两个贯穿全文的标记**：
 > - **`易错`**：真实踩过的坑 / 反直觉行为，优先看这些。
-> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v1.25.0**。
+> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v1.26.0**。
 
 ###chapter: 约定 | 命名空间、单位、生命周期、版本与易错标注约定
 
@@ -536,7 +536,7 @@ void AccessibilityNotifyFocus/PropertyChanged/StructureChanged();
 - 角色决定暴露哪些 UIA Pattern：Button/MenuItem→Invoke；Edit/Document→Value；Slider/ProgressBar→RangeValue；toggle 状态 ≥0→Toggle；expand 状态 ≥0→ExpandCollapse。隐藏节点默认不暴露。
 ###block_red_end
 
-- **`版本`**：整套 = `v1.17.0`（对应 `Window::SetAccessibilityEnabled`，默认开）。
+- **`版本`**：整套 = `v1.17.0`（对应 `Window::SetAccessibilityEnabled`，默认开）。`v1.26.0` 起 UIA provider 缓存/context 生命周期与 COM 回调线程同步，避免 provider 已释放后仍被 UIA 调用。
 
 ## 字体（元素级）
 
@@ -579,12 +579,17 @@ class Layout : public UIElement { bool UseCache() const override { return false;
 ## ColumnBox（垂直）/ RowBox（水平）
 
 ```cpp
+enum class LayoutAlignment { Start, Center, End, Stretch };
+enum class Justify { Start, Center, End, SpaceBetween, SpaceAround };
 ColumnBox(); RowBox();
 void AddChild(std::shared_ptr<UIElement>);
 void ClearChildren();
 void SetSpacing(float);
+void SetJustify(Justify);              // 主轴：Start/Center/End/SpaceBetween/SpaceAround
+void SetCrossAlign(LayoutAlignment);   // 交叉轴，默认 Stretch（兼容旧行为）
 ```
 - `ColumnBox` 默认水平填满、垂直不拉伸；`RowBox` 相反。
+- `Justify` 只在没有 flex/拉伸子元素时分配剩余空间；`CrossAlign` 设为 Center/Start/End 时按子元素 desiredSize 摆放，不再强制拉满。
 
 ###block_red_start
 **易错**
@@ -597,23 +602,36 @@ void SetSpacing(float);
 ## GridLayout（网格）
 
 ```cpp
-enum class Alignment { Start, Center, End };
-void AddChild(std::shared_ptr<UIElement>, int row, int col, int rowSpan=1, int colSpan=1);
+using Alignment = LayoutAlignment;   // Start / Center / End / Stretch
+void AddChild(std::shared_ptr<UIElement>, int row, int col, int rowSpan=1, int colSpan=1,
+              Alignment hAlign=Alignment::Stretch, Alignment vAlign=Alignment::Stretch);
+void SetColumnCount(int);  void SetRowCount(int);
 void SetSpacing(float h, float v);
 void SetColumnStretch(int col, float weight);  void SetRowStretch(int row, float weight);
 void SetHorizontalAlignment(Alignment);        void SetVerticalAlignment(Alignment);
+void SetCellAlignment(int row, int col, Alignment h, Alignment v);
 ```
-- 未显式设行/列拉伸时，单元格权重取**所跨子元素权值的最大者**。
+- 行/列数由 `SetColumnCount/SetRowCount`（或 `SetColumnStretch/SetRowStretch`）定义；**空轨道仍然存在**，不需要占位元素。
+- `SetCellAlignment` 控制子元素在自己的 cell 内如何摆放，默认 `Stretch`；`SetHorizontalAlignment/SetVerticalAlignment` 控制整个 Grid 内容在剩余空间中的位置。
+- 1×1 Grid 也可以使用内容对齐；`SetColumnStretch(2, ...)` 会建立第 3 列。
+- 未显式设行/列拉伸时，单元格轨道权重取**所跨子元素权值的最大者**。
+- **`版本`**：`v1.26.0` 起，Grid 自身的显式 `SetWidth/SetHeight` 同时作为 cell 测量范围；不会再出现“对外返回 260、内部按 274+ 排列”的溢出。
 
 ## LayoutHost / Card / Page
 
 ```cpp
-class LayoutHost : public UIElement { std::shared_ptr<UIElement> GetLayout() const; void SetLayout(...); };
+class LayoutHost : public UIElement {
+    std::shared_ptr<UIElement> GetLayout() const;  void SetLayout(...);
+    std::shared_ptr<UIElement> GetContent() const; void SetContent(...);   // 单内容别名
+    void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // 默认 Stretch
+};
 class Card  : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
 class Page  : public LayoutHost { DefaultPadding=10; ... };
 void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // 一行套 ScrollViewer(fill)+8px 边距
 ```
-- `LayoutHost` 是“单槽容器”，内部装一个布局元素；`Card` 是带圆角/描边/悬停的卡片；`Page` 是 `TabView`/`PageHost` 的页面容器。
+- `LayoutHost` 是“单内容宿主”；`Card` 是带圆角/描边/悬停的卡片；`Page` 是 `TabView`/`PageHost` 的页面容器。
+- `SetContentAlignment(Center, Center)` 可让 Page/Card 的内容整体居中；默认 `Stretch` 保持旧行为。
+- 空内容时，`Card/Page` 的显式 `SetWidth/SetHeight` 仍然生效；`ScrollViewer` 无内容时也返回显式/有限视口尺寸。
 - `Card::UseCache()` = `HasShadow()`；`Page::UseCache()` = false。
 
 ## PageHost（页面宿主 / 过渡）
@@ -876,7 +894,7 @@ std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 ```cpp
 enum class TextOverflow { Wrap, Ellipsis };
 enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bottom };
-Label(const std::wstring& text = L"Label");
+Label(const std::wstring& text = L"");   // 默认空文本；不再自动显示 "Label"
 void SetText(const std::wstring&);   std::wstring GetText() const;      // 失效布局 + 重绘
 void SetTextFast(const std::wstring&);   // 仅池化 rebind：自身脏、不冒泡、不重绘
 void SetTextColor(Color);   void SetTextOverflow(TextOverflow);
@@ -1043,25 +1061,28 @@ class RadioGroup  { enum class Orientation { Vertical, Horizontal };
 ```cpp
 ZSignal<bool> Toggled;   void SetOn(bool);  bool IsOn() const;
 void SetIndeterminate(bool);   // 半选外观
-inline static float DefaultAnimationDuration;   // 一次完整动画时长(秒)，默认 0.25
+inline static float DefaultAnimationDuration;   // 一次完整动画时长(秒)，默认 0.18
 ```
 - 默认 50×24。
-- **`版本`**：`v1.21.0` 起滑块/底色/悬停改为**时长驱动 ease-in-out**（`DefaultAnimationDuration`，默认 0.25s），到点精确结束、不再持续重绘；此前是线性推进（`animSpeed_=9.6` 时 0→1 仅约 0.10s，看起来像瞬变）。`SetAnimationSpeed` 仍保留"越大越快"（换算成时长倍率）。
+- 点击在**松开时**切换；按住左右拖动时 knob 跟随鼠标，松开按拖动进度 >= 0.5 决定开/关。拖动期间轨道颜色同步变化。
+- **`版本`**：`v1.21.0` 起滑块/底色/悬停改为**时长驱动 ease-in-out**；`v1.26.0` 支持 WinUI3 风格按住拖动，默认时长调为 0.18s。`SetAnimationSpeed` 仍保留"越大越快"（换算成时长倍率）。
 
 ## Slider
 
 ```cpp
 ZSignal<float> ValueChanged;   ZSignal<> SliderReleased;
 void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);  void SetSnapToStep(bool);
+float GetDisplayValue() const;   // 动画中的显示值（刻度位置），用于调试/测试
 ```
 
 ###block_red_start
 **易错**
 
 - `ValueChanged` 在拖动中**连续**触发；提交用 `SliderReleased`。
+- 普通拖动**不做显示缓动**（跟手）；点击轨道和开启 `SetSnapToStep` 时才缓动到目标/吸附点。
 ###block_red_end
 
-- **`版本`**：`v1.18.0` 修 0 宽时 0/0→NaN 静默把值设成 min/max。
+- **`版本`**：`v1.18.0` 修 0 宽时 0/0→NaN 静默把值设成 min/max；`v1.26.0` 区分拖动/点击/吸附缓动并新增 `GetDisplayValue()`。
 
 ## NumberBox（+ 内部 SpinButton）
 
@@ -1759,10 +1780,12 @@ class SettingsList : public UIElement {
 **易错**
 
 - `DragEventArgs.x/y` 是**元素相对 DIP**（不是屏幕像素）。
-- `Expander` 折叠时用显式 `SetHeight` 收拢，父布局才会跟随收缩。
+- `Expander` 的展开高度由动画进度进入 `Measure`，不再写用户可见的 `height_`；父布局仍会随动画收拢/推开后续元素。
+- 初始折叠时也会测量一次 content；展开状态的内容始终留在 `childrenView_` 中，避免折叠再展开后内容不显示。
+- 内容裁剪会留 at least 4px bleed（并叠加 content 自身 bleed），避免 ComboBox 边框/阴影/焦点环被切。
 ###block_red_end
 
-- **`版本`**：折叠/展开用与页面切换相同的 **smoothstep 缓动**；箭头随同一缓动**旋转**（收起向下 → 展开向上）。
+- **`版本`**：折叠/展开用与页面切换相同的 **smoothstep 缓动**；箭头随同一缓动**旋转**（收起向下 → 展开向上）。`v1.26.0` 修复首次展开未测量、折叠再展开内容丢失和内容裁剪。
 - **`版本`**：标题条悬停**高亮**（圆角）；`ComboBox` 下拉箭头同样改为随展开**旋转**的 chevron。
 - 图片展示用 `Label`：`SetImage` + `SetImageFit(true)`（等比缩放至完整可见）+ `SetDragSource`（拖出）。
 - **`版本`**：整窗接收——`Window::SetDropTargetEnabled(true)` + 窗口级 `DragEnter/DragOver/DragLeave/Drop`（`x/y` 为客户区 DIP）。
@@ -2053,7 +2076,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 ###block_red_end
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.25.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.26.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -2100,7 +2123,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.25.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.26.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
@@ -2170,6 +2193,10 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
   - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
   - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。
+- **v1.26.0**：
+  - **布局**：Grid 显式宽高进入 cell 测量；Row/Column 有限主轴分配；Card/Page/ScrollViewer 空内容显式尺寸；Button 关闭 autoSize 也测量内容；Label 显式宽度参与 Wrap；ScrollViewer 不在 Arrange 重测。
+  - **UIA**：provider 缓存/context 与 COM 回调线程同步，修复 CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`。
+  - **控件**：Expander 首次展开/折叠再展开/裁剪修复；ToggleSwitch 按住拖动切换；Slider 拖动跟手、点击/吸附缓动、`GetDisplayValue()`。
 
 ###chapter: 易错点总表 | 按主题速查
 

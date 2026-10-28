@@ -270,7 +270,7 @@ pre { line-height: 125%; }
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.25.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.26.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
@@ -339,9 +339,13 @@ pre { line-height: 125%; }
 - **v1.25.0**：
   - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
   - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
-  - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。</pre></div></div>
+  - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。
+- **v1.26.0**：
+  - **布局**：Grid 显式宽高进入 cell 测量；Row/Column 有限主轴分配；Card/Page/ScrollViewer 空内容显式尺寸；Button 关闭 autoSize 也测量内容；Label 显式宽度参与 Wrap；ScrollViewer 不在 Arrange 重测。
+  - **UIA**：provider 缓存/context 与 COM 回调线程同步，修复 CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`。
+  - **控件**：Expander 首次展开/折叠再展开/裁剪修复；ToggleSwitch 按住拖动切换；Slider 拖动跟手、点击/吸附缓动、`GetDisplayValue()`。</pre></div></div>
 <div class="breadcrumb"><a href="API.html">ZufyUI API 参考</a><span class="sep">/</span><span>第 21 章 · 版本变化摘录</span></div>
-<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.25.0</p></header><blockquote>
+<header class="chapter-header"><span class="chapter-eyebrow">第 21 章</span><h1>版本变化摘录</h1><p class="chapter-summary">v1.15.0 → v1.26.0</p></header><blockquote>
 <p>只列<strong>对你写代码有影响</strong>的显著变化。</p>
 </blockquote>
 <ul>
@@ -388,7 +392,7 @@ pre { line-height: 125%; }
 <li><strong>v1.19.6</strong>：</li>
 <li>修复：<code>ListView</code> 按钮模式下勾选框<strong>命中位置少偏移 4px</strong>（与绘制/子元素左边界对齐）。</li>
 <li>修复：<code>Label::MeasureOverride</code> 的 Wrap 分支<strong>漏算内联子控件宽度</strong>（带 <code>AddChild</code> 的换行 Label 文本会挤压/溢出）。</li>
-<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.25.0</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
+<li>文档：版本号改为<strong>单一来源</strong>（<code>API.md</code>/<code>README.md</code> 顶部引用 <code>ZufyUI.h</code> 宏，生成器 <code>mdapi2html.py</code> 注入 <code>1.26.0</code>）；清理过时项（<code>ImageView</code> 默认值行、<code>Sort</code>→<code>SortItems</code>、<code>Menu::onClosed</code>、图表 fill 说明、README 菜单 <code>+90MB</code> 历史条目）；<code>mdapi2html.py</code> 修正 <code>--theme auto</code> 语义与 <code>c++</code> 类语言名正则。</li>
 <li><strong>v1.19.7</strong>：</li>
 <li>修复：<code>ChartBase</code> 横/纵滚动条占位写反（<code>viewW</code> 用竖条、<code>viewH</code> 用横条）→ 最右/最底滚不到；<code>NumberBox</code> 滚轮焦点判断（焦点在内部 <code>TextBox</code>）；<code>lastActiveAnimElements_</code> 悬垂（析构时从动画集合擦除，防随机崩溃）；<code>Menu::ShowAt</code> 非 <code>shared_ptr</code> 时抛 <code>bad_weak_ptr</code>；<code>ChildrenSig</code> 缺 <code>EnsureView</code>；<code>TreeView::SetDefaultExpandDepth</code> 对 <code>AddRoot</code>/<code>AddChild</code> 不生效。</li>
 <li>修复：<code>ColumnBox</code>/<code>RowBox</code> spacing 按“参与布局的子元素数”算；<code>GridLayout</code> 行列数过滤不可见元素；<code>Label</code> 换行漏算子控件宽度 / 多算一个间距；<code>ListView</code>/<code>TableView</code> 释放 Label 前清 <code>childrenView_</code>、补释放池化/富项/单元格 Label；<code>Window::defaultIMC_</code> 改 <code>ImmAssociateContext</code>；<code>DragData::GetFiles</code> 缓冲 <code>len+1</code>；<code>TextEdit</code> 清选区补发 <code>SelectionChanged</code>；<code>MessageBox</code> 默认标题本地化。</li>
@@ -458,6 +462,10 @@ pre { line-height: 125%; }
 <li><strong>新增 · <code>Drawer</code></strong>：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。</li>
 <li><strong>新增 · <code>Window::AddKeyHandler / RemoveKeyHandler</code></strong>：临时窗口级键处理器。</li>
 <li><strong>改进</strong>：<code>ScrollViewer</code> 裁剪出血跟随内容 <code>GetBleed()</code>；测试改名 <code>zufyui_tests</code>，新增信号专项与 Drawer 测试（213 项）。</li>
+<li><strong>v1.26.0</strong>：</li>
+<li><strong>布局</strong>：Grid 显式宽高进入 cell 测量；Row/Column 有限主轴分配；Card/Page/ScrollViewer 空内容显式尺寸；Button 关闭 autoSize 也测量内容；Label 显式宽度参与 Wrap；ScrollViewer 不在 Arrange 重测。</li>
+<li><strong>UIA</strong>：provider 缓存/context 与 COM 回调线程同步，修复 CFG <code>FAST_FAIL_GUARD_ICALL_CHECK_FAILURE</code>。</li>
+<li><strong>控件</strong>：Expander 首次展开/折叠再展开/裁剪修复；ToggleSwitch 按住拖动切换；Slider 拖动跟手、点击/吸附缓动、<code>GetDisplayValue()</code>。</li>
 </ul>
 <nav class="chapter-nav"><a class="prev" href="API.20.html"><span class="nav-label">&#8592; 上一章</span><span class="nav-title">无障碍与调试通道</span><span class="nav-desc">UIA + SetDebugEnabled（v1.17.0）</span></a><a class="next" href="API.22.html"><span class="nav-label">下一章 &#8594;</span><span class="nav-title">易错点总表</span><span class="nav-desc">按主题速查</span></a></nav>
         </main>

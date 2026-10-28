@@ -281,10 +281,12 @@ class SettingsList : public UIElement {
 **易错**
 
 - `DragEventArgs.x/y` 是**元素相对 DIP**（不是屏幕像素）。
-- `Expander` 折叠时用显式 `SetHeight` 收拢，父布局才会跟随收缩。
+- `Expander` 的展开高度由动画进度进入 `Measure`，不再写用户可见的 `height_`；父布局仍会随动画收拢/推开后续元素。
+- 初始折叠时也会测量一次 content；展开状态的内容始终留在 `childrenView_` 中，避免折叠再展开后内容不显示。
+- 内容裁剪会留 at least 4px bleed（并叠加 content 自身 bleed），避免 ComboBox 边框/阴影/焦点环被切。
 ###block_red_end
 
-- **`版本`**：折叠/展开用与页面切换相同的 **smoothstep 缓动**；箭头随同一缓动**旋转**（收起向下 → 展开向上）。
+- **`版本`**：折叠/展开用与页面切换相同的 **smoothstep 缓动**；箭头随同一缓动**旋转**（收起向下 → 展开向上）。`v1.26.0` 修复首次展开未测量、折叠再展开内容丢失和内容裁剪。
 - **`版本`**：标题条悬停**高亮**（圆角）；`ComboBox` 下拉箭头同样改为随展开**旋转**的 chevron。
 - 图片展示用 `Label`：`SetImage` + `SetImageFit(true)`（等比缩放至完整可见）+ `SetDragSource`（拖出）。
 - **`版本`**：整窗接收——`Window::SetDropTargetEnabled(true)` + 窗口级 `DragEnter/DragOver/DragLeave/Drop`（`x/y` 为客户区 DIP）。
@@ -296,7 +298,7 @@ class SettingsList : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f46f4adc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-3b9bf40d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="c1">// ---- 拖放：载荷 / 事件 ----</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DragData</span><span class="w"> </span><span class="p">{</span><span class="w">                                   </span><span class="c1">// 拖入方只读访问</span>
@@ -345,7 +347,7 @@ class SettingsList : public UIElement {
 <span class="w">    </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">RowClicked</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-f46f4adc" style="display: none;">// ---- 拖放：载荷 / 事件 ----
+<pre id="code-3b9bf40d" style="display: none;">// ---- 拖放：载荷 / 事件 ----
 class DragData {                                   // 拖入方只读访问
     bool HasText() const;   std::wstring GetText() const;
     bool HasFiles() const;  std::vector&lt;std::wstring&gt; GetFiles() const;
@@ -399,11 +401,13 @@ class SettingsList : public UIElement {
 <p><strong>易错</strong></p>
 <ul>
 <li><code>DragEventArgs.x/y</code> 是<strong>元素相对 DIP</strong>（不是屏幕像素）。</li>
-<li><code>Expander</code> 折叠时用显式 <code>SetHeight</code> 收拢，父布局才会跟随收缩。</li>
+<li><code>Expander</code> 的展开高度由动画进度进入 <code>Measure</code>，不再写用户可见的 <code>height_</code>；父布局仍会随动画收拢/推开后续元素。</li>
+<li>初始折叠时也会测量一次 content；展开状态的内容始终留在 <code>childrenView_</code> 中，避免折叠再展开后内容不显示。</li>
+<li>内容裁剪会留 at least 4px bleed（并叠加 content 自身 bleed），避免 ComboBox 边框/阴影/焦点环被切。</li>
 </ul>
 </div>
 <ul>
-<li><strong><code>版本</code></strong>：折叠/展开用与页面切换相同的 <strong>smoothstep 缓动</strong>；箭头随同一缓动<strong>旋转</strong>（收起向下 → 展开向上）。</li>
+<li><strong><code>版本</code></strong>：折叠/展开用与页面切换相同的 <strong>smoothstep 缓动</strong>；箭头随同一缓动<strong>旋转</strong>（收起向下 → 展开向上）。<code>v1.26.0</code> 修复首次展开未测量、折叠再展开内容丢失和内容裁剪。</li>
 <li><strong><code>版本</code></strong>：标题条悬停<strong>高亮</strong>（圆角）；<code>ComboBox</code> 下拉箭头同样改为随展开<strong>旋转</strong>的 chevron。</li>
 <li>图片展示用 <code>Label</code>：<code>SetImage</code> + <code>SetImageFit(true)</code>（等比缩放至完整可见）+ <code>SetDragSource</code>（拖出）。</li>
 <li><strong><code>版本</code></strong>：整窗接收——<code>Window::SetDropTargetEnabled(true)</code> + 窗口级 <code>DragEnter/DragOver/DragLeave/Drop</code>（<code>x/y</code> 为客户区 DIP）。</li>
