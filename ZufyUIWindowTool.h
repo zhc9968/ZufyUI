@@ -43,12 +43,13 @@ namespace ZufyUI {
             static float cached = 0.0f;
             if (fmt && cached == dipSize) return fmt;
             if (fmt) { fmt->Release(); fmt = nullptr; }
-            const wchar_t* families[] = { L"Segoe Fluent Icons", L"Segoe MDL2 Assets" };
-            for (auto fam : families) {
-                if (SUCCEEDED(f->CreateTextFormat(fam, nullptr, DWRITE_FONT_WEIGHT_NORMAL,
-                    DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, dipSize, L"en-us", &fmt)) && fmt)
-                    break;
-            }
+            // 不能只判断 CreateTextFormat 的 HRESULT：Win10 没有 "Segoe Fluent Icons" 时，
+            // DWrite 仍可能创建一个回退字体格式，字形就变成方框。IconFontFamily() 会先
+            // FindFamilyName 探测，Win10 正确落到 "Segoe MDL2 Assets"。
+            const std::wstring& family = IconFontFamily();
+            if (FAILED(f->CreateTextFormat(family.c_str(), nullptr, DWRITE_FONT_WEIGHT_NORMAL,
+                DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, dipSize, L"en-us", &fmt)))
+                fmt = nullptr;
             if (fmt) {
                 fmt->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
                 fmt->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -240,6 +241,12 @@ namespace ZufyUI {
         void SetShowIcon(bool on) { showIcon_ = on; InvalidateLayout(); RequestRepaint(); }
         void SetShowTitle(bool on) { showTitle_ = on; InvalidateLayout(); RequestRepaint(); }
         void SetTitleTextVisible(bool on) override { if (showTitle_ != on) SetShowTitle(on); }   // Window 每帧可能调；未变不重排
+        void OnWindowMaximizeChanged(bool) override {
+            // 最大化/还原字形由 CaptionButton 在 Draw 时读 IsZoomed；但它是缓存元素，
+            // 系统直接最大化（双击标题栏 / Win+Up / Snap）不会经过按钮自己的 OnMouseUp。
+            for (auto& b : buttons_)
+                if (b && b->GetKind() == CaptionButton::Kind::MaximizeRestore) b->RequestRepaint();
+        }
         void SetContentPadding(float left, float right = 8.0f) { padLeft_ = left; padRight_ = right; InvalidateLayout(); RequestRepaint(); }
         void SetBackgroundColor(Color c) { bgColor_ = c; RequestRepaint(); }
         void SetActiveBackgroundColor(Color c) { activeBgColor_ = c; RequestRepaint(); }

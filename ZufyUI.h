@@ -1824,6 +1824,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         // 窗口标题变化时通知（自定义标题栏元素可重写以同步显示；默认无操作）
         virtual void SetWindowTitle(const std::wstring&) {}
+        // 最大化/还原状态变化时通知（自定义标题栏用它刷新“最大化/还原”字形；
+        // 不能只在绘制时读 IsZoomed：标题栏/按钮有缓存，系统最大化后不一定自动重画）。
+        virtual void OnWindowMaximizeChanged(bool) {}
         // 窗口图标下发给“非参与布局”的窗口级控件（如 TitleBar 显示的应用图标）
         virtual void SetWindowIconFromHICON(HICON) {}
         virtual void SetTitleTextVisible(bool) {}   // 自定义标题栏是否显示标题文字（默认无操作；TitleBar 覆盖）
@@ -3890,6 +3893,31 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 rt->FillRoundedRectangle(D2D1::RoundedRect(rr, radius + grow, radius + grow), brush.Get());
             }
         }
+
+        // Windows 11 (build 22000+) 才支持 DWMWA_WINDOW_CORNER_PREFERENCE / host backdrop attribute。
+        // 用 RtlGetVersion 绕过 manifest 兼容性 shim；局部结构避免把 winternl.h 拉进 pch。
+        inline bool IsWindows11OrGreater() {
+            static const bool s = []() -> bool {
+                struct OsVersionInfo {
+                    ULONG size;
+                    ULONG major;
+                    ULONG minor;
+                    ULONG build;
+                    ULONG platform;
+                    WCHAR csd[128];
+                } vi{};
+                vi.size = sizeof(vi);
+                if (HMODULE ntdll = GetModuleHandleW(L"ntdll.dll")) {
+                    using Fn = LONG(WINAPI*)(void*);
+                    if (auto fn = reinterpret_cast<Fn>(GetProcAddress(ntdll, "RtlGetVersion"))) {
+                        if (fn(&vi) == 0)
+                            return vi.major >= 10 && vi.build >= 22000;
+                    }
+                }
+                return false;
+            }();
+            return s;
+        }
     }
 
     // ---------- 窗口 ----------
@@ -4954,8 +4982,15 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void Close() { if (hwnd_) PostMessageW(hwnd_, WM_CLOSE, 0, 0); }
 
         // ---------- 自定义标题栏 / 窗口外观：实现 ----------
+        // Win10 没有 DWMWA_WINDOW_CORNER_PREFERENCE（Win11 22000+ 才有）。
+        // Win10 上不要设置该属性，也不要用 SetWindowRgn 自己裁圆角：
+        //   - DWM 属性在 Win10 无效，设置它反而可能丢 DWM 边框/阴影；
+        //   - SetWindowRgn 的圆角是硬裁剪，会产生明显锯齿，且和系统圆角不一致。
+        // ZufyUI 的窗口内容已经按自己的圆角形状绘制，Win10 保留系统直角即可；
+        // 圆角裁剪交给 Win11 DWM。
         void ApplyWindowCorner() {
             if (!hwnd_) return;
+            if (!detail::IsWindows11OrGreater()) return;
             // 注意：对逐像素透明(NRB+DComp)窗口，DWMWCP_DEFAULT / ROUNDSMALL / DONOTROUND 可能让
             // DWM 丢掉圆角阴影（实测只有显式 ROUND 稳定）。这里统一用 ROUND，并在设置后强制重算
             // 非客户区，确保边框/阴影/圆角不被丢。
@@ -4970,6 +5005,20 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             DwmSetWindowAttribute(hwnd_, DWMWA_WINDOW_CORNER_PREFERENCE, &pref, sizeof(pref));
             SetWindowPos(hwnd_, nullptr, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        }
+
+        // 系统最大化/还原（双击标题栏、Win+Up、Snap、全屏恢复等）不一定会让标题栏重画。
+        // 这里在 WM_SIZE（以及窗口位置变化）里同步一次，并且主动让“最大化/还原”按钮失效重绘。
+        void SyncMaximizeState(int sizeType = -1) {
+            if (!hwnd_) return;
+            // WM_SIZE 的 wParam 是最可靠的“刚进入哪种尺寸状态”提示；位置变化消息没有，
+            // 才回退到 IsZoomed。这样最大化/还原切换时不会先画一帧旧字形。
+            bool maxed = (sizeType >= 0) ? (sizeType == SIZE_MAXIMIZED) : (IsZoomed(hwnd_) != FALSE);
+            if (!maximizeStateInitialized_ || maxed != lastMaximizedState_) {
+                maximizeStateInitialized_ = true;
+                lastMaximizedState_ = maxed;
+                if (customTitleBar_) customTitleBar_->OnWindowMaximizeChanged(maxed);
+            }
         }
 
         void CollectDragRegions() {
@@ -5316,10 +5365,14 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 if (customFrame_) return 0;
                 break;
             case WM_ENTERSIZEMOVE:
-                inSizeMove_ = true;       // 拖动/缩放循环：期间跳过整树命中检测
+                inSizeMove_ = true;       // 拖动/缩放循环：期间跳过整树命中检测、暂停动画（见 AdvanceFrame）
+                uiAnimating_.store(false);
                 return 0;
             case WM_EXITSIZEMOVE:
                 inSizeMove_ = false;
+                SyncMaximizeState();
+                RequestRender();
+                if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE);
                 return 0;
             case WM_SETTEXT:
                 // 系统/应用改动窗口标题（SetWindowText/SetTitle）时，同步给自定义标题栏
@@ -5328,6 +5381,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     customTitleBar_->SetWindowTitle(lastWindowTitle_);
                 }
                 break;   // 交给 DefWindowProc 真正设置窗口标题
+            case WM_WINDOWPOSCHANGED:
+                // 最大化/还原/全屏切换有时先于 WM_SIZE 改变状态；这里补一次，保证按钮字形不滞后。
+                SyncMaximizeState();
+                break;
             case WM_MOVE:
                 UpdateWallpaperLayer();   // 手动背景：只挪图层 Offset，不重画 -> 实时跟手
                 SyncOverlays();           // 外部浮窗立即跟随窗口移动（不再等 16ms 定时器）
@@ -5335,6 +5392,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             case WM_SIZE:
                 UpdateTimerState();
                 OnWindowSize();
+                SyncMaximizeState((int)wParam);
                 if (wParam == SIZE_MINIMIZED) {
                     // 方案4：禁用最小化的 owned 子窗口，最小化相关消息一律不处理
                     if (owner_ && ownedMinimizePolicy_ == OwnedMinimizePolicy::DisableMinimize) return 0;
@@ -5380,6 +5438,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 return 0;
             case WM_ACTIVATE:
                 UpdateTimerState();
+                SyncMaximizeState();
                 if (LOWORD(wParam) == WA_INACTIVE) {
                     Deactivated(); UIZSignals::WindowDeactivated(this);
                 }
@@ -6353,38 +6412,51 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
 
             // 3. 动画更新
-            if (rootElement_) {
-                rootElement_->UpdateAnimation(deltaTime);
+            // 拖动/缩放窗口时暂停动画：Windows 的 modal move/size 循环本身会持续发
+            // WM_MOVE/WM_SIZE，虚拟机上 DWM 已经很吃力；再按 vblank 重绘整窗会让拖动明显卡顿。
+            // 松开标题栏（WM_EXITSIZEMOVE）后下一帧继续，动画不会跳变。
+            const bool updateAnimations = !inSizeMove_;
+            if (updateAnimations) {
+                if (rootElement_) {
+                    rootElement_->UpdateAnimation(deltaTime);
+                }
+                if (customTitleBar_) {
+                    customTitleBar_->UpdateAnimation(deltaTime);
+                }
+                if (menuBar_) menuBar_->UpdateAnimation(deltaTime);
+                if (statusBar_) statusBar_->UpdateAnimation(deltaTime);
             }
-            if (customTitleBar_) {
-                customTitleBar_->UpdateAnimation(deltaTime);
-            }
-            if (menuBar_) menuBar_->UpdateAnimation(deltaTime);
-            if (statusBar_) statusBar_->UpdateAnimation(deltaTime);
 
             // 3.5 更新阶段重建容器"可见子元素列表"（把池化/rebind 从 render 的 Compose 热路径挪到这里）
             RefreshChildrenRecursive(rootElement_.get());
             if (customTitleBar_) RefreshChildrenRecursive(customTitleBar_.get());
 
-            // 自动收集活跃动画元素（只用于"是否要继续跑帧"的判断）
-            std::swap(activeAnimScratch_, lastActiveAnimElements_);   // 交换缓冲代替每帧 hashset 深拷贝；last 保留上一帧活跃集
-            activeAnimScratch_.clear();
-            CollectActiveAnimations(rootElement_.get(), activeAnimScratch_);
-            if (customTitleBar_) CollectActiveAnimations(customTitleBar_.get(), activeAnimScratch_);
-            if (menuBar_) CollectActiveAnimations(menuBar_.get(), activeAnimScratch_);
-            if (statusBar_) CollectActiveAnimations(statusBar_.get(), activeAnimScratch_);
-            // 注意：**不要**把整个 activeAnimScratch_ 塞进 pendingRepaint_。
-            // 那样做会让"含了正在动画子元素的祖先容器"每帧都重绘/重建缓存（一个转圈圈能带出十几个祖先），
-            // 造成整窗每帧重合成（实测 10% GPU）。真正需要重绘的元素自己在 UpdateAnimation 里调了 RequestRepaint；
-            // 靠遮罩/变换动的（如 PageHost 过渡）在每次合成时读变换，本来也不需要进 pendingRepaint_。
-            // 上一帧活跃但当前不活跃的元素补一次，确保动画结束状态正确
-            for (auto* elem : lastActiveAnimElements_) {
-                if (activeAnimScratch_.find(elem) == activeAnimScratch_.end()) {
-                    pendingRepaint_.insert(elem);
+            if (updateAnimations) {
+                // 自动收集活跃动画元素（只用于"是否要继续跑帧"的判断）
+                std::swap(activeAnimScratch_, lastActiveAnimElements_);   // 交换缓冲代替每帧 hashset 深拷贝；last 保留上一帧活跃集
+                activeAnimScratch_.clear();
+                CollectActiveAnimations(rootElement_.get(), activeAnimScratch_);
+                if (customTitleBar_) CollectActiveAnimations(customTitleBar_.get(), activeAnimScratch_);
+                if (menuBar_) CollectActiveAnimations(menuBar_.get(), activeAnimScratch_);
+                if (statusBar_) CollectActiveAnimations(statusBar_.get(), activeAnimScratch_);
+                // 注意：**不要**把整个 activeAnimScratch_ 塞进 pendingRepaint_。
+                // 那样做会让"含了正在动画子元素的祖先容器"每帧都重绘/重建缓存（一个转圈圈能带出十几个祖先），
+                // 造成整窗每帧重合成（实测 10% GPU）。真正需要重绘的元素自己在 UpdateAnimation 里调了 RequestRepaint();
+                // 靠遮罩/变换动的（如 PageHost 过渡）在每次合成时读变换，本来也不需要进 pendingRepaint_。
+                // 上一帧活跃但当前不活跃的元素补一次，确保动画结束状态正确
+                for (auto* elem : lastActiveAnimElements_) {
+                    if (activeAnimScratch_.find(elem) == activeAnimScratch_.end()) {
+                        pendingRepaint_.insert(elem);
+                    }
                 }
             }
+            else {
+                // 暂停期间不参与"续帧"判断；否则单线程 present 自驱循环仍会在拖动中每帧重绘。
+                activeAnimScratch_.clear();
+                lastActiveAnimElements_.clear();
+            }
 #if ZUFYUI_RENDER_THREAD
-            uiAnimating_.store(!activeAnimScratch_.empty());   // 发布"是否还有动画"，供 render 线程决定是否续帧
+            uiAnimating_.store(updateAnimations && !activeAnimScratch_.empty());   // 发布"是否还有动画"，供 render 线程决定是否续帧
 #endif
             if (_dbg) {
                 auto& s = debugStats_;
@@ -7003,18 +7075,22 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         // 应用 AccentState（Win10 / Win11 无系统材质时的实现方式）
-        void ApplyAccentState(ACCENT_STATE state) {
+        // 返回 API 是否真的调用了（不代表 DWM 一定改变了视觉，Win10 上 DWM 可能 no-op）。
+        bool ApplyAccentState(ACCENT_STATE state) {
             HMODULE hUser = GetModuleHandleW(L"user32.dll");
-            if (!hUser) return;
+            if (!hUser) return false;
             auto pSetWindowCompositionAttribute = (BOOL(WINAPI*)(HWND, void*))GetProcAddress(hUser, "SetWindowCompositionAttribute");
-            if (!pSetWindowCompositionAttribute) return;
+            if (!pSetWindowCompositionAttribute) return false;
 
             // GradientColor 的字节序是 ABGR（不是 ARGB），必须转换；否则红色会显示成蓝色。
             DWORD argb = backdropColor_;
             DWORD aa = (argb >> 24) & 0xFF, rr = (argb >> 16) & 0xFF, gg = (argb >> 8) & 0xFF, bb = argb & 0xFF;
             ACCENT_POLICY accent = {};
             accent.AccentState = state;
-            accent.GradientColor = (aa << 24) | (bb << 16) | (gg << 8) | rr;   // AABBGGRR
+            // ACCENT_ENABLE_HOSTBACKDROP 只负责让 DWM 提供宿主背景；tint 由 DComp 效果链负责。
+            // 这里若再传 backdropColor_ 会变成系统级的第二层着色（尤其 Win10 会叠成灰）。
+            if (state != ACCENT_ENABLE_HOSTBACKDROP)
+                accent.GradientColor = (aa << 24) | (bb << 16) | (gg << 8) | rr;   // AABBGGRR
             accent.AccentFlags = 0;
             accent.AnimationId = 0;
 
@@ -7022,35 +7098,45 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             data.Attrib = WCA_ACCENT_POLICY;
             data.pvData = &accent;
             data.cbData = sizeof(accent);
-            pSetWindowCompositionAttribute(hwnd_, &data);
+            return pSetWindowCompositionAttribute(hwnd_, &data) != FALSE;
         }
 
         void ApplyBackdrop() {
             if (!hwnd_) return;
 
-            // DComp 背景层随 Backdrop 变化重建（运行时 SetBackdrop/SetBackdropMode 也能生效）
-            UpdateDCompBackdrop();
-
             // 实现方式（不互相近似）：
-            // 背景全部走**手动实现**（不再区分系统/手动）：
-            //   Acrylic : DWMWA_USE_HOSTBACKDROPBRUSH（让宿主背景可用=后面窗口内容）+ 我们自己的配方
+            //   Acrylic : HostBackdropBrush（让宿主背景可用=后面窗口内容）+ 我们自己的配方
             //   Mica    : ZufyUI 自绘的缓存壁纸图层
             //   None    : 关闭
+            //
+            // 关键顺序：先让 DWM 提供 host backdrop，再建 HostBackdropBrush。
+            //   Win11 用 DWMWA_USE_HOSTBACKDROPBRUSH（文档值，22000+）。
+            //   Win10 该属性不存在，但 SetWindowCompositionAttribute 的
+            //   ACCENT_ENABLE_HOSTBACKDROP(5) 仍会打开宿主背景采样；否则
+            //   CreateHostBackdropBrush 虽然返回非空，采样输入却是空的 → 只剩 tint 的灰色。
+            //   两者可以同时调用：Win10 忽略不支持的 DWMWA，Win11 忽略 accent 的采样开关。
             int noneType = DWMSBT_NONE;
             DwmSetWindowAttribute(hwnd_, DWMWA_SYSTEMBACKDROP_TYPE, &noneType, sizeof(noneType));
-            ApplyAccentState(ACCENT_DISABLED);
-            systemBackdropActive_ = false;
 
-            switch (backdrop_) {
-            case Backdrop::Acrylic: {
+            if (backdrop_ == Backdrop::Acrylic) {
+                systemBackdropActive_ = ApplyAccentState(ACCENT_ENABLE_HOSTBACKDROP);
                 BOOL on = TRUE;
-                systemBackdropActive_ = SUCCEEDED(DwmSetWindowAttribute(hwnd_, DWMWA_USE_HOSTBACKDROPBRUSH, &on, sizeof(on)));
+                if (SUCCEEDED(DwmSetWindowAttribute(hwnd_, DWMWA_USE_HOSTBACKDROPBRUSH, &on, sizeof(on))))
+                    systemBackdropActive_ = true;
+                // 此时再接效果链，输入才是真正的窗口背后内容。
+                UpdateDCompBackdrop();
                 return;
             }
+
+            // Mica/None：关掉系统背景与 host backdrop 采样，再重建 DComp 层。
+            ApplyAccentState(ACCENT_DISABLED);
+            systemBackdropActive_ = false;
+            UpdateDCompBackdrop();
+
+            switch (backdrop_) {
             case Backdrop::Mica:
                 return;   // 画面由 UpdateDCompBackdrop 里的缓存壁纸图层提供
             case Backdrop::None:
-                ApplyAccentState(ACCENT_DISABLED);
                 return;
             }
             BackdropUnsupported.Fire();
@@ -7267,6 +7353,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool titleBarVisible_ = true;
         bool resizable_ = true;
         WindowCorner corner_ = WindowCorner::Default;
+        bool maximizeStateInitialized_ = false;
+        bool lastMaximizedState_ = false;
         bool customFrame_ = false;          // 是否处于自定义边框模式
         std::vector<Rect> dragRegions_;     // 收集到的可拖动区域（客户坐标 DIP）
         std::vector<UIElement*> npBefore_, npAfter_;   // 不参与布局的元素（仅重排后重建，避免每帧全树收集）
