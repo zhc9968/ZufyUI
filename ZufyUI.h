@@ -7114,15 +7114,20 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             //   Win10 该属性不存在，但 SetWindowCompositionAttribute 的
             //   ACCENT_ENABLE_HOSTBACKDROP(5) 仍会打开宿主背景采样；否则
             //   CreateHostBackdropBrush 虽然返回非空，采样输入却是空的 → 只剩 tint 的灰色。
-            //   两者可以同时调用：Win10 忽略不支持的 DWMWA，Win11 忽略 accent 的采样开关。
-            int noneType = DWMSBT_NONE;
-            DwmSetWindowAttribute(hwnd_, DWMWA_SYSTEMBACKDROP_TYPE, &noneType, sizeof(noneType));
+            // Win10 上不要碰 Win11 专属的 DWM 属性（SYSTEMBACKDROP_TYPE / USE_HOSTBACKDROPBRUSH /
+            // WINDOW_CORNER_PREFERENCE），它们不是 Win10 的语义，可能让 DWM 丢边框/阴影。
+            if (detail::IsWindows11OrGreater()) {
+                int noneType = DWMSBT_NONE;
+                DwmSetWindowAttribute(hwnd_, DWMWA_SYSTEMBACKDROP_TYPE, &noneType, sizeof(noneType));
+            }
 
             if (backdrop_ == Backdrop::Acrylic) {
                 systemBackdropActive_ = ApplyAccentState(ACCENT_ENABLE_HOSTBACKDROP);
-                BOOL on = TRUE;
-                if (SUCCEEDED(DwmSetWindowAttribute(hwnd_, DWMWA_USE_HOSTBACKDROPBRUSH, &on, sizeof(on))))
-                    systemBackdropActive_ = true;
+                if (detail::IsWindows11OrGreater()) {
+                    BOOL on = TRUE;
+                    if (SUCCEEDED(DwmSetWindowAttribute(hwnd_, DWMWA_USE_HOSTBACKDROPBRUSH, &on, sizeof(on))))
+                        systemBackdropActive_ = true;
+                }
                 // 此时再接效果链，输入才是真正的窗口背后内容。
                 UpdateDCompBackdrop();
                 return;
@@ -7144,6 +7149,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         void ApplyTitleBarColors() {
             if (!hwnd_) return;
+            // 这三个属性同样是 Win11 22000+；Win10 设置会让 DWM 的默认边框/阴影语义变得不可控。
+            if (!detail::IsWindows11OrGreater()) return;
             DwmSetWindowAttribute(hwnd_, DWMWA_CAPTION_COLOR, &captionColor_, sizeof(captionColor_));
             DwmSetWindowAttribute(hwnd_, DWMWA_TEXT_COLOR, &textColor_, sizeof(textColor_));
             DwmSetWindowAttribute(hwnd_, DWMWA_BORDER_COLOR, &borderColor_, sizeof(borderColor_));
