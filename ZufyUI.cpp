@@ -15,7 +15,7 @@ namespace {
         L"首页", L"基础控件", L"输入与滚动", L"嵌套与联动", L"列表视图", L"表格视图",
         L"树形视图", L"树形增强", L"图像", L"多窗口", L"窗口属性", L"新控件A", L"新控件B",
         L"多行文本", L"条形图", L"折线图", L"饼图", L"拖放", L"设置卡片", L"主题", L"DSL", L"环境组合", L"原生HWND", L"抽屉",
-        L"布局压力测试"
+        L"布局压力测试", L"全控件总览"
     };
     inline constexpr int kPageCount = (int)(sizeof(kPageNames) / sizeof(kPageNames[0]));
 
@@ -345,6 +345,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     navList->AddItem(L"原生HWND");
     navList->AddItem(L"抽屉");
     navList->AddItem(L"布局压力测试");
+    navList->AddItem(L"全控件总览");
     navList->SetSelectedIndex(0);
     mainRow->AddChild(navList);
 
@@ -3383,6 +3384,415 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         labPage->SetLayout(labRoot);
         mainHost->AddPage(labPage);
     }
+
+    auto pageAll = std::make_shared<Page>();
+    {
+        auto col = std::make_shared<ColumnBox>();
+        col->SetSpacing(12.0f);
+
+        auto pageTitle = std::make_shared<Label>(L"全控件总览：所有控件与所有容器在同一页，统一参与真实布局");
+        pageTitle->SetFontSize(20.0f);
+        pageTitle->SetTextOverflow(Label::TextOverflow::Wrap);
+        col->AddChild(pageTitle);
+
+        auto intro = std::make_shared<Label>(
+            L"本页用于一次性检查：基础控件、输入控件、选择控件、进度控件、文本编辑、数据视图、图表、"
+            L"Card/Page/PageHost/Column/Row/Grid/ScrollViewer/TabView/SplitView/Drawer/Expander，"
+            L"以及 MenuBar/StatusBar/TitleBar/CaptionButton/MessageBox/HwndView。所有区块都由外层 Page 的 ScrollViewer 滚动。");
+        intro->SetTextOverflow(Label::TextOverflow::Wrap);
+        intro->SetTextColor(ThemeColor(ThemeRole::TextSecondary));
+        col->AddChild(intro);
+
+        auto addCard = [&col](const std::wstring& heading, const std::shared_ptr<UIElement>& body) {
+            auto card = std::make_shared<Card>();
+            card->SetFillWidth(true);
+            auto inner = std::make_shared<ColumnBox>();
+            inner->SetSpacing(8.0f);
+            auto head = std::make_shared<Label>(heading);
+            head->SetFontSize(16.0f);
+            head->SetTextOverflow(Label::TextOverflow::Wrap);
+            inner->AddChild(head);
+            inner->AddChild(body);
+            card->SetContent(inner);
+            col->AddChild(card);
+        };
+
+        auto basic = std::make_shared<ColumnBox>();
+        basic->SetSpacing(8.0f);
+        auto basicRow = std::make_shared<RowBox>();
+        basicRow->SetSpacing(8.0f);
+        basicRow->SetCrossAlign(LayoutAlignment::Center);
+        basicRow->AddChild(std::make_shared<Label>(L"Label"));
+        basicRow->AddChild(std::make_shared<FontIcon>(Icon::Favorite, 24.0f));
+        auto imageLabel = std::make_shared<Label>(L"Image");
+        imageLabel->SetImage(appIcon);
+        imageLabel->SetIconSize(28.0f, 28.0f);
+        basicRow->AddChild(imageLabel);
+        auto normalButton = std::make_shared<Button>(L"Button");
+        basicRow->AddChild(normalButton);
+        auto checkButton = std::make_shared<Button>(L"Checkable");
+        checkButton->SetCheckable(true);
+        basicRow->AddChild(checkButton);
+        auto dropButton = std::make_shared<Button>(L"DropDown");
+        dropButton->SetDropItems({ L"选项 A", L"选项 B" });
+        basicRow->AddChild(dropButton);
+        auto disabledButton = std::make_shared<Button>(L"Disabled");
+        disabledButton->SetEnabled(false);
+        basicRow->AddChild(disabledButton);
+        basic->AddChild(basicRow);
+
+        auto inputRow1 = std::make_shared<RowBox>();
+        inputRow1->SetSpacing(8.0f);
+        inputRow1->SetCrossAlign(LayoutAlignment::Center);
+        auto textBox = std::make_shared<TextBox>();
+        textBox->SetWidth(220.0f);
+        textBox->SetPlaceholder(L"TextBox");
+        inputRow1->AddChild(textBox);
+        auto numberBox = std::make_shared<NumberBox>();
+        numberBox->SetWidth(120.0f);
+        numberBox->SetRange(0.0, 100.0);
+        numberBox->SetValue(42.0, false);
+        inputRow1->AddChild(numberBox);
+        auto comboBox = std::make_shared<ComboBox>();
+        comboBox->SetWidth(160.0f);
+        comboBox->AddItem(L"ComboBox A");
+        comboBox->AddItem(L"ComboBox B");
+        inputRow1->AddChild(comboBox);
+        basic->AddChild(inputRow1);
+
+        auto inputRow2 = std::make_shared<RowBox>();
+        inputRow2->SetSpacing(8.0f);
+        inputRow2->SetCrossAlign(LayoutAlignment::Center);
+        auto toggle = std::make_shared<ToggleSwitch>();
+        toggle->SetOn(true);
+        inputRow2->AddChild(toggle);
+        auto checkBox = std::make_shared<CheckBox>(L"CheckBox");
+        checkBox->SetChecked(true);
+        inputRow2->AddChild(checkBox);
+        auto slider = std::make_shared<Slider>();
+        slider->SetWidth(180.0f);
+        slider->SetRange(0.0f, 100.0f);
+        slider->SetValue(55.0f);
+        inputRow2->AddChild(slider);
+        basic->AddChild(inputRow2);
+
+        auto textEdit = std::make_shared<TextEdit>();
+        textEdit->SetHeight(150.0f);
+        textEdit->SetShowLineNumbers(true);
+        textEdit->SetPlainText(L"TextEdit\n第二行\n第三行：多行文本、行号、Tab、选择。");
+        basic->AddChild(textEdit);
+        addCard(L"基础 / 输入控件", basic);
+
+        auto indicators = std::make_shared<ColumnBox>();
+        indicators->SetSpacing(10.0f);
+        auto progressRow = std::make_shared<RowBox>();
+        progressRow->SetSpacing(14.0f);
+        progressRow->SetCrossAlign(LayoutAlignment::Center);
+        auto progressBar = std::make_shared<ProgressBar>();
+        progressBar->SetWidth(240.0f);
+        progressBar->SetHeight(18.0f);
+        progressBar->SetValue(0.62f);
+        progressBar->SetShowText(true);
+        progressRow->AddChild(progressBar);
+        auto ring = std::make_shared<ProgressRing>(40.0f);
+        ring->SetValue(0.48f);
+        progressRow->AddChild(ring);
+        auto busyRing = std::make_shared<ProgressRing>(40.0f);
+        busyRing->SetIndeterminate(true);
+        progressRow->AddChild(busyRing);
+        auto verticalBar = std::make_shared<ScrollBar>(true);
+        verticalBar->SetVisible(true);
+        verticalBar->SetBarWidth(10.0f);
+        verticalBar->SetRange(20.0f, 100.0f, 40.0f);
+        verticalBar->SetHeight(90.0f);
+        progressRow->AddChild(verticalBar);
+        indicators->AddChild(progressRow);
+
+        auto horizontalBarRow = std::make_shared<RowBox>();
+        horizontalBarRow->SetSpacing(10.0f);
+        horizontalBarRow->SetCrossAlign(LayoutAlignment::Center);
+        horizontalBarRow->SetHeight(24.0f);
+        auto horizontalBar = std::make_shared<ScrollBar>(false);
+        horizontalBar->SetVisible(true);
+        horizontalBar->SetBarWidth(10.0f);
+        horizontalBar->SetRange(15.0f, 100.0f, 45.0f);
+        horizontalBar->SetWidth(220.0f);
+        horizontalBarRow->AddChild(horizontalBar);
+        horizontalBarRow->AddChild(std::make_shared<Label>(L"独立 ScrollBar"));
+        indicators->AddChild(horizontalBarRow);
+        addCard(L"进度 / 滚动条", indicators);
+
+        auto radios = std::make_shared<RadioGroup>();
+        radios->AddItemSelected(L"RadioGroup 选项 A", true);
+        radios->AddItem(L"RadioGroup 选项 B");
+        radios->AddItem(L"RadioGroup 选项 C");
+        addCard(L"RadioGroup / RadioButton", radios);
+
+        auto containers = std::make_shared<ColumnBox>();
+        containers->SetSpacing(12.0f);
+
+        auto grid = std::make_shared<GridLayout>();
+        grid->SetFillWidth(true);
+        grid->SetHeight(230.0f);
+        grid->SetColumnCount(2);
+        grid->SetRowCount(2);
+        grid->SetSpacing(8.0f, 8.0f);
+        grid->SetColumnStretch(0, 1.0f);
+        grid->SetColumnStretch(1, 1.0f);
+        grid->SetRowStretch(0, 1.0f);
+        grid->SetRowStretch(1, 1.0f);
+        auto makeGridCard = [](const std::wstring& text) {
+            auto c = std::make_shared<Card>();
+            auto l = std::make_shared<Label>(text);
+            l->SetAlignment(Label::HAlign::Center, Label::VAlign::Center);
+            c->SetContent(l);
+            return c;
+        };
+        grid->AddChild(makeGridCard(L"Grid 0,0"), 0, 0);
+        grid->AddChild(makeGridCard(L"Grid 0,1"), 0, 1);
+        grid->AddChild(makeGridCard(L"Grid 1,0"), 1, 0);
+        grid->AddChild(makeGridCard(L"Grid 1,1"), 1, 1);
+        containers->AddChild(grid);
+
+        auto nestedHost = std::make_shared<PageHost>();
+        nestedHost->SetFillWidth(true);
+        nestedHost->SetHeight(190.0f);
+        auto nestedNav = std::make_shared<RowBox>();
+        nestedNav->SetSpacing(8.0f);
+        for (int i = 1; i <= 3; ++i) {
+            auto pg = std::make_shared<Page>();
+            auto pageText = std::make_shared<Label>(L"PageHost 内嵌 Page " + std::to_wstring(i));
+            pageText->SetAlignment(Label::HAlign::Center, Label::VAlign::Center);
+            pg->SetContent(pageText);
+            nestedHost->AddPage(pg);
+            auto navButton = std::make_shared<Button>(L"Page " + std::to_wstring(i));
+            navButton->Clicked.connect([nestedHost, i]() { nestedHost->NavigateTo(i - 1); });
+            nestedNav->AddChild(navButton);
+        }
+        containers->AddChild(nestedNav);
+        containers->AddChild(nestedHost);
+
+        auto expander = std::make_shared<Expander>(L"Expander", L"标题 + 可折叠内容");
+        auto expanderBody = std::make_shared<RowBox>();
+        expanderBody->SetSpacing(8.0f);
+        expanderBody->SetCrossAlign(LayoutAlignment::Center);
+        expanderBody->AddChild(std::make_shared<Label>(L"Expander 内容"));
+        expanderBody->AddChild(std::make_shared<CheckBox>(L"内部 CheckBox"));
+        auto expanderSlider = std::make_shared<Slider>();
+        expanderSlider->SetWidth(160.0f);
+        expanderSlider->SetRange(0.0f, 100.0f);
+        expanderSlider->SetValue(33.0f);
+        expanderBody->AddChild(expanderSlider);
+        expander->SetContent(expanderBody);
+        containers->AddChild(expander);
+
+        auto scrollViewer = std::make_shared<ScrollViewer>();
+        scrollViewer->SetFillWidth(true);
+        scrollViewer->SetHeight(190.0f);
+        auto tallContent = std::make_shared<ColumnBox>();
+        tallContent->SetSpacing(4.0f);
+        for (int i = 0; i < 24; ++i)
+            tallContent->AddChild(std::make_shared<Label>(L"ScrollViewer 行 " + std::to_wstring(i + 1)));
+        scrollViewer->SetContent(tallContent);
+        containers->AddChild(scrollViewer);
+
+        auto split = std::make_shared<SplitView>();
+        split->SetFillWidth(true);
+        split->SetHeight(240.0f);
+        auto splitLeft = std::make_shared<ColumnBox>();
+        splitLeft->SetSpacing(6.0f);
+        splitLeft->AddChild(std::make_shared<Label>(L"SplitView 第一栏"));
+        splitLeft->AddChild(std::make_shared<Button>(L"Pane Button"));
+        auto splitRight = std::make_shared<ListView>();
+        splitRight->SetFillWidth(true);
+        splitRight->SetFillHeight(true);
+        for (int i = 1; i <= 6; ++i) splitRight->AddItem(L"SplitView 第二栏 " + std::to_wstring(i));
+        split->SetFirst(splitLeft);
+        split->SetSecond(splitRight);
+        containers->AddChild(split);
+
+        auto drawer = std::make_shared<Drawer>();
+        drawer->SetFillWidth(true);
+        drawer->SetHeight(260.0f);
+        drawer->SetSide(DrawerSide::Right);
+        drawer->SetPanelSize(240.0f);
+        auto drawerContent = std::make_shared<ColumnBox>();
+        drawerContent->SetSpacing(8.0f);
+        drawerContent->AddChild(std::make_shared<Label>(L"Drawer 内容区"));
+        auto drawerOpen = std::make_shared<Button>(L"打开右侧 Drawer");
+        drawerOpen->Clicked.connect([d = drawer.get()]() { d->Open(); });
+        drawerContent->AddChild(drawerOpen);
+        drawerContent->AddChild(std::make_shared<Button>(L"另一个内容按钮"));
+        auto drawerPanel = std::make_shared<ColumnBox>();
+        drawerPanel->SetSpacing(8.0f);
+        drawerPanel->AddChild(std::make_shared<Label>(L"Drawer 面板"));
+        auto drawerClose = std::make_shared<Button>(L"关闭 Drawer");
+        drawerClose->Clicked.connect([d = drawer.get()]() { d->Close(); });
+        drawerPanel->AddChild(drawerClose);
+        auto drawerEditor = std::make_shared<TextEdit>();
+        drawerEditor->SetHeight(160.0f);
+        drawerPanel->AddChild(drawerEditor);
+        drawer->SetContent(drawerContent);
+        drawer->SetPanel(drawerPanel);
+        containers->AddChild(drawer);
+
+        auto tabs = std::make_shared<TabView>();
+        tabs->SetFillWidth(true);
+        tabs->SetHeight(240.0f);
+        for (int i = 1; i <= 3; ++i) {
+            auto tabContent = std::make_shared<ColumnBox>();
+            tabContent->SetSpacing(6.0f);
+            tabContent->AddChild(std::make_shared<Label>(L"TabView 内容 " + std::to_wstring(i)));
+            tabContent->AddChild(std::make_shared<Button>(L"Tab 按钮 " + std::to_wstring(i)));
+            tabs->AddTab(L"Tab " + std::to_wstring(i), tabContent, i == 3);
+        }
+        tabs->Connect(tabs->TabCloseRequested, [tabs](int index) { tabs->RemoveTab(index); });
+        containers->AddChild(tabs);
+
+        addCard(L"容器：Grid / PageHost / Expander / ScrollViewer / SplitView / Drawer / TabView", containers);
+
+        auto dataViews = std::make_shared<ColumnBox>();
+        dataViews->SetSpacing(10.0f);
+        auto listView = std::make_shared<ListView>();
+        listView->SetFillWidth(true);
+        listView->SetHeight(180.0f);
+        for (int i = 1; i <= 8; ++i) listView->AddItem(L"ListView 项 " + std::to_wstring(i));
+        dataViews->AddChild(listView);
+
+        auto tableView = std::make_shared<TableView>();
+        tableView->SetFillWidth(true);
+        tableView->SetHeight(200.0f);
+        tableView->SetRowCount(5);
+        tableView->SetColumnCount(3);
+        tableView->SetHeaderLabel(0, L"名称");
+        tableView->SetHeaderLabel(1, L"数量");
+        tableView->SetHeaderLabel(2, L"状态");
+        for (int r = 0; r < tableView->GetRowCount(); ++r) {
+            tableView->SetItem(r, 0, L"TableView " + std::to_wstring(r + 1));
+            tableView->SetItem(r, 1, std::to_wstring((r + 1) * 10));
+            tableView->SetItem(r, 2, (r % 2 == 0) ? L"在线" : L"离线");
+        }
+        dataViews->AddChild(tableView);
+
+        auto treeView = std::make_shared<TreeView>();
+        treeView->SetFillWidth(true);
+        treeView->SetHeight(200.0f);
+        auto root = treeView->AddRoot(L"TreeView 根");
+        treeView->AddChild(root, L"子节点 A");
+        treeView->AddChild(root, L"子节点 B");
+        treeView->AddRoot(L"TreeView 第二个根");
+        dataViews->AddChild(treeView);
+
+        auto settings = std::make_shared<SettingsList>();
+        settings->SetFillWidth(true);
+        settings->AddRow(Icon::Settings, L"SettingsList 行 A", L"图标 / 标题 / 副标题 / 箭头", []() {});
+        settings->AddRow(Icon::View, L"SettingsList 行 B", L"第二行", []() {});
+        dataViews->AddChild(settings);
+        addCard(L"数据视图：ListView / TableView / TreeView / SettingsList", dataViews);
+
+        auto charts = std::make_shared<GridLayout>();
+        charts->SetFillWidth(true);
+        charts->SetHeight(420.0f);
+        charts->SetColumnCount(2);
+        charts->SetRowCount(2);
+        charts->SetSpacing(10.0f, 10.0f);
+        charts->SetColumnStretch(0, 1.0f);
+        charts->SetColumnStretch(1, 1.0f);
+        auto barChart = std::make_shared<BarChart>();
+        barChart->SetFillWidth(true);
+        barChart->SetHeight(190.0f);
+        barChart->AddSeries(L"系列 A");
+        barChart->AddSeries(L"系列 B");
+        barChart->AddCategory(L"一");
+        barChart->AddCategory(L"二");
+        barChart->AddCategory(L"三");
+        barChart->SetSeriesValues(0, { 12.0, 24.0, 18.0 });
+        barChart->SetSeriesValues(1, { 6.0, 14.0, 9.0 });
+        auto lineChart = std::make_shared<LineChart>();
+        lineChart->SetFillWidth(true);
+        lineChart->SetHeight(190.0f);
+        lineChart->AddSeries(L"折线 A");
+        lineChart->AddCategory(L"一月");
+        lineChart->AddCategory(L"二月");
+        lineChart->AddCategory(L"三月");
+        lineChart->SetSeriesValues(0, { 10.0, 22.0, 16.0 });
+        auto pieChart = std::make_shared<PieChart>();
+        pieChart->SetFillWidth(true);
+        pieChart->SetHeight(190.0f);
+        pieChart->AddSlice(L"桌面", 45.0);
+        pieChart->AddSlice(L"移动", 35.0);
+        pieChart->AddSlice(L"其他", 20.0);
+        charts->AddChild(barChart, 0, 0);
+        charts->AddChild(lineChart, 0, 1);
+        charts->AddChild(pieChart, 1, 0, 1, 2);
+        addCard(L"图表：BarChart / LineChart / PieChart", charts);
+
+        auto chrome = std::make_shared<ColumnBox>();
+        chrome->SetSpacing(8.0f);
+        auto titleBar = std::make_shared<TitleBar>();
+        titleBar->SetTitle(L"TitleBar / CaptionButton（页内展示）");
+        titleBar->SetHeight(32.0f);
+        auto pinButton = std::make_shared<CaptionButton>(CaptionButton::Kind::Pin);
+        titleBar->AddCustomButton(pinButton);
+        chrome->AddChild(titleBar);
+
+        auto menuBar = std::make_shared<MenuBar>();
+        auto menu = std::make_shared<Menu>();
+        menu->AddItem(L"菜单项 A", []() {});
+        menu->AddSeparator();
+        menu->AddItem(L"菜单项 B", []() {});
+        menuBar->AddMenu(L"全控件菜单", menu);
+        chrome->AddChild(menuBar);
+
+        auto statusBar = std::make_shared<StatusBar>();
+        statusBar->AddPanel(L"StatusBar 左");
+        statusBar->AddPanel(Icon::Info, L"StatusBar 右", true);
+        chrome->AddChild(statusBar);
+
+        auto chromeButtons = std::make_shared<RowBox>();
+        chromeButtons->SetSpacing(8.0f);
+        auto messageButton = std::make_shared<Button>(L"打开 MessageBox");
+        messageButton->Clicked.connect([&win]() {
+            ZuiInfo(L"全控件测试", L"这是库自带 MessageBox。", &win);
+        });
+        chromeButtons->AddChild(messageButton);
+        chrome->AddChild(chromeButtons);
+
+        const int allPageIndex = kPageCount - 1;
+        auto nativeRow = std::make_shared<RowBox>();
+        nativeRow->SetSpacing(8.0f);
+        nativeRow->SetHeight(170.0f);
+        nativeRow->SetCrossAlign(LayoutAlignment::Center);
+        auto hwndView = std::make_shared<HwndView>(win.GetHwnd());
+        hwndView->SetWidth(260.0f);
+        hwndView->SetHeight(150.0f);
+        hwndView->SetVisible(false);
+        if (HWND native = CreateNativePaintWindow(win.GetHwnd(), 31))
+            hwndView->SetContentHwnd(native, true);
+        nativeRow->AddChild(hwndView);
+        auto nativeToggle = std::make_shared<ToggleSwitch>(false);
+        nativeToggle->Toggled.connect([hwndView](bool on) { hwndView->SetVisible(on); });
+        nativeRow->AddChild(nativeToggle);
+        auto nativeInfo = std::make_shared<Label>(L"显示 HwndView：承载同进程原生 HWND；这是顶层浮窗，会跟随元素位置并受滚动裁剪。");
+        nativeInfo->SetWidth(300.0f);
+        nativeInfo->SetTextOverflow(Label::TextOverflow::Wrap);
+        nativeRow->AddChild(nativeInfo);
+        navList->Connect(navList->SelectionChanged, [hwndView, nativeToggle, allPageIndex](int index) {
+            hwndView->SetVisible(index == allPageIndex && nativeToggle->IsOn());
+        });
+        chrome->AddChild(nativeRow);
+        addCard(L"窗口控件：TitleBar / CaptionButton / MenuBar / StatusBar / MessageBox / HwndView", chrome);
+
+        auto allScroll = std::make_shared<ScrollViewer>();
+        allScroll->SetFillWidth(true);
+        allScroll->SetFillHeight(true);
+        allScroll->SetContentMargin(Thickness(0));
+        allScroll->SetContent(col);
+        auto allOuter = std::make_shared<GridLayout>();
+        allOuter->AddChild(allScroll, 0, 0);
+        pageAll->SetLayout(allOuter);
+    }
+    mainHost->AddPage(pageAll);
 
     // 主页面导航：记录当前索引，根据相对位置设置上下方向
     auto currentMainIndex = std::make_shared<int>(0);

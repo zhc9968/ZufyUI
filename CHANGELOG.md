@@ -2,7 +2,18 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.25.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.26.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-27 — 布局测量契约、UIA 生命周期修复、控件细化（v1.26.0）
+
+- **布局 · 显式尺寸契约**：`GridLayout` 的显式宽高现在同时作为 cell 测量范围，不再出现“对外返回 260、内部按 274+ 排”的溢出；`RowBox/ColumnBox` 在有限主轴下给 Fill 子元素分配剩余空间；`Card/Page/ScrollViewer` 无内容时也尊重显式尺寸；`Button` 即使关闭 autoSize 也测量内容；`Label` 的显式宽度参与 Wrap 折行；`TabView` 的页签 Label 在 Measure 量宽、Arrange/Update 摆放；`ScrollViewer` 不在 Arrange 重测内容。
+- **UIA · CFG 崩溃修复**：minidump 确认为 `c0000409` + `Subcode 0xA FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`，不是 Stack Cookie/TDR。`UiaContexts` 改为共享 context，UIA context/provider 缓存统一递归锁；provider 不再保存裸 context；`ReleaseAccessibility`/`ForgetAccessibleElement` 与回调串行化；通知路径保证 provider 存活。用 100 轮 UIA 树遍历 + 300 次 `ElementFromPoint` 压力查询验证。
+- **Expander**：初始折叠也测量一次 content；展开状态内容始终在 `childrenView_`，折叠再展开不再丢失；动画不再每帧 `SetHeight`/重复失效；内容裁剪至少留 4px bleed；修复首次展开文字偏右/下拉控件被裁。
+- **ToggleSwitch**：点击改为松开时切换；按住左右拖动使 knob 跟随鼠标，按拖动进度切换；鼠标捕获；默认动画时长 0.18s。
+- **Slider**：新增 `GetDisplayValue()`；普通拖动立即跟手，点击轨道和吸附才缓动到目标；保留 UIA RangeValue。
+- **Demo**：布局压力测试页修复 Grid 高度/输入行宽度/标签折行；新增“全控件总览”页；HwndView 页内浮窗默认隐藏并可开关。
+- **文档**：API 中英文同步（Grid/Expander/ToggleSwitch/Slider、UIA）；README 版本历史与功能说明；AGENTS 增加布局/UIA/动画/崩溃码事故教训。
+- **验证**：x64 Release 构建通过；ZufyUI 自检 **280** 项通过；UIA 压力查询通过。
 
 ### 2026-10-25 — Drawer 侧边抽屉、临时键处理器、信号测试（v1.25.0）
 

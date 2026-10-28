@@ -353,6 +353,9 @@ namespace ZufyUI {
         Size MeasureOverride(const Size& availableSize) override {
             float padW = padding_.left + padding_.right;
             float padH = padding_.top + padding_.bottom;
+            // 显式宽度就是文本的换行宽度。不能只看 availableSize：Row/Column 的交叉轴
+            // 可能传 FLT_MAX，而 Label 自己 SetWidth(300) 时仍必须按 300 折行。
+            const float layoutW = width_ > 0.0f ? width_ : availableSize.width;
 
             // 图标尺寸（图片优先；否则用字体字形图标）
             float iw = 0, ih = 0;
@@ -377,11 +380,11 @@ namespace ZufyUI {
                 IDWriteFactory* factory = FontManager::Instance().GetFactory();
                 IDWriteTextFormat* fmt = GetFontFormat();
                 if (factory && fmt) {
-                    if (overflow_ == TextOverflow::Wrap && availableSize.width != FLT_MAX && availableSize.width > 0) {
+                    if (overflow_ == TextOverflow::Wrap && layoutW != FLT_MAX && layoutW > 0) {
                         float childrenW = 0.0f;   // 换行宽度也要扣掉内联子控件（否则文本挤到子控件下面/溢出）
                         for (auto& c : children_) { if (c) childrenW += c->Measure(Size(FLT_MAX, FLT_MAX)).width; }
                         if (!children_.empty()) childrenW += iconSpacing_ * (float)children_.size();
-                        float availW = max(0.0f, availableSize.width - padW - (iw > 0 ? iw + iconSpacing_ : 0.0f) - childrenW);
+                        float availW = max(0.0f, layoutW - padW - (iw > 0 ? iw + iconSpacing_ : 0.0f) - childrenW);
                         // 走全局布局缓存（wrap）；测量只取 metrics，装饰保持旧行为（不加行距/多行）
                         ComPtr<IDWriteTextLayout> tempLayout = FontManager::Instance().GetStyledLayout(
                             text_, fmt, availW, 10000.0f, false, (int)hAlign_, (int)vAlign_, 0.0f, 0);
@@ -424,8 +427,11 @@ namespace ZufyUI {
             measuredIconW_ = iw; measuredIconH_ = ih;
             measuredTextW_ = textW; measuredTextH_ = textH;
 
-            return Size(padW + iw + gapIconText + textW + gapTextChild + cw,
-                padH + max(max(ih, textH), ch));
+            Size out(padW + iw + gapIconText + textW + gapTextChild + cw,
+                     padH + max(max(ih, textH), ch));
+            if (width_ > 0.0f) out.width = width_;
+            if (height_ > 0.0f) out.height = height_;
+            return out;
         }
 
         void ArrangeOverride(const Rect& finalRect) override {
@@ -863,12 +869,16 @@ namespace ZufyUI {
         Size MeasureOverride(const Size& availableSize) override {
             float w = width_, h = height_;
             float reserve = dropMenu_ ? dropArrowWidth_ : 0.0f;
-            if (autoSizeToText_) {
-                UIElement* c = content_ ? content_.get() : label_.get();
-                if (c) {
-                    Size ls = c->Measure(Size(FLT_MAX, h > 0.0f ? h : DefaultHeight));
+            UIElement* c = content_ ? content_.get() : label_.get();
+            if (c) {
+                // 内容无论是否自动加宽都必须先测量；否则 SetAutoSizeToText(false) + SetContent(...)
+                // 的富内容按钮从未被测量，Arrange 时子元素全按 0 尺寸摆 → 按钮只剩蓝底。
+                const float childW = autoSizeToText_ ? FLT_MAX
+                    : max(0.0f, w - padding_ * 2.0f - reserve);
+                Size ls = c->Measure(Size(childW, h > 0.0f ? h : DefaultHeight));
+                if (autoSizeToText_) {
                     float need = ls.width + padding_ * 2.0f + reserve;
-                    if (need > w) w = need;               // 放得下就不该省略
+                    if (need > w) w = need;               // 放得下就不省略
                 }
             }
             return Size(w, h);
@@ -2930,7 +2940,7 @@ namespace ZufyUI {
         void AccessibilityToggle() override { SetOn(!IsOn()); }
         float DebugAnimationProgress() const override { return toggleProgress_; }
         inline static float DefaultAnimationSpeed = 9.6f;
-        inline static float DefaultAnimationDuration = 0.25f;   // 一次完整开关动画时长（秒）
+        inline static float DefaultAnimationDuration = 0.18f;   // 一次完整开关动画时长（秒）
         inline static Color DefaultOnColor = Color::FromArgb(255, 0, 120, 212);
         inline static Color DefaultOffColor = Color::FromArgb(255, 200, 200, 200);
         inline static Color DefaultKnobColor = Color::FromArgb(255, 255, 255, 255);
@@ -3035,11 +3045,13 @@ namespace ZufyUI {
             //   之前用指数收敛，要爬到阈值以下约需 6.2τ ≈ 0.65s，期间每帧重绘 → 用户反馈"开关好卡"。
             const float dur = AnimDuration();
             const float target = indeterminate_ ? 0.5f : (isOn_ ? 1.0f : 0.0f);
-            if (animT_ < dur) {
-                animT_ = min(dur, animT_ + deltaTime);
-                toggleProgress_ = animFrom_ + (target - animFrom_) * detail::EaseInOutCubic(animT_ / dur);
+            if (!pressed_) {
+                if (animT_ < dur) {
+                    animT_ = min(dur, animT_ + deltaTime);
+                    toggleProgress_ = animFrom_ + (target - animFrom_) * detail::EaseInOutCubic(animT_ / dur);
+                }
+                else toggleProgress_ = target;
             }
-            else toggleProgress_ = target;
             const float hoverTarget = hovered_ ? 1.0f : 0.0f;
             if (hoverT_ < dur) {
                 hoverT_ = min(dur, hoverT_ + deltaTime);
@@ -3062,10 +3074,52 @@ namespace ZufyUI {
         void OnMouseDown(float x, float y) override {
             if (!IsEffectivelyEnabled()) return;
             indeterminate_ = false;
-            isOn_ = !isOn_; animFrom_ = toggleProgress_; animT_ = 0.0f;   // 点击也要走动画（原来直接翻转 → 瞬变）
-            Toggled(isOn_);
+            pressed_ = true;
+            dragMoved_ = false;
+            dragStartX_ = x;
+            dragStartProgress_ = toggleProgress_;
+            animT_ = AnimDuration();   // 按住时冻结当前视觉，松开后再决定切换/吸附
+            if (Window* w = GetWindow()) w->RequestElementCapture(this);
+            else UIZSignals::ElementCaptureRequest(GetWindow(), this);
             RequestRepaint();
             MouseDown.Fire(x, y);
+        }
+        void OnMouseMove(float x, float y) override {
+            if (pressed_) {
+                const float dx = x - dragStartX_;
+                if (!dragMoved_ && fabs(dx) > 2.0f) dragMoved_ = true;
+                if (dragMoved_) {
+                    const float knob = max(1.0f, trackRect_.height - 4.0f);
+                    const float movable = max(1.0f, trackRect_.width - 4.0f - knob);
+                    toggleProgress_ = clamp(dragStartProgress_ + dx / movable, 0.0f, 1.0f);
+                    RequestRepaint();
+                }
+            }
+            MouseMove.Fire(x, y);
+        }
+        void OnMouseUp(float x, float y) override {
+            if (!pressed_) return;
+            pressed_ = false;
+            if (Window* w = GetWindow()) w->ReleaseElementCapture(this);
+            else UIZSignals::ElementCaptureRelease(GetWindow(), this);
+
+            if (dragMoved_) {
+                const bool wantOn = toggleProgress_ >= 0.5f;
+                const bool changed = (wantOn != isOn_);
+                isOn_ = wantOn;
+                animFrom_ = toggleProgress_;
+                animT_ = 0.0f;
+                if (changed) {
+                    Toggled(isOn_);
+                    AccessibilityNotifyPropertyChanged();
+                }
+            }
+            else {
+                SetOn(!isOn_);
+            }
+            dragMoved_ = false;
+            RequestRepaint();
+            MouseUp.Fire(x, y);
         }
         bool IsFocusable() const override { return true; }
         void OnKeyDown(WPARAM key, LPARAM lParam) override {
@@ -3083,6 +3137,8 @@ namespace ZufyUI {
 
     private:
         bool isOn_, hovered_;
+        bool pressed_ = false, dragMoved_ = false;
+        float dragStartX_ = 0.0f, dragStartProgress_ = 0.0f;
         float hoverProgress_, toggleProgress_;
         Color onColor_, offColor_, knobColor_;
         float animSpeed_;
@@ -3475,14 +3531,28 @@ namespace ZufyUI {
 
         // ---------- UIElement 重写 ----------
         Size MeasureOverride(const Size& availableSize) override {
-            if (!content_) return Size(0, 0);
             float hostW = (width_ > 0) ? width_ : ((availableSize.width != FLT_MAX) ? availableSize.width : max(minWidth_, 0.0f));
             float hostH = (height_ > 0) ? height_ : ((availableSize.height != FLT_MAX) ? availableSize.height : max(minHeight_, 0.0f));
+            if (!content_) {
+                showVerticalScrollBar_ = false;
+                showHorizontalScrollBar_ = false;
+                return Size(hostW, hostH);
+            }
             // 内容按“视口宽度”测量（不是 FLT_MAX）：FillWidth / 自动换行内容才能得到正确宽高。
             // 行内容（RowBox 等）不理会可用宽度 → 仍返回自然宽度 → 横向滚动照常出现。
             Thickness cm = EffectiveContentMargin();
             float availW = max(0.0f, hostW - cm.left - cm.right);
+            float availH = max(0.0f, hostH - cm.top - cm.bottom);
             contentDesiredSize_ = content_->Measure(Size(availW, FLT_MAX));
+            UpdateScrollBarVisibility(availW, availH);
+            // 竖直滚动条出现后内容宽度变窄，换行内容必须按新宽度重新测量；
+            // 这是 Measure 阶段的工作，Arrange 只使用这里缓存的结果。
+            if (showVerticalScrollBar_) {
+                float narrowedW = max(0.0f, availW - scrollBarWidth_);
+                if (narrowedW != availW)
+                    contentDesiredSize_ = content_->Measure(Size(narrowedW, FLT_MAX));
+            }
+            UpdateScrollBarVisibility(availW, availH);
             return Size(hostW, hostH);
         }
 
@@ -3492,31 +3562,17 @@ namespace ZufyUI {
             if (!content_) return;
 
             Thickness cm = EffectiveContentMargin();
-            showVerticalScrollBar_ = false;
-            showHorizontalScrollBar_ = false;
-
-            // 第一遍：按“无竖直滚动条”的宽度量内容（高度不约束）→ 才能知道内容是否更高
-            float fullAvailW = max(0.0f, finalRect.width - cm.left - cm.right);
-            contentDesiredSize_ = content_->Measure(Size(fullAvailW, FLT_MAX));
-
-            bool wantV = (vVisibility_ == ScrollBarVisibility::Always) ||
-                (allowVerticalScroll_ && contentDesiredSize_.height > max(0.0f, finalRect.height - cm.top - cm.bottom));
-            if (wantV) showVerticalScrollBar_ = true;
-            float availW = max(0.0f, fullAvailW - (showVerticalScrollBar_ ? scrollBarWidth_ : 0.0f));
-            // 第二遍：出现竖直滚动条后可用宽度变小 → 按新宽度重量（换行内容高度会随之变化）
-            if (showVerticalScrollBar_ && availW != fullAvailW)
-                contentDesiredSize_ = content_->Measure(Size(availW, FLT_MAX));
-
-            float viewportWidth0 = finalRect.width - (showVerticalScrollBar_ ? scrollBarWidth_ : 0.0f);
-            bool wantH = (hVisibility_ == ScrollBarVisibility::Always) ||
-                (allowHorizontalScroll_ && contentDesiredSize_.width > max(0.0f, viewportWidth0 - cm.left - cm.right));
-            if (wantH) showHorizontalScrollBar_ = true;
+            float availW = max(0.0f, finalRect.width - cm.left - cm.right);
+            float availH = max(0.0f, finalRect.height - cm.top - cm.bottom);
+            // 不在 Arrange 里重测子树：滚动条可见性由 Measure 缓存的内容尺寸推导。
+            UpdateScrollBarVisibility(availW, availH);
 
             float viewportWidth = finalRect.width - (showVerticalScrollBar_ ? scrollBarWidth_ : 0.0f);
             float viewportHeight = finalRect.height - (showHorizontalScrollBar_ ? scrollBarWidth_ : 0.0f);
-            float availH = max(0.0f, viewportHeight - cm.top - cm.bottom);
-            float contentWidth = max(contentDesiredSize_.width, availW);
-            float contentHeight = max(contentDesiredSize_.height, availH);
+            float layoutW = max(0.0f, viewportWidth - cm.left - cm.right);
+            float layoutH = max(0.0f, viewportHeight - cm.top - cm.bottom);
+            float contentWidth = max(contentDesiredSize_.width, layoutW);
+            float contentHeight = max(contentDesiredSize_.height, layoutH);
 
             maxScrollX_ = max(0.0f, contentWidth + cm.left + cm.right - viewportWidth);
             maxScrollY_ = max(0.0f, contentHeight + cm.top + cm.bottom - viewportHeight);
@@ -3776,19 +3832,17 @@ namespace ZufyUI {
         }
 
         void UpdateScrollBarVisibility(float availWidth, float availHeight) {
-            showVerticalScrollBar_ = false;
-            showHorizontalScrollBar_ = false;
-            if (!content_) return;
-            float viewportWidth = availWidth - scrollBarWidth_;
-            float viewportHeight = availHeight - scrollBarWidth_;
-            bool wantV = (vVisibility_ == ScrollBarVisibility::Always) ? true
-                : (allowVerticalScroll_ && contentDesiredSize_.height > viewportHeight);
-            bool wantH = (hVisibility_ == ScrollBarVisibility::Always) ? true
-                : (allowHorizontalScroll_ && contentDesiredSize_.width > viewportWidth);
-            if (wantV) { showVerticalScrollBar_ = true; viewportWidth = availWidth - scrollBarWidth_; }
-            if (wantH) { showHorizontalScrollBar_ = true; viewportHeight = availHeight - scrollBarWidth_; }
-            if (!wantV && allowVerticalScroll_ && contentDesiredSize_.height > viewportHeight) showVerticalScrollBar_ = true;
-            if (!wantH && allowHorizontalScroll_ && contentDesiredSize_.width > viewportWidth) showHorizontalScrollBar_ = true;
+            showVerticalScrollBar_ = (vVisibility_ == ScrollBarVisibility::Always) ||
+                (allowVerticalScroll_ && contentDesiredSize_.height > availHeight);
+            const float widthAfterV = max(0.0f, availWidth - (showVerticalScrollBar_ ? scrollBarWidth_ : 0.0f));
+            showHorizontalScrollBar_ = (hVisibility_ == ScrollBarVisibility::Always) ||
+                (allowHorizontalScroll_ && contentDesiredSize_.width > widthAfterV);
+            // 横向滚动条也会吃掉高度；两者同时出现时要再确认竖直条仍需要。
+            if (showHorizontalScrollBar_ && !showVerticalScrollBar_) {
+                const float heightAfterH = max(0.0f, availHeight - scrollBarWidth_);
+                showVerticalScrollBar_ = (vVisibility_ == ScrollBarVisibility::Always) ||
+                    (allowVerticalScroll_ && contentDesiredSize_.height > heightAfterH);
+            }
         }
 
         // 成员变量
@@ -4080,6 +4134,7 @@ namespace ZufyUI {
         void SetSnapToStep(bool snap) { snapToStep_ = snap; }
         bool IsSnapToStep() const { return snapToStep_; }
         float GetValue() const { return value_; }
+        float GetDisplayValue() const { return displayValue_; }
         void SetTrackColor(Color color) { MarkUserColor(); trackColor_ = color.ToD2D(); trackBrush_.Reset(); RequestRepaint(); }
         void SetFillColor(Color color) { MarkUserColor(); fillColor_ = color.ToD2D(); fillBrush_.Reset(); RequestRepaint(); }
         void SetThumbColor(Color color) { thumbColor_ = color.ToD2D(); thumbBrush_.Reset(); RequestRepaint(); }
@@ -4183,12 +4238,16 @@ namespace ZufyUI {
         void OnMouseDown(float x, float y) override {
             if (!IsEffectivelyEnabled()) return;
             isDragging_ = true;
-            UpdateValueFromMouse(x);
+            UpdateValueFromMouse(x, false);   // 点击轨道：缓动到目标值
             RequestRepaint();
             MouseDown.Fire(x, y);
         }
         void OnMouseMove(float x, float y) override {
-            if (isDragging_) { UpdateValueFromMouse(x); RequestRepaint(); }
+            if (isDragging_) {
+                // 正常拖动必须跟手；只有开启吸附时才让显示值缓动到吸附点。
+                UpdateValueFromMouse(x, !snapToStep_);
+                RequestRepaint();
+            }
             MouseMove.Fire(x, y);
         }
         void OnMouseUp(float x, float y) override {
@@ -4216,7 +4275,7 @@ namespace ZufyUI {
         }
 
     private:
-        void UpdateValueFromMouse(float mouseX) {
+        void UpdateValueFromMouse(float mouseX, bool immediate) {
             if (arrangedRect_.width <= 0.0f) return;   // 防 0/0 → NaN → 静默把值设成 min/max
             float ratio = clamp((mouseX - arrangedRect_.x) / arrangedRect_.width, 0.0f, 1.0f);
             float newValue = SnapValue(min_ + (max_ - min_) * ratio);
@@ -4224,6 +4283,7 @@ namespace ZufyUI {
                 value_ = newValue;
                 ValueChanged(value_);
             }
+            if (immediate) displayValue_ = value_;   // 非吸附拖动直接跟手，不经过 UpdateAnimation 追赶
         }
         float SnapValue(float v) const {
             if (!snapToStep_ || step_ <= 0.0f) return clamp(v, min_, max_);
@@ -4772,7 +4832,12 @@ namespace ZufyUI {
 
         // ---- UIElement / 容器 ----
         Size MeasureOverride(const Size& availableSize) override {
-            return layout_ ? layout_->Measure(availableSize) : Size(0, 0);
+            if (!layout_) return Size(width_ > 0.0f ? width_ : 0.0f, height_ > 0.0f ? height_ : 0.0f);
+            const Size child = layout_->Measure(Size(
+                width_ > 0.0f ? width_ : availableSize.width,
+                height_ > 0.0f ? height_ : availableSize.height));
+            return Size(width_ > 0.0f ? width_ : child.width,
+                        height_ > 0.0f ? height_ : child.height);
         }
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
@@ -5072,6 +5137,7 @@ namespace ZufyUI {
         Size MeasureOverride(const Size& availableSize) override {
             float w = width_ > 0 ? width_ : (availableSize.width != FLT_MAX ? availableSize.width : max(minWidth_, 0.0f));
             float h = height_ > 0 ? height_ : (availableSize.height != FLT_MAX ? availableSize.height : max(minHeight_, 0.0f));
+            MeasureTabWidths();
             if (contentHost_) contentHost_->Measure(Size(max(0.0f, w), max(0.0f, h - tabHeight_)));
             return Size(w, h);
         }
@@ -5084,6 +5150,7 @@ namespace ZufyUI {
             contentRect_ = Rect(finalRect.x, finalRect.y + tabHeight_ + band, finalRect.width,
                 max(0.0f, finalRect.height - tabHeight_ - band));
             if (contentHost_) contentHost_->Arrange(contentRect_);
+            ArrangeTabLabels();
         }
 
         void Draw(ID2D1RenderTarget* rt) override {
@@ -5136,7 +5203,6 @@ namespace ZufyUI {
                         D2D1_COLOR_F wc = want.ToD2D(), hc = tabs_[i].label->GetTextColor().ToD2D();
                         if (wc.r != hc.r || wc.g != hc.g || wc.b != hc.b || wc.a != hc.a)
                             tabs_[i].label->SetTextColor(want);
-                        tabs_[i].label->Arrange(Rect((float)r.left + tabTextPad_, (float)r.top, innerW, tabHeight_));
                         tabs_[i].label->Draw(rt);
                     }
                 }
@@ -5358,6 +5424,7 @@ namespace ZufyUI {
                 }
             }
             if (hBar_) hBar_->UpdateAnimation(deltaTime);
+            ArrangeTabLabels();   // 页签位置在动画中变化；标签布局放更新阶段，不放在 Draw
             if (contentHost_) contentHost_->UpdateAnimation(deltaTime);
         }
         bool HasActiveAnimation() const override {
@@ -5371,14 +5438,28 @@ namespace ZufyUI {
         }
 
     private:
-        float TabTextWidth(int i) const {
-            if (i < 0 || i >= (int)tabs_.size() || !tabs_[i].label) return 0.0f;
-            return tabs_[i].label->Measure(Size(FLT_MAX, 10000.0f)).width;
+        void MeasureTabWidths() {
+            tabTextWidths_.assign(tabs_.size(), 0.0f);
+            for (int i = 0; i < (int)tabs_.size(); ++i) {
+                if (tabs_[i].label)
+                    tabTextWidths_[i] = tabs_[i].label->Measure(Size(FLT_MAX, 10000.0f)).width;
+            }
         }
         float TabWidth(int i) const {
-            float w = TabTextWidth(i) + tabTextPad_ * 2.0f;
+            float textW = (i >= 0 && i < (int)tabTextWidths_.size()) ? tabTextWidths_[i] : 0.0f;
+            float w = textW + tabTextPad_ * 2.0f;
             if (i >= 0 && i < (int)tabs_.size() && tabs_[i].closable) w += closeBox_ + 6.0f;
             return max(w, tabMinWidth_);
+        }
+        void ArrangeTabLabels() {
+            for (int i = 0; i < (int)tabs_.size(); ++i) {
+                if (!tabs_[i].label) continue;
+                D2D1_RECT_F r = TabRect(i);
+                float innerW = (r.right - r.left) - tabTextPad_ * 2.0f;
+                if (tabs_[i].closable) innerW -= (closeBox_ + 6.0f);
+                if (innerW > 0.0f)
+                    tabs_[i].label->Arrange(Rect((float)r.left + tabTextPad_, (float)r.top, innerW, tabHeight_));
+            }
         }
         void LayoutStrip() {
             if (arrangedRect_.width <= 0.0f || arrangedRect_.height <= 0.0f) { tabWidths_.clear(); tabTargetX_.clear(); return; }
@@ -5464,6 +5545,7 @@ namespace ZufyUI {
         std::shared_ptr<ScrollBar> hBar_;         // 底部横向滚动条（复用 ScrollBar 子类）
         int selectedIndex_ = -1;
         Rect contentRect_{};
+        std::vector<float> tabTextWidths_;
         std::vector<float> tabWidths_;
         std::vector<float> tabTargetX_;
         float stripTotalWidth_ = 0.0f, stripScroll_ = 0.0f, stripScrollTarget_ = 0.0f;
@@ -8013,9 +8095,10 @@ namespace ZufyUI {
         void ClearRows() { rows_.clear(); hover_ = -1; InvalidateLayout(); RequestRepaint(); }
         int RowCount() const { return (int)rows_.size(); }
         Size MeasureOverride(const Size& avail) override {
-            float w = (avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width
-                    : (width_ > 0.0f ? width_ : DefaultWidth);
-            return Size(w, (float)rows_.size() * RowHeight);
+            float w = (width_ > 0.0f) ? width_
+                    : ((avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width : DefaultWidth);
+            float h = (height_ > 0.0f) ? height_ : (float)rows_.size() * RowHeight;
+            return Size(w, h);
         }
         void Draw(ID2D1RenderTarget* rt) override {
             const Rect& r = arrangedRect_;
@@ -8300,6 +8383,7 @@ namespace ZufyUI {
         void SetContent(std::shared_ptr<UIElement> c) {
             if (content_) content_->SetParent(nullptr);
             content_ = std::move(c);
+            contentH_ = 0.0f;
             if (content_) { content_->SetParent(this); content_->SetVisible(expanded_); }
             InvalidateLayout(); RequestRepaint();
         }
@@ -8310,15 +8394,22 @@ namespace ZufyUI {
             expanded_ = on;
             if (header_) { header_->expanded = on; header_->RequestRepaint(); }
             if (content_ && on) content_->SetVisible(true);
+            MarkChildrenDirty();
             InvalidateLayout(); RequestRepaint(); ExpandedChanged(on);
         }
         void Toggle() { SetExpanded(!expanded_); }
         Size MeasureOverride(const Size& avail) override {
-            float w = (avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width : width_;
+            float w = (width_ > 0.0f) ? width_
+                    : ((avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width : 0.0f);
             if (header_) header_->Measure(Size(w, HeaderHeight));
-            contentH_ = 0.0f;
-            if (content_) { Size cs = content_->Measure(Size(max(1.0f, w - Pad * 2), FLT_MAX)); contentH_ = cs.height; }
+            // 折叠状态首次也要测量一次内容：否则内容子树从未测量，首次展开时 Label/Button
+            // 可能先拿旧尺寸绘制，出现文字偏右/下拉框被裁，直到窗口 resize 才恢复。
+            if (content_ && (content_->IsVisible() || contentH_ <= 0.0f)) {
+                Size cs = content_->Measure(Size(max(1.0f, w - Pad * 2), FLT_MAX));
+                contentH_ = cs.height;
+            }
             float h = HeaderHeight + expandProg_ * (contentH_ > 0.0f ? contentH_ + Pad * 2 : 0.0f);
+            if (height_ > 0.0f) h = height_;
             return Size(w, h);
         }
         void ArrangeOverride(const Rect& r) override {
@@ -8327,11 +8418,17 @@ namespace ZufyUI {
             if (!content_) return;
             // 内容始终按“完全展开高度”布置，只把可见区裁到 expandProg_（→ 高度动画是揭示，不是压扁）
             content_->Arrange(Rect(r.x + Pad, r.y + HeaderHeight + Pad, max(1.0f, r.width - Pad * 2), max(1.0f, contentH_)));
-            content_->SetClipRect(Rect(r.x + Pad, r.y + HeaderHeight + Pad, max(1.0f, r.width - Pad * 2), max(0.0f, expandProg_ * contentH_)));
+            const float bleed = max(4.0f, content_->GetBleed());
+            const float visibleH = expandProg_ * contentH_;
+            content_->SetClipRect(Rect(r.x + Pad - bleed, r.y + HeaderHeight + Pad - bleed,
+                max(1.0f, r.width - Pad * 2) + bleed * 2,
+                visibleH > 0.001f ? visibleH + bleed * 2 : 0.0f));
         }
         void RefreshChildren() override {
             if (!childrenDirty_) return; childrenDirty_ = false; childrenView_.clear();
-            if (content_ && expandProg_ > 0.001f) childrenView_.push_back(content_.get());
+            // 展开刚开始时 expandProg_ 还是 0，但内容必须立即回到 childrenView_，
+            // 否则 SetExpanded(true) 后再也没有 childrenDirty_，内容会永久不显示。
+            if (content_ && (expanded_ || expandProg_ > 0.001f)) childrenView_.push_back(content_.get());
             if (header_) childrenView_.push_back(header_.get());   // 标题最后 → 阴影盖在内容之上
         }
         const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
@@ -8350,10 +8447,11 @@ namespace ZufyUI {
                 if (animT_ < 0.0f) animT_ = 0.0f; if (animT_ > 1.0f) animT_ = 1.0f;
                 expandProg_ = animT_ * animT_ * (3.0f - 2.0f * animT_);   // smoothstep 缓入缓出（与页面切换一致）
                 if (header_) { header_->rotProg = expandProg_; header_->RequestRepaint(); }   // 箭头随折叠缓动旋转（子元素缓存在动画帧要主动失效）
-                SetHeight(HeaderHeight + expandProg_ * (contentH_ + Pad * 2));   // 显式高度 → 父布局必然收拢/推开后续元素
-                InvalidateLayout(); RequestRepaint();
+                InvalidateLayout();
+                RequestRepaint();
             } else if (!expanded_ && content_ && content_->IsVisible()) {
                 content_->SetVisible(false);   // 收拢完成 → 隐藏内容
+                MarkChildrenDirty();
             }
             if (header_) header_->UpdateAnimation(dt);
             if (content_) content_->UpdateAnimation(dt);

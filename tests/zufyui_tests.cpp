@@ -937,6 +937,28 @@ public:
     void Draw(ID2D1RenderTarget*) override {}
 };
 
+class MeasureProbe : public UIElement {
+public:
+    float lastWidth = -1.0f;
+    float lastHeight = -1.0f;
+    Size MeasureOverride(const Size& availableSize) override {
+        lastWidth = availableSize.width;
+        lastHeight = availableSize.height;
+        return Size(10.0f, 10.0f);
+    }
+    void Draw(ID2D1RenderTarget*) override {}
+};
+
+class ResponsiveProbe : public UIElement {
+public:
+    Size MeasureOverride(const Size& availableSize) override {
+        float h = (availableSize.height != FLT_MAX && availableSize.height > 0.0f)
+            ? min(availableSize.height, 200.0f) : 200.0f;
+        return Size(20.0f, h);
+    }
+    void Draw(ID2D1RenderTarget*) override {}
+};
+
 static void test_layout_rfc() {
     std::printf("布局 RFC：轨道 / 对齐 / justify\n");
 
@@ -1118,6 +1140,258 @@ static void test_layout_rfc() {
     {
         Label label;
         CHECK(label.GetText().empty());
+    }
+
+    // Label 的显式宽度也必须参与 Wrap 折行（Row/Column 交叉轴可能传 FLT_MAX）
+    {
+        Label label(L"这是一个必须按显式宽度换行的长文本，不能只在父级给有限宽度时才折行。");
+        label.SetTextOverflow(Label::TextOverflow::Wrap);
+        label.SetWidth(220.0f);
+        const Size s = label.Measure(Size(FLT_MAX, FLT_MAX));
+        CHECK(fabs(s.width - 220.0f) < 0.01f);
+        CHECK(s.height > 30.0f);
+    }
+
+    // 富内容按钮不开 autoSize 时也必须先测量内容，否则子元素尺寸为 0
+    {
+        Button button;
+        button.SetAutoSizeToText(false);
+        button.SetWidth(190.0f);
+        auto rich = std::make_shared<RowBox>();
+        auto badge = std::make_shared<Label>(L"富文本");
+        rich->AddChild(badge);
+        button.SetContent(rich);
+        button.Measure(Size(300.0f, 36.0f));
+        button.Arrange(Rect(0, 0, 190.0f, 36.0f));
+        CHECK(badge->GetArrangedRect().width > 1.0f);
+    }
+
+    // 有界 Row/Column 必须把有限主轴尺寸传给 Fill 子元素
+    {
+        RowBox row;
+        auto rowChild = std::make_shared<MeasureProbe>();
+        rowChild->SetFillWidth(true);
+        row.AddChild(rowChild);
+        row.Measure(Size(300.0f, 100.0f));
+        CHECK(fabs(rowChild->lastWidth - 300.0f) < 0.01f);
+
+        ColumnBox col;
+        auto colChild = std::make_shared<MeasureProbe>();
+        colChild->SetFillHeight(true);
+        col.AddChild(colChild);
+        col.Measure(Size(300.0f, 100.0f));
+        CHECK(fabs(colChild->lastHeight - 100.0f) < 0.01f);
+    }
+
+    // PageHost 放在 Row 里时，必须用剩余宽度测量页面；否则 Wrap 文本会按极窄宽度折行
+    {
+        RowBox row;
+        auto host = std::make_shared<PageHost>();
+        auto page = std::make_shared<Page>();
+        auto text = std::make_shared<Label>(L"这是一个很长很长的段落，用来检查 PageHost 在 Row 中是否拿到有限宽度，而不是按最小宽度把每个字都拆成一行。");
+        text->SetTextOverflow(Label::TextOverflow::Wrap);
+        page->SetContent(text);
+        host->AddPage(page);
+        row.AddChild(host);
+        row.Measure(Size(800.0f, 600.0f));
+        CHECK(text->GetDesiredSize().height < 100.0f);
+        row.Arrange(Rect(0, 0, 800.0f, 600.0f));
+        CHECK(host->GetArrangedRect().width > 700.0f);
+        CHECK(text->GetArrangedRect().width > 700.0f);
+
+        ColumnBox col;
+        auto host2 = std::make_shared<PageHost>();
+        auto page2 = std::make_shared<Page>();
+        auto text2 = std::make_shared<Label>(L"这是另一个很长很长的段落，用来检查 PageHost 在 Column 中是否拿到有限高度。");
+        text2->SetTextOverflow(Label::TextOverflow::Wrap);
+        page2->SetContent(text2);
+        host2->AddPage(page2);
+        col.AddChild(host2);
+        col.Measure(Size(600.0f, 500.0f));
+        CHECK(text2->GetDesiredSize().height < 100.0f);
+        col.Arrange(Rect(0, 0, 600.0f, 500.0f));
+        CHECK(host2->GetArrangedRect().height > 400.0f);
+    }
+
+    // 空 Grid 也必须尊重显式宽高（不能因为没有子元素就塌成 0）
+    {
+        GridLayout grid;
+        grid.SetWidth(123.0f);
+        grid.SetHeight(45.0f);
+        const Size s = grid.Measure(Size(300.0f, 300.0f));
+        CHECK(fabs(s.width - 123.0f) < 0.01f);
+        CHECK(fabs(s.height - 45.0f) < 0.01f);
+    }
+
+    // Grid 显式高度必须作为 cell 测量范围，不能“返回 100、子项按 200 排”
+    {
+        GridLayout grid;
+        grid.SetHeight(100.0f);
+        auto child = std::make_shared<ResponsiveProbe>();
+        grid.AddChild(child, 0, 0);
+        const Size s = grid.Measure(Size(200.0f, 600.0f));
+        CHECK(fabs(s.height - 100.0f) < 0.01f);
+        grid.Arrange(Rect(0, 0, 200.0f, 100.0f));
+        CHECK(child->GetArrangedRect().height <= 100.01f);
+    }
+
+    // ScrollViewer：Arrange 不得重测内容（滚动条可见性在 Measure 已算好）
+    {
+        ScrollViewer sv;
+        auto content = std::make_shared<CountingElement>();
+        sv.SetContent(content);
+        sv.Measure(Size(200.0f, 100.0f));
+        const int before = content->measures;
+        sv.Arrange(Rect(0, 0, 200.0f, 100.0f));
+        CHECK(content->measures == before);
+    }
+
+    // 空内容容器也必须尊重显式尺寸
+    {
+        Card card;
+        card.SetWidth(120.0f);
+        card.SetHeight(80.0f);
+        const Size cs = card.Measure(Size(300.0f, 300.0f));
+        CHECK(fabs(cs.width - 120.0f) < 0.01f);
+        CHECK(fabs(cs.height - 80.0f) < 0.01f);
+
+        ScrollViewer sv;
+        sv.SetWidth(130.0f);
+        sv.SetHeight(90.0f);
+        const Size ss = sv.Measure(Size(300.0f, 300.0f));
+        CHECK(fabs(ss.width - 130.0f) < 0.01f);
+        CHECK(fabs(ss.height - 90.0f) < 0.01f);
+    }
+
+    // RadioGroup / SettingsList 的显式宽高必须进入 Measure
+    {
+        RadioGroup rg;
+        rg.AddItem(L"A");
+        rg.SetWidth(180.0f);
+        rg.SetHeight(90.0f);
+        const Size rs = rg.Measure(Size(400.0f, 300.0f));
+        CHECK(fabs(rs.width - 180.0f) < 0.01f);
+        CHECK(fabs(rs.height - 90.0f) < 0.01f);
+
+        SettingsList settings;
+        settings.SetWidth(170.0f);
+        settings.SetHeight(80.0f);
+        const Size ss = settings.Measure(Size(400.0f, 300.0f));
+        CHECK(fabs(ss.width - 170.0f) < 0.01f);
+        CHECK(fabs(ss.height - 80.0f) < 0.01f);
+    }
+
+    // TabView 的页签 Label 在 Arrange 阶段就完成布局，不能等 Draw 才摆
+    {
+        TabView tv;
+        tv.AddTab(L"Tab", nullptr);
+        tv.Measure(Size(300.0f, 200.0f));
+        tv.Arrange(Rect(0, 0, 300.0f, 200.0f));
+        auto label = tv.GetTabLabel(0);
+        CHECK(label && label->GetArrangedRect().width > 0.0f);
+    }
+
+    // 可关闭 Tab 的 × 命中区必须能触发 TabCloseRequested
+    {
+        TabView tv;
+        int closed = -1;
+        tv.TabCloseRequested.connect([&closed](int index) { closed = index; });
+        tv.AddTab(L"A", nullptr, true);
+        tv.Measure(Size(300.0f, 200.0f));
+        tv.Arrange(Rect(0, 0, 300.0f, 200.0f));
+        tv.OnMouseDown(42.0f, 17.0f);
+        CHECK(closed == 0);
+    }
+
+    // Expander 的显式宽高必须优先（动画期间 height_ 由折叠动画驱动）
+    {
+        Expander ex;
+        ex.SetWidth(150.0f);
+        ex.SetHeight(210.0f);
+        const Size s = ex.Measure(Size(300.0f, 300.0f));
+        CHECK(fabs(s.width - 150.0f) < 0.01f);
+        CHECK(fabs(s.height - 210.0f) < 0.01f);
+    }
+
+    // Expander 初始折叠时也要测量一次内容，避免首次展开使用未测量的子控件尺寸
+    {
+        Expander collapsed(L"Test");
+        auto content = std::make_shared<Label>(L"collapsed content");
+        content->SetHeight(60.0f);
+        collapsed.SetExpanded(false);
+        collapsed.SetContent(content);
+        for (int i = 0; i < 30; ++i) collapsed.UpdateAnimation(0.016f);
+        collapsed.Measure(Size(300.0f, FLT_MAX));
+        CHECK(content->GetDesiredSize().height > 0.0f);
+        CHECK(collapsed.GetDesiredSize().height < 100.0f);
+    }
+
+    // Expander 动画只改变动画进度，不再把当前高度写进用户 height_
+    {
+        Expander ex(L"Test");
+        auto content = std::make_shared<Label>(L"content");
+        content->SetHeight(80.0f);
+        ex.SetContent(content);
+        ex.Measure(Size(300.0f, FLT_MAX));
+        const float expandedH = ex.GetDesiredSize().height;
+        CHECK(expandedH > 80.0f);
+        CHECK(fabs(ex.GetHeight()) < 0.01f);
+
+        ex.SetExpanded(false);
+        for (int i = 0; i < 30; ++i) { ex.UpdateAnimation(0.016f); ex.Measure(Size(300.0f, FLT_MAX)); }
+        CHECK(ex.GetDesiredSize().height < expandedH);
+        CHECK(fabs(ex.GetHeight()) < 0.01f);
+
+        ex.SetExpanded(true);
+        for (int i = 0; i < 30; ++i) { ex.UpdateAnimation(0.016f); ex.Measure(Size(300.0f, FLT_MAX)); }
+        CHECK(fabs(ex.GetDesiredSize().height - expandedH) < 0.01f);
+        CHECK(fabs(ex.GetHeight()) < 0.01f);
+        ex.RefreshChildren();
+        bool hasContent = false;
+        for (UIElement* child : ex.GetChildren()) if (child == content.get()) hasContent = true;
+        CHECK(hasContent);
+    }
+
+    // ToggleSwitch：点击切换；拖动时 knob 跟随鼠标，松开按阈值切换
+    {
+        ToggleSwitch sw(false);
+        sw.SetSize(50.0f, 24.0f);
+        sw.Arrange(Rect(0, 0, 50.0f, 24.0f));
+        sw.OnMouseDown(10.0f, 12.0f);
+        sw.OnMouseUp(10.0f, 12.0f);
+        CHECK(sw.IsOn());
+
+        sw.OnMouseDown(40.0f, 12.0f);
+        sw.OnMouseMove(-20.0f, 12.0f);
+        sw.OnMouseUp(-20.0f, 12.0f);
+        CHECK(!sw.IsOn());
+    }
+
+    // Slider：普通拖动跟手；点击轨道缓动；开启吸附时缓动吸附
+    {
+        Slider s;
+        s.SetRange(0.0f, 100.0f);
+        s.SetWidth(100.0f);
+        s.Arrange(Rect(0, 0, 100.0f, 24.0f));
+        s.SetValue(20.0f);
+        for (int i = 0; i < 30; ++i) s.UpdateAnimation(1.0f / 60.0f);
+
+        s.OnMouseDown(50.0f, 12.0f);
+        CHECK(fabs(s.GetValue() - 50.0f) < 0.01f);
+        CHECK(fabs(s.GetDisplayValue() - 50.0f) > 0.1f);   // 点击不是瞬移
+        s.OnMouseMove(80.0f, 12.0f);
+        CHECK(fabs(s.GetValue() - 80.0f) < 0.01f);
+        CHECK(fabs(s.GetDisplayValue() - 80.0f) < 0.01f);  // 普通拖动跟手
+
+        Slider snapped;
+        snapped.SetRange(0.0f, 100.0f);
+        snapped.SetWidth(100.0f);
+        snapped.SetStep(25.0f);
+        snapped.SetSnapToStep(true);
+        snapped.Arrange(Rect(0, 0, 100.0f, 24.0f));
+        snapped.OnMouseDown(60.0f, 12.0f);
+        CHECK(fabs(snapped.GetValue() - 50.0f) < 0.01f);   // 吸附到 50
+        CHECK(fabs(snapped.GetDisplayValue() - 50.0f) > 0.1f);  // 吸附不是瞬移
     }
 
     // 显式 Card/Page 高度必须进入 Measure，不能只按内容高度排

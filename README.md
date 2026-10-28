@@ -131,7 +131,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 ### 布局
 
 - **三种布局容器**：`ColumnBox`（纵向）、`RowBox`（横向）、`GridLayout`（行列网格、跨行跨列、行列拉伸权值、对齐）。
-- **尺寸语义**：显式 `SetWidth/Height`、`min/max`、`SetFillWidth/SetFillHeight`、水平/垂直拉伸权值（分配剩余空间）、`margin` / `padding` / `spacing`。
+- **尺寸语义**：显式 `SetWidth/Height`、`min/max`、`SetFillWidth/SetFillHeight`、水平/垂直拉伸权值（分配剩余空间）、`margin` / `padding` / `spacing`；Grid 的显式宽高同时作为 cell 测量范围。
 - **溢出即滚动**：空间不足时**不压缩内容**，由外层 `ScrollViewer` 承担滚动（桌面 UI 语义）。
 - **动态布局**：`InvalidateLayout()` 冒泡、Measure / Arrange 脏标记、可见性变化自动重排；`LayoutParticipation` 可让元素不参与布局。
 - **容器控件**：`Card`（圆角/描边/悬停/可选阴影）、`LayoutHost`（单槽容器）、`Page`（`SetScrollableContent` 一行整页滚动）、`PageHost`（页面切换：四方向、三种缓动、可设时长；隐藏页缓存延迟释放）。
@@ -145,15 +145,15 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - **TextEdit**：多行编辑器 / 只读查看器、标准撤销/重做（还原选区与光标）、Tab 缩进、滚动、只读富文本 `TextRun`。
 - **ComboBox**：可编辑、过滤（`SetFilterEnabled`）、源索引与可见索引、最大可见项、禁用项、键盘导航、chevron 展开动画、懒连接全局 `DrawOverlay`。
 - **CheckBox / RadioButton / RadioGroup**：勾选、不确定态、标签、单选组、按钮样式。
-- **ToggleSwitch**：ease-in-out 缓动；鼠标、键盘、代码路径一致。
-- **Slider**：范围/步进/吸附、轨道/填充/滑块配色、拖拽、数值缓动、UIA `RangeValue`。
+- **ToggleSwitch**：点击在松开时切换；按住左右拖动时 knob 跟随鼠标，松开按拖动进度切换；ease-in-out 缓动（默认 0.18s），鼠标、键盘、代码路径一致。
+- **Slider**：范围/步进/吸附、轨道/填充/滑块配色、拖拽、UIA `RangeValue`；普通拖动跟手，点击/吸附才缓动；`GetDisplayValue()` 可读动画显示值。
 - **NumberBox**：范围/步进/小数位、非法文本错误态、滚轮调节、步进/清除按钮（按下即触发）、`ResetToDefault`。
 - **ProgressBar / ProgressRing**：确定/不确定进度、百分比文本、数值缓动、主题配色。
 - **ScrollViewer / ScrollBar**：横竖滚动、平滑滚动、滚动链（到边界把滚轮交还父级）、滚动条 `Auto/Visible/Hidden`、内容边距、两遍测量、空闲惰性缩窄。
 - **SplitView**：拖拽分栏、边缘阈值折叠/展开（覆盖提示 + 缓动）、折叠小按钮、最小极限。
 - **Drawer**：左/右/上/下四边；Overlay（圆角遮罩）/ Push（内容让位）/ Permanent（常驻）；面板圆角、边框、真实阴影；Esc/点外部关闭（`Window::AddKeyHandler`）。
 - **TabView**：页签可用任意 `Label`（含图标）、可关闭页签 + `TabCloseRequested`、指示条动画、内部 `PageHost` 转场。
-- **Expander**：可折叠卡片（标题/副标题/图标）、smoothstep 高度动画、箭头旋转、标题悬停高亮。
+- **Expander**：可折叠卡片（标题/副标题/图标）、smoothstep 高度动画、箭头旋转、标题悬停高亮；首次展开前也会预测量内容，折叠再展开不会丢失内容，内容裁剪带出血。
 - **SettingsList**：设置行列表（标题/说明/右侧控件）。
 - **MenuBar / StatusBar**：VS 风格顶部菜单栏、底部左右状态面板（图标 + 文本）。
 - **ToolTip / ContextMenu**：省略文本自动提示；元素级/窗口级右键菜单（固定或工厂现搭）。
@@ -211,7 +211,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 
 - **输入**：鼠标悬停/按下/捕获、滚轮、双击（数据视图/托盘）、键盘焦点、Tab / Shift+Tab 焦点导航、Enter/Space、Esc 关闭弹层、Shift 选区。
 - **文本**：UTF-16 代理对、IME 组合输入与候选框定位、失焦重置、剪贴板、撤销/重做、拖拽选择。
-- **UIA 无障碍**：`AutomationId`（自动/显式，每窗口唯一）、按角色暴露 Pattern、`ElementProviderFromPoint` 先子后父、`RangeValue` 等。
+- **UIA 无障碍**：`AutomationId`（自动/显式，每窗口唯一）、按角色暴露 Pattern、`ElementProviderFromPoint` 先子后父、`RangeValue` 等；provider 缓存/context 生命周期与 COM 回调线程同步。
 - **调试/自动化通道**：`SetDebugEnabled`、命令 1~23（窗口/元素树/文本/焦点/高亮/统计/主题）、统一日志、`UIZSignals::Error`、配套 `ZufyUIDebugger`。
 
 ### 动画
@@ -239,7 +239,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - Visual Studio 解决方案/工程；任意工具集，C++20；支持 x64 / x86。
 - `tools/build.ps1`（补 BOM → 构建 demo + Debugger → 跑自检）、`ensure_bom.ps1`、`run_tests.ps1`、`check_api_parity.py`、`colorscan.py`。
 - `ZufyUIDebugger`：进程外调试器（UIA + 调试通道）。
-- `ZufyUI.cpp`：23 页综合 demo（布局/控件/数据视图/图表/主题/多窗口/原生 HWND/进程外生产者/DSL…），兼作冒烟测试。
+- `ZufyUI.cpp`：26 页综合 demo（布局/控件/数据视图/图表/主题/多窗口/原生 HWND/进程外生产者/DSL/全控件总览…），兼作冒烟测试。
 - 双语文档 23 章 + 易错点总表 + 完整 CHANGELOG。
 
 </details>
@@ -336,9 +336,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.25.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.26.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.26.0**：布局测量契约（Grid/Row/Column/Card/Page/ScrollViewer、显式尺寸与 Fill）；ToggleSwitch 拖动切换；Slider 拖动跟手/吸附缓动；Expander 首次展开与折叠再展开修复；UIA provider 生命周期/CFG 崩溃修复；全控件总览页与 280 项自检。
 - **1.25.0**：`Drawer` 侧边抽屉（Overlay / Push / Permanent、四边、圆角遮罩、面板阴影、Esc）；`Window::AddKeyHandler`；信号专项测试与测试改名；`ScrollViewer` 出血跟随内容 bleed。
 - **1.24.0**：信号生命周期（原子存活、队列任务取消、`ZSignal` 非移动）；接收者上下文（`ConnectionOwner`、`UIElement/Window::Connect`）；`ConnectWeak`；成员函数指针改走自由 `Connect`。
 - **1.23.3**：Button 富文本 / 自定义内容 + 下拉模式（Split / Dropdown / Menu）；`SetBackdrop` 默认不再盖住亚克力/云母；ListView 行高除零修复。

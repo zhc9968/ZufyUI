@@ -533,6 +533,8 @@ void AccessibilityNotifyFocus/PropertyChanged/StructureChanged();
 - the role decides which UIA Patterns are exposed (Button/MenuItem→Invoke; Edit/Document→Value; Slider/ProgressBar→RangeValue; toggle state ≥0→Toggle; expand state ≥0→ExpandCollapse). Hidden nodes are not exposed by default.
 ###block_red_end
 
+- **`Version`**: UIA provider since `v1.17.0`. `v1.26.0` synchronizes the provider cache/context lifetime with COM callback threads, preventing UIA from invoking a released provider.
+
 ## Fonts (element-level)
 
 ```cpp
@@ -609,6 +611,7 @@ void SetCellAlignment(int row, int col, Alignment h, Alignment v);
 - `SetCellAlignment` controls how a child sits inside its own cell (default `Stretch`); `SetHorizontalAlignment/SetVerticalAlignment` align the whole grid content in the leftover space.
 - A 1×1 grid can also use content alignment; `SetColumnStretch(2, ...)` creates a third column.
 - Without explicit row/col stretch, the cell weight is the **max** of spanned children's weights.
+- **`Version`**: since `v1.26.0`, an explicit `SetWidth/SetHeight` on the Grid is also used as the cell measurement scope; it no longer reports 260 while arranging rows at 274+.
 
 ## LayoutHost / Card / Page
 
@@ -624,6 +627,7 @@ void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // one li
 ```
 - `LayoutHost` is a single-content host; `Card` is a rounded/bordered/hover card; `Page` is the page container for `TabView`/`PageHost`.
 - `SetContentAlignment(Center, Center)` centers Page/Card content; default `Stretch` keeps old behaviour.
+- With no content, explicit `SetWidth/SetHeight` on `Card/Page` still applies; a `ScrollViewer` without content also returns its explicit/finite viewport size.
 - `Card::UseCache()` = `HasShadow()`; `Page::UseCache()` = false.
 
 ## PageHost (page host / transitions)
@@ -1049,25 +1053,28 @@ class RadioGroup  { enum class Orientation { Vertical, Horizontal };
 ```cpp
 ZSignal<bool> Toggled;   void SetOn(bool);  bool IsOn() const;
 void SetIndeterminate(bool);   // half-selected appearance
-inline static float DefaultAnimationDuration;   // full animation duration (s), default 0.25
+inline static float DefaultAnimationDuration;   // full animation duration (s), default 0.18
 ```
 - Default 50×24.
-- **`Version`**: since `v1.21.0` the knob/track/hover animation is **duration-driven ease-in-out** (`DefaultAnimationDuration`, default 0.25s) and stops exactly on time instead of repainting forever; before it was linear (`animSpeed_=9.6` finished 0→1 in ~0.10s, which read as an instant snap). `SetAnimationSpeed` still means "larger = faster" (converted to a duration multiplier).
+- Click toggles on **mouse up**; press and drag left/right makes the knob follow the pointer, and release commits based on drag progress >= 0.5. The track colour follows the drag progress.
+- **`Version`**: since `v1.21.0` the knob/track/hover animation is **duration-driven ease-in-out**; `v1.26.0` adds WinUI3-style press-drag and changes the default duration to 0.18 s. `SetAnimationSpeed` still means "larger = faster" (converted to a duration multiplier).
 
 ## Slider
 
 ```cpp
 ZSignal<float> ValueChanged;   ZSignal<> SliderReleased;
 void SetRange(float min,float max);  void SetValue(float);  void SetStep(float);  void SetSnapToStep(bool);
+float GetDisplayValue() const;   // animated display value (thumb position); useful for debug/tests
 ```
 
 ###block_red_start
 **Pitfall**
 
 - `ValueChanged` fires **continuously** during a drag; commit with `SliderReleased`.
+- Normal dragging is **immediate** (the thumb follows the pointer); only clicking the track or using `SetSnapToStep` eases the display value to the target/snap point.
 ###block_red_end
 
-- **`Version`**: `v1.18.0` fixes the zero-width NaN path.
+- **`Version`**: `v1.18.0` fixes the zero-width NaN path; `v1.26.0` distinguishes drag/click/snap easing and adds `GetDisplayValue()`.
 
 ## NumberBox (with internal SpinButton)
 
@@ -1764,10 +1771,12 @@ class SettingsList : public UIElement {
 **Pitfall**
 
 - `DragEventArgs.x/y` are **element-relative DIP** (not screen pixels).
-- `Expander` collapses via an explicit `SetHeight`, so the parent layout actually shrinks with it.
+- `Expander` drives its expanded height through `Measure`; it no longer writes the user-visible `height_`. The parent layout still shrinks/grows with the animation.
+- The content is measured once even while initially collapsed; while expanded it always stays in `childrenView_`, so collapse/re-expand no longer loses the content.
+- Content clipping keeps at least a 4 px bleed (plus the content's own bleed), so ComboBox borders/shadows/focus rings are not cut off.
 ###block_red_end
 
-- **`Version`**: collapse/expand uses the same **smoothstep easing** as page transitions; the arrow **rotates** with that easing (collapsed points down → expanded points up).
+- **`Version`**: collapse/expand uses the same **smoothstep easing** as page transitions; the arrow **rotates** with that easing (collapsed points down → expanded points up). `v1.26.0` fixes first-expand measurement, lost content after collapse/re-expand, and content clipping.
 - **`Version`**: the header **highlights** on hover (rounded); the `ComboBox` dropdown arrow is likewise a chevron that **rotates** with expansion.
 - Image display uses `Label`: `SetImage` + `SetImageFit(true)` (scale to fully visible) + `SetDragSource` (drag-out).
 - **`Version`**: whole-window receive — `Window::SetDropTargetEnabled(true)` + window-level `DragEnter/DragOver/DragLeave/Drop` (`x/y` = client-area DIP).
@@ -2057,7 +2066,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 ###block_red_end
 
-###chapter: Version digest | v1.15.0 → v1.25.0
+###chapter: Version digest | v1.15.0 → v1.26.0
 
 > Only the changes that affect your code are listed.
 
@@ -2173,7 +2182,10 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
   - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
   - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
-
+- **v1.26.0**:
+  - **Layout**: explicit Grid size constrains cell measurement; finite Row/Column main-axis allocation for Fill; Card/Page/ScrollViewer honour explicit sizes when empty; Button measures content with autoSize disabled; Label explicit width wraps; ScrollViewer no longer re-measures in Arrange.
+  - **UIA**: provider cache/context lifetime synchronized with COM callback threads, fixing CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`.
+  - **Controls**: Expander first-expand/collapse-re-expand/clipping fixes; ToggleSwitch press-drag; Slider immediate drag, click/snap easing, `GetDisplayValue()`.
 
 ###chapter: Pitfall index | Quick lookup by topic
 

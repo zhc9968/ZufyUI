@@ -2,7 +2,18 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.25.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.26.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-27 — Layout measurement contract, UIA lifetime fix, control polish (v1.26.0)
+
+- **Layout · explicit size contract**: an explicit `GridLayout` width/height now also constrains cell measurement, so it no longer reports 260 while arranging rows at 274+; `RowBox/ColumnBox` allocate finite main-axis space to Fill children; `Card/Page/ScrollViewer` honour explicit sizes with no content; `Button` measures its content even with autoSize disabled; `Label` explicit width participates in wrapping; `TabView` tab Labels are measured during Measure and arranged in Arrange/Update; `ScrollViewer` no longer re-measures content in Arrange.
+- **UIA · CFG crash fix**: the minidump confirms `c0000409` + `Subcode 0xA FAST_FAIL_GUARD_ICALL_CHECK_FAILURE` (not Stack Cookie/TDR). `UiaContexts` now uses shared contexts, all UIA context/provider caches share a recursive lock, providers no longer keep raw contexts, `ReleaseAccessibility`/`ForgetAccessibleElement` are serialized with callbacks, and notification paths keep providers alive. Verified with 100 UIA tree walks + 300 `ElementFromPoint` queries.
+- **Expander**: content is measured once even while initially collapsed; expanded content always stays in `childrenView_`, so collapse/re-expand no longer loses it; animation no longer calls `SetHeight`/duplicates invalidation every frame; content clipping keeps at least a 4 px bleed; fixes first-expand right-shifted text and clipped drop-downs.
+- **ToggleSwitch**: click toggles on mouse-up; press-drag left/right makes the knob follow the pointer and commits by drag progress; mouse capture; default animation duration 0.18 s.
+- **Slider**: added `GetDisplayValue()`; normal dragging is immediate, while clicking the track or snapping eases the display value; UIA RangeValue retained.
+- **Demo**: layout-stress page fixes for Grid height/input-row width/label wrapping; added the "all controls" page; HwndView overlay is hidden by default with a toggle.
+- **Docs**: API zh/en synced (Grid/Expander/ToggleSwitch/Slider/UIA); README history and feature bullets; AGENTS records the layout/UIA/animation/crash-code lessons.
+- **Verification**: x64 Release build passes; ZufyUI self-test **280** checks pass; UIA stress queries pass.
 
 ### 2026-10-25 — Drawer side panel, temporary key handlers, signal tests (v1.25.0)
 

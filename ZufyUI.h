@@ -89,9 +89,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 25
+#define ZufyUI_VERSION_MINOR 26
 #define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.25.0"
+#define ZufyUI_VERSION_STRING L"1.26.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -2222,8 +2222,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float GetDefaultVerticalStretchWeight() const override { return 0.0f; }
 
         Size MeasureOverride(const Size& availableSize) override {
-            float totalHeight = 0;
-            float maxWidth = 0;
+            struct Item { UIElement* c; Thickness m; bool flex; float weight; float crossW; };
+            std::vector<Item> items;
+            items.reserve(children_.size());
+            float fixedHeight = 0.0f;
+            float totalWeight = 0.0f;
+            float maxWidth = 0.0f;
+            int count = 0;
             for (auto& child : children_) {
                 if (!child->IsVisible() || !child->ParticipatesInLayout()) continue;
                 Thickness m = child->GetMargin();
@@ -2234,13 +2239,32 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 float childW = child->GetWidth() > 0 ? child->GetWidth() : availW;
                 if (child->GetFillWidth() || child->GetHorizontalStretchWeightRaw() > 0.0f) childW = availW;   // 交叉轴也认拉伸权值
                 childW = clamp(childW, child->GetMinWidth(), child->GetMaxWidth());
-                Size childSize = child->Measure(Size(childW, FLT_MAX));   // 与 Arrange 同一约束，使 GetDesiredSize 可信
-                totalHeight += childSize.height;
-                maxWidth = max(maxWidth, childSize.width + m.left + m.right);
-                totalHeight += m.top + m.bottom;
+                const bool flex = child->GetFillHeight() || child->GetVerticalStretchWeightRaw() > 0.0f;
+                const float weight = flex ? max(child->GetVerticalStretchWeightRaw(), 1.0f) : 0.0f;
+                items.push_back({ child.get(), m, flex, weight, childW });
+                if (flex) totalWeight += weight;
+                else {
+                    Size childSize = child->Measure(Size(childW, FLT_MAX));
+                    fixedHeight += childSize.height + m.top + m.bottom;
+                    maxWidth = max(maxWidth, childSize.width + m.left + m.right);
+                }
+                ++count;
             }
-            int _n = 0; for (auto& c : children_) if (c && c->IsVisible() && c->ParticipatesInLayout()) ++_n;   // spacing 只按“参与布局”的子元素数
-            if (_n > 1) totalHeight += spacing_ * (_n - 1);
+            if (count > 1) fixedHeight += spacing_ * (count - 1);
+            // 有限高度下，FillHeight/纵向拉伸子元素要拿“剩余高度”测量；传 FLT_MAX 会让 PageHost 等容器
+            // 先按最小宽度/高度量内容，之后只被拉大却不重测，最终出现整页空白或巨行距。
+            const float remaining = (availableSize.height != FLT_MAX && totalWeight > 0.0f)
+                ? max(0.0f, availableSize.height - fixedHeight) : FLT_MAX;
+            float totalHeight = fixedHeight;
+            for (auto& it : items) {
+                if (!it.flex) continue;
+                float childH = FLT_MAX;
+                if (remaining != FLT_MAX)
+                    childH = clamp(remaining * (it.weight / totalWeight), it.c->GetMinHeight(), it.c->GetMaxHeight());
+                Size childSize = it.c->Measure(Size(it.crossW, childH));
+                totalHeight += childSize.height + it.m.top + it.m.bottom;
+                maxWidth = max(maxWidth, childSize.width + it.m.left + it.m.right);
+            }
             return Size(width_ > 0 ? width_ : maxWidth, height_ > 0 ? height_ : totalHeight);
         }
 
@@ -2374,8 +2398,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float GetDefaultVerticalStretchWeight() const override { return 1.0f; }
 
         Size MeasureOverride(const Size& availableSize) override {
-            float totalWidth = 0;
-            float maxHeight = 0;
+            struct Item { UIElement* c; Thickness m; bool flex; float weight; float crossH; };
+            std::vector<Item> items;
+            items.reserve(children_.size());
+            float fixedWidth = 0.0f;
+            float totalWeight = 0.0f;
+            float maxHeight = 0.0f;
+            int count = 0;
             for (auto& child : children_) {
                 if (!child->IsVisible() || !child->ParticipatesInLayout()) continue;
                 Thickness m = child->GetMargin();
@@ -2384,13 +2413,32 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 float childH = child->GetHeight() > 0 ? child->GetHeight() : availH;
                 if (child->GetFillHeight() || child->GetVerticalStretchWeightRaw() > 0.0f) childH = availH;   // 交叉轴也认拉伸权值
                 childH = clamp(childH, child->GetMinHeight(), child->GetMaxHeight());
-                Size childSize = child->Measure(Size(FLT_MAX, childH));   // 与 Arrange 同一约束
-                totalWidth += childSize.width;
-                maxHeight = max(maxHeight, childSize.height + m.top + m.bottom);
-                totalWidth += m.left + m.right;
+                const bool flex = child->GetFillWidth() || child->GetHorizontalStretchWeightRaw() > 0.0f;
+                const float weight = flex ? max(child->GetHorizontalStretchWeightRaw(), 1.0f) : 0.0f;
+                items.push_back({ child.get(), m, flex, weight, childH });
+                if (flex) totalWeight += weight;
+                else {
+                    Size childSize = child->Measure(Size(FLT_MAX, childH));
+                    fixedWidth += childSize.width + m.left + m.right;
+                    maxHeight = max(maxHeight, childSize.height + m.top + m.bottom);
+                }
+                ++count;
             }
-            int _n = 0; for (auto& c : children_) if (c && c->IsVisible() && c->ParticipatesInLayout()) ++_n;   // spacing 只按“参与布局”的子元素数
-            if (_n > 1) totalWidth += spacing_ * (_n - 1);
+            if (count > 1) fixedWidth += spacing_ * (count - 1);
+            // 有限宽度下，FillWidth/横向拉伸子元素要拿“剩余宽度”测量；否则 PageHost 会先按最小宽度量页面，
+            // 再由外层拉大但不重测，页面里的 Wrap 文本会按极窄宽度折行，表现为整页巨大行距/空白。
+            const float remaining = (availableSize.width != FLT_MAX && totalWeight > 0.0f)
+                ? max(0.0f, availableSize.width - fixedWidth) : FLT_MAX;
+            float totalWidth = fixedWidth;
+            for (auto& it : items) {
+                if (!it.flex) continue;
+                float childW = FLT_MAX;
+                if (remaining != FLT_MAX)
+                    childW = clamp(remaining * (it.weight / totalWeight), it.c->GetMinWidth(), it.c->GetMaxWidth());
+                Size childSize = it.c->Measure(Size(childW, it.crossH));
+                totalWidth += childSize.width + it.m.left + it.m.right;
+                maxHeight = max(maxHeight, childSize.height + it.m.top + it.m.bottom);
+            }
             return Size(width_ > 0 ? width_ : totalWidth, height_ > 0 ? height_ : maxHeight);
         }
 
@@ -2578,18 +2626,24 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 maxRow = max(maxRow, item.row + item.rowSpan);
                 maxCol = max(maxCol, item.col + item.colSpan);
             }
-            if (maxRow == 0 || maxCol == 0) return Size(0, 0);
+            if (maxRow == 0 || maxCol == 0)
+                return Size(width_ > 0.0f ? width_ : 0.0f, height_ > 0.0f ? height_ : 0.0f);
 
             std::vector<float> rowMin(maxRow, 0.0f), colMin(maxCol, 0.0f);
+
+            // 自身显式 width_/height_ 必须成为测量范围，否则会出现“返回 260、内部按 274+ 排”
+            // 的契约破坏：父级按 260 分配，Grid 子项却排到 260 之外。
+            const float scopeW = width_ > 0.0f ? width_ : availableSize.width;
+            const float scopeH = height_ > 0.0f ? height_ : availableSize.height;
 
             // 第一遍不能用“整张 Grid 的可用宽”去测每个子元素：FillWidth 的 TableView/ListView
             // 会直接返回整张 Grid 宽，导致列宽被撑到整页、横向滚动条爆掉。先按轨道数给一个
             // 平均 cell 上限，第二遍再用真实轨道尺寸测。
-            const float baseCellW = (std::isfinite(availableSize.width) && maxCol > 0)
-                ? max(0.0f, availableSize.width - (maxCol - 1) * horizontalSpacing_) / (float)maxCol
+            const float baseCellW = (std::isfinite(scopeW) && maxCol > 0)
+                ? max(0.0f, scopeW - (maxCol - 1) * horizontalSpacing_) / (float)maxCol
                 : FLT_MAX;
-            const float baseCellH = (std::isfinite(availableSize.height) && maxRow > 0)
-                ? max(0.0f, availableSize.height - (maxRow - 1) * verticalSpacing_) / (float)maxRow
+            const float baseCellH = (std::isfinite(scopeH) && maxRow > 0)
+                ? max(0.0f, scopeH - (maxRow - 1) * verticalSpacing_) / (float)maxRow
                 : FLT_MAX;
             std::vector<float> rowCaps(maxRow, baseCellH), colCaps(maxCol, baseCellW);
 
@@ -2608,8 +2662,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                         if (r < item.row + item.rowSpan - 1) cellH += verticalSpacing_;
                     }
                     const Size childSize = item.element->Measure(Size(
-                        cellW > 0.0f ? cellW : availableSize.width,
-                        cellH > 0.0f ? cellH : availableSize.height));
+                        cellW > 0.0f ? cellW : scopeW,
+                        cellH > 0.0f ? cellH : scopeH));
                     const float hPerRow = childSize.height / item.rowSpan;
                     const float wPerCol = childSize.width / item.colSpan;
                     for (int r = item.row; r < item.row + item.rowSpan; ++r) rowMin[r] = max(rowMin[r], hPerRow);
@@ -2661,7 +2715,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             // 然后重新汇总轨道。只为拿到可信的 desiredSize，不在 Arrange 里重测。
             measureNatural();
             std::vector<float> rowSizes, colSizes;
-            gridSizes(availableSize.width, availableSize.height, rowSizes, colSizes);
+            gridSizes(scopeW, scopeH, rowSizes, colSizes);
             for (auto& item : items_) {
                 if (!item.element->IsVisible() || !item.element->ParticipatesInLayout()) continue;
                 float cellW = 0.0f, cellH = 0.0f;
@@ -2674,8 +2728,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     if (r < item.row + item.rowSpan - 1) cellH += verticalSpacing_;
                 }
                 if (cellW > 0.0f || cellH > 0.0f)
-                    item.element->Measure(Size(cellW > 0.0f ? cellW : availableSize.width,
-                                               cellH > 0.0f ? cellH : availableSize.height));
+                    item.element->Measure(Size(cellW > 0.0f ? cellW : scopeW,
+                                               cellH > 0.0f ? cellH : scopeH));
             }
             // 第二遍的 desiredSize 已写入子元素，直接用它更新轨道；
             // 这里不能再调用 Measure(FLT_MAX, FLT_MAX)，否则 wrap/缓存全部失效。
@@ -2702,7 +2756,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             UIElement::ArrangeOverride(finalRect);
             int maxRow = rowCount_, maxCol = columnCount_;
             for (auto& item : items_) {
-                if (!item.element->ParticipatesInLayout()) continue;
+                if (!item.element->IsVisible() || !item.element->ParticipatesInLayout()) continue;
                 maxRow = max(maxRow, item.row + item.rowSpan);
                 maxCol = max(maxCol, item.col + item.colSpan);
             }
@@ -3006,7 +3060,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float GetDefaultVerticalStretchWeight() const override { return DefaultVerticalStretchWeight; }
 
         Size MeasureOverride(const Size& availableSize) override {
-            if (!layout_) return Size(0, 0);
+            if (!layout_) return Size(width_ > 0.0f ? width_ : 0.0f, height_ > 0.0f ? height_ : 0.0f);
             const float innerW = (width_ > 0.0f ? width_ : availableSize.width) - padding_ * 2;
             const float innerH = (height_ > 0.0f ? height_ : availableSize.height) - padding_ * 2;
             Size childSize = layout_->Measure(Size(innerW, innerH));
@@ -3131,7 +3185,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float GetDefaultVerticalStretchWeight() const override { return DefaultVerticalStretchWeight; }
 
         Size MeasureOverride(const Size& availableSize) override {
-            if (!layout_) return Size(0, 0);
+            if (!layout_) return Size(width_ > 0.0f ? width_ : 0.0f, height_ > 0.0f ? height_ : 0.0f);
             const float innerW = (width_ > 0.0f ? width_ : availableSize.width) - padding_ * 2;
             const float innerH = (height_ > 0.0f ? height_ : availableSize.height) - padding_ * 2;
             Size childSize = layout_->Measure(Size(innerW, innerH));

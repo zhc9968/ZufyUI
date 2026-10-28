@@ -15,6 +15,17 @@
 3. 如果根源在本项目内部代码，必须**找到它并从根源修复**。
 4. 如果找不到根源：**如实说明“找不到，未定位”**，交由用户（或用户的其他分析）定位；找到后再修复。**绝不猜测、绝不用“最可疑”下结论、绝不靠引入机制来掩盖。**
 
+## 布局 / UIA / 动画事故教训（必须遵守）
+
+- **显式尺寸是契约**：`GridLayout` 的 `width_/height_` 必须进入测量范围，不能“返回 260、内部按 274 排”。禁止用裁剪掩盖排布溢出；先修测量契约。
+- **UIA provider 是多线程边界**：UIA 方法可能从 COM/RPC 线程进入，`UiaContexts`、`elements`、provider 的 `elem_`/`ctx_` 不能无锁读写。缓存必须持有明确生命周期；context 不能在 UIA 仍可能持有 provider 时被 erase/析构；provider 内不要保存会失效的裸 context/元素指针。
+- **动画不要写用户尺寸属性**：不要在 `UpdateAnimation` 每帧 `SetHeight`/重复 `InvalidateLayout`。用独立动画状态驱动测量，每帧最多一次布局失效；内容显隐要同步 `childrenDirty_`。
+- **展开容器不能只看动画进度决定子元素是否入列**：`expanded_ == true` 时内容必须进入 `childrenView_`，不能只靠 `expandProg_ > 0`；否则首次展开后动画起点为 0，`childrenDirty_` 不再变化，折叠再展开会永久不显示内容。
+- **初始折叠也要测量一次内容**：否则内容子树从未 Measure，首次展开可能沿用未初始化/旧尺寸，出现文字偏右、下拉框被裁剪，直到窗口 resize 才恢复。
+- **崩溃码要读对**：`c0000409` 只是“安全检测失败”的总码；`Subcode 0xA = FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`（CFG 间接调用校验失败），不是 Stack Cookie，也不是 TDR。必须用 minidump 的 `!analyze`/`k` 定位，不能凭 WER 主码猜。
+- **可访问性对象生命周期**：`Release`/`ForgetAccessibleElement`/窗口关闭必须与 UIA 回调串行化；不得留下仍可被 UIA 调用的已释放对象或悬垂 context。
+- **新增并发/动画/UIA 相关修复必须附回归测试或可复现验证**；没有证据时按“未定位”处理，不要用 try/catch、延时或限幅掩盖。
+
 ## 依赖与约束（避免埋雷）
 
 - `UIElement::GetChildren()` 返回的是**元素内部缓冲的引用**，其有效期为“该元素的子列表或可视状态发生变化 / 再次调用该元素的 `GetChildren()` 之前”。遍历期间**不得对同一个元素再次调用 `GetChildren()`**（容器递归自己子元素时用的是各自独立的缓冲，安全）。

@@ -1542,13 +1542,20 @@ namespace ZufyUI {
 
         class ZufyUIElementProvider;
 
+        // UIA 的 provider 方法会在 COM/RPC 线程调用；context、缓存、elem_ 都必须与 UI 线程串行访问。
+        inline std::recursive_mutex& UiaMutex() {
+            static std::recursive_mutex m;
+            return m;
+        }
+
         struct UiaWindowContext {
             Window* window = nullptr;
             ComPtr<IRawElementProviderSimple> root;                            // 根 provider
-            std::unordered_map<UIElement*, ZufyUIElementProvider*> elements;   // 弱缓存（元素析构时移除）
+            std::unordered_map<UIElement*, ZufyUIElementProvider*> elements;   // 元素缓存（元素销毁时移除）
         };
-        inline std::unordered_map<Window*, UiaWindowContext>& UiaContexts() {
-            static std::unordered_map<Window*, UiaWindowContext> m; return m;
+        using UiaContextPtr = std::shared_ptr<UiaWindowContext>;
+        inline std::unordered_map<Window*, UiaContextPtr>& UiaContexts() {
+            static std::unordered_map<Window*, UiaContextPtr> m; return m;
         }
 
         class ZufyUIElementProvider : public IRawElementProviderSimple,
@@ -1560,25 +1567,33 @@ namespace ZufyUI {
                                       public IRangeValueProvider,
                                       public IExpandCollapseProvider {
         public:
-            ZufyUIElementProvider(UiaWindowContext* ctx, UIElement* e, bool isRoot)
+            ZufyUIElementProvider(const UiaContextPtr& ctx, UIElement* e, bool isRoot)
                 : ctx_(ctx), elem_(e), isRoot_(isRoot) {}
 
-            static ZufyUIElementProvider* EnsureElementProvider(UiaWindowContext* ctx, UIElement* e) {
+            static ZufyUIElementProvider* EnsureElementProvider(const UiaContextPtr& ctx, UIElement* e) {
                 if (!ctx || !e) return nullptr;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
                 auto it = ctx->elements.find(e);
                 if (it != ctx->elements.end() && it->second) return it->second;
-                auto* prov = new ZufyUIElementProvider(ctx, e, false);   // ref=1（由 ctx 持有）
+                auto* prov = new ZufyUIElementProvider(ctx, e, false);   // ref=1，由 ctx 缓存持有
                 ctx->elements[e] = prov;
                 return prov;
             }
             UIElement* Element() const { return elem_; }
-            void DetachElement() { elem_ = nullptr; }
+            void DetachElement() {
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                elem_ = nullptr;
+            }
 
             // ---- IUnknown ----
             ULONG STDMETHODCALLTYPE AddRef() override { return (ULONG)InterlockedIncrement(&ref_); }
             ULONG STDMETHODCALLTYPE Release() override {
                 ULONG r = (ULONG)InterlockedDecrement(&ref_);
-                if (r == 0) { if (isRoot_ && ctx_) ctx_->root.Detach(); delete this; }
+                if (r == 0) {
+                    std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                    if (isRoot_ && ctx_) ctx_->root.Detach();
+                    delete this;
+                }
                 return r;
             }
             HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppv) override {
@@ -1606,6 +1621,7 @@ namespace ZufyUI {
             }
             HRESULT STDMETHODCALLTYPE GetPatternProvider(PATTERNID id, IUnknown** p) override {
                 if (!p) return E_INVALIDARG; *p = nullptr;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
                 if (!elem_) return S_OK;
                 AccessibleRole r = elem_->GetAccessibleRole();
                 switch (id) {
@@ -1635,6 +1651,7 @@ namespace ZufyUI {
             }
             HRESULT STDMETHODCALLTYPE GetPropertyValue(PROPERTYID id, VARIANT* p) override {
                 if (!p) return E_INVALIDARG; VariantInit(p);
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
                 if (!elem_) return S_OK;
                 switch (id) {
                 case UIA_ControlTypePropertyId: p->vt = VT_I4; p->lVal = UiaControlTypeOf(elem_->GetAccessibleRole()); break;
@@ -1665,6 +1682,7 @@ namespace ZufyUI {
             }
             HRESULT STDMETHODCALLTYPE get_HostRawElementProvider(IRawElementProviderSimple** p) override {
                 if (p) *p = nullptr;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
                 if (isRoot_ && ctx_ && ctx_->window && ctx_->window->GetHwnd())
                     return UiaHostProviderFromHwnd(ctx_->window->GetHwnd(), p);
                 return S_OK;
@@ -1672,7 +1690,9 @@ namespace ZufyUI {
 
             // ---- IRawElementProviderFragment ----
             HRESULT STDMETHODCALLTYPE Navigate(NavigateDirection dir, IRawElementProviderFragment** p) override {
-                if (p) *p = nullptr; if (!elem_ || !ctx_) return S_OK;
+                if (p) *p = nullptr;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (!elem_ || !ctx_) return S_OK;
                 UIElement* t = nullptr;
                 if (dir == NavigateDirection_Parent) {
                     t = elem_->GetParent();
@@ -1701,6 +1721,7 @@ namespace ZufyUI {
             }
             HRESULT STDMETHODCALLTYPE GetRuntimeId(SAFEARRAY** p) override {
                 if (!p) return E_INVALIDARG; *p = nullptr;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
                 int rid[2] = { UiaAppendRuntimeId, (int)(INT_PTR)elem_ };
                 SAFEARRAY* sa = SafeArrayCreateVector(VT_I4, 0, 2);
                 if (!sa) return E_OUTOFMEMORY;
@@ -1709,24 +1730,29 @@ namespace ZufyUI {
             }
             HRESULT STDMETHODCALLTYPE get_BoundingRectangle(UiaRect* r) override {
                 if (!r) return E_INVALIDARG;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
                 double b[4] = { 0, 0, 0, 0 }; GetScreenRect(b);
                 r->left = b[0]; r->top = b[1]; r->width = b[2]; r->height = b[3];
                 return S_OK;
             }
             HRESULT STDMETHODCALLTYPE GetEmbeddedFragmentRoots(SAFEARRAY** p) override { if (p) *p = nullptr; return S_OK; }
             HRESULT STDMETHODCALLTYPE SetFocus() override {
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
                 if (elem_ && elem_->IsFocusable()) if (Window* w = elem_->GetWindow()) w->FocusElement(elem_);
                 return S_OK;
             }
             HRESULT STDMETHODCALLTYPE get_FragmentRoot(IRawElementProviderFragmentRoot** p) override {
                 if (!p) return E_INVALIDARG; *p = nullptr;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
                 if (ctx_ && ctx_->root) ctx_->root->QueryInterface(__uuidof(IRawElementProviderFragmentRoot), (void**)p);
                 return S_OK;
             }
 
             // ---- IRawElementProviderFragmentRoot（仅根有效）----
             HRESULT STDMETHODCALLTYPE ElementProviderFromPoint(double x, double y, IRawElementProviderFragment** p) override {
-                if (p) *p = nullptr; if (!ctx_ || !ctx_->window) return S_OK;
+                if (p) *p = nullptr;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (!ctx_ || !ctx_->window) return S_OK;
                 HWND h = ctx_->window->GetHwnd(); if (!h) return S_OK;
                 UINT dpi = GetDpiForWindow(h); if (!dpi) dpi = 96;
                 POINT pt = { (LONG)x, (LONG)y };
@@ -1750,7 +1776,9 @@ namespace ZufyUI {
                 return S_OK;
             }
             HRESULT STDMETHODCALLTYPE GetFocus(IRawElementProviderFragment** p) override {
-                if (p) *p = nullptr; if (!ctx_ || !ctx_->window) return S_OK;
+                if (p) *p = nullptr;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (!ctx_ || !ctx_->window) return S_OK;
                 UIElement* f = ctx_->window->GetFocusedElement();
                 if (!f) return S_OK;
                 ZufyUIElementProvider* prov = EnsureElementProvider(ctx_, f);
@@ -1759,36 +1787,80 @@ namespace ZufyUI {
             }
 
             // ---- Pattern 实现 ----
-            HRESULT STDMETHODCALLTYPE Invoke() override { if (elem_) elem_->AccessibilityInvoke(); return S_OK; }
-            HRESULT STDMETHODCALLTYPE Toggle() override { if (elem_) elem_->AccessibilityToggle(); return S_OK; }
+            HRESULT STDMETHODCALLTYPE Invoke() override {
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (elem_) elem_->AccessibilityInvoke(); return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE Toggle() override {
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (elem_) elem_->AccessibilityToggle(); return S_OK;
+            }
             HRESULT STDMETHODCALLTYPE get_ToggleState(ToggleState* p) override {
-                if (!p) return E_INVALIDARG; if (!elem_) return E_FAIL;
+                if (!p) return E_INVALIDARG;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (!elem_) return E_FAIL;
                 int s = elem_->GetAccessibleToggleState();
                 *p = (s == 1) ? ToggleState_On : (s == 2) ? ToggleState_Indeterminate : ToggleState_Off;
                 return S_OK;
             }
-            HRESULT STDMETHODCALLTYPE SetValue(LPCWSTR v) override { if (elem_) elem_->SetAccessibleValue(v ? v : L""); return S_OK; }
+            HRESULT STDMETHODCALLTYPE SetValue(LPCWSTR v) override {
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (elem_) elem_->SetAccessibleValue(v ? v : L""); return S_OK;
+            }
             HRESULT STDMETHODCALLTYPE get_Value(BSTR* p) override {
-                if (!p) return E_INVALIDARG; if (!elem_) return E_FAIL;
+                if (!p) return E_INVALIDARG;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (!elem_) return E_FAIL;
                 *p = SysAllocString(elem_->GetAccessibleValue().c_str()); return S_OK;
             }
             HRESULT STDMETHODCALLTYPE get_Value(double* p) override {
-                if (!p) return E_INVALIDARG; if (!elem_) return E_FAIL;
+                if (!p) return E_INVALIDARG;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (!elem_) return E_FAIL;
                 *p = elem_->GetAccessibleRangeValue(); return S_OK;
             }
             HRESULT STDMETHODCALLTYPE get_IsReadOnly(BOOL* p) override {
-                if (!p) return E_INVALIDARG; if (!elem_) return E_FAIL;
+                if (!p) return E_INVALIDARG;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (!elem_) return E_FAIL;
                 *p = elem_->IsAccessibleReadOnly() ? TRUE : FALSE; return S_OK;
             }
-            HRESULT STDMETHODCALLTYPE SetValue(double v) override { if (elem_) elem_->SetAccessibleRangeValue(v); return S_OK; }
-            HRESULT STDMETHODCALLTYPE get_Minimum(double* p) override { if (!p) return E_INVALIDARG; *p = elem_ ? elem_->GetAccessibleRangeMin() : 0.0; return S_OK; }
-            HRESULT STDMETHODCALLTYPE get_Maximum(double* p) override { if (!p) return E_INVALIDARG; *p = elem_ ? elem_->GetAccessibleRangeMax() : 0.0; return S_OK; }
-            HRESULT STDMETHODCALLTYPE get_LargeChange(double* p) override { if (!p) return E_INVALIDARG; *p = elem_ ? elem_->GetAccessibleRangeStep() : 0.0; return S_OK; }
-            HRESULT STDMETHODCALLTYPE get_SmallChange(double* p) override { if (!p) return E_INVALIDARG; *p = elem_ ? elem_->GetAccessibleRangeStep() : 0.0; return S_OK; }
-            HRESULT STDMETHODCALLTYPE Expand() override { if (elem_) elem_->AccessibilityExpand(); return S_OK; }
-            HRESULT STDMETHODCALLTYPE Collapse() override { if (elem_) elem_->AccessibilityCollapse(); return S_OK; }
+            HRESULT STDMETHODCALLTYPE SetValue(double v) override {
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (elem_) elem_->SetAccessibleRangeValue(v); return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE get_Minimum(double* p) override {
+                if (!p) return E_INVALIDARG;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                *p = elem_ ? elem_->GetAccessibleRangeMin() : 0.0; return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE get_Maximum(double* p) override {
+                if (!p) return E_INVALIDARG;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                *p = elem_ ? elem_->GetAccessibleRangeMax() : 0.0; return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE get_LargeChange(double* p) override {
+                if (!p) return E_INVALIDARG;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                *p = elem_ ? elem_->GetAccessibleRangeStep() : 0.0; return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE get_SmallChange(double* p) override {
+                if (!p) return E_INVALIDARG;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                *p = elem_ ? elem_->GetAccessibleRangeStep() : 0.0; return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE Expand() override {
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (elem_) elem_->AccessibilityExpand(); return S_OK;
+            }
+            HRESULT STDMETHODCALLTYPE Collapse() override {
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (elem_) elem_->AccessibilityCollapse(); return S_OK;
+            }
             HRESULT STDMETHODCALLTYPE get_ExpandCollapseState(ExpandCollapseState* p) override {
-                if (!p) return E_INVALIDARG; if (!elem_) return E_FAIL;
+                if (!p) return E_INVALIDARG;
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                if (!elem_) return E_FAIL;
                 int s = elem_->GetAccessibleExpandState();
                 *p = (s == 1) ? ExpandCollapseState_Expanded : (s == 2) ? ExpandCollapseState_LeafNode : ExpandCollapseState_Collapsed;
                 return S_OK;
@@ -1809,28 +1881,38 @@ namespace ZufyUI {
                 return true;
             }
             LONG ref_ = 1;
-            UiaWindowContext* ctx_ = nullptr;
+            UiaContextPtr ctx_;
             UIElement* elem_ = nullptr;
             bool isRoot_ = false;
         };
 
         inline IRawElementProviderSimple* EnsureRootProvider(Window* w) {
             if (!w) return nullptr;
-            auto& ctx = UiaContexts()[w];
+            std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+            auto& slot = UiaContexts()[w];
+            if (!slot) slot = std::make_shared<UiaWindowContext>();
+            auto& ctx = *slot;
             ctx.window = w;
             if (ctx.root) return ctx.root.Get();
-            auto* root = new ZufyUIElementProvider(&ctx, w->GetRootLayout().get(), true);
+            auto* root = new ZufyUIElementProvider(slot, w->GetRootLayout().get(), true);
             ctx.root.Attach(root);   // ref=1
             return root;
         }
 
         inline void ReleaseAccessibility(Window* w) {
+            std::lock_guard<std::recursive_mutex> lock(UiaMutex());
             auto it = UiaContexts().find(w);
             if (it == UiaContexts().end()) return;
-            for (auto& kv : it->second.elements) { if (kv.second) { kv.second->DetachElement(); kv.second->Release(); } }
-            it->second.elements.clear();
-            if (it->second.root) { it->second.root->Release(); it->second.root = nullptr; }
+            UiaContextPtr ctx = it->second;
             UiaContexts().erase(it);
+            if (!ctx) return;
+            ctx->window = nullptr;
+            std::vector<ZufyUIElementProvider*> providers;
+            providers.reserve(ctx->elements.size());
+            for (auto& kv : ctx->elements) if (kv.second) providers.push_back(kv.second);
+            ctx->elements.clear();
+            for (auto* p : providers) { p->DetachElement(); p->Release(); }
+            if (ctx->root) { ctx->root->Release(); ctx->root = nullptr; }
         }
 
         inline LRESULT HandleGetObject(Window* w, HWND hwnd, WPARAM wParam, LPARAM lParam) {
@@ -1853,9 +1935,12 @@ namespace ZufyUI {
     namespace detail {
         inline IRawElementProviderSimple* ProviderForElement(UIElement* e) {
             if (!e) return nullptr;
+            std::lock_guard<std::recursive_mutex> lock(UiaMutex());
             Window* w = e->GetWindow(); if (!w) return nullptr;
             auto it = UiaContexts().find(w); if (it == UiaContexts().end()) return nullptr;
-            return ZufyUIElementProvider::EnsureElementProvider(&it->second, e);
+            auto* p = ZufyUIElementProvider::EnsureElementProvider(it->second, e);
+            if (p) p->AddRef();
+            return p;
         }
     }
     inline void UIElement::AccessibilityNotifyPropertyChanged() {
@@ -1879,22 +1964,41 @@ namespace ZufyUI {
             VARIANT nv; VariantInit(&nv); nv.vt = VT_R8; nv.dblVal = GetAccessibleRangeValue();
             UiaRaiseAutomationPropertyChangedEvent(p, UIA_RangeValueValuePropertyId, oldV, nv);
         }
+        p->Release();
     }
     inline void UIElement::AccessibilityNotifyStructureChanged() {
         if (!UiaClientsAreListening()) return;
         IRawElementProviderSimple* p = detail::ProviderForElement(this);
-        if (p) UiaRaiseStructureChangedEvent(p, StructureChangeType_ChildrenInvalidated, nullptr, 0);
+        if (p) {
+            UiaRaiseStructureChangedEvent(p, StructureChangeType_ChildrenInvalidated, nullptr, 0);
+            p->Release();
+        }
     }
     inline void UIElement::AccessibilityNotifyFocus() {
         if (!UiaClientsAreListening()) return;
         Window* w = GetWindow(); if (!w || !w->IsAccessibilityEnabled()) return;
-        if (auto* root = detail::EnsureRootProvider(w)) UiaRaiseAutomationEvent(root, UIA_AutomationFocusChangedEventId);
+        IRawElementProviderSimple* root = nullptr;
+        {
+            std::lock_guard<std::recursive_mutex> lock(detail::UiaMutex());
+            root = detail::EnsureRootProvider(w);
+            if (root) root->AddRef();
+        }
+        if (root) {
+            UiaRaiseAutomationEvent(root, UIA_AutomationFocusChangedEventId);
+            root->Release();
+        }
     }
     inline void Window::ForgetAccessibleElement(UIElement* e) {
+        std::lock_guard<std::recursive_mutex> lock(detail::UiaMutex());
         auto it = detail::UiaContexts().find(this);
-        if (it == detail::UiaContexts().end()) return;
-        auto jt = it->second.elements.find(e);
-        if (jt != it->second.elements.end()) { if (jt->second) { jt->second->DetachElement(); jt->second->Release(); } it->second.elements.erase(jt); }
+        if (it == detail::UiaContexts().end() || !it->second) return;
+        auto& elements = it->second->elements;
+        auto jt = elements.find(e);
+        if (jt != elements.end()) {
+            auto* p = jt->second;
+            elements.erase(jt);
+            if (p) { p->DetachElement(); p->Release(); }
+        }
     }
 
     // ============================================================================
