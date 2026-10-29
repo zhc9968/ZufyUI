@@ -25,6 +25,9 @@
 - **崩溃码要读对**：`c0000409` 只是“安全检测失败”的总码；`Subcode 0xA = FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`（CFG 间接调用校验失败），不是 Stack Cookie，也不是 TDR。必须用 minidump 的 `!analyze`/`k` 定位，不能凭 WER 主码猜。
 - **可访问性对象生命周期**：`Release`/`ForgetAccessibleElement`/窗口关闭必须与 UIA 回调串行化；不得留下仍可被 UIA 调用的已释放对象或悬垂 context。
 - **新增并发/动画/UIA 相关修复必须附回归测试或可复现验证**；没有证据时按“未定位”处理，不要用 try/catch、延时或限幅掩盖。
+- **自定义边框 / DWM frame**：Win10 不要设置 `DWMWA_WINDOW_CORNER_PREFERENCE`、不要用 `SetWindowRgn` 裁圆角；Win10/Win11 自定义边框都保留 `DwmExtendFrameIntoClientArea({1,1,1,1})`，并在 `WM_SIZE` / `WM_WINDOWPOSCHANGED` / 背景重载后重新挂 frame 状态，否则 Snap 会丢边框/阴影。圆角只由 Win11 DWM 处理。
+- **公开圆角 API 已删除**：`WindowCorner`/`SetWindowCorner`/`GetWindowCorner`/DSL `corner()` 不再提供；需要自定义圆角的用户自行调用 Win32 DWM API，并承担 Win10/Snap 边框阴影风险。
+- **渲染驱动是进程级开关**：`SetRenderDriver` 必须在第一次 `Window::Create`/D3D 设备创建之前调用；WARP 只改变应用自己的 D3D11/D2D 内容渲染，不保证 DWM/Compositor 不用 GPU，不能把“省内存”宣传成“零 GPU”。
 
 ## 依赖与约束（避免埋雷）
 

@@ -1,8 +1,16 @@
-# Changelog
+﻿# Changelog
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.26.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.27.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-29 — Windows 10 backdrop/frame, Snap, render driver and API cleanup (v1.27.0)
+- **Windows 10 Acrylic**: enable `ACCENT_ENABLE_HOSTBACKDROP` before creating the HostBackdropBrush, preserving the custom blur/saturation/tint/noise chain; stop writing Win11-only DWM attributes on Win10, avoiding the gray translucent result and lost border/shadow.
+- **Custom frame / Snap**: keep `DwmExtendFrameIntoClientArea({1,1,1,1})` for custom frames on both Win10 and Win11; reapply frame state after `WM_SIZE`, `WM_WINDOWPOSCHANGED`, and backdrop reloads, fixing lost borders/shadows after Win11 Snap.
+- **Title bar**: Windows 10 caption glyphs fall back to `Segoe MDL2 Assets`; the maximize/restore button refreshes after system Snap, title-bar double-click, Win+Up, etc.; UI animation updates pause during drag/resize so low-end devices stay responsive.
+- **Render driver**: added `RenderDriver`, `SetRenderDriver()`, `GetActiveRenderDriver()` and `GetRenderDeviceName()`; `Auto` prefers hardware and falls back to WARP. The demo supports `--warp` / `--gpu` and a restart-based home-page switcher, with the status bar showing the actual driver/adapter. WARP changes only application content rendering; DWM/Compositor may still use the GPU.
+- **Breaking API cleanup**: removed public `WindowCorner`, `SetWindowCorner()`, `GetWindowCorner()` and DSL `corner()`. Win10 stays square, Win11 follows DWM; custom corners require calling Win32 DWM APIs directly and accepting the risks.
+- **Verification**: Win10/Win11 normal windows, Snap 1/2 and 1/4, maximize/restore; x64 Release build passes, 280 self-test checks pass.
 
 ### 2026-10-27 — Layout measurement contract, UIA lifetime fix, control polish (v1.26.0)
 

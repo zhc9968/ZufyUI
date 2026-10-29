@@ -91,7 +91,7 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 26
 #define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.26.0"
+#define ZufyUI_VERSION_STRING L"1.27.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -3649,6 +3649,61 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void ShowAtCursor();
     };
 
+    // ============================================================================
+    // 渲染驱动选择（进程级）
+    //   Auto     : 默认，HARDWARE 优先，失败回退 WARP
+    //   Hardware : 强制硬件，失败即不可用
+    //   WARP     : 强制软件光栅化；必须在第一次设备创建（Window::Create）之前设置
+    //   Unknown  : 仅用于“当前尚未创建/无法确定”的查询结果，不能作为 Set 的输入
+    //
+    // 注意：WARP 只影响 ZufyUI 自己创建的 D3D11/D2D 内容渲染；窗口最终仍由
+    // WinRT Compositor/DWM 合成，有显卡的机器上仍可能看到 GPU 合成开销。
+    // ============================================================================
+    enum class RenderDriver { Auto, Hardware, WARP, Unknown };
+
+    namespace detail {
+        inline std::atomic<int>& RequestedRenderDriverSlot() {
+            static std::atomic<int> v{ (int)RenderDriver::Auto };
+            return v;
+        }
+        inline std::atomic<int>& ActiveRenderDriverSlot() {
+            static std::atomic<int> v{ (int)RenderDriver::Unknown };
+            return v;
+        }
+        inline std::mutex& RenderDriverInfoMutex() {
+            static std::mutex m;
+            return m;
+        }
+        inline std::wstring& RenderDeviceNameSlot() {
+            static std::wstring v;
+            return v;
+        }
+    }
+
+    // 必须在任何 Window::Create / GetD2DDevice 之前调用；设备创建后再调用只记录错误。
+    inline void SetRenderDriver(RenderDriver d) {
+        if (d == RenderDriver::Unknown) return;
+        if (detail::ActiveRenderDriverSlot().load() != (int)RenderDriver::Unknown) {
+            detail::ReportError(L"SetRenderDriver 无效：D3D 设备已创建，请在 Window::Create 之前调用");
+            return;
+        }
+        detail::RequestedRenderDriverSlot().store((int)d);
+    }
+    inline RenderDriver GetRequestedRenderDriver() {
+        return (RenderDriver)detail::RequestedRenderDriverSlot().load();
+    }
+    inline RenderDriver GetActiveRenderDriver() {
+        int v = detail::ActiveRenderDriverSlot().load();
+        return (v < 0) ? RenderDriver::Unknown : (RenderDriver)v;
+    }
+    inline bool IsRenderDriverReady() {
+        return detail::ActiveRenderDriverSlot().load() != (int)RenderDriver::Unknown;
+    }
+    inline std::wstring GetRenderDeviceName() {
+        std::lock_guard<std::mutex> lk(detail::RenderDriverInfoMutex());
+        return detail::RenderDeviceNameSlot();
+    }
+
     // ---------- 应用核心（进程 / UI 线程级单例） ----------
     namespace detail {
         class AppCore {
@@ -3664,14 +3719,64 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             ID2D1Device* GetD2DDevice() {
                 if (!d2dDevice_) {
                     D3D_FEATURE_LEVEL fl[]{ D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0 };
-                    if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-                        D3D11_CREATE_DEVICE_BGRA_SUPPORT, fl, ARRAYSIZE(fl), D3D11_SDK_VERSION,
-                        d3dDevice_.GetAddressOf(), nullptr, nullptr))) return nullptr;
+                    UINT cf = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+                    RenderDriver requested = GetRequestedRenderDriver();
+                    if (requested == RenderDriver::Auto) {
+                        wchar_t env[8]{};
+                        if (GetEnvironmentVariableW(L"ZUFYUI_FORCE_WARP", env, 8) > 0 &&
+                            (env[0] == L'1' || env[0] == L't' || env[0] == L'T'))
+                            requested = RenderDriver::WARP;
+                    }
+
+                    auto create = [&](D3D_DRIVER_TYPE type) -> HRESULT {
+                        d3dDevice_.Reset();
+                        return D3D11CreateDevice(nullptr, type, nullptr, cf, fl, ARRAYSIZE(fl),
+                            D3D11_SDK_VERSION, d3dDevice_.GetAddressOf(), nullptr, nullptr);
+                    };
+
+                    HRESULT hr = E_FAIL;
+                    RenderDriver active = RenderDriver::Unknown;
+                    if (requested == RenderDriver::WARP) {
+                        hr = create(D3D_DRIVER_TYPE_WARP);
+                        if (SUCCEEDED(hr)) active = RenderDriver::WARP;
+                    }
+                    else if (requested == RenderDriver::Hardware) {
+                        hr = create(D3D_DRIVER_TYPE_HARDWARE);
+                        if (SUCCEEDED(hr)) active = RenderDriver::Hardware;
+                    }
+                    else {
+                        hr = create(D3D_DRIVER_TYPE_HARDWARE);
+                        if (SUCCEEDED(hr)) active = RenderDriver::Hardware;
+                        else {
+                            wchar_t b[160];
+                            swprintf(b, 160, L"GetD2DDevice: HARDWARE 失败 (0x%08X)，自动回退 WARP", (unsigned)hr);
+                            ReportError(b);
+                            hr = create(D3D_DRIVER_TYPE_WARP);
+                            if (SUCCEEDED(hr)) active = RenderDriver::WARP;
+                        }
+                    }
+                    if (FAILED(hr) || !d3dDevice_) {
+                        ReportError(L"GetD2DDevice: 无法创建 D3D11 设备");
+                        return nullptr;
+                    }
                     if (FAILED(d3dDevice_.As(&dxgiDevice_))) return nullptr;
+
+                    // 检测 DXGI 实际适配器，避免“请求 Hardware 但拿到软件适配器”时状态栏说谎。
+                    ComPtr<IDXGIAdapter> adapter;
+                    ComPtr<IDXGIAdapter1> adapter1;
+                    DXGI_ADAPTER_DESC1 desc{};
+                    if (SUCCEEDED(dxgiDevice_->GetAdapter(&adapter)) &&
+                        SUCCEEDED(adapter.As(&adapter1)) && SUCCEEDED(adapter1->GetDesc1(&desc))) {
+                        if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) active = RenderDriver::WARP;
+                        std::lock_guard<std::mutex> lk(RenderDriverInfoMutex());
+                        RenderDeviceNameSlot() = desc.Description;
+                    }
+
                     ComPtr<ID2D1Factory1> f1;
                     if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory1),
                         nullptr, reinterpret_cast<void**>(f1.GetAddressOf())))) return nullptr;
                     if (FAILED(f1->CreateDevice(dxgiDevice_.Get(), d2dDevice_.GetAddressOf()))) return nullptr;
+                    ActiveRenderDriverSlot().store((int)active);
                 }
                 return d2dDevice_.Get();
             }
@@ -4796,9 +4901,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool IsResizable() const { return resizable_; }
 
         // 圆角偏好（内部只调一次 DwmSetWindowAttribute；不支持的系统会被忽略）
-        enum class WindowCorner { Default, Square, Round, RoundSmall };
-        void SetWindowCorner(WindowCorner c) { corner_ = c; ApplyWindowCorner(); }
-        WindowCorner GetWindowCorner() const { return corner_; }
+        // 圆角不再作为公开可选 API：Win10 上设置圆角会破坏 DWM 边框/阴影，
+        // Win11 Snap 下也可能出现 frame 状态问题。库内部只在 Win11 使用系统默认圆角，
+        // 需要自定义圆角的用户请自行调用 Win32 DWM API，并自行承担风险。
 
         // 窗口动作（供自定义标题栏的按钮调用）
         void Minimize() { if (hwnd_) ShowWindow(hwnd_, SW_MINIMIZE); }
@@ -4988,23 +5093,49 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         //   - SetWindowRgn 的圆角是硬裁剪，会产生明显锯齿，且和系统圆角不一致。
         // ZufyUI 的窗口内容已经按自己的圆角形状绘制，Win10 保留系统直角即可；
         // 圆角裁剪交给 Win11 DWM。
+        void ApplyLegacyDwmFrame() {
+            if (!hwnd_ || !WantDwmChrome()) return;
+            // 自定义边框覆盖了 WM_NCCALCSIZE；Win10 需要保留 1px 的 DWM frame margin，
+            // 否则 DWM 会把它当成完全无边框窗口，边框和投影都可能消失。
+            // Win11 的 Snap 也有同类现象，所以两边都保留同一个 1px frame margin；
+            // 圆角仍由 Win11 DWM 负责，不用 SetWindowRgn。
+            if (!customFrame_) {
+                MARGINS none = { 0, 0, 0, 0 };
+                DwmExtendFrameIntoClientArea(hwnd_, &none);
+                return;
+            }
+            MARGINS m = { 1, 1, 1, 1 };
+            DwmExtendFrameIntoClientArea(hwnd_, &m);
+        }
+
         void ApplyWindowCorner() {
             if (!hwnd_) return;
-            if (!detail::IsWindows11OrGreater()) return;
+            if (!detail::IsWindows11OrGreater()) {
+                ApplyLegacyDwmFrame();
+                return;
+            }
             // 注意：对逐像素透明(NRB+DComp)窗口，DWMWCP_DEFAULT / ROUNDSMALL / DONOTROUND 可能让
             // DWM 丢掉圆角阴影（实测只有显式 ROUND 稳定）。这里统一用 ROUND，并在设置后强制重算
             // 非客户区，确保边框/阴影/圆角不被丢。
             int pref = DWMWCP_ROUND;
-            switch (corner_) {
-            case WindowCorner::Square:     pref = DWMWCP_DONOTROUND; break;
-            case WindowCorner::RoundSmall: pref = DWMWCP_ROUNDSMALL; break;
-            case WindowCorner::Round:
-            case WindowCorner::Default:
-            default:                       pref = DWMWCP_ROUND; break;   // 默认仍用 ROUND（NRB+DComp 下稳定）
-            }
             DwmSetWindowAttribute(hwnd_, DWMWA_WINDOW_CORNER_PREFERENCE, &pref, sizeof(pref));
             SetWindowPos(hwnd_, nullptr, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+            ApplyLegacyDwmFrame();
+        }
+
+        // Snap 改变的是窗口位置/工作区尺寸，不经过 Create/DPI/SetCustomTitleBar；
+        // DWM 在 Snap 后可能重新计算 frame，导致自定义边框刚设置的 frame margin 丢失。
+        // 这里只重挂 frame 状态，不改变客户区布局，也不碰 Win10 圆角。
+        void RefreshWindowFrameState() {
+            if (!hwnd_) return;
+            if (!detail::IsWindows11OrGreater()) {
+                ApplyLegacyDwmFrame();
+                return;
+            }
+            int pref = DWMWCP_ROUND;
+            DwmSetWindowAttribute(hwnd_, DWMWA_WINDOW_CORNER_PREFERENCE, &pref, sizeof(pref));
+            ApplyLegacyDwmFrame();
         }
 
         // 系统最大化/还原（双击标题栏、Win+Up、Snap、全屏恢复等）不一定会让标题栏重画。
@@ -5355,14 +5486,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 break;
             case WM_NCACTIVATE:
                 if (!WantDwmChrome()) return FALSE;   // 弹出层：拒绝激活，避免点击/弹出时触发主窗口伪 WM_KILLFOCUS
-                if (customFrame_) return TRUE;   // 不绘制默认非客户区
+                // 自定义边框不要再吞掉 NC 激活/绘制：客户区已经由 WM_NCCALCSIZE 覆盖，
+                // 让 DWM 继续处理非客户区状态，否则 Win10 上阴影/边框会被一起抑制。
                 break;
             case WM_NCPAINT:
-                if (customFrame_) return 0;
                 break;
             case 0x00AE:   // WM_NCUAHDRAWCAPTION
             case 0x00AF:   // WM_NCUAHDRAWFRAME
-                if (customFrame_) return 0;
                 break;
             case WM_ENTERSIZEMOVE:
                 inSizeMove_ = true;       // 拖动/缩放循环：期间跳过整树命中检测、暂停动画（见 AdvanceFrame）
@@ -5384,6 +5514,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             case WM_WINDOWPOSCHANGED:
                 // 最大化/还原/全屏切换有时先于 WM_SIZE 改变状态；这里补一次，保证按钮字形不滞后。
                 SyncMaximizeState();
+                // Snap 完成后 DWM 可能在此消息之后重算 frame；再补一次 margin/圆角。
+                RefreshWindowFrameState();
                 break;
             case WM_MOVE:
                 UpdateWallpaperLayer();   // 手动背景：只挪图层 Offset，不重画 -> 实时跟手
@@ -5393,6 +5525,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 UpdateTimerState();
                 OnWindowSize();
                 SyncMaximizeState((int)wParam);
+                // Snap/普通缩放都会重新计算 DWM frame；重新挂一次，避免阴影/边框在 Snap 后消失。
+                RefreshWindowFrameState();
                 if (wParam == SIZE_MINIMIZED) {
                     // 方案4：禁用最小化的 owned 子窗口，最小化相关消息一律不处理
                     if (owner_ && ownedMinimizePolicy_ == OwnedMinimizePolicy::DisableMinimize) return 0;
@@ -7123,6 +7257,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
             if (backdrop_ == Backdrop::Acrylic) {
                 systemBackdropActive_ = ApplyAccentState(ACCENT_ENABLE_HOSTBACKDROP);
+                accentHostActive_ = systemBackdropActive_;
                 if (detail::IsWindows11OrGreater()) {
                     BOOL on = TRUE;
                     if (SUCCEEDED(DwmSetWindowAttribute(hwnd_, DWMWA_USE_HOSTBACKDROPBRUSH, &on, sizeof(on))))
@@ -7130,13 +7265,19 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 }
                 // 此时再接效果链，输入才是真正的窗口背后内容。
                 UpdateDCompBackdrop();
+                RefreshWindowFrameState();   // Accent/DWM 状态变化后补回 frame margin/圆角
                 return;
             }
 
-            // Mica/None：关掉系统背景与 host backdrop 采样，再重建 DComp 层。
-            ApplyAccentState(ACCENT_DISABLED);
+            // Mica/None：只有之前真正开过 host backdrop 才需要关闭；否则不要无谓调用
+            // SetWindowCompositionAttribute，避免在 Win10 自定义边框窗口上重置 DWM frame。
+            if (accentHostActive_) {
+                ApplyAccentState(ACCENT_DISABLED);
+                accentHostActive_ = false;
+            }
             systemBackdropActive_ = false;
             UpdateDCompBackdrop();
+            RefreshWindowFrameState();
 
             switch (backdrop_) {
             case Backdrop::Mica:
@@ -7295,6 +7436,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool layoutNeeded_;
         Backdrop backdrop_;
         bool systemBackdropActive_ = false;
+        bool accentHostActive_ = false;   // 是否曾经真正启用过 ACCENT_ENABLE_HOSTBACKDROP
         DWORD backdropColor_;
         Color backgroundColor_;
         // 手动背景（BackdropMode::Manual）：缓存桌面壁纸的独立合成器图层，位于内容层下方
@@ -7359,7 +7501,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float customTitleBarHeight_ = 0.0f;
         bool titleBarVisible_ = true;
         bool resizable_ = true;
-        WindowCorner corner_ = WindowCorner::Default;
         bool maximizeStateInitialized_ = false;
         bool lastMaximizedState_ = false;
         bool customFrame_ = false;          // 是否处于自定义边框模式
@@ -8397,3 +8538,4 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 } // namespace ZufyUI
 
 #include "ZufyUIDragDrop.h"
+

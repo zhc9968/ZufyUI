@@ -313,7 +313,6 @@ namespace dsl {
         WindowApp& size(int w, int h) { w_ = w; h_ = h; return *this; }
         WindowApp& title(const std::wstring& t) { title_ = t; return *this; }
         WindowApp& resizable(bool on = true) { resizable_ = on; resizableSet_ = true; return *this; }
-        WindowApp& corner(ZufyUI::Window::WindowCorner c) { corner_ = c; cornerSet_ = true; return *this; }
         // 不带 tint = 底色跟随主题；带 tint = 显式指定并锁定（含 0x00000000 全透明）
         WindowApp& backdrop(ZufyUI::Backdrop b) { backdrop_ = b; backdropSet_ = true; backdropTintSet_ = false; return *this; }
         WindowApp& backdrop(ZufyUI::Backdrop b, DWORD tint) { backdrop_ = b; tint_ = tint; backdropSet_ = true; backdropTintSet_ = true; return *this; }
@@ -361,7 +360,6 @@ namespace dsl {
             if (!win_) return 1;   // WindowApp 可移动：移动后源对象的 win_ 为 null，直接调 run() 会崩
             if (!win_->Create(w_, h_, title_)) return 1;
             if (resizableSet_) win_->SetResizable(resizable_);
-            if (cornerSet_) win_->SetWindowCorner(corner_);
             if (backdropSet_) { if (backdropTintSet_) win_->SetBackdrop(backdrop_, tint_); else win_->SetBackdrop(backdrop_); }
             if (minSizeSet_) win_->SetMinSize(minW_, minH_);
             if (posSet_) win_->SetPosition(x_, y_);
@@ -400,7 +398,6 @@ namespace dsl {
         bool menuBarInTitleBar_ = true, menuBarInTitleBarSet_ = false;
         HICON bigIcon_ = nullptr, smallIcon_ = nullptr; bool iconSet_ = false;
         ZufyUI::Theme theme_; bool themeSet_ = false;
-        ZufyUI::Window::WindowCorner corner_ = ZufyUI::Window::WindowCorner::Round; bool cornerSet_ = false;
         ZufyUI::Backdrop backdrop_ = ZufyUI::Backdrop::None; DWORD tint_ = 0; bool backdropSet_ = false; bool backdropTintSet_ = false;
         std::shared_ptr<Layout> root_;
         std::shared_ptr<UIElement> titleBar_, menuBar_, statusBar_;
@@ -409,3 +406,4 @@ namespace dsl {
 
 } // namespace dsl
 } // namespace ZufyUI
+

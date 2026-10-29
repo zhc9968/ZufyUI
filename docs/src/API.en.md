@@ -666,7 +666,6 @@ struct CaptionMetrics { bool valid; float rightMargin, top, height, width; };
 enum class TaskbarProgress { None=0, Indeterminate=1, Normal=2, Error=4, Paused=8 };
 enum class ThumbButtonId : UINT { Play=0, Pause=1, Prev=2, Next=3, MaxId=4 };
 struct JumpListItem { std::wstring title, arguments, target, iconPath; int iconIndex=0; };
-enum class WindowCorner { Default, Square, Round, RoundSmall };
 enum class ActivateMode { Raise, Activate, Foreground, All };
 enum class OwnedMinimizePolicy { None, Hide, DisableMinimize };
 ```
@@ -683,6 +682,23 @@ static void SetDefaultFrameRateLimit(int fps);   // v1.14.2
 static void SetDefaultAppIcon(HICON big, HICON small = nullptr);
 static void SetProcessAppUserModelID(const std::wstring& id);
 ```
+
+## Render driver (v1.27.0)
+
+```cpp
+enum class RenderDriver { Auto, Hardware, WARP, Unknown };
+void SetRenderDriver(RenderDriver);
+RenderDriver GetRequestedRenderDriver();
+RenderDriver GetActiveRenderDriver();
+bool IsRenderDriverReady();
+std::wstring GetRenderDeviceName();
+```
+- **Call before the first `Window::Create` / D3D device creation**; calling after the device exists only records an error and does not switch.
+- `Auto`: hardware first, fall back to WARP on failure; `Hardware`: force hardware; `WARP`: force software rasterization.
+- `GetActiveRenderDriver()` returns the driver that actually succeeded; `GetRenderDeviceName()` returns the DXGI adapter name.
+- **`Note`**: WARP only changes ZufyUI's own D3D11/D2D content rendering. WinRT Compositor, DWM composition and the Acrylic effect chain may still use the GPU. GPU usage approaches zero on a GPU-less Windows 10 VM because DWM itself is software in that environment.
+- The demo accepts `--warp` / `--gpu`; the home page also has a restart-based switcher.
+- **`Version`**: `v1.27.0`.
 
 ## Creation / lifecycle
 
@@ -777,17 +793,17 @@ float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;
 - `RequestRepaint()` → `MarkRepaint` does **not** schedule a frame. Frames come from the 16 ms `WM_TIMER` (when busy) or animation continuation. Historical note: forcing a frame here once caused a continuous re-render loop (severe stutter) — **reverted**.
 ###block_red_end
 
-## Appearance / backdrop / corners
+## Appearance / backdrop
 
 ```cpp
 void SetBackdrop(Backdrop, DWORD tint=0);  Backdrop GetBackdrop() const;
 void SetBackgroundColor(Color);
-void SetWindowCorner(WindowCorner);
 void SetContentOpacity(float opacity);
 void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
 void SetResizable(bool);   void SetTitle(const std::wstring&);
 ```
 - Backdrop is **hand-rolled** (Acrylic = host backdrop + effect chain; Mica = cached wallpaper layer). Change params via `SetBackgroundParams` or `UIZSignals::ReloadAcrylic`.
+- Window corners are no longer a public API: Windows 10 keeps square corners to preserve DWM border/shadow, Windows 11 follows system rounding. Call Win32 DWM APIs yourself if you need custom corners, and handle Win10/Snap border/shadow risks yourself.
 - **`Version`**: four-layer params `v1.8.1`; `SetContentOpacity` `v1.9.6`.
 
 ## Custom title bar
@@ -1990,7 +2006,7 @@ using Align = GridLayout::Alignment;                        // used by Ref::alig
 // This also avoids collisions with class names; no extra aliases are needed.
 class WindowApp {                                  // dsl::ZApp()
     WindowApp& size(int,int);   WindowApp& title(const std::wstring&);
-    WindowApp& resizable(bool=true);   WindowApp& corner(Window::WindowCorner);
+    WindowApp& resizable(bool=true);
     WindowApp& backdrop(Backdrop, DWORD tint=0);   WindowApp& hidden(bool=true);
     WindowApp& minSize(int,int);   WindowApp& position(int,int);   WindowApp& frameRateLimit(int);
     WindowApp& theme(const Theme&);   WindowApp& useAppTheme(bool=true);
@@ -2066,7 +2082,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 ###block_red_end
 
-###chapter: Version digest | v1.15.0 → v1.26.0
+###chapter: Version digest | v1.15.0 → v1.27.0
 
 > Only the changes that affect your code are listed.
 
@@ -2182,6 +2198,12 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
   - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
   - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
+- **v1.27.0**:
+  - **Windows 10 Acrylic**: enable `ACCENT_ENABLE_HOSTBACKDROP` before creating the HostBackdropBrush on Win10, preserving the custom blur/tint/noise chain; stop writing Win11-only DWM attributes on Win10.
+  - **DWM / Snap**: keep `DwmExtendFrameIntoClientArea({1,1,1,1})` for custom frames on both Win10 and Win11; reapply frame state after `WM_SIZE` / `WM_WINDOWPOSCHANGED`, fixing lost borders/shadows after Snap.
+  - **Render driver**: added `RenderDriver` / `SetRenderDriver()` / `GetActiveRenderDriver()` / `GetRenderDeviceName()`; the demo supports `--warp` / `--gpu` and a restart-based home-page switcher. WARP changes only application content rendering; DWM/Compositor may still use the GPU.
+  - **Breaking**: removed the public corner API `WindowCorner`, `SetWindowCorner()`, `GetWindowCorner()` and DSL `corner()`; Win10 stays square, Win11 follows DWM, and custom corners require calling Win32 DWM APIs directly.
+  - **Controls/demo**: title-bar glyphs fall back correctly to `Segoe MDL2 Assets` on Win10; the maximize button refreshes after Snap/restore; UI animation updates pause during drag/resize.
 - **v1.26.0**:
   - **Layout**: explicit Grid size constrains cell measurement; finite Row/Column main-axis allocation for Fill; Card/Page/ScrollViewer honour explicit sizes when empty; Button measures content with autoSize disabled; Label explicit width wraps; ScrollViewer no longer re-measures in Arrange.
   - **UIA**: provider cache/context lifetime synchronized with COM callback threads, fixing CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`.

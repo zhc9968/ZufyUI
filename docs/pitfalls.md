@@ -1,4 +1,4 @@
-# ZufyUI 易错点总表（Pitfalls）
+﻿# ZufyUI 易错点总表（Pitfalls）
 
 > 这份文件把散落在代码注释、`HANDOFF.md`、`TODO.md` 里的“坑”集中到一处。**接手/使用前先扫一遍**。
 > 优先级：`易错` = 违反必踩；`注意` = 契约/限制，违反易出问题；`约定` = 库的取向；`不要` = 明确不做。
@@ -126,7 +126,20 @@
 | 8.8 | 约定 | `SetContentBorder` 只在 Overlay 绘制；Push/Permanent 没有内容边框。`SetPanelShadow` 的内层被不透明背景覆盖，只有外侧阴影可见，边框最后画。 |
 | 8.9 | 易错 | Esc 拦截和 `SetFocusOnOpen` 要求 `Drawer` 已挂到 `Window`；未 attach 时不会注册 Esc，也不会执行聚焦。 |
 
-## 9. 明确不做（不要提这些 feature request）
+## 9. 窗口边框 / DWM / 渲染驱动（v1.27.0）
+
+| # | 状态 | 说明 |
+|---|---|---|
+| 9.1 | 易错 | Win10 自定义标题栏**不要设置** `DWMWA_WINDOW_CORNER_PREFERENCE`，也不要用 `SetWindowRgn` 裁圆角；会丢 DWM 边框/阴影，`SetWindowRgn` 还会产生硬裁剪锯齿。 |
+| 9.2 | 约定 | Win10 和 Win11 的自定义边框都保留 `DwmExtendFrameIntoClientArea({1,1,1,1})`；Win11 在此之外仍由 DWM 处理圆角。 |
+| 9.3 | 易错 | Snap 会重新计算 DWM frame；必须在 `WM_SIZE`、`WM_WINDOWPOSCHANGED` 和背景重载后重新挂 frame 状态，否则 Snap 1/2、1/4 会丢边框/阴影。 |
+| 9.4 | 破坏性 | `WindowCorner` / `SetWindowCorner()` / `GetWindowCorner()` / DSL `corner()` 已删除；需要自定义圆角请自行调用 Win32 DWM API，并承担 Win10/Snap 风险。 |
+| 9.5 | 易错 | `SetRenderDriver()` 必须在第一次 `Window::Create` / D3D 设备创建之前调用；设备已创建后不会热切换。 |
+| 9.6 | 约定 | `Auto` = 硬件优先、失败回退 WARP；WARP 只改变应用自己的 D3D11/D2D 内容渲染，WinRT Compositor、DWM 合成和 Acrylic 效果仍可能使用 GPU；“省内存”不等于“零 GPU”。 |
+| 9.7 | 易错 | 任务管理器的“内存”列不是 `PrivateMemorySize64`；比较 WARP/硬件时应同时看 Private Bytes、Working Set、Commit Size，并在 Win10/Win11 分开记录。 |
+| 9.8 | 易错 | `DWMWA_VISIBLE_FRAME_BORDER_THICKNESS` 只支持 Win11 22000+；Win10 上应使用 `DWMWA_EXTENDED_FRAME_BOUNDS` + `GetWindowRect/GetClientRect` 诊断 DWM 几何。 |
+
+## 10. 明确不做（不要提这些 feature request）
 
 1. **页级“整平”缓存**（子树合成到一张位图）——单控件动画会整张重画、内存巨大、收益低。
 2. **事件驱动 `CollectActiveAnimations`**（pull→push）——“是否在动”是派生量，条件触发的 bug 极难测，收益仅 1%~3%。

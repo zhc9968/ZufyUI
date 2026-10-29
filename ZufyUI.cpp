@@ -52,13 +52,37 @@ namespace {
                 swprintf(b, 96, L"DPI %d (%.0f%%) · %d×%d", d, d * 100.0 / 96.0, (int)(cr.right - cr.left), (int)(cr.bottom - cr.top));
                 dpi = b;
             }
+            RenderDriver rd = GetActiveRenderDriver();
+            std::wstring render = (rd == RenderDriver::WARP) ? L"WARP" :
+                (rd == RenderDriver::Hardware) ? L"GPU" :
+                (rd == RenderDriver::Auto) ? L"Auto" : L"未知";
+            std::wstring dev = GetRenderDeviceName();
+            if (!dev.empty()) render += L" / " + dev;
             sb->SetPanelText(0, L"页面: " + page);
             sb->SetPanelText(1, L"主题: " + theme);
             sb->SetPanelText(2, L"背景: " + bdName);
             sb->SetPanelText(3, dpi);
-            sb->SetPanelText(4, state);
+            sb->SetPanelText(4, L"渲染: " + render);
+            sb->SetPanelText(5, state);
         }
     };
+
+    inline bool RestartWithRenderDriver(RenderDriver driver) {
+        wchar_t exe[MAX_PATH]{};
+        if (!GetModuleFileNameW(nullptr, exe, MAX_PATH)) return false;
+        std::wstring cmd = L"\"" + std::wstring(exe) + L"\" ";
+        cmd += (driver == RenderDriver::WARP) ? L"--warp" : L"--gpu";
+        std::vector<wchar_t> buf(cmd.begin(), cmd.end());
+        buf.push_back(0);
+        STARTUPINFOW si{ sizeof(si) };
+        PROCESS_INFORMATION pi{};
+        if (!CreateProcessW(exe, buf.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi))
+            return false;
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+        PostQuitMessage(0);   // 当前进程退消息循环；新进程完整重新初始化 D3D/DComp
+        return true;
+    }
 
     // 库自带 MessageBox 的薄封装：统一替代系统 MessageBoxW（自带主题外观，按钮有点击反馈）。
     //   传 owner 时作为模态父窗口（更贴近原生观感）；不传则退化为无属主顶层弹窗。
@@ -256,6 +280,15 @@ namespace {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     // 进程外测试：--outproc 分支只创建一个独立窗口（自己画全色图），给主进程的 HwndView 托管
     if (lpCmdLine && strstr(lpCmdLine, "--outproc")) return RunOutProcProducer();
+    // 渲染驱动必须在任何 Window::Create / D3D 设备创建之前决定。
+    // --warp: 强制 WARP；--gpu/--hardware: 强制硬件；默认 Auto（硬件优先，失败回退 WARP）。
+    if (lpCmdLine) {
+        if (strstr(lpCmdLine, "--warp")) SetRenderDriver(RenderDriver::WARP);
+        else if (strstr(lpCmdLine, "--gpu") || strstr(lpCmdLine, "--hardware"))
+            SetRenderDriver(RenderDriver::Hardware);
+    }
+    // 纯边框诊断：不设置任何背景/圆角相关状态，只保留自定义标题栏，用来隔离 DWM frame 问题。
+    const bool frameTest = lpCmdLine && strstr(lpCmdLine, "--frame-test");
     // 应用身份（名称 + 图标）统一在开头设置一次：
     //   图标打进 exe（资源 IDI_APPICON，见 ZufyUI.rc），运行时 Image::FromResource 从资源加载，不依赖外部 .ico 文件。
     //   RegisterApp 需在包含本库头文件前 #define ZUFYUI_ALLOW_APP_REGISTRATION 授权；授权后自动写注册表 + 缓存图标，退出清缓存。
@@ -263,7 +296,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterApp(AppInfo{ L"ZufyUI Demo", L"ZufyUI.Demo", appIcon });
     // 演示程序自己的默认背景：亚克力 + 半透明白色着色。
     // 库的默认是 Backdrop::None（不替应用决定），所以不透明/着色都由应用这里指定。
-    Window::SetDefaultBackdrop(Backdrop::Acrylic, 0x80FFFFFF);
+    if (!frameTest) Window::SetDefaultBackdrop(Backdrop::Acrylic, 0x80FFFFFF);
     ThemeManager::SetFollowSystem(true);   // 默认跟随系统深/浅色 + 系统强调色（启动时读一次 + 监听系统消息）
     const wchar_t* kTitle = L"ZufyUI 自动化布局综合测试 " ZufyUI_VERSION_STRING;
     Window win;
@@ -275,7 +308,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     // 主窗口使用自定义标题栏（拖动标题栏移动窗口，右上角三件套与原生一致）
-    win.SetWindowCorner(Window::WindowCorner::Round);
     win.SetResizable(true);
     auto titleBar = std::make_shared<DefaultTitleBar>();
     titleBar->SetTitle(kTitle);
@@ -364,7 +396,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         statusBar->AddPanel(L"主题: -");               // 1
         statusBar->AddPanel(L"背景: -");               // 2
         statusBar->AddPanel(L"DPI -");                 // 3
-        statusBar->AddPanel(Icon::Home, L"就绪", true); // 4（右对齐）
+        statusBar->AddPanel(L"渲染: -");                // 4
+        statusBar->AddPanel(Icon::Home, L"就绪", true); // 5（右对齐）
         status->sb = statusBar.get();
         status->win = &win;
         win.SetStatusBar(statusBar);
@@ -541,6 +574,30 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         col->AddChild(ZLbl(L"「环境组合」页是新增的极端情况测试页：3 主题 × 3 背景 = 9 种组合、DPI 与尺寸边界、"
                           L"深层嵌套、控件墙，以及超长文本 / 空列表 / 极值进度 / 极窄容器 / 超长下拉项等边界态。")
                           .with(&Label::SetTextOverflow, Label::TextOverflow::Wrap).shared());
+
+        // 底部渲染设备开关：WARP 必须在进程初始化前决定，所以这里不是热切换，而是
+        // 启动同目录下的 ZufyUI.exe（--warp / --gpu）并退出当前进程。
+        {
+            RenderDriver active = GetActiveRenderDriver();
+            bool isWarp = (active == RenderDriver::WARP);
+            std::wstring device = GetRenderDeviceName();
+            std::wstring current = isWarp ? L"WARP（软件渲染）" : L"GPU（硬件渲染）";
+            if (!device.empty()) current += L" — " + device;
+            auto card = ZCard().padding(10.0f).with(&::ZufyUI::Card::SetShadow, true);
+            auto btn = ZBtn(isWarp ? L"使用 GPU 渲染" : L"使用 WARP 渲染").size(170.0f, 36.0f).shared();
+            btn->Clicked.connect([isWarp]() {
+                if (!RestartWithRenderDriver(isWarp ? RenderDriver::Hardware : RenderDriver::WARP))
+                    ZuiInfo(L"切换渲染设备失败", L"无法启动新的 ZufyUI.exe 进程。");
+                });
+            auto col2 = ZCol().spacing(6.0f)
+                .add(ZLbl(L"渲染设备"))
+                .add(ZLbl(L"当前：" + current).with(&Label::SetTextOverflow, Label::TextOverflow::Wrap).shared())
+                .add(btn)
+                .add(ZLbl(L"切换会重启当前进程，因为 D3D/D2D 设备只能在初始化前选择。")
+                    .with(&Label::SetTextOverflow, Label::TextOverflow::Wrap).shared());
+            card->SetLayout(col2.shared());
+            col->AddChild(card.shared());
+        }
 
         SetScrollablePage(pageHome, col.shared());
     }
@@ -3814,7 +3871,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     win.SetFrameRateLimit(0);
 
     win.Show();            // 显示由应用决定
-    win.SetBackdrop(Backdrop::Acrylic, 0x80FFFFFF);   // DWM 在窗口可见后应用一次，确保默认就是亚克力
+    if (!frameTest) win.SetBackdrop(Backdrop::Acrylic, 0x80FFFFFF);   // DWM 在窗口可见后应用一次，确保默认就是亚克力
     win.SetMinSize(800, 600);
     win.Run();
 

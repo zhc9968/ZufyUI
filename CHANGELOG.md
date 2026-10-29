@@ -1,8 +1,16 @@
-# 更新日志（CHANGELOG）
+﻿# 更新日志（CHANGELOG）
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.26.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.27.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-29 — Win10 背景/边框、Snap、渲染驱动与 API 收敛（v1.27.0）
+- **Windows 10 Acrylic**：在创建 `HostBackdropBrush` 前启用 `ACCENT_ENABLE_HOSTBACKDROP`，保留自定义模糊/饱和度/tint/噪点链；Win10 不再写 Win11 专属 DWM 属性，避免灰色半透明和边框阴影丢失。
+- **自定义边框 / Snap**：Win10/Win11 都保留 `DwmExtendFrameIntoClientArea({1,1,1,1})`；`WM_SIZE` / `WM_WINDOWPOSCHANGED` / 背景重载后重新挂 frame 状态，修复 Win11 Snap 丢边框/阴影。
+- **标题栏**：Win10 三件套字体按 `Segoe MDL2 Assets` 回退；最大化/还原按钮在系统 Snap、双击标题栏、Win+Up 等路径后主动刷新；拖动/缩放期间暂停 UI 动画更新，优先保证低性能设备跟手。
+- **渲染驱动**：新增 `RenderDriver`、`SetRenderDriver()`、`GetActiveRenderDriver()`、`GetRenderDeviceName()`；`Auto` 硬件优先回退 WARP，demo 支持 `--warp` / `--gpu` 和首页底部重启切换，状态栏显示实际驱动/适配器。WARP 只改变应用内容渲染，DWM/Compositor 仍可能使用 GPU。
+- **破坏性 API 收敛**：删除公开 `WindowCorner`、`SetWindowCorner()`、`GetWindowCorner()` 和 DSL `corner()`；Win10 保持直角，Win11 跟随 DWM，自定义圆角由用户自行调用 Win32 DWM API 并承担风险。
+- **验证**：Win10/Win11 普通窗口、Snap 1/2、1/4、最大化/还原；x64 Release 构建通过，280 项自检通过。
 
 ### 2026-10-27 — 布局测量契约、UIA 生命周期修复、控件细化（v1.26.0）
 
