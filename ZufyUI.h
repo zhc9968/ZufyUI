@@ -103,15 +103,16 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
-// ---------- 独立渲染线程（架构 B）——实验特性，默认关闭、不建议开启 ----------
-// 0 = 关闭（默认；单线程绘制，行为稳定、推荐）。
-// 1 = 开启：渲染放到专用 render 线程，UI 线程只标脏。
-//   ⚠️ 该机制目前不稳定、bug 较多：弹窗空白、悬停/tooltip 与按钮 hover 更新延迟、
-//      嵌套页面切换延迟、大数据量（虚拟列表）偶发崩溃等。不建议在正式项目开启；
-//      仅在确需 vblank 级顺滑且能承担调试成本时谨慎试用。
-#ifndef ZUFYUI_RENDER_THREAD
-#define ZUFYUI_RENDER_THREAD 0
-#endif
+// 注：此分支已完全放弃，代码库中无相关代码。
+//// ---------- 独立渲染线程（架构 B）——实验特性，默认关闭、不建议开启 ----------
+//// 0 = 关闭（默认；单线程绘制，行为稳定、推荐）。
+//// 1 = 开启：渲染放到专用 render 线程，UI 线程只标脏。
+////   ⚠️ 该机制目前不稳定、bug 较多：弹窗空白、悬停/tooltip 与按钮 hover 更新延迟、
+////      嵌套页面切换延迟、大数据量（虚拟列表）偶发崩溃等。不建议在正式项目开启；
+////      仅在确需 vblank 级顺滑且能承担调试成本时谨慎试用。
+//#ifndef ZUFYUI_RENDER_THREAD
+//#define ZUFYUI_RENDER_THREAD 0
+//#endif
 
 // ---------- A1 帧节拍：vblank 主导续帧（替代 WM_PAINT 往返） ----------
 // 1 = 动画续帧由 render 线程 PostMessage(WM_RENDER_TICK) 直接驱动 UI AdvanceFrame（去掉 InvalidateRect→WM_PAINT
@@ -3881,17 +3882,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 InitializeUIThread();
                 if (running_) return exitCode_;   // 防止嵌套消息循环
                 running_ = true;
-#if ZUFYUI_RENDER_THREAD
-                StartRenderHost();
-#endif
                 MSG msg;
                 while (GetMessage(&msg, nullptr, 0, 0)) {
                     TranslateMessage(&msg);
                     DispatchMessage(&msg);
                 }
-#if ZUFYUI_RENDER_THREAD
-                StopRenderHost();
-#endif
                 running_ = false;
                 return exitCode_;
             }
@@ -3913,7 +3908,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             ComPtr<IWICImagingFactory> wicFactory_;
             ComPtr<ICompositionBrush> noiseBrush_;
             ComPtr<IUnknown> dqController_;   // 持有并释放，避免泄漏
-            RenderHost* renderHost_ = nullptr;   // 独立渲染线程（ZUFYUI_RENDER_THREAD=1 时启用）
+            RenderHost* renderHost_ = nullptr;   // 独立渲染线程  --已弃用
             mutable std::shared_mutex windowsMtx_;   // 保护 windows_/windowsById_（render 线程读、UI 线程写）
             std::vector<Window*> windows_;
             std::unordered_map<int, Window*> windowsById_;
@@ -4426,20 +4421,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
             d2dFactory_ = core_->GetFactory();   // 共享工厂（进程级）
             if (!d2dFactory_) { detail::ReportError(L"Window::Create: D2D factory unavailable"); return false; }
-#if ZUFYUI_RENDER_THREAD
-            // DComp/交换链是 STA → UI 线程建共享设备 + 合成后端；renderTarget_/cacheContext_ 交 render 线程自建（每线程自持 DC）
-            core_->GetD2DDevice();
-            if (FAILED(CreateCompositionBackend())) { detail::ReportError(L"Window::Create: CreateCompositionBackend failed"); return false; }
-#else
+
             if (FAILED(CreateDeviceResources())) return false;
             if (FAILED(CreateCompositionBackend())) return false;
-#endif
 
             id_ = core_->RegisterWindow(this);
             detail::LogInfo(L"Window", L"created hwnd=0x" + std::to_wstring((unsigned long long)(uintptr_t)hwnd_) + L"  \"" + title + L"\"");
-#if ZUFYUI_RENDER_THREAD
-            detail::LogWarning(L"Window", L"render-thread mode enabled (experimental / unstable)");
-#endif
 
             if (WantDwmChrome()) {
                 ApplyBackdrop();
@@ -4450,6 +4437,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 // 无系统边框/阴影/圆角/非客户区（弹出层 / 无边框窗口）
                 DWMNCRENDERINGPOLICY pol = DWMNCRP_DISABLED;
                 DwmSetWindowAttribute(hwnd_, DWMWA_NCRENDERING_POLICY, &pol, sizeof(pol));
+                int corner = DWMWCP_DONOTROUND;
+                DwmSetWindowAttribute(hwnd_, DWMWA_WINDOW_CORNER_PREFERENCE, &corner, sizeof(corner));
+                DWORD borderNone = 0xFFFFFFFE;
+                DwmSetWindowAttribute(hwnd_, DWMWA_BORDER_COLOR, &borderNone, sizeof(borderNone));
                 MARGINS mg = { 0, 0, 0, 0 };
                 DwmExtendFrameIntoClientArea(hwnd_, &mg);
                 ApplyAccentState(ACCENT_DISABLED);
@@ -4556,6 +4547,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 v->Release();
             }
         }
+
+
 
         // 父子（owned）窗口：设置所有者后，本窗口会始终位于所有者之上，并随所有者最小化。
         void SetOwner(Window* owner) {
@@ -4709,7 +4702,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void SetTitleBarVisible(bool on) {
             titleBarVisible_ = on;
             if (customTitleBar_) customTitleBar_->SetVisible(on);
-            if (hwnd_) { layoutNeeded_ = true; InvalidateRect(hwnd_, nullptr, TRUE); }
+            if (!on) customTitleBarHeight_ = 0.0f;
+            if (hwnd_) {
+                layoutNeeded_ = true;
+                layoutInvalidated_ = true;
+                InvalidateRect(hwnd_, nullptr, TRUE);
+            }
         }
         bool IsTitleBarVisible() const { return titleBarVisible_ && customTitleBar_ != nullptr; }
 
@@ -5109,7 +5107,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         void ApplyWindowCorner() {
-            if (!hwnd_) return;
+            if (!hwnd_ || !WantDwmChrome()) return;
             if (!detail::IsWindows11OrGreater()) {
                 ApplyLegacyDwmFrame();
                 return;
@@ -5128,7 +5126,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // DWM 在 Snap 后可能重新计算 frame，导致自定义边框刚设置的 frame margin 丢失。
         // 这里只重挂 frame 状态，不改变客户区布局，也不碰 Win10 圆角。
         void RefreshWindowFrameState() {
-            if (!hwnd_) return;
+            if (!hwnd_ || !WantDwmChrome()) return;
             if (!detail::IsWindows11OrGreater()) {
                 ApplyLegacyDwmFrame();
                 return;
@@ -5556,18 +5554,14 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     lastClientW_ = nw; lastClientH_ = nh;
                     clientWidthDip_ = (rc.right - rc.left) * 96.0f / dpi_;
                     clientHeightDip_ = (rc.bottom - rc.top) * 96.0f / dpi_;
-#if ZUFYUI_RENDER_THREAD
-                    // 渲染线程化后**不能**在 UI 线程动 swapchain（会和 render 线程 Present/取后备缓冲竞争 → d2d 崩）。
-                    // 只置 pending，由 render 线程在锁内做 ResizeBuffers。
-                    pendingResize_.store(((unsigned long long)nw << 32) | (unsigned long long)(unsigned)nh,
-                                         std::memory_order_release);
-                    RequestRender();
-#else
-                    if (swapChain_) ResizeSwapChain(nw, nh);
-#endif
+                    HRESULT resizeHr = S_OK;
+                    if (swapChain_) resizeHr = ResizeSwapChain(nw, nh);
                     layoutNeeded_ = true;
                     layoutInvalidated_ = true;
                     InvalidateRect(hwnd_, nullptr, FALSE);
+                    // 窗口放大时 DWM 先拉伸旧内容；若只排队 WM_PAINT，布局已按新尺寸而画面还是空后缓冲，
+                    // 会短暂出现“布局跟上了、画面透明”。这里同步出一帧，尺寸和画面在同一轮更新。
+                    if (swapChain_ && SUCCEEDED(resizeHr)) UpdateWindow(hwnd_);
                 }
                 return 0;
             case WM_ACTIVATE:
@@ -5602,22 +5596,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 break;
             case WM_DPICHANGED: {
                 UpdateTimerState();
-#if ZUFYUI_RENDER_THREAD
-                // dpi_ 与整条渲染状态同属一个临界区：赋值必须和设备重建一起放进锁内，
-                //   否则 render 线程会读到"新 dpi_ + 旧后备缓冲"出一帧（文字/吸附尺寸错一帧）。
-                std::lock_guard<std::recursive_mutex> _dpiLock(renderLock_);
-#endif
                 dpi_ = HIWORD(wParam); if (dpi_ == 0) dpi_ = 96;                // DPI 变了必须整条渲染链重建：D2D 上下文 + DComp 目标/visual 树 + 交换链。
                 SetGlobalDpiScale(dpi_ / 96.0f);
                 // 只重建 renderTarget_ 的话，swapChain_/contentVisual_ 等仍是 nullptr，
                 // OnPaint 会在 EnsureSwapBackBuffer() 直接失败 → 一帧都不画，客户区变全透明
                 //（命中测试/DWM 边框与渲染链无关，所以看起来"窗口还活着"）。
                 DiscardDeviceResources();
-#if ZUFYUI_RENDER_THREAD
-                if (FAILED(CreateCompositionBackend())) {   // DC 交给 render 线程重建
-#else
                 if (FAILED(CreateDeviceResources()) || FAILED(CreateCompositionBackend())) {
-#endif
                     RenderingError.Fire(E_FAIL);
                     detail::RecordError(L"RenderingError", L"CreateDeviceResources/CompositionBackend failed");
                     return 0;
@@ -6311,9 +6296,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 hr = RenderFrame(false);   // 只录/画，不 Present（Present 移出 renderLock_）
             }
             if (SUCCEEDED(hr)) hr = PresentFrame();   // 锁外 Present：只持 gpuLock_，不再让 UI 在 renderLock_ 上等一整帧
-#if ZUFYUI_RENDER_THREAD
-            DwmFlush();   // 锁外节拍：等 DWM 合成一拍
-#endif
             if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
                 DeviceLost.Fire();
                 detail::RecordError(L"DeviceLost", L"device removed/reset");
@@ -6333,11 +6315,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void RebuildAfterDeviceLost() {
             std::lock_guard<std::recursive_mutex> lk(renderLock_);
             DiscardDeviceResources();
-#if ZUFYUI_RENDER_THREAD
-            if (FAILED(CreateCompositionBackend())) {   // DC 交给 render 线程重建
-#else
             if (FAILED(CreateDeviceResources()) || FAILED(CreateCompositionBackend())) {
-#endif
                 RenderingError.Fire(E_FAIL);
                 detail::RecordError(L"RenderingError", L"重建后 CreateDeviceResources/CompositionBackend 失败");
                 if (core_) core_->SetRenderHostPaused(false);
@@ -6427,7 +6405,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             std::lock_guard<std::mutex> g(gpuLock_);
             if (!swapChain_) return S_OK;
             DXGI_PRESENT_PARAMETERS pp{};
-            HRESULT hr = swapChain_->Present1(1, 0, &pp);
+            UINT syncInterval = inSizeMove_ ? 0 : 1;
+            HRESULT hr = swapChain_->Present1(syncInterval, 0, &pp);
             lastPresentMs_.store(detail::NowMs(), std::memory_order_relaxed);   // A3：帧率上限的时基
             return hr;
         }
@@ -6440,7 +6419,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         // A1：推进一帧的"UI 侧"工作（布局 + 动画 + 收集活跃动画 + 发布 uiAnimating_）。
-        // 调用者必须已持有 renderLock_（ZUFYUI_RENDER_THREAD=1 时）；WM_PAINT 与 WM_RENDER_TICK 共用。
+        // 调用者必须已持有 renderLock_（已弃用）；WM_PAINT 与 WM_RENDER_TICK 共用。
         void AdvanceFrame() {
             const bool _dbg = detail::DebugEnabled(); const double _t0 = _dbg ? detail::NowMs() : 0.0;
             RECT rc; GetClientRect(hwnd_, &rc);
@@ -6453,7 +6432,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             float availHeight = clientHeightDip - top - rootMargin.bottom;
 
             // 自定义标题栏：不参与布局，放在 (0,0)；根布局整体下移其高度
-            if (customTitleBar_ && titleBarVisible_) {
+            const bool customTitleBarVisible = customTitleBar_ && titleBarVisible_ && customTitleBar_->IsVisible();
+            if (customTitleBarVisible) {
                 Size tbSize = customTitleBar_->Measure(Size(clientWidthDip, FLT_MAX));
                 customTitleBarHeight_ = max(0.0f, tbSize.height);
                 customTitleBar_->Arrange(Rect(0.0f, 0.0f, clientWidthDip, customTitleBarHeight_));
@@ -6476,7 +6456,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
             // 菜单栏：有自定义标题栏且“隐藏标题文字”时叠在标题栏上；否则放客户区顶部、根内容下移
             menuBarHeight_ = 0.0f;
-            bool menuOnTitleBar = menuBar_ && customTitleBar_ && titleBarVisible_ && menuBarInTitleBar_ && !showTitleText_;
+            bool menuOnTitleBar = menuBar_ && customTitleBarVisible && menuBarInTitleBar_ && !showTitleText_;
             if (menuBar_) {
                 Size m = menuBar_->Measure(Size(clientWidthDip, FLT_MAX));
                 menuBarHeight_ = max(0.0f, m.height);
@@ -6589,9 +6569,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 activeAnimScratch_.clear();
                 lastActiveAnimElements_.clear();
             }
-#if ZUFYUI_RENDER_THREAD
-            uiAnimating_.store(updateAnimations && !activeAnimScratch_.empty());   // 发布"是否还有动画"，供 render 线程决定是否续帧
-#endif
             if (_dbg) {
                 auto& s = debugStats_;
                 s.advanceMs = detail::NowMs() - _t0;
@@ -6609,12 +6586,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (IsIconic(hwnd_)) { EndPaint(hwnd_, &ps); return; }
 
             // 4. 合成绘制 —— 已抽成 RenderFrame()。
-#if ZUFYUI_RENDER_THREAD
-            // A1：UI 侧只做布局/动画（AdvanceFrame），再标脏唤醒 render 线程；不再自己出帧/自续。
-            // 无条件请求：一次 WM_PAINT 就是一次真实出画请求（例如菜单窗刚显示）；空闲由"没有 WM_PAINT"来停。
-            { std::lock_guard<std::recursive_mutex> _frameLock(renderLock_); AdvanceFrame(); }
-            RequestRender();
-#else
             if (!renderTarget_) {
                 if (FAILED(CreateDeviceResources())) { EndPaint(hwnd_, &ps); return; }
             }
@@ -6676,7 +6647,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 // 本帧所有可见元素都已重新绘制，清空待重绘集合，避免空闲时残留 pending
                 pendingRepaint_.clear();
             }
-#endif   // !ZUFYUI_RENDER_THREAD
 
             EndPaint(hwnd_, &ps);
         }
@@ -6891,6 +6861,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (FAILED(compositor_->CreateSurfaceBrushWithSurface(surf.Get(), &brush))) return E_FAIL;
             brush->put_HorizontalAlignmentRatio(0.f);
             brush->put_VerticalAlignmentRatio(0.f);
+            brush->put_Stretch(static_cast<ABI::Windows::UI::Composition::CompositionStretch>(1));   // Fill，避免旧帧按宽高比缩放后底部留白
             if (FAILED(compositor_->CreateSpriteVisual(&contentVisual_))) return E_FAIL;
             ComPtr<IVisual2> c2;
             if (SUCCEEDED(contentVisual_->QueryInterface(IID_PPV_ARGS(&c2)))) c2->put_RelativeSizeAdjustment({ 1.f, 1.f });
@@ -7733,12 +7704,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             // 注意：菜单窗口自身的 WM_PAINT 在"主窗口有持续动画"时可能被压后，所以这里先同步画一帧把内容渲染好；
             // 之后淡入只改 DComp 透明度，不需要重绘。（WM_TIMER 已不再被 present 循环饿死。）
             SetContentOpacity(0.0f);
-#if ZUFYUI_RENDER_THREAD
-            // 渲染线程模式：WM_PAINT 不同步出帧 → 必须在这里同步画一帧，否则淡入的是空内容（菜单"不出来"）。
-            if (h) RenderNowSync();
-#else
             if (h) RedrawWindow(h, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
-#endif
             StartFade();
             openedTick_ = GetTickCount();
             prevLButtonDown_ = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;   // 记录开菜单瞬间左键的真实状态（右键弹菜单时通常为松开）

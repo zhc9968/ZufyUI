@@ -1,4 +1,4 @@
-# ZufyUI API Reference
+﻿# ZufyUI API Reference
 
 > This document covers the entire public API of the ZufyUI framework, **organized by usage category** (not by code/header order).
 > Companion reading: [Project README & build](../../README.en.md).
@@ -45,7 +45,6 @@
 ###block_red_start
 **Pitfall**
 
-- the `Snap` DPI scale is **thread-local** (`GlobalDpiScaleRef`). The render thread sets it every frame; the UI thread now sets it too in `Window::Create`/`WM_DPICHANGED`. On your own threads it will be 1.0, not the window DPI.
 ###block_red_end
 
 ## Object model & lifetime
@@ -125,7 +124,6 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {   // Windows subsyste
 
 - `Application::Run()` runs the single message loop; **all windows/controls must be created and touched on the same UI thread**.
 - To touch UI from a worker: use a signal's `ConnectionThread::UIThread`, or `detail::PostToUIThread`.
-- The render thread (`ZUFYUI_RENDER_THREAD`) is **off by default** and documented as unstable / not recommended.
 
 ## Structure (outer → inner)
 
@@ -655,7 +653,7 @@ int GetCurrentIndex() const;  std::shared_ptr<Page> GetCurrentPage() const;
 
 See the "Containers & Scrolling / Tabs" chapter.
 
-###chapter: Window | Window (create, show, backdrop, title bar, taskbar, DPI, render thread)
+###chapter: Window | Window (create, show, backdrop, title bar, taskbar, DPI, frame rate)
 
 ## Nested public types
 
@@ -715,10 +713,8 @@ std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
 **Pitfall**
 
 - `Create` does **not** auto-`Show` (since v1.8.0). `RunModal` disables the owner (`EnableWindow(FALSE)`) and deliberately does **not** use `IsDialogMessage`.
-- `LockRender()` is only needed when `ZUFYUI_RENDER_THREAD=1` and you mutate the element tree; the default single-threaded mode does not need it.
 ###block_red_end
 
-- **`Version`**: multi-window `v1.6.0`; `SetInputBlocked`/modal `v1.6.2`; `LockRender`/`RenderNowSync` `v1.16.0`.
 
 ## Temporary key handlers (v1.25.0)
 
@@ -858,20 +854,6 @@ These are COM calls; failures are **silent no-ops**. `FLASHW_CAPTION` does nothi
 
 - element caches clear on DPI change, but child layout needs **no** manual re-measure.
 ###block_red_end
-
-## Render thread / frame rate
-
-```cpp
-void SetFrameRateLimit(int fps);   int GetFrameRateLimit() const;   // 0=follow vblank; >0=cap
-```
-
-###block_red_start
-**Pitfall**
-
-- `ZUFYUI_RENDER_THREAD` is **0 by default** and documented as unstable/not recommended (blank popups, delayed hover/tooltip, occasional crashes with large virtual lists). Single-threaded `WM_PAINT` is the supported path.
-###block_red_end
-
-- **`Version`**: render thread `v1.14.0`; vblank clock `v1.14.1`; frame cap `v1.14.2`; default-off documented `v1.16.0`.
 
 ## Accessibility / signals
 
@@ -1401,7 +1383,6 @@ class MessageBox : public Window {
 - Since **v1.15.0** all three views are **viewport-virtualized + Label-pooled**.
 - There are **two coordinate systems** — **source row index** (stable; legacy APIs/signals) and **visible order** (post hide/filter/sort). **Mixing them is the #1 bug source.**
 - In virtual mode rows have no persistent `Label`; `SetTextFast` is the pool rebind path.
-- Serialize data mutation with rendering (`RenderGuard()`).
 ###block_red_end
 
 ## ListView
@@ -1637,7 +1618,6 @@ class ImageDeviceCache { /* device bitmaps keyed by render target */ };
 ###block_red_start
 **Pitfall**
 
-- `ImageDeviceCache::Get` does "GPU upload outside the lock + `emplace` inside". Only with `ZUFYUI_RENDER_THREAD=1` is there a tiny dangling window vs. `DeviceReset`; single-threaded is safe.
 ###block_red_end
 
 ## TrayIcon
@@ -2087,7 +2067,6 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 > Only the changes that affect your code are listed.
 
 - **v1.15.0**: data-view virtualization (`SetItemCount` etc.) + hide/filter/visible-order sort (two coordinate systems); cross-thread/locking hardening; `ComboBox` source-index API; `TreeView::BeginUpdate/SetNodeText`.
-- **v1.16.0**: system dialogs `FileDialog`/`ColorDialog`; `UIZSignals::Error`; render thread off by default + documented unstable; tray callback-message collision fix; optional `ZUFYUI_ENABLE_COMCTL_V6`.
 - **v1.17.0**: **UIA accessibility** (on by default); **external debug/automation channel** (`SetDebugEnabled`, off by default, commands 1~22); **layout stretch weights** (`ColumnBox`/`RowBox`/`GridLayout` distribute leftover by weight); **automatic ellipsis tooltips** (Label/Button); `CaptionButton::Kind::Pin`; `TreeView` node `bgColor` / `Get/SetScrollOffsetY` / `ScrollToNode`; `Window::DefaultBackdropColor` pure white.
 - **v1.18.0**:
   - New `ZufyUICharts.h`: `ChartBase` / `BarChart` / `LineChart` / `PieChart`; `BarChart` horizontal orientation; `PieChart` wheel zoom.

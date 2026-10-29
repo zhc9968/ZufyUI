@@ -1,4 +1,4 @@
-# ZufyUI API 参考
+﻿# ZufyUI API 参考
 
 > 本文档覆盖 ZufyUI 框架的全部公开 API，**按“使用分类”组织**（不是按代码/头文件顺序）。
 > 配套阅读：[项目说明与构建](../../README.md)。
@@ -46,7 +46,6 @@
 ###block_red_start
 **易错**
 
-- `Snap` 用的 DPI 比例是 **线程本地**（`GlobalDpiScaleRef`）。渲染线程每帧设置；UI 线程现在也在 `Window::Create`/`WM_DPICHANGED` 设置。若你自建线程调用 `Snap`，它会是 1.0 而非窗口 DPI。
 ###block_red_end
 
 ## 对象模型与生命周期
@@ -126,7 +125,6 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {   // Windows 子系�
 
 - `Application::Run()` 跑唯一消息循环；**所有窗口/控件必须在同一 UI 线程创建与操作**。
 - 后台线程改 UI：用信号的 `ConnectionThread::UIThread`，或 `detail::PostToUIThread`。
-- 渲染线程（`ZUFYUI_RENDER_THREAD`）**默认关闭**，文档标注为不稳定、不建议开。
 
 ## 组件结构（从外到内）
 
@@ -659,7 +657,7 @@ int GetCurrentIndex() const;  std::shared_ptr<Page> GetCurrentPage() const;
 
 见「容器与滚动 / 页签」章。
 
-###chapter: 窗口 | Window（创建、显示、背景、标题栏、任务栏、DPI、渲染线程）
+###chapter: ?? | Window??????????????????DPI????
 
 ## 嵌套公开类型
 
@@ -719,10 +717,8 @@ std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
 **易错**
 
 - `Create` **不自动 `Show`**（v1.8.0 起）。`RunModal` 用 `EnableWindow(FALSE)` 禁用 owner、**不使用** `IsDialogMessage`。
-- `LockRender()` 仅在 `ZUFYUI_RENDER_THREAD=1` 且改元素树数据时需要；默认单线程无需。
 ###block_red_end
 
-- **`版本`**：多窗口 `v1.6.0`；`SetInputBlocked`/模态 `v1.6.2`；`LockRender`/`RenderNowSync` `v1.16.0`。
 
 ## 临时键处理器（v1.25.0）
 
@@ -863,20 +859,6 @@ void SetAppUserModelID(const std::wstring&);
 
 - 元素缓存会在 DPI 变更时被清；但子布局**不需要**你手动重测。
 ###block_red_end
-
-## 渲染线程 / 帧率
-
-```cpp
-void SetFrameRateLimit(int fps);   int GetFrameRateLimit() const;   // 0=跟随刷新；>0=限帧
-```
-
-###block_red_start
-**易错**
-
-- `ZUFYUI_RENDER_THREAD` **默认 0**，文档标注不稳定、不建议开（空白弹窗、悬停/提示延迟、大虚拟列表可能崩）。单线程 `WM_PAINT` 是受支持路径。
-###block_red_end
-
-- **`版本`**：渲染线程 `v1.14.0`；vblank 节拍 `v1.14.1`；帧率上限 `v1.14.2`；默认关并标注 `v1.16.0`。
 
 ## 无障碍 / 信号
 
@@ -1409,7 +1391,6 @@ class MessageBox : public Window {
 - 自 **v1.15.0** 起三个视图都是**视口虚拟化 + Label 池化**。
 - 存在**两套坐标**：**源行号**（稳定，旧 API/信号用它）与**可见序**（隐藏/筛选/排序之后）。**混用是头号 bug 来源。**
 - 虚拟模式下每行没有持久 `Label`；`SetTextFast` 是池 rebind 路径。
-- 所有数据改动应与渲染串行（视图提供 `RenderGuard()`）。
 ###block_red_end
 
 ## ListView
@@ -1646,7 +1627,6 @@ class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };
 ###block_red_start
 **易错**
 
-- `ImageDeviceCache::Get` 内部“锁外 GPU 上传 + 锁内 emplace”。**仅当 `ZUFYUI_RENDER_THREAD=1`** 才有与 `DeviceReset` 并发的极小悬垂窗口；单线程路径无风险。
 ###block_red_end
 
 ## TrayIcon
@@ -2097,7 +2077,6 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 > 只列**对你写代码有影响**的显著变化。
 
 - **v1.15.0**：数据视图虚拟化（`SetItemCount` 等）+ 隐藏/筛选/可见序排序（源行号 vs 可见序两套坐标）；跨线程/锁语义收口；`ComboBox` 源索引 API；`TreeView::BeginUpdate/SetNodeText`。
-- **v1.16.0**：系统对话框 `FileDialog`/`ColorDialog`；`UIZSignals::Error`；渲染线程默认关并标注不稳定；托盘回调消息撞号修复；`ZUFYUI_ENABLE_COMCTL_V6` 可选宏。
 - **v1.17.0**：**UIA 无障碍**（默认开）；**外部调试/自动化通道**（`SetDebugEnabled`，默认关，命令 1~22）；**布局拉伸权值**（`ColumnBox`/`RowBox`/`GridLayout` 按权值分配剩余空间）；**省略文本自动 ToolTip**（Label/Button）；`CaptionButton::Kind::Pin`；`TreeView` 节点 `bgColor`/`Get/SetScrollOffsetY`/`ScrollToNode`；`Window::DefaultBackdropColor` 默认纯白。
 - **v1.18.0**：
   - 新增 `ZufyUICharts.h`：`ChartBase` / `BarChart` / `LineChart` / `PieChart`；`BarChart` 补全横向方向；`PieChart` 滚轮缩放。

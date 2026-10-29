@@ -1,4 +1,4 @@
-# ZufyUI
+﻿# ZufyUI
 
 **A few MB light, native-composition fast.** A header-only, zero-dependency C++20 Windows UI framework built directly on Direct2D 1.1 + DirectComposition.
 
@@ -12,7 +12,6 @@
 
 ![ZufyUI Demo](docs/images/demo-main.png)
 
-> Experimental: the independent render thread (`ZUFYUI_RENDER_THREAD`) is off by default; see "Experimental feature" at the end. The default single-threaded path is stable.
 
 ## Quick start
 
@@ -126,7 +125,6 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 - **Per-element offscreen caching**: on by default, can be disabled per element; bleed keeps shadows/borders from being clipped; `ReleaseDeviceResourcesRecursive()` releases a whole subtree; automatic recovery after device loss.
 - **High DPI**: Per-Monitor V2, `WM_DPICHANGED`, DIP coordinates, `Snap()` to physical pixels; cursor/hover/IME candidate geometry use the same scale.
 - **Frame-rate limit**: per-window `SetFrameRateLimit` plus a global default.
-- **Render thread**: single UI thread by default; the independent render thread (`ZUFYUI_RENDER_THREAD`) is experimental (off by default, unstable, not recommended).
 - **Built-in diagnostics**: frame stats, repaint / layout / cache / draw TopN, unified `detail::Log`, `UIZSignals::Error`.
 
 ### Layout
@@ -170,7 +168,6 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 - **ListView**: viewport virtualization + Label pooling; `SelectionMode` (Single / Extended / Multi / None) and a multi-selection signal; checkboxes; rich items via `AddItemWidget`; hide/filter/sort (source index vs visible order); `ScrollToItem`; empty-state text; row/item tooltips; double-click signal.
 - **TableView**: multiple columns, header (visibility/height/colours), cell colours and rich cells, checkboxes, row height/column width, scrolling; cell double-click signal.
 - **TreeView**: hierarchy, multiple columns, expand/collapse, checkboxes (recursive/shallow/three-state `Unchecked / PartiallyChecked / Checked`), filter/search, sort, `ScrollToNode`, node background/tooltip, `BeginUpdate/EndUpdate` batching, default expand depth, double-click signal.
-- **Shared**: theme integration, font/colour customisation, selection signals, `RenderGuard()` serialization with the render thread, release of pooled/rich/cell Labels.
 
 ### Charts
 
@@ -226,7 +223,6 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 - **ZSignal / Connection / ConnectionGroup**: `Connect` auto-disconnect, snapshot `Fire`, exception-safe.
 - **Three dispatch strategies**: current thread / new thread / UI thread.
 - **Global signals**: `UIZSignals::ThemeChanged` / `ThemeReapply` / `LayoutInvalidated` / `DrawOverlay` / `ElementCaptureRequest` / `Error`, etc.
-- **Serialization**: `RenderGuard()` serializes data mutation with the render thread; clear lifetime conventions for windows/elements and device-resource release.
 
 ### Fluent construction DSL (optional)
 
@@ -363,7 +359,6 @@ ZufyUI/
 - **1.18.1**: docs/screenshots update.
 - **1.18.0**: charts `ZufyUICharts.h`; `TextEdit`; `PageHost` deferred release; docs rewrite.
 - **1.17.0**: UIA; debug channel; layout weights; Label/Button auto ToolTip; TreeView bg/scroll; title-bar Pin.
-- **1.16.0**: render thread off by default; system dialogs; `UIZSignals::Error`; cursor/hover/first-column fixes.
 - **1.15.0**: data-view virtualization; cross-thread cleanup; ComboBox source index.
 
 > Older versions (≤ 1.14) are in [CHANGELOG.en.md](CHANGELOG.en.md).
@@ -384,9 +379,7 @@ If you need something (a control, platform integration, performance/compatibilit
 
 ZufyUI was originally named `ZUI` (to avoid clashes with other projects of the same name).
 
-## Experimental feature
 
-> ⚠️ **The independent render thread (compile switch `ZUFYUI_RENDER_THREAD`) is experimental: off by default, unstable, buggy, and not recommended.** The default single-threaded path is stable; see the "Independent render thread" section in the API reference.
 
 ## License
 

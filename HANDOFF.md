@@ -1,4 +1,4 @@
-# ZufyUI 交接文档（HANDOFF）
+﻿# ZufyUI 交接文档（HANDOFF）
 
 > 给**下一位接手者 / AI 智能体**：读这一份即可上手。配套：`AGENTS.md`（硬规则）、`TODO.md`（本地待办，不发布）、`docs/src/API.md`（API 参考）、`docs/src/API.en.md`（英文）、`README.md`（构建/快速开始）。
 > 版本基线：`1.27.0`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
@@ -101,7 +101,6 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
 - **两级脏位**：`measureDirty_`（自身/子树需重测，**冒泡到根**）/ `selfArrangeDirty_`（自身要重排）/ `subtreeDirty_`（子树有脏，让父的 ArrangeOverride 跑起来到达）。`InvalidateLayout()` 冒泡；`InvalidateLayoutSelf()` 不冒泡（池化/virtual rebind 用）。
 - **`LayoutParticipation { Normal, DrawBeforeLayout, DrawAfterLayout }`**：窗口级 chrome（标题栏/菜单栏/状态栏）不参与布局但要绘制。
 - **元素身份用窗口 id（不是裸指针）**：窗口销毁后 `GetWindow()` 返回 `nullptr`。
-- **并发契约（架构 B，`ZUFYUI_RENDER_THREAD=1`，默认关、实验）**：`renderLock_`（recursive）/ `live_` 生存令牌（`alive`+`inFlight`+`cv`，析构先置死再等 in-flight 归零）/ `gpuLock_`。数据变更 API 走 `RenderGuard()` 与 render 线程串行。
 - **`Window`**：`Create` 自动 `RegisterDragDrop`；`OnPaint`/`AdvanceFrame` 驱动布局+动画+合成；`WM_DPICHANGED`/设备丢失重建。
 
 ---
@@ -281,7 +280,6 @@ Application(单例) → Window → Layout(ColumnBox/RowBox/GridLayout) → Conta
    - `Window` 加尺寸/DPI 变化信号（否则状态栏 DPI/客户区格无法实时刷新）；
    - 是否给 `ProgressRing` 加 `Ring(float size)` 短工厂；
    - `PieChart::zoom_` 遮蔽 `ChartBase::zoom_` 是**代码味道**（建议后续统一成一个成员 + 统一 0.4~4 的缩放区间，当前基类钳 0.4~3、饼图 `SetZoom` 钳 0.4~4）。
-6. **A 批评审报告里"真问题"但本轮未修的**（用户当时只让修确认过的）：`N3` TextBox undo 栈污染且无上限、`N4` TreeView 勾选命中 vs `GetFirstColDecor`、`N7` `IconFormat` DPI 缓存、`N9` MessageBox HWND owner 时序、`N10` `SetAppIcon`/`RegisterApp` HICON 泄漏、`N12` RenderHost 设备丢失时丢批次、`N13/N14` TreeView/TableView 虚拟化、`N16` ComboBox 过滤 O(N)。
 
 ### 10.5 发版流程（`v1.21.0` 已按此执行，供下次照做）
 

@@ -8159,7 +8159,7 @@ namespace ZufyUI {
         }
         std::shared_ptr<Menu> GetMenu(int i) const { return (i >= 0 && i < (int)entries_.size()) ? entries_[i].menu : nullptr; }
         int MenuCount() const { return (int)entries_.size(); }
-        void CloseMenu() { if (openIndex_ != -1) { openIndex_ = -1; RequestRepaint(); } }
+        void CloseMenu() { if (openIndex_ != -1 || hoverIndex_ != -1) { openIndex_ = -1; hoverIndex_ = -1; RequestRepaint(); } }
         int OpenIndex() const { return openIndex_; }
 
         Size MeasureOverride(const Size& avail) override {
@@ -8188,7 +8188,11 @@ namespace ZufyUI {
             }
         }
         void UpdateAnimation(float) override {   // 菜单被关掉后（g_activeMenu 清空）复位“按下”
-            if (openIndex_ >= 0 && detail::g_activeMenu == nullptr) { openIndex_ = -1; RequestRepaint(); }
+            if (openIndex_ >= 0 && detail::g_activeMenu == nullptr) {
+                openIndex_ = -1;
+                if (hoverIndex_ >= 0) hoverIndex_ = -1;
+                RequestRepaint();
+            }
         }
         UIElement* HitTest(float x, float y) override {
             if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
@@ -8227,7 +8231,13 @@ namespace ZufyUI {
             hoverIndex_ = idx;
             Window* w = GetWindow(); if (!w || !w->GetHwnd()) { openIndex_ = -1; RequestRepaint(); return; }
             auto& e = entries_[idx]; if (!e.menu) { openIndex_ = -1; RequestRepaint(); return; }
-            e.menu->onClosed = [this, idx]() { if (openIndex_ == idx) { openIndex_ = -1; RequestRepaint(); } };   // 关闭 → 复位“按下”
+            e.menu->onClosed = [this, idx]() {
+                if (openIndex_ == idx) {
+                    openIndex_ = -1;
+                    if (hoverIndex_ == idx) hoverIndex_ = -1;
+                    RequestRepaint();
+                }
+            };   // 关闭 → 复位“按下”
             POINT origin{ 0, 0 }; ::ClientToScreen(w->GetHwnd(), &origin);
             float scale = w->GetDpiScale() / 96.0f;   // DIP → 物理像素
             int sx = origin.x + (int)lround((arrangedRect_.x + e.x) * scale);
