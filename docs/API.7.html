@@ -319,11 +319,11 @@ int GetCurrentIndex() const;  std::shared_ptr&lt;Page&gt; GetCurrentPage() const
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-506bdddd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e2a3cfe8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Layout</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-506bdddd" style="display: none;">class Layout : public UIElement { bool UseCache() const override { return false; } };</pre>
+<pre id="code-e2a3cfe8" style="display: none;">class Layout : public UIElement { bool UseCache() const override { return false; } };</pre>
 </div>
 <ul>
 <li>布局容器<strong>一律不缓存</strong>。</li>
@@ -332,7 +332,7 @@ int GetCurrentIndex() const;  std::shared_ptr&lt;Page&gt; GetCurrentPage() const
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-636066d7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-5231192a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">LayoutAlignment</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Start</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">End</span><span class="p">,</span><span class="w"> </span><span class="n">Stretch</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Justify</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Start</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">End</span><span class="p">,</span><span class="w"> </span><span class="n">SpaceBetween</span><span class="p">,</span><span class="w"> </span><span class="n">SpaceAround</span><span class="w"> </span><span class="p">};</span>
@@ -343,7 +343,7 @@ int GetCurrentIndex() const;  std::shared_ptr&lt;Page&gt; GetCurrentPage() const
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetJustify</span><span class="p">(</span><span class="n">Justify</span><span class="p">);</span><span class="w">              </span><span class="c1">// 主轴：Start/Center/End/SpaceBetween/SpaceAround</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCrossAlign</span><span class="p">(</span><span class="n">LayoutAlignment</span><span class="p">);</span><span class="w">   </span><span class="c1">// 交叉轴，默认 Stretch（兼容旧行为）</span>
 </pre></div>
-<pre id="code-636066d7" style="display: none;">enum class LayoutAlignment { Start, Center, End, Stretch };
+<pre id="code-5231192a" style="display: none;">enum class LayoutAlignment { Start, Center, End, Stretch };
 enum class Justify { Start, Center, End, SpaceBetween, SpaceAround };
 ColumnBox(); RowBox();
 void AddChild(std::shared_ptr&lt;UIElement&gt;);
@@ -369,7 +369,7 @@ void SetCrossAlign(LayoutAlignment);   // 交叉轴，默认 Stretch（兼容旧
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f4b24808', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-f8d5e7f7', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">using</span><span class="w"> </span><span class="n">Alignment</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LayoutAlignment</span><span class="p">;</span><span class="w">   </span><span class="c1">// Start / Center / End / Stretch</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">rowSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">colSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -380,7 +380,7 @@ void SetCrossAlign(LayoutAlignment);   // 交叉轴，默认 Stretch（兼容旧
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetHorizontalAlignment</span><span class="p">(</span><span class="n">Alignment</span><span class="p">);</span><span class="w">        </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVerticalAlignment</span><span class="p">(</span><span class="n">Alignment</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCellAlignment</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="n">Alignment</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="n">Alignment</span><span class="w"> </span><span class="n">v</span><span class="p">);</span>
 </pre></div>
-<pre id="code-f4b24808" style="display: none;">using Alignment = LayoutAlignment;   // Start / Center / End / Stretch
+<pre id="code-f8d5e7f7" style="display: none;">using Alignment = LayoutAlignment;   // Start / Center / End / Stretch
 void AddChild(std::shared_ptr&lt;UIElement&gt;, int row, int col, int rowSpan=1, int colSpan=1,
               Alignment hAlign=Alignment::Stretch, Alignment vAlign=Alignment::Stretch);
 void SetColumnCount(int);  void SetRowCount(int);
@@ -400,7 +400,7 @@ void SetCellAlignment(int row, int col, Alignment h, Alignment v);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-d8097a3f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-93d81bf8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">LayoutHost</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetLayout</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetLayout</span><span class="p">(...);</span>
@@ -411,7 +411,7 @@ void SetCellAlignment(int row, int col, Alignment h, Alignment v);</pre>
 <span class="k">class</span><span class="w"> </span><span class="nc">Page</span><span class="w">  </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">LayoutHost</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">DefaultPadding</span><span class="o">=</span><span class="mi">10</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">Page::SetScrollableContent</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="p">);</span><span class="w">   </span><span class="c1">// 一行套 ScrollViewer(fill)+8px 边距</span>
 </pre></div>
-<pre id="code-d8097a3f" style="display: none;">class LayoutHost : public UIElement {
+<pre id="code-93d81bf8" style="display: none;">class LayoutHost : public UIElement {
     std::shared_ptr&lt;UIElement&gt; GetLayout() const;  void SetLayout(...);
     std::shared_ptr&lt;UIElement&gt; GetContent() const; void SetContent(...);   // 单内容别名
     void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // 默认 Stretch
@@ -430,7 +430,7 @@ void Page::SetScrollableContent(std::shared_ptr&lt;UIElement&gt; content);   // 
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-6fe377a0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-25245cd6', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TransitionDirection</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="p">,</span><span class="w"> </span><span class="n">Up</span><span class="p">,</span><span class="w"> </span><span class="n">Down</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TransitionEasing</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Linear</span><span class="p">,</span><span class="w"> </span><span class="n">EaseInOut</span><span class="p">,</span><span class="w"> </span><span class="n">EaseOut</span><span class="w"> </span><span class="p">};</span>
@@ -439,7 +439,7 @@ void Page::SetScrollableContent(std::shared_ptr&lt;UIElement&gt; content);   // 
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionDirection</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionEasing</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationDuration</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="kt">int</span><span class="w"> </span><span class="nf">GetCurrentIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Page</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCurrentPage</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-6fe377a0" style="display: none;">enum class TransitionDirection { Left, Right, Up, Down };
+<pre id="code-25245cd6" style="display: none;">enum class TransitionDirection { Left, Right, Up, Down };
 enum class TransitionEasing { Linear, EaseInOut, EaseOut };
 void AddPage(std::shared_ptr&lt;Page&gt;);  void RemovePage(int);  void ClearPages();
 void NavigateTo(int index);   void SetCurrentIndexInstant(int index);

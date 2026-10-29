@@ -319,11 +319,11 @@ See the "Containers &amp; Scrolling / Tabs" chapter.</pre></div></div>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-0fea386d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-6c60ec27', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Layout</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-0fea386d" style="display: none;">class Layout : public UIElement { bool UseCache() const override { return false; } };</pre>
+<pre id="code-6c60ec27" style="display: none;">class Layout : public UIElement { bool UseCache() const override { return false; } };</pre>
 </div>
 <ul>
 <li>Layout containers <strong>never cache</strong>.</li>
@@ -332,7 +332,7 @@ See the "Containers &amp; Scrolling / Tabs" chapter.</pre></div></div>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-58aed905', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-5b9c8b3e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">LayoutAlignment</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Start</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">End</span><span class="p">,</span><span class="w"> </span><span class="n">Stretch</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Justify</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Start</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">End</span><span class="p">,</span><span class="w"> </span><span class="n">SpaceBetween</span><span class="p">,</span><span class="w"> </span><span class="n">SpaceAround</span><span class="w"> </span><span class="p">};</span>
@@ -343,7 +343,7 @@ See the "Containers &amp; Scrolling / Tabs" chapter.</pre></div></div>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetJustify</span><span class="p">(</span><span class="n">Justify</span><span class="p">);</span><span class="w">              </span><span class="c1">// main axis: Start/Center/End/SpaceBetween/SpaceAround</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCrossAlign</span><span class="p">(</span><span class="n">LayoutAlignment</span><span class="p">);</span><span class="w">   </span><span class="c1">// cross axis; Stretch is the compatibility default</span>
 </pre></div>
-<pre id="code-58aed905" style="display: none;">enum class LayoutAlignment { Start, Center, End, Stretch };
+<pre id="code-5b9c8b3e" style="display: none;">enum class LayoutAlignment { Start, Center, End, Stretch };
 enum class Justify { Start, Center, End, SpaceBetween, SpaceAround };
 ColumnBox(); RowBox();
 void AddChild(std::shared_ptr&lt;UIElement&gt;);
@@ -369,7 +369,7 @@ void SetCrossAlign(LayoutAlignment);   // cross axis; Stretch is the compatibili
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-071a3519', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-9a6ff12f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">using</span><span class="w"> </span><span class="n">Alignment</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LayoutAlignment</span><span class="p">;</span><span class="w">   </span><span class="c1">// Start / Center / End / Stretch</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">rowSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">colSpan</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -380,7 +380,7 @@ void SetCrossAlign(LayoutAlignment);   // cross axis; Stretch is the compatibili
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetHorizontalAlignment</span><span class="p">(</span><span class="n">Alignment</span><span class="p">);</span><span class="w">        </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetVerticalAlignment</span><span class="p">(</span><span class="n">Alignment</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetCellAlignment</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="n">Alignment</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="n">Alignment</span><span class="w"> </span><span class="n">v</span><span class="p">);</span>
 </pre></div>
-<pre id="code-071a3519" style="display: none;">using Alignment = LayoutAlignment;   // Start / Center / End / Stretch
+<pre id="code-9a6ff12f" style="display: none;">using Alignment = LayoutAlignment;   // Start / Center / End / Stretch
 void AddChild(std::shared_ptr&lt;UIElement&gt;, int row, int col, int rowSpan=1, int colSpan=1,
               Alignment hAlign=Alignment::Stretch, Alignment vAlign=Alignment::Stretch);
 void SetColumnCount(int);  void SetRowCount(int);
@@ -400,7 +400,7 @@ void SetCellAlignment(int row, int col, Alignment h, Alignment v);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5a10de93', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-c5d5f959', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">LayoutHost</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetLayout</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetLayout</span><span class="p">(...);</span>
@@ -411,7 +411,7 @@ void SetCellAlignment(int row, int col, Alignment h, Alignment v);</pre>
 <span class="k">class</span><span class="w"> </span><span class="nc">Page</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">LayoutHost</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">DefaultPadding</span><span class="o">=</span><span class="mi">10</span><span class="p">;</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">Page::SetScrollableContent</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">content</span><span class="p">);</span><span class="w">   </span><span class="c1">// one line: wrap in ScrollViewer(fill)+8px</span>
 </pre></div>
-<pre id="code-5a10de93" style="display: none;">class LayoutHost : public UIElement {
+<pre id="code-c5d5f959" style="display: none;">class LayoutHost : public UIElement {
     std::shared_ptr&lt;UIElement&gt; GetLayout() const;  void SetLayout(...);
     std::shared_ptr&lt;UIElement&gt; GetContent() const; void SetContent(...);   // single-content alias
     void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // default Stretch
@@ -430,7 +430,7 @@ void Page::SetScrollableContent(std::shared_ptr&lt;UIElement&gt; content);   // 
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-b5ccd7aa', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-4423d6d2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TransitionDirection</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="p">,</span><span class="w"> </span><span class="n">Up</span><span class="p">,</span><span class="w"> </span><span class="n">Down</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TransitionEasing</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Linear</span><span class="p">,</span><span class="w"> </span><span class="n">EaseInOut</span><span class="p">,</span><span class="w"> </span><span class="n">EaseOut</span><span class="w"> </span><span class="p">};</span>
@@ -439,7 +439,7 @@ void Page::SetScrollableContent(std::shared_ptr&lt;UIElement&gt; content);   // 
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionDirection</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTransitionEasing</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAnimationDuration</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span>
 <span class="kt">int</span><span class="w"> </span><span class="nf">GetCurrentIndex</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Page</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCurrentPage</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-b5ccd7aa" style="display: none;">enum class TransitionDirection { Left, Right, Up, Down };
+<pre id="code-4423d6d2" style="display: none;">enum class TransitionDirection { Left, Right, Up, Down };
 enum class TransitionEasing { Linear, EaseInOut, EaseOut };
 void AddPage(std::shared_ptr&lt;Page&gt;);  void RemovePage(int);  void ClearPages();
 void NavigateTo(int index);   void SetCurrentIndexInstant(int index);

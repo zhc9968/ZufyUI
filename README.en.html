@@ -348,7 +348,8 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 
 - **Header-only / zero third-party dependencies**: just include the `.h` files — no library `.cpp` to build, no Qt / MFC / third-party dependency; all system libraries are linked via in-library `#pragma comment(lib, ...)` (complete list under Requirements).
 - **Direct2D 1.1 + DirectWrite + DirectComposition**: DXGI flip-model composition; the main window uses `WS_EX_NOREDIRECTIONBITMAP`; geometry, text and images are drawn on the GPU.
-- **Backdrops**: none / **Acrylic** (several presets, with adjustable blur/saturation/brightness/noise) / **Mica**, with optional `tint`; window corners `Default / Square / Round / RoundSmall`.
+- **Selectable render driver**: `Auto` (hardware first, fall back to WARP) / `Hardware` / `WARP`, chosen before device creation. WARP reduces application-side driver memory, but DWM/Compositor may still use the GPU.
+- **Backdrops**: none / **Acrylic** (several presets, with adjustable blur/saturation/brightness/noise) / **Mica**, with optional `tint`; window corners follow the system (DWM rounding on Windows 11, square on Windows 10), with no public corner API.
 - **Per-element offscreen caching**: on by default, can be disabled per element; bleed keeps shadows/borders from being clipped; `ReleaseDeviceResourcesRecursive()` releases a whole subtree; automatic recovery after device loss.
 - **High DPI**: Per-Monitor V2, `WM_DPICHANGED`, DIP coordinates, `Snap()` to physical pixels; cursor/hover/IME candidate geometry use the same scale.
 - **Frame-rate limit**: per-window `SetFrameRateLimit` plus a global default.
@@ -415,7 +416,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 
 ### Window &amp; system integration
 
-- **Window**: create/show/hide/topmost/raise/flash, title/icon, rounded corners, minimum size, position/size, resizable, minimize/maximize/restore, content opacity, `Run` / `RunModal`.
+- **Window**: create/show/hide/topmost/raise/flash, title/icon, minimum size, position/size, resizable, minimize/maximize/restore, content opacity, `Run` / `RunModal`.
 - **Custom title bar**: `TitleBar` / `DefaultTitleBar` / `CaptionButton` (minimize/maximize/close/Pin), title-bar colours, title text vs menu exclusivity, drag regions, Win11 Snap Layouts.
 - **Multi-window**: `Application` (`CreateWindow`, owner/owned, `Run`, `Quit`, `CloseAllWindows`, `WindowCount`); owned-window minimize policy (None / Hide / DisableMinimize).
 - **Timer**: window/framework timers with a `Tick` signal, destroyed with the window.
@@ -563,9 +564,10 @@ ZufyUI/
 
 ## Version history
 
-&gt; Current version: **1.26.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+&gt; Current version: **1.27.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 &gt; Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.27.0**: Windows 10 Acrylic host backdrop; custom-frame/Snap shadow fixes on Windows 10/11; `RenderDriver` / WARP switching with status-bar device reporting; public corner API removed; title-bar glyph/maximize-state/drag-animation fixes.
 - **1.26.0**: layout measurement contract (Grid/Row/Column/Card/Page/ScrollViewer, explicit sizing and Fill); ToggleSwitch press-drag; Slider immediate drag/snap easing; Expander first-expand and collapse/re-expand fixes; UIA provider lifetime/CFG crash fix; all-controls overlay page and 280 self-tests.
 - **1.25.0**: `Drawer` side panel (Overlay / Push / Permanent, four sides, rounded scrim, panel shadow, Esc); `Window::AddKeyHandler`; signal-focused tests and test rename; `ScrollViewer` bleed follows content bleed.
 - **1.24.0**: signal lifetime (atomic liveness, queued-task cancellation, non-movable `ZSignal`); receiver context (`ConnectionOwner`, `UIElement/Window::Connect`); `ConnectWeak`; member-function pointers now use free `Connect`.
@@ -647,7 +649,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-5663de2a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-91dbedaf', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWidgets.h"</span>
 <span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ZufyUI</span><span class="p">;</span>
@@ -683,7 +685,7 @@ This project is licensed under the **MIT** License; see [LICENSE](LICENSE) for d
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-5663de2a" style="display: none;">#include "ZufyUIWidgets.h"
+<pre id="code-91dbedaf" style="display: none;">#include "ZufyUIWidgets.h"
 using namespace ZufyUI;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
@@ -732,18 +734,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-bda5f076', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-81203d28', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// Mica + fully transparent tint</span>
 </pre></div>
-<pre id="code-bda5f076" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
+<pre id="code-81203d28" style="display: none;">win.SetBackdrop(Backdrop::Mica, 0x00000000);   // Mica + fully transparent tint</pre>
 </div>
 <p><img alt="Backdrop: manual Mica" src="docs/images/backdrop-mica.png"/></p>
 <p><strong>Step 3: a custom title bar.</strong> Swap the title bar (plus switch to Mica so it stands out):</p>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2ed01e51', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-e47491e4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"ZufyUIWindowTool.h"</span><span class="w">   </span><span class="c1">// DefaultTitleBar lives here</span>
 
@@ -751,7 +753,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 <span class="n">win</span><span class="p">.</span><span class="n">SetCustomTitleBar</span><span class="p">(</span><span class="n">bar</span><span class="p">);</span>
 <span class="n">win</span><span class="p">.</span><span class="n">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="o">::</span><span class="n">Mica</span><span class="p">,</span><span class="w"> </span><span class="mh">0x00000000</span><span class="p">);</span><span class="w">   </span><span class="c1">// also switch to Mica</span>
 </pre></div>
-<pre id="code-2ed01e51" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
+<pre id="code-e47491e4" style="display: none;">#include "ZufyUIWindowTool.h"   // DefaultTitleBar lives here
 
 auto bar = std::make_shared&lt;DefaultTitleBar&gt;();
 win.SetCustomTitleBar(bar);
@@ -779,7 +781,8 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 
 - **Header-only / zero third-party dependencies**: just include the `.h` files — no library `.cpp` to build, no Qt / MFC / third-party dependency; all system libraries are linked via in-library `#pragma comment(lib, ...)` (complete list under Requirements).
 - **Direct2D 1.1 + DirectWrite + DirectComposition**: DXGI flip-model composition; the main window uses `WS_EX_NOREDIRECTIONBITMAP`; geometry, text and images are drawn on the GPU.
-- **Backdrops**: none / **Acrylic** (several presets, with adjustable blur/saturation/brightness/noise) / **Mica**, with optional `tint`; window corners `Default / Square / Round / RoundSmall`.
+- **Selectable render driver**: `Auto` (hardware first, fall back to WARP) / `Hardware` / `WARP`, chosen before device creation. WARP reduces application-side driver memory, but DWM/Compositor may still use the GPU.
+- **Backdrops**: none / **Acrylic** (several presets, with adjustable blur/saturation/brightness/noise) / **Mica**, with optional `tint`; window corners follow the system (DWM rounding on Windows 11, square on Windows 10), with no public corner API.
 - **Per-element offscreen caching**: on by default, can be disabled per element; bleed keeps shadows/borders from being clipped; `ReleaseDeviceResourcesRecursive()` releases a whole subtree; automatic recovery after device loss.
 - **High DPI**: Per-Monitor V2, `WM_DPICHANGED`, DIP coordinates, `Snap()` to physical pixels; cursor/hover/IME candidate geometry use the same scale.
 - **Frame-rate limit**: per-window `SetFrameRateLimit` plus a global default.
@@ -846,7 +849,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 
 ### Window &amp; system integration
 
-- **Window**: create/show/hide/topmost/raise/flash, title/icon, rounded corners, minimum size, position/size, resizable, minimize/maximize/restore, content opacity, `Run` / `RunModal`.
+- **Window**: create/show/hide/topmost/raise/flash, title/icon, minimum size, position/size, resizable, minimize/maximize/restore, content opacity, `Run` / `RunModal`.
 - **Custom title bar**: `TitleBar` / `DefaultTitleBar` / `CaptionButton` (minimize/maximize/close/Pin), title-bar colours, title text vs menu exclusivity, drag regions, Win11 Snap Layouts.
 - **Multi-window**: `Application` (`CreateWindow`, owner/owned, `Run`, `Quit`, `CloseAllWindows`, `WindowCount`); owned-window minimize policy (None / Hide / DisableMinimize).
 - **Timer**: window/framework timers with a `Tick` signal, destroyed with the window.
@@ -956,11 +959,11 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">bash</span>
-<button class="copy-btn" onclick="copyCode('code-cc1f11df', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-579c781f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>msbuild<span class="w"> </span>ZufyUI.slnx<span class="w"> </span>/p:Configuration<span class="o">=</span>Release<span class="w"> </span>/p:Platform<span class="o">=</span>x64
 </pre></div>
-<pre id="code-cc1f11df" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
+<pre id="code-579c781f" style="display: none;">msbuild ZufyUI.slnx /p:Configuration=Release /p:Platform=x64</pre>
 </div>
 <blockquote>
 <p><code>ZufyUI.cpp</code> is a comprehensive demo program (left-side navigation + multiple test pages) that also serves as the framework's "smoke test". When building your own application, you only need to include the headers and write your own <code>WinMain</code>.</p>
@@ -970,11 +973,11 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">powershell</span>
-<button class="copy-btn" onclick="copyCode('code-a02887b9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-6901efb2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">tools</span><span class="p">/</span><span class="n">export_ascii</span><span class="p">.</span><span class="n">py</span> <span class="p">-</span><span class="n">-force</span>
 </pre></div>
-<pre id="code-a02887b9" style="display: none;">python tools/export_ascii.py --force</pre>
+<pre id="code-6901efb2" style="display: none;">python tools/export_ascii.py --force</pre>
 </div>
 <ul>
 <li>Output goes to <code>dist/ascii/</code> (already excluded by <code>.gitignore</code>, never committed).</li>
@@ -987,7 +990,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">text</span>
-<button class="copy-btn" onclick="copyCode('code-5df9ab89', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-470e62ac', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span>ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window / theme
@@ -1027,7 +1030,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
     ├── vs_tools.ps1      # Auto-detect VS / MSBuild (no hard-coded paths)
     └── colorscan.py      # Hard-coded colour audit
 </pre></div>
-<pre id="code-5df9ab89" style="display: none;">ZufyUI/
+<pre id="code-470e62ac" style="display: none;">ZufyUI/
 ├── ZufyUI.h              # Core: types / signals &amp; slots / fonts / elements / layout / menus / window / theme
 ├── ZufyUIWidgets.h       # Basic controls: Label / Button / TextBox / TextEdit / ComboBox / ToggleSwitch / ScrollViewer / ProgressBar / Slider / MenuBar / StatusBar …
 ├── ZDataViewer.h         # Data views: ListView / TableView / TreeView
@@ -1067,10 +1070,11 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica</pre>
 </div>
 <h2 id="version-history">Version history</h2>
 <blockquote>
-<p>Current version: <strong>1.26.0</strong> (source of truth: <code>ZUFYUI_VERSION_STRING</code> in <code>ZufyUI.h</code>).
+<p>Current version: <strong>1.27.0</strong> (source of truth: <code>ZUFYUI_VERSION_STRING</code> in <code>ZufyUI.h</code>).
 Only "roughly what changed/fixed" (noun level); full per-item details are in <a href="CHANGELOG.en.html">CHANGELOG.en.md</a>.</p>
 </blockquote>
 <ul>
+<li><strong>1.27.0</strong>: Windows 10 Acrylic host backdrop; custom-frame/Snap shadow fixes on Windows 10/11; <code>RenderDriver</code> / WARP switching with status-bar device reporting; public corner API removed; title-bar glyph/maximize-state/drag-animation fixes.</li>
 <li><strong>1.26.0</strong>: layout measurement contract (Grid/Row/Column/Card/Page/ScrollViewer, explicit sizing and Fill); ToggleSwitch press-drag; Slider immediate drag/snap easing; Expander first-expand and collapse/re-expand fixes; UIA provider lifetime/CFG crash fix; all-controls overlay page and 280 self-tests.</li>
 <li><strong>1.25.0</strong>: <code>Drawer</code> side panel (Overlay / Push / Permanent, four sides, rounded scrim, panel shadow, Esc); <code>Window::AddKeyHandler</code>; signal-focused tests and test rename; <code>ScrollViewer</code> bleed follows content bleed.</li>
 <li><strong>1.24.0</strong>: signal lifetime (atomic liveness, queued-task cancellation, non-movable <code>ZSignal</code>); receiver context (<code>ConnectionOwner</code>, <code>UIElement/Window::Connect</code>); <code>ConnectWeak</code>; member-function pointers now use free <code>Connect</code>.</li>

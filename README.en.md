@@ -121,7 +121,8 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 
 - **Header-only / zero third-party dependencies**: just include the `.h` files — no library `.cpp` to build, no Qt / MFC / third-party dependency; all system libraries are linked via in-library `#pragma comment(lib, ...)` (complete list under Requirements).
 - **Direct2D 1.1 + DirectWrite + DirectComposition**: DXGI flip-model composition; the main window uses `WS_EX_NOREDIRECTIONBITMAP`; geometry, text and images are drawn on the GPU.
-- **Backdrops**: none / **Acrylic** (several presets, with adjustable blur/saturation/brightness/noise) / **Mica**, with optional `tint`; window corners `Default / Square / Round / RoundSmall`.
+- **Selectable render driver**: `Auto` (hardware first, fall back to WARP) / `Hardware` / `WARP`, chosen before device creation. WARP reduces application-side driver memory, but DWM/Compositor may still use the GPU.
+- **Backdrops**: none / **Acrylic** (several presets, with adjustable blur/saturation/brightness/noise) / **Mica**, with optional `tint`; window corners follow the system (DWM rounding on Windows 11, square on Windows 10), with no public corner API.
 - **Per-element offscreen caching**: on by default, can be disabled per element; bleed keeps shadows/borders from being clipped; `ReleaseDeviceResourcesRecursive()` releases a whole subtree; automatic recovery after device loss.
 - **High DPI**: Per-Monitor V2, `WM_DPICHANGED`, DIP coordinates, `Snap()` to physical pixels; cursor/hover/IME candidate geometry use the same scale.
 - **Frame-rate limit**: per-window `SetFrameRateLimit` plus a global default.
@@ -188,7 +189,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 
 ### Window & system integration
 
-- **Window**: create/show/hide/topmost/raise/flash, title/icon, rounded corners, minimum size, position/size, resizable, minimize/maximize/restore, content opacity, `Run` / `RunModal`.
+- **Window**: create/show/hide/topmost/raise/flash, title/icon, minimum size, position/size, resizable, minimize/maximize/restore, content opacity, `Run` / `RunModal`.
 - **Custom title bar**: `TitleBar` / `DefaultTitleBar` / `CaptionButton` (minimize/maximize/close/Pin), title-bar colours, title text vs menu exclusivity, drag regions, Win11 Snap Layouts.
 - **Multi-window**: `Application` (`CreateWindow`, owner/owned, `Run`, `Quit`, `CloseAllWindows`, `WindowCount`); owned-window minimize policy (None / Hide / DisableMinimize).
 - **Timer**: window/framework timers with a `Tick` signal, destroyed with the window.
@@ -336,9 +337,10 @@ ZufyUI/
 
 ## Version history
 
-> Current version: **1.26.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+> Current version: **1.27.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 > Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.27.0**: Windows 10 Acrylic host backdrop; custom-frame/Snap shadow fixes on Windows 10/11; `RenderDriver` / WARP switching with status-bar device reporting; public corner API removed; title-bar glyph/maximize-state/drag-animation fixes.
 - **1.26.0**: layout measurement contract (Grid/Row/Column/Card/Page/ScrollViewer, explicit sizing and Fill); ToggleSwitch press-drag; Slider immediate drag/snap easing; Expander first-expand and collapse/re-expand fixes; UIA provider lifetime/CFG crash fix; all-controls overlay page and 280 self-tests.
 - **1.25.0**: `Drawer` side panel (Overlay / Push / Permanent, four sides, rounded scrim, panel shadow, Esc); `Window::AddKeyHandler`; signal-focused tests and test rename; `ScrollViewer` bleed follows content bleed.
 - **1.24.0**: signal lifetime (atomic liveness, queued-task cancellation, non-movable `ZSignal`); receiver context (`ConnectionOwner`, `UIElement/Window::Connect`); `ConnectWeak`; member-function pointers now use free `Connect`.

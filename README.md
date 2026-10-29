@@ -121,7 +121,8 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 
 - **纯头文件 / 零第三方依赖**：包含 `.h` 即可使用，不需要编译库 `.cpp`，不依赖 Qt / MFC / 任何第三方库；所有系统库由库内 `#pragma comment(lib, ...)` 自动链接（完整清单见「环境要求」）。
 - **Direct2D 1.1 + DirectWrite + DirectComposition**：DXGI flip model 合成，主窗口使用 `WS_EX_NOREDIRECTIONBITMAP`；几何、文本、图片统一在 GPU 上绘制。
-- **背景层**：无 / **亚克力 Acrylic**（多种预设，可调模糊/饱和度/亮度/噪声）/ **云母 Mica**，可叠加 `tint`；窗口四角可选 `Default / Square / Round / RoundSmall`。
+- **渲染驱动可选**：`Auto`（硬件优先，失败回退 WARP）/ `Hardware` / `WARP`；必须在创建设备前选择。WARP 降低应用侧驱动内存，但 DWM/Compositor 仍可能使用 GPU。
+- **背景层**：无 / **亚克力 Acrylic**（多种预设，可调模糊/饱和度/亮度/噪声）/ **云母 Mica**，可叠加 `tint`；窗口圆角跟随系统（Win11 DWM 圆角、Win10 直角），不再提供公开圆角 API。
 - **元素级离屏缓存**：默认开启、可逐个关闭；带出血（bleed）避免裁掉阴影/边框；`ReleaseDeviceResourcesRecursive()` 整树释放；设备丢失后自动重建。
 - **高 DPI**：Per-Monitor V2、`WM_DPICHANGED`、全 DIP 坐标、`Snap()` 吸附物理像素；光标/悬停/IME 候选框同口径。
 - **帧率上限**：窗口级 `SetFrameRateLimit` + 全局默认值。
@@ -188,7 +189,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 
 ### 窗口与系统集成
 
-- **Window**：创建/显示/隐藏/置顶/提升/闪烁、标题/图标、圆角、最小尺寸、位置/尺寸、可调整、最小化/最大化/还原、内容透明度、`Run` / `RunModal`。
+- **Window**：创建/显示/隐藏/置顶/提升/闪烁、标题/图标、最小尺寸、位置/尺寸、可调整、最小化/最大化/还原、内容透明度、`Run` / `RunModal`。
 - **自定义标题栏**：`TitleBar` / `DefaultTitleBar` / `CaptionButton`（最小化/最大化/关闭/Pin）、标题栏配色、标题文字与菜单互斥、拖动区域、Win11 Snap Layouts。
 - **多窗口**：`Application`（`CreateWindow`、owner/owned、`Run`、`Quit`、`CloseAllWindows`、`WindowCount`）；owned 窗口最小化策略（None / Hide / DisableMinimize）。
 - **Timer**：窗口级/框架定时器，`Tick` 信号，自动随窗口销毁。
@@ -336,9 +337,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.26.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.27.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.27.0**：Win10 Acrylic host backdrop；Win10/Win11 自定义边框与 Snap 阴影修复；`RenderDriver` / WARP 切换与状态栏设备显示；删除公开圆角 API；标题栏字形/最大化状态/拖动动画优化。
 - **1.26.0**：布局测量契约（Grid/Row/Column/Card/Page/ScrollViewer、显式尺寸与 Fill）；ToggleSwitch 拖动切换；Slider 拖动跟手/吸附缓动；Expander 首次展开与折叠再展开修复；UIA provider 生命周期/CFG 崩溃修复；全控件总览页与 280 项自检。
 - **1.25.0**：`Drawer` 侧边抽屉（Overlay / Push / Permanent、四边、圆角遮罩、面板阴影、Esc）；`Window::AddKeyHandler`；信号专项测试与测试改名；`ScrollViewer` 出血跟随内容 bleed。
 - **1.24.0**：信号生命周期（原子存活、队列任务取消、`ZSignal` 非移动）；接收者上下文（`ConnectionOwner`、`UIElement/Window::Connect`）；`ConnectWeak`；成员函数指针改走自由 `Connect`。

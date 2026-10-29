@@ -367,7 +367,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-27a9ff73', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-1716e42a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">TextOverflow</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Wrap</span><span class="p">,</span><span class="w"> </span><span class="n">Ellipsis</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">HAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Right</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">VAlign</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Top</span><span class="p">,</span><span class="w"> </span><span class="n">Center</span><span class="p">,</span><span class="w"> </span><span class="n">Bottom</span><span class="w"> </span><span class="p">};</span>
@@ -382,7 +382,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddChild</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span><span class="w">   </span><span class="c1">// 图标/文本之后的内联子元素</span>
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetToolTip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="p">;</span><span class="w">   </span><span class="c1">// 省略时自动全量 tooltip（v1.17.0）</span>
 </pre></div>
-<pre id="code-27a9ff73" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
+<pre id="code-1716e42a" style="display: none;">enum class TextOverflow { Wrap, Ellipsis };
 enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bottom };
 Label(const std::wstring&amp; text = L"");   // 默认空文本；不再自动显示 "Label"
 void SetText(const std::wstring&amp;);   std::wstring GetText() const;      // 失效布局 + 重绘
@@ -410,7 +410,7 @@ std::wstring GetToolTip() const override;   // 省略时自动全量 tooltip（v
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a177ce5c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-41abcd69', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Toggled</span><span class="p">;</span><span class="w">     </span><span class="c1">// Toggled 需先 SetCheckable(true)</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">DropSelected</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DropMenuOpened</span><span class="p">;</span><span class="w">   </span><span class="c1">// 菜单项索引 / 菜单打开</span>
@@ -425,7 +425,7 @@ std::wstring GetToolTip() const override;   // 省略时自动全量 tooltip（v
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDropWriteBack</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDropOpenOnClick</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// 两个独立开关（2×2）</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetDropItems</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&gt;&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">selected</span><span class="o">=</span><span class="mi">-1</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDropMenu</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowDropMenu</span><span class="p">();</span>
 </pre></div>
-<pre id="code-a177ce5c" style="display: none;">ZSignal&lt;&gt; Clicked;   ZSignal&lt;bool&gt; Toggled;     // Toggled 需先 SetCheckable(true)
+<pre id="code-41abcd69" style="display: none;">ZSignal&lt;&gt; Clicked;   ZSignal&lt;bool&gt; Toggled;     // Toggled 需先 SetCheckable(true)
 ZSignal&lt;int&gt; DropSelected;   ZSignal&lt;&gt; DropMenuOpened;   // 菜单项索引 / 菜单打开
 Button(const std::wstring&amp; text = L"Button");
 void SetText/SetIcon/SetIconColor(...);
@@ -457,7 +457,7 @@ void SetDropItems(const std::vector&lt;std::wstring&gt;&amp;, int selected=-1); 
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-327754f1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-a383a405', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">ReturnPressed</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetText</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="c1">// 会去掉 \r\n、截断到 maxLength、清撤销</span>
@@ -467,7 +467,7 @@ void SetDropItems(const std::vector&lt;std::wstring&gt;&amp;, int selected=-1); 
 <span class="kt">void</span><span class="w"> </span><span class="n">SelectAll</span><span class="o">/</span><span class="n">Copy</span><span class="o">/</span><span class="n">Cut</span><span class="o">/</span><span class="n">Paste</span><span class="o">/</span><span class="n">Undo</span><span class="o">/</span><span class="n">Redo</span><span class="p">();</span>
 <span class="kt">int</span><span class="w"> </span><span class="n">GetSelectionStart</span><span class="o">/</span><span class="n">End</span><span class="o">/</span><span class="n">CursorPosition</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetSelection</span><span class="p">(</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="p">);</span>
 </pre></div>
-<pre id="code-327754f1" style="display: none;">ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;&gt; ReturnPressed;
+<pre id="code-a383a405" style="display: none;">ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;&gt; ReturnPressed;
 void SetText(const std::wstring&amp;);   // 会去掉 \r\n、截断到 maxLength、清撤销
 void SetPlaceholder(...);  void SetPasswordMode(bool);  void SetMaxLength(int);   // -1 不限
 void SetReadOnly(bool);    void SetInputFilter(std::function&lt;bool(wchar_t)&gt;);
@@ -492,7 +492,7 @@ int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);</
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a3278399', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-90a45be4', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">WrapMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">NoWrap</span><span class="p">,</span><span class="w"> </span><span class="n">WidgetWidth</span><span class="w"> </span><span class="p">};</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">TextChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CursorPositionChanged</span><span class="p">;</span><span class="w">  </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span>
@@ -507,7 +507,7 @@ int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);</
 <span class="kt">bool</span><span class="w"> </span><span class="nf">UseCache</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">AcceptsTab</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="o">!</span><span class="n">readOnly_</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// 依赖基类新虚函数</span>
 </pre></div>
-<pre id="code-a3278399" style="display: none;">enum class WrapMode { NoWrap, WidgetWidth };
+<pre id="code-90a45be4" style="display: none;">enum class WrapMode { NoWrap, WidgetWidth };
 ZSignal&lt;const std::wstring&amp;&gt; TextChanged;   ZSignal&lt;int,int&gt; CursorPositionChanged;  ZSignal&lt;&gt; SelectionChanged;
 std::wstring ToPlainText() const;  void SetPlainText(const std::wstring&amp;);   // 清撤销
 void AppendPlainText(const std::wstring&amp;);  void InsertPlainText(const std::wstring&amp;);
@@ -527,14 +527,14 @@ bool AcceptsTab() const override { return !readOnly_; }   // 依赖基类新虚�
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c85d05fc', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-9e8500a3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">edit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">TextEdit</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">edit</span><span class="o">-&gt;</span><span class="n">SetPlainText</span><span class="p">(</span><span class="sa">L</span><span class="s">"hello</span><span class="se">\n</span><span class="s">world"</span><span class="p">);</span>
 <span class="n">edit</span><span class="o">-&gt;</span><span class="n">SetShowLineNumbers</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
 <span class="n">root</span><span class="o">-&gt;</span><span class="n">AddChild</span><span class="p">(</span><span class="n">edit</span><span class="p">);</span><span class="w">                 </span><span class="c1">// 记得给尺寸或让它随布局铺满</span>
 </pre></div>
-<pre id="code-c85d05fc" style="display: none;">auto edit = std::make_shared&lt;TextEdit&gt;();
+<pre id="code-9e8500a3" style="display: none;">auto edit = std::make_shared&lt;TextEdit&gt;();
 edit-&gt;SetPlainText(L"hello\nworld");
 edit-&gt;SetShowLineNumbers(true);
 root-&gt;AddChild(edit);                 // 记得给尺寸或让它随布局铺满</pre>
@@ -551,7 +551,7 @@ root-&gt;AddChild(edit);                 // 记得给尺寸或让它随布局铺
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-2e4a83b0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-31711e13', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SelectionChanged</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">DropDownOpened</span><span class="p">,</span><span class="w"> </span><span class="n">DropDownClosed</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">AddItem</span><span class="o">/</span><span class="n">SetItems</span><span class="o">/</span><span class="n">InsertItem</span><span class="o">/</span><span class="n">RemoveItemAt</span><span class="o">/</span><span class="n">ClearItems</span><span class="p">(...);</span>
@@ -560,7 +560,7 @@ root-&gt;AddChild(edit);                 // 记得给尺寸或让它随布局铺
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetItemDisabled</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">visibleIndex</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="c1">// 按源索引持久</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetEditable</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFilterEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ApplyFilter</span><span class="p">();</span>
 </pre></div>
-<pre id="code-2e4a83b0" style="display: none;">ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;&gt; DropDownOpened, DropDownClosed;
+<pre id="code-31711e13" style="display: none;">ZSignal&lt;int&gt; SelectionChanged;   ZSignal&lt;&gt; DropDownOpened, DropDownClosed;
 void AddItem/SetItems/InsertItem/RemoveItemAt/ClearItems(...);
 void SetSelectedIndex(int);  int GetSelectedIndex() const;   // 过滤后“可见序”
 void SetSelectedSourceIndex(int);  int GetSelectedSourceIndex() const;   // v1.15.0：源序

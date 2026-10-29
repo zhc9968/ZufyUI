@@ -8,7 +8,7 @@
 
 > **两个贯穿全文的标记**：
 > - **`易错`**：真实踩过的坑 / 反直觉行为，优先看这些。
-> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v1.26.0**。
+> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v1.27.0**。
 
 ###chapter: 约定 | 命名空间、单位、生命周期、版本与易错标注约定
 
@@ -670,7 +670,6 @@ struct CaptionMetrics { bool valid; float rightMargin, top, height, width; };
 enum class TaskbarProgress { None=0, Indeterminate=1, Normal=2, Error=4, Paused=8 };
 enum class ThumbButtonId : UINT { Play=0, Pause=1, Prev=2, Next=3, MaxId=4 };
 struct JumpListItem { std::wstring title, arguments, target, iconPath; int iconIndex=0; };
-enum class WindowCorner { Default, Square, Round, RoundSmall };
 enum class ActivateMode { Raise, Activate, Foreground, All };
 enum class OwnedMinimizePolicy { None, Hide, DisableMinimize };
 ```
@@ -687,6 +686,23 @@ static void SetDefaultFrameRateLimit(int fps);   // v1.14.2
 static void SetDefaultAppIcon(HICON big, HICON small = nullptr);
 static void SetProcessAppUserModelID(const std::wstring& id);
 ```
+
+## 渲染驱动（v1.27.0）
+
+```cpp
+enum class RenderDriver { Auto, Hardware, WARP, Unknown };
+void SetRenderDriver(RenderDriver);
+RenderDriver GetRequestedRenderDriver();
+RenderDriver GetActiveRenderDriver();
+bool IsRenderDriverReady();
+std::wstring GetRenderDeviceName();
+```
+- **必须在第一次 `Window::Create` / D3D 设备创建之前调用**；设备创建后再调用只记录错误，不会切换。
+- `Auto`：硬件优先，失败回退 WARP；`Hardware`：强制硬件，失败即不可用；`WARP`：强制软件光栅化。
+- `GetActiveRenderDriver()` 返回实际创建成功的驱动，`GetRenderDeviceName()` 返回 DXGI 适配器名称。
+- **`注意`**：WARP 只改变 ZufyUI 自己的 D3D11/D2D 内容渲染；WinRT Compositor、DWM 合成和 Acrylic 效果仍可能使用 GPU。Win10 无 GPU 虚拟机中 DWM 整体软件化时，GPU 才接近 0。
+- demo 支持 `--warp` / `--gpu`，首页底部也有重启进程的切换按钮。
+- **`版本`**：`v1.27.0`。
 
 ## 创建 / 生命周期
 
@@ -781,17 +797,17 @@ float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;
 - `RequestRepaint()` → `MarkRepaint` **不会**主动排一帧。帧由 16ms `WM_TIMER`（忙时）或动画续帧驱动。历史教训：曾在这里强制排帧，导致“每次重绘都出一帧”的持续重渲染（严重卡顿），**已回退**。
 ###block_red_end
 
-## 外观 / 背景 / 圆角
+## 外观 / 背景
 
 ```cpp
 void SetBackdrop(Backdrop, DWORD tint=0);  Backdrop GetBackdrop() const;
 void SetBackgroundColor(Color);            // 叠加在背景（空/亚克力/云母）之上的颜色
-void SetWindowCorner(WindowCorner);
 void SetContentOpacity(float opacity);     // 弹窗淡入
 void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
 void SetResizable(bool);   void SetTitle(const std::wstring&);
 ```
 - 背景是**自绘**：Acrylic = 宿主背景 + 自带效果链；Mica = 缓存壁纸层。改参数用 `SetBackgroundParams` 或 `UIZSignals::ReloadAcrylic`。
+- 窗口圆角不再提供公开 API：Win10 保持系统直角以保留 DWM 边框/阴影，Win11 跟随系统圆角。需要自定义圆角时请自行调用 Win32 DWM API，并自行处理 Win10/Snap 的边框阴影风险。
 - `DefaultBackdropColor` 默认纯白（v1.17.0）。`SetContentOpacity` 需合成后端就绪。
 - **`版本`**：四层参数 `v1.8.1`；`SetContentOpacity` `v1.9.6`。
 
@@ -1999,7 +2015,7 @@ using Align = GridLayout::Alignment;                        // 供 Ref::align �
 // 因此与类同名也不会冲突；不需要额外别名。
 class WindowApp {                                  // dsl::ZApp()
     WindowApp& size(int,int);   WindowApp& title(const std::wstring&);
-    WindowApp& resizable(bool=true);   WindowApp& corner(Window::WindowCorner);
+    WindowApp& resizable(bool=true);
     WindowApp& backdrop(Backdrop, DWORD tint=0);   WindowApp& hidden(bool=true);
     WindowApp& minSize(int,int);   WindowApp& position(int,int);   WindowApp& frameRateLimit(int);
     WindowApp& theme(const Theme&);   WindowApp& useAppTheme(bool=true);
@@ -2076,7 +2092,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 ###block_red_end
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.26.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.27.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -2123,7 +2139,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.26.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.27.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
@@ -2193,6 +2209,12 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
   - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
   - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。
+- **v1.27.0**：
+  - **Windows 10 Acrylic**：Win10 在创建 HostBackdropBrush 前启用 `ACCENT_ENABLE_HOSTBACKDROP`，保留自定义模糊/色调/噪点链；不再把 Win11 专属 DWM 属性写到 Win10。
+  - **DWM / Snap**：自定义边框在 Win10/Win11 都保留 `DwmExtendFrameIntoClientArea({1,1,1,1})`；`WM_SIZE`/`WM_WINDOWPOSCHANGED` 后重新挂 frame 状态，修复 Snap 丢边框/阴影。
+  - **渲染驱动**：新增 `RenderDriver` / `SetRenderDriver()` / `GetActiveRenderDriver()` / `GetRenderDeviceName()`；demo 支持 `--warp` / `--gpu` 与首页重启切换。WARP 只改变应用内容渲染，DWM/Compositor 仍可能使用 GPU。
+  - **破坏性**：删除公开圆角 API `WindowCorner`、`SetWindowCorner()`、`GetWindowCorner()` 与 DSL `corner()`；Win10 保持系统直角，Win11 跟随 DWM，自定义圆角需自行调用 Win32 DWM API。
+  - **控件/演示**：标题栏三件套字形在 Win10 正确回退到 `Segoe MDL2 Assets`；最大化按钮随系统 Snap/还原状态刷新；拖动/缩放期间暂停 UI 动画更新。
 - **v1.26.0**：
   - **布局**：Grid 显式宽高进入 cell 测量；Row/Column 有限主轴分配；Card/Page/ScrollViewer 空内容显式尺寸；Button 关闭 autoSize 也测量内容；Label 显式宽度参与 Wrap；ScrollViewer 不在 Arrange 重测。
   - **UIA**：provider 缓存/context 与 COM 回调线程同步，修复 CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`。
