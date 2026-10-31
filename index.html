@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZufyUI · Direct2D C++ Win32 UI Framework</title>
+<title>ZufyUI 路 Direct2D C++ Win32 UI Framework</title>
 <style>
   :root{
     --primary:#3498db; --text:#2c3e50; --muted:#6b7785;
@@ -29,7 +29,7 @@
   .card a{color:var(--text);text-decoration:none;display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;transition:background .2s ease,color .2s ease}
   .card a:hover{background:rgba(52,152,219,.12);color:var(--primary)}
   .badge{font-size:.72rem;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:1px 8px;margin-left:auto}
-  /* 阅读辅助 */
+  /* 闃呰杈呭姪 */
   .aid{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);margin-top:18px}
   .aid h2{margin:0 0 6px;font-size:1.15rem;color:var(--primary)}
   .aid .hint{color:var(--muted);font-size:.86rem;margin:0 0 14px}
@@ -47,19 +47,19 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>ZufyUI <span class="badge">v1.27.0</span></h1>
+    <h1>ZufyUI <span class="badge">v1.27.1</span></h1>
     <p class="sub">
-      纯头文件、零第三方依赖的 C++20 Windows 自绘 UI 框架；WinUI 3 / Fluent Design 风格，Direct2D 1.1 + DirectComposition。
+      绾ご鏂囦欢銆侀浂绗笁鏂逛緷璧栫殑 C++20 Windows 鑷粯 UI 妗嗘灦锛沇inUI 3 / Fluent Design 椋庢牸锛孌irect2D 1.1 + DirectComposition銆?
       <span class="en">Header-only, zero-dependency C++20 Windows UI framework with a WinUI 3 / Fluent Design look, built on Direct2D 1.1 + DirectComposition.</span>
     </p>
 
     <div class="grid">
       <section class="card">
-        <h2>中文文档</h2>
+        <h2>涓枃鏂囨。</h2>
         <ul>
-          <li><a href="README.html">项目说明 · 构建 · 快速开始 <span class="badge">README</span></a></li>
-          <li><a href="docs/API.html">API 参考（23 章） <span class="badge">API</span></a></li>
-          <li><a href="docs/API.md">完整 Markdown 源文件 <span class="badge">MD</span></a></li>
+          <li><a href="README.html">椤圭洰璇存槑 路 鏋勫缓 路 蹇€熷紑濮?<span class="badge">README</span></a></li>
+          <li><a href="docs/API.html">API 鍙傝€冿紙23 绔狅級 <span class="badge">API</span></a></li>
+          <li><a href="docs/API.md">瀹屾暣 Markdown 婧愭枃浠?<span class="badge">MD</span></a></li>
         </ul>
       </section>
       <section class="card">
@@ -72,89 +72,89 @@
       </section>
     </div>
 
-    <!-- ============ 阅读辅助 ============ -->
+    <!-- ============ 闃呰杈呭姪 ============ -->
     <section class="aid">
-      <h2>阅读辅助 · Reading aid</h2>
-      <p class="hint">所有 README 与文档的原始内容入口，以及 API 参考的完整章节树。点击展开。</p>
+      <h2>闃呰杈呭姪 路 Reading aid</h2>
+      <p class="hint">鎵€鏈?README 涓庢枃妗ｇ殑鍘熷鍐呭鍏ュ彛锛屼互鍙?API 鍙傝€冪殑瀹屾暣绔犺妭鏍戙€傜偣鍑诲睍寮€銆?/p>
 
       <details open>
-        <summary>中文 · 文档</summary>
+        <summary>涓枃 路 鏂囨。</summary>
         <ol>
-          <li><a href="README.html">README（项目说明 / 环境要求 / 构建 / 快速开始 / 更新日志）</a></li>
-          <li><a href="docs/API.html">API 参考 · 总目录</a></li>
+          <li><a href="README.html">README锛堥」鐩鏄?/ 鐜瑕佹眰 / 鏋勫缓 / 蹇€熷紑濮?/ 鏇存柊鏃ュ織锛?/a></li>
+          <li><a href="docs/API.html">API 鍙傝€?路 鎬荤洰褰?/a></li>
         </ol>
       </details>
 
       <details>
-        <summary>中文 · API 章节树（23 章）</summary>
+        <summary>涓枃 路 API 绔犺妭鏍戯紙23 绔狅級</summary>
         <ol>
-          <li><span class="num">1.</span><a href="docs/API.1.html">约定 — 命名空间、单位、生命周期、版本与易错标注约定</a></li>
-          <li><span class="num">2.</span><a href="docs/API.2.html">快速开始 — 最小程序、组件结构与阅读路径</a></li>
-          <li><span class="num">3.</span><a href="docs/API.3.html">基础类型 — Color、Rect、Thickness、Size</a></li>
-          <li><span class="num">4.</span><a href="docs/API.4.html">事件与信号 — ZSignal、Connection、跨线程</a></li>
-          <li><span class="num">5.</span><a href="docs/API.5.html">字体与图标 — FontSpec、FontManager、Icon</a></li>
-          <li><span class="num">6.</span><a href="docs/API.6.html">元素基类 — UIElement（布局属性、缓存、事件、无障碍、调试）</a></li>
-          <li><span class="num">7.</span><a href="docs/API.7.html">布局系统 — Layout、ColumnBox、RowBox、GridLayout、Card、Page、PageHost</a></li>
-          <li><span class="num">8.</span><a href="docs/API.8.html">窗口 — Window（创建、显示、背景、标题栏、任务栏、DPI、渲染线程）</a></li>
-          <li><span class="num">9.</span><a href="docs/API.9.html">基础控件 — Label、Button、TextBox、TextEdit、ComboBox</a></li>
-          <li><span class="num">10.</span><a href="docs/API.10.html">选择与输入 — CheckBox、RadioButton、RadioGroup、ToggleSwitch、Slider、NumberBox</a></li>
-          <li><span class="num">11.</span><a href="docs/API.11.html">进度 — ProgressBar、ProgressRing</a></li>
-          <li><span class="num">12.</span><a href="docs/API.12.html">容器与滚动 — ScrollViewer、ScrollBar、SplitView（折叠 v1.21.0）、Drawer（v1.25.0）、TabView</a></li>
-          <li><span class="num">13.</span><a href="docs/API.13.html">菜单与弹窗 — Menu、MenuItem、MenuWindow、MessageBox</a></li>
-          <li><span class="num">14.</span><a href="docs/API.14.html">数据视图 — ListView、TableView、TreeView、TreeNode（虚拟化、隐藏/筛选/可见序）</a></li>
-          <li><span class="num">15.</span><a href="docs/API.15.html">图表 — ChartBase、BarChart、LineChart、PieChart（v1.18.0）</a></li>
-          <li><span class="num">16.</span><a href="docs/API.16.html">窗口周边 — 图像、托盘、系统对话框、应用注册</a></li>
-          <li><span class="num">17.</span><a href="docs/API.17.html">拖放与卡片组件 — Drag &amp; Drop、Expander、SettingsList、ImageView（v1.19.0）</a></li>
-          <li><span class="num">18.</span><a href="docs/API.18.html">主题系统 — Theme（v1.19.0+）</a></li>
-          <li><span class="num">19.</span><a href="docs/API.19.html">DSL — 链式构造（ZufyUIDsl.h，v1.19.4；v1.20.0 扩充）</a></li>
-          <li><span class="num">20.</span><a href="docs/API.20.html">无障碍与调试通道 — UIA + SetDebugEnabled</a></li>
-          <li><span class="num">21.</span><a href="docs/API.21.html">版本变化摘录 — v1.15.0 → v1.27.0</a></li>
-          <li><span class="num">22.</span><a href="docs/API.22.html">易错点总表 — 按主题速查</a></li>
-          <li><span class="num">23.</span><a href="docs/API.23.html">附录 — 默认值与信号索引</a></li>
+          <li><span class="num">1.</span><a href="docs/API.1.html">绾﹀畾 鈥?鍛藉悕绌洪棿銆佸崟浣嶃€佺敓鍛藉懆鏈熴€佺増鏈笌鏄撻敊鏍囨敞绾﹀畾</a></li>
+          <li><span class="num">2.</span><a href="docs/API.2.html">蹇€熷紑濮?鈥?鏈€灏忕▼搴忋€佺粍浠剁粨鏋勪笌闃呰璺緞</a></li>
+          <li><span class="num">3.</span><a href="docs/API.3.html">鍩虹绫诲瀷 鈥?Color銆丷ect銆乀hickness銆丼ize</a></li>
+          <li><span class="num">4.</span><a href="docs/API.4.html">浜嬩欢涓庝俊鍙?鈥?ZSignal銆丆onnection銆佽法绾跨▼</a></li>
+          <li><span class="num">5.</span><a href="docs/API.5.html">瀛椾綋涓庡浘鏍?鈥?FontSpec銆丗ontManager銆両con</a></li>
+          <li><span class="num">6.</span><a href="docs/API.6.html">鍏冪礌鍩虹被 鈥?UIElement锛堝竷灞€灞炴€с€佺紦瀛樸€佷簨浠躲€佹棤闅滅銆佽皟璇曪級</a></li>
+          <li><span class="num">7.</span><a href="docs/API.7.html">甯冨眬绯荤粺 鈥?Layout銆丆olumnBox銆丷owBox銆丟ridLayout銆丆ard銆丳age銆丳ageHost</a></li>
+          <li><span class="num">8.</span><a href="docs/API.8.html">绐楀彛 鈥?Window锛堝垱寤恒€佹樉绀恒€佽儗鏅€佹爣棰樻爮銆佷换鍔℃爮銆丏PI銆佹覆鏌撶嚎绋嬶級</a></li>
+          <li><span class="num">9.</span><a href="docs/API.9.html">鍩虹鎺т欢 鈥?Label銆丅utton銆乀extBox銆乀extEdit銆丆omboBox</a></li>
+          <li><span class="num">10.</span><a href="docs/API.10.html">閫夋嫨涓庤緭鍏?鈥?CheckBox銆丷adioButton銆丷adioGroup銆乀oggleSwitch銆丼lider銆丯umberBox</a></li>
+          <li><span class="num">11.</span><a href="docs/API.11.html">杩涘害 鈥?ProgressBar銆丳rogressRing</a></li>
+          <li><span class="num">12.</span><a href="docs/API.12.html">瀹瑰櫒涓庢粴鍔?鈥?ScrollViewer銆丼crollBar銆丼plitView锛堟姌鍙?v1.21.0锛夈€丏rawer锛坴1.25.0锛夈€乀abView</a></li>
+          <li><span class="num">13.</span><a href="docs/API.13.html">鑿滃崟涓庡脊绐?鈥?Menu銆丮enuItem銆丮enuWindow銆丮essageBox</a></li>
+          <li><span class="num">14.</span><a href="docs/API.14.html">鏁版嵁瑙嗗浘 鈥?ListView銆乀ableView銆乀reeView銆乀reeNode锛堣櫄鎷熷寲銆侀殣钘?绛涢€?鍙搴忥級</a></li>
+          <li><span class="num">15.</span><a href="docs/API.15.html">鍥捐〃 鈥?ChartBase銆丅arChart銆丩ineChart銆丳ieChart锛坴1.18.0锛?/a></li>
+          <li><span class="num">16.</span><a href="docs/API.16.html">绐楀彛鍛ㄨ竟 鈥?鍥惧儚銆佹墭鐩樸€佺郴缁熷璇濇銆佸簲鐢ㄦ敞鍐?/a></li>
+          <li><span class="num">17.</span><a href="docs/API.17.html">鎷栨斁涓庡崱鐗囩粍浠?鈥?Drag &amp; Drop銆丒xpander銆丼ettingsList銆両mageView锛坴1.19.0锛?/a></li>
+          <li><span class="num">18.</span><a href="docs/API.18.html">涓婚绯荤粺 鈥?Theme锛坴1.19.0+锛?/a></li>
+          <li><span class="num">19.</span><a href="docs/API.19.html">DSL 鈥?閾惧紡鏋勯€狅紙ZufyUIDsl.h锛寁1.19.4锛泇1.20.0 鎵╁厖锛?/a></li>
+          <li><span class="num">20.</span><a href="docs/API.20.html">鏃犻殰纰嶄笌璋冭瘯閫氶亾 鈥?UIA + SetDebugEnabled</a></li>
+          <li><span class="num">21.</span><a href="docs/API.21.html">鐗堟湰鍙樺寲鎽樺綍 鈥?v1.15.0 鈫?v1.27.1</a></li>
+          <li><span class="num">22.</span><a href="docs/API.22.html">鏄撻敊鐐规€昏〃 鈥?鎸変富棰橀€熸煡</a></li>
+          <li><span class="num">23.</span><a href="docs/API.23.html">闄勫綍 鈥?榛樿鍊间笌淇″彿绱㈠紩</a></li>
         </ol>
       </details>
 
       <details>
-        <summary>English · Docs</summary>
+        <summary>English 路 Docs</summary>
         <ol>
           <li><a href="README.en.html">README (overview / requirements / build / quick start / changelog)</a></li>
-          <li><a href="docs/API.en.html">API Reference · index</a></li>
+          <li><a href="docs/API.en.html">API Reference 路 index</a></li>
         </ol>
       </details>
 
       <details>
-        <summary>English · API chapter tree (23 chapters)</summary>
+        <summary>English 路 API chapter tree (23 chapters)</summary>
         <ol>
-          <li><span class="num">1.</span><a href="docs/API.en.1.html">Conventions — namespaces, units, lifetime, version &amp; pitfall notation</a></li>
-          <li><span class="num">2.</span><a href="docs/API.en.2.html">Quick start — minimal program, structure, reading path</a></li>
-          <li><span class="num">3.</span><a href="docs/API.en.3.html">Basic types — Color, Rect, Thickness, Size</a></li>
-          <li><span class="num">4.</span><a href="docs/API.en.4.html">Events &amp; Signals — ZSignal, Connection, cross-thread</a></li>
-          <li><span class="num">5.</span><a href="docs/API.en.5.html">Fonts &amp; Icons — FontSpec, FontManager, Icon</a></li>
-          <li><span class="num">6.</span><a href="docs/API.en.6.html">Element base — UIElement (layout, cache, events, accessibility, debug)</a></li>
-          <li><span class="num">7.</span><a href="docs/API.en.7.html">Layout system — Layout, ColumnBox, RowBox, GridLayout, Card, Page, PageHost</a></li>
-          <li><span class="num">8.</span><a href="docs/API.en.8.html">Window — create, show, backdrop, title bar, taskbar, DPI, render thread</a></li>
-          <li><span class="num">9.</span><a href="docs/API.en.9.html">Basic controls — Label, Button, TextBox, TextEdit, ComboBox</a></li>
-          <li><span class="num">10.</span><a href="docs/API.en.10.html">Selection &amp; input — CheckBox, RadioButton, RadioGroup, ToggleSwitch, Slider, NumberBox</a></li>
-          <li><span class="num">11.</span><a href="docs/API.en.11.html">Progress — ProgressBar, ProgressRing</a></li>
-          <li><span class="num">12.</span><a href="docs/API.en.12.html">Containers &amp; scrolling — ScrollViewer, ScrollBar, SplitView (collapse v1.21.0), Drawer (v1.25.0), TabView</a></li>
-          <li><span class="num">13.</span><a href="docs/API.en.13.html">Menus &amp; Popups — Menu, MenuItem, MenuWindow, MessageBox</a></li>
-          <li><span class="num">14.</span><a href="docs/API.en.14.html">Data views — ListView, TableView, TreeView, TreeNode (virtualization, hide/filter/sort)</a></li>
-          <li><span class="num">15.</span><a href="docs/API.en.15.html">Charts — ChartBase, BarChart, LineChart, PieChart (v1.18.0)</a></li>
-          <li><span class="num">16.</span><a href="docs/API.en.16.html">Window extras — images, tray, system dialogs, app registration</a></li>
-          <li><span class="num">17.</span><a href="docs/API.en.17.html">Drag &amp; Drop, cards — Drag &amp; Drop, Expander, SettingsList, ImageView (v1.19.0)</a></li>
-          <li><span class="num">18.</span><a href="docs/API.en.18.html">Theme system — Theme (v1.19.0+)</a></li>
-          <li><span class="num">19.</span><a href="docs/API.en.19.html">DSL — fluent construction (ZufyUIDsl.h, v1.19.4; extended in v1.20.0)</a></li>
-          <li><span class="num">20.</span><a href="docs/API.en.20.html">Accessibility &amp; Debug Channel — UIA + SetDebugEnabled</a></li>
-          <li><span class="num">21.</span><a href="docs/API.en.21.html">Version digest — v1.15.0 → v1.27.0</a></li>
-          <li><span class="num">22.</span><a href="docs/API.en.22.html">Pitfall index — quick lookup by topic</a></li>
-          <li><span class="num">23.</span><a href="docs/API.en.23.html">Appendix — defaults &amp; signal index</a></li>
+          <li><span class="num">1.</span><a href="docs/API.en.1.html">Conventions 鈥?namespaces, units, lifetime, version &amp; pitfall notation</a></li>
+          <li><span class="num">2.</span><a href="docs/API.en.2.html">Quick start 鈥?minimal program, structure, reading path</a></li>
+          <li><span class="num">3.</span><a href="docs/API.en.3.html">Basic types 鈥?Color, Rect, Thickness, Size</a></li>
+          <li><span class="num">4.</span><a href="docs/API.en.4.html">Events &amp; Signals 鈥?ZSignal, Connection, cross-thread</a></li>
+          <li><span class="num">5.</span><a href="docs/API.en.5.html">Fonts &amp; Icons 鈥?FontSpec, FontManager, Icon</a></li>
+          <li><span class="num">6.</span><a href="docs/API.en.6.html">Element base 鈥?UIElement (layout, cache, events, accessibility, debug)</a></li>
+          <li><span class="num">7.</span><a href="docs/API.en.7.html">Layout system 鈥?Layout, ColumnBox, RowBox, GridLayout, Card, Page, PageHost</a></li>
+          <li><span class="num">8.</span><a href="docs/API.en.8.html">Window 鈥?create, show, backdrop, title bar, taskbar, DPI, render thread</a></li>
+          <li><span class="num">9.</span><a href="docs/API.en.9.html">Basic controls 鈥?Label, Button, TextBox, TextEdit, ComboBox</a></li>
+          <li><span class="num">10.</span><a href="docs/API.en.10.html">Selection &amp; input 鈥?CheckBox, RadioButton, RadioGroup, ToggleSwitch, Slider, NumberBox</a></li>
+          <li><span class="num">11.</span><a href="docs/API.en.11.html">Progress 鈥?ProgressBar, ProgressRing</a></li>
+          <li><span class="num">12.</span><a href="docs/API.en.12.html">Containers &amp; scrolling 鈥?ScrollViewer, ScrollBar, SplitView (collapse v1.21.0), Drawer (v1.25.0), TabView</a></li>
+          <li><span class="num">13.</span><a href="docs/API.en.13.html">Menus &amp; Popups 鈥?Menu, MenuItem, MenuWindow, MessageBox</a></li>
+          <li><span class="num">14.</span><a href="docs/API.en.14.html">Data views 鈥?ListView, TableView, TreeView, TreeNode (virtualization, hide/filter/sort)</a></li>
+          <li><span class="num">15.</span><a href="docs/API.en.15.html">Charts 鈥?ChartBase, BarChart, LineChart, PieChart (v1.18.0)</a></li>
+          <li><span class="num">16.</span><a href="docs/API.en.16.html">Window extras 鈥?images, tray, system dialogs, app registration</a></li>
+          <li><span class="num">17.</span><a href="docs/API.en.17.html">Drag &amp; Drop, cards 鈥?Drag &amp; Drop, Expander, SettingsList, ImageView (v1.19.0)</a></li>
+          <li><span class="num">18.</span><a href="docs/API.en.18.html">Theme system 鈥?Theme (v1.19.0+)</a></li>
+          <li><span class="num">19.</span><a href="docs/API.en.19.html">DSL 鈥?fluent construction (ZufyUIDsl.h, v1.19.4; extended in v1.20.0)</a></li>
+          <li><span class="num">20.</span><a href="docs/API.en.20.html">Accessibility &amp; Debug Channel 鈥?UIA + SetDebugEnabled</a></li>
+          <li><span class="num">21.</span><a href="docs/API.en.21.html">Version digest 鈥?v1.15.0 鈫?v1.27.1</a></li>
+          <li><span class="num">22.</span><a href="docs/API.en.22.html">Pitfall index 鈥?quick lookup by topic</a></li>
+          <li><span class="num">23.</span><a href="docs/API.en.23.html">Appendix 鈥?defaults &amp; signal index</a></li>
         </ol>
       </details>
     </section>
 
     <footer>
-      © zhc9968 · MIT License ·
-      <a href="https://github.com/zhc9968/ZufyUI">GitHub</a> ·
+      漏 zhc9968 路 MIT License 路
+      <a href="https://github.com/zhc9968/ZufyUI">GitHub</a> 路
       <a href="https://gitee.com/zhc9968/ZufyUI">Gitee</a>
     </footer>
   </div>

@@ -1,4 +1,4 @@
-# ZufyUI API Reference
+﻿# ZufyUI API Reference
 
 > This document covers the entire public API of the ZufyUI framework, **organized by usage category** (not by code/header order).
 > Companion reading: [Project README & build](../../README.en.md).
@@ -7,7 +7,7 @@
 
 > **Two markers used throughout**:
 > - **`Pitfall`**: real traps / counter-intuitive behavior — read these first.
-> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.27.0**.
+> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.27.1**.
 
 ###chapter: Conventions | Namespaces, units, lifetime, version & pitfall notation
 
@@ -45,7 +45,6 @@
 ###block_red_start
 **Pitfall**
 
-- the `Snap` DPI scale is **thread-local** (`GlobalDpiScaleRef`). The render thread sets it every frame; the UI thread now sets it too in `Window::Create`/`WM_DPICHANGED`. On your own threads it will be 1.0, not the window DPI.
 ###block_red_end
 
 ## Object model & lifetime
@@ -125,7 +124,6 @@ int APIENTRY wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {   // Windows subsyste
 
 - `Application::Run()` runs the single message loop; **all windows/controls must be created and touched on the same UI thread**.
 - To touch UI from a worker: use a signal's `ConnectionThread::UIThread`, or `detail::PostToUIThread`.
-- The render thread (`ZUFYUI_RENDER_THREAD`) is **off by default** and documented as unstable / not recommended.
 
 ## Structure (outer → inner)
 
@@ -655,7 +653,7 @@ int GetCurrentIndex() const;  std::shared_ptr<Page> GetCurrentPage() const;
 
 See the "Containers & Scrolling / Tabs" chapter.
 
-###chapter: Window | Window (create, show, backdrop, title bar, taskbar, DPI, render thread)
+###chapter: Window | Window (create, show, backdrop, title bar, taskbar, DPI, frame rate)
 
 ## Nested public types
 
@@ -715,10 +713,8 @@ std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
 **Pitfall**
 
 - `Create` does **not** auto-`Show` (since v1.8.0). `RunModal` disables the owner (`EnableWindow(FALSE)`) and deliberately does **not** use `IsDialogMessage`.
-- `LockRender()` is only needed when `ZUFYUI_RENDER_THREAD=1` and you mutate the element tree; the default single-threaded mode does not need it.
 ###block_red_end
 
-- **`Version`**: multi-window `v1.6.0`; `SetInputBlocked`/modal `v1.6.2`; `LockRender`/`RenderNowSync` `v1.16.0`.
 
 ## Temporary key handlers (v1.25.0)
 
@@ -858,20 +854,6 @@ These are COM calls; failures are **silent no-ops**. `FLASHW_CAPTION` does nothi
 
 - element caches clear on DPI change, but child layout needs **no** manual re-measure.
 ###block_red_end
-
-## Render thread / frame rate
-
-```cpp
-void SetFrameRateLimit(int fps);   int GetFrameRateLimit() const;   // 0=follow vblank; >0=cap
-```
-
-###block_red_start
-**Pitfall**
-
-- `ZUFYUI_RENDER_THREAD` is **0 by default** and documented as unstable/not recommended (blank popups, delayed hover/tooltip, occasional crashes with large virtual lists). Single-threaded `WM_PAINT` is the supported path.
-###block_red_end
-
-- **`Version`**: render thread `v1.14.0`; vblank clock `v1.14.1`; frame cap `v1.14.2`; default-off documented `v1.16.0`.
 
 ## Accessibility / signals
 
@@ -1401,7 +1383,6 @@ class MessageBox : public Window {
 - Since **v1.15.0** all three views are **viewport-virtualized + Label-pooled**.
 - There are **two coordinate systems** — **source row index** (stable; legacy APIs/signals) and **visible order** (post hide/filter/sort). **Mixing them is the #1 bug source.**
 - In virtual mode rows have no persistent `Label`; `SetTextFast` is the pool rebind path.
-- Serialize data mutation with rendering (`RenderGuard()`).
 ###block_red_end
 
 ## ListView
@@ -1637,7 +1618,6 @@ class ImageDeviceCache { /* device bitmaps keyed by render target */ };
 ###block_red_start
 **Pitfall**
 
-- `ImageDeviceCache::Get` does "GPU upload outside the lock + `emplace` inside". Only with `ZUFYUI_RENDER_THREAD=1` is there a tiny dangling window vs. `DeviceReset`; single-threaded is safe.
 ###block_red_end
 
 ## TrayIcon
@@ -2082,12 +2062,11 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 ###block_red_end
 
-###chapter: Version digest | v1.15.0 → v1.27.0
+###chapter: Version digest | v1.15.0 → v1.27.1
 
 > Only the changes that affect your code are listed.
 
 - **v1.15.0**: data-view virtualization (`SetItemCount` etc.) + hide/filter/visible-order sort (two coordinate systems); cross-thread/locking hardening; `ComboBox` source-index API; `TreeView::BeginUpdate/SetNodeText`.
-- **v1.16.0**: system dialogs `FileDialog`/`ColorDialog`; `UIZSignals::Error`; render thread off by default + documented unstable; tray callback-message collision fix; optional `ZUFYUI_ENABLE_COMCTL_V6`.
 - **v1.17.0**: **UIA accessibility** (on by default); **external debug/automation channel** (`SetDebugEnabled`, off by default, commands 1~22); **layout stretch weights** (`ColumnBox`/`RowBox`/`GridLayout` distribute leftover by weight); **automatic ellipsis tooltips** (Label/Button); `CaptionButton::Kind::Pin`; `TreeView` node `bgColor` / `Get/SetScrollOffsetY` / `ScrollToNode`; `Window::DefaultBackdropColor` pure white.
 - **v1.18.0**:
   - New `ZufyUICharts.h`: `ChartBase` / `BarChart` / `LineChart` / `PieChart`; `BarChart` horizontal orientation; `PieChart` wheel zoom.
@@ -2129,7 +2108,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.6**:
   - Fix: `ListView` button mode checkbox **hit test was 4px off** (now aligned with the draw / child left edge).
   - Fix: `Label::MeasureOverride` wrap branch **ignored inline children width** (wrapping Labels with `AddChild` squeezed/overflowed text).
-  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `1.27.0`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
+  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `1.27.1`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
 - **v1.19.7**:
   - Fixes: `ChartBase` swapped horizontal/vertical scrollbar allowance (`viewW` uses the vertical bar, `viewH` the horizontal) → rightmost/bottom content unreachable; `NumberBox` wheel focus check (focus is on the inner `TextBox`); `lastActiveAnimElements_` dangling (erased from the anim sets on destruction, prevents random crashes); `Menu::ShowAt` throwing `bad_weak_ptr` when not shared-owned; `ChildrenSig` missing `EnsureView`; `TreeView::SetDefaultExpandDepth` not applied by `AddRoot`/`AddChild`.
   - Fixes: `ColumnBox`/`RowBox` spacing counts only layout-participating children; `GridLayout` row/col count skips invisible; `Label` wrap ignored/duplicated spacing; `ListView`/`TableView` clear `childrenView_` before releasing labels and release pooled/rich/cell labels; `Window::defaultIMC_` via `ImmAssociateContext`; `DragData::GetFiles` buffer `len+1`; `TextEdit` fires `SelectionChanged` when clearing a selection; `MessageBox` default title localized.
@@ -2198,6 +2177,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
   - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
   - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
+- **v1.27.1**: disabled the experimental independent render thread while preserving VBLANK frame sync; adapted context menus to non-DWM chrome; fixed stale menu-bar hover and menu placement after hiding the title bar or switching to the native frame; resize now submits a new frame immediately instead of leaving a transparent/stale picture.
 - **v1.27.0**:
   - **Windows 10 Acrylic**: enable `ACCENT_ENABLE_HOSTBACKDROP` before creating the HostBackdropBrush on Win10, preserving the custom blur/tint/noise chain; stop writing Win11-only DWM attributes on Win10.
   - **DWM / Snap**: keep `DwmExtendFrameIntoClientArea({1,1,1,1})` for custom frames on both Win10 and Win11; reapply frame state after `WM_SIZE` / `WM_WINDOWPOSCHANGED`, fixing lost borders/shadows after Snap.

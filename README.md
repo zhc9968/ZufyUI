@@ -1,4 +1,4 @@
-# ZufyUI
+﻿# ZufyUI
 
 **轻量到几 MB，快到原生合成。** 纯头文件、零第三方依赖的 C++20 Windows 自绘 UI 框架，直接构建在 Direct2D 1.1 + DirectComposition 之上。
 
@@ -12,7 +12,6 @@
 
 ![ZufyUI Demo](docs/images/demo-main.png)
 
-> 实验特性：独立渲染线程（`ZUFYUI_RENDER_THREAD`）默认关闭，详见文末「实验特性」。默认单线程路径是稳定的。
 
 ## 快速开始
 
@@ -126,7 +125,6 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - **元素级离屏缓存**：默认开启、可逐个关闭；带出血（bleed）避免裁掉阴影/边框；`ReleaseDeviceResourcesRecursive()` 整树释放；设备丢失后自动重建。
 - **高 DPI**：Per-Monitor V2、`WM_DPICHANGED`、全 DIP 坐标、`Snap()` 吸附物理像素；光标/悬停/IME 候选框同口径。
 - **帧率上限**：窗口级 `SetFrameRateLimit` + 全局默认值。
-- **渲染线程**：默认单 UI 线程；独立渲染线程（`ZUFYUI_RENDER_THREAD`）为实验特性（默认关、不稳定、不建议开启）。
 - **内建诊断**：帧统计、repaint / layout / cache / draw TopN、统一日志 `detail::Log`、`UIZSignals::Error`。
 
 ### 布局
@@ -170,7 +168,6 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - **ListView**：按视口虚拟化 + Label 池；`SelectionMode`（Single / Extended / Multi / None）与多选信号；勾选；富项 `AddItemWidget`；隐藏/筛选/排序（源索引 vs 可见序两套坐标）；`ScrollToItem`；空状态文本；行/项 ToolTip；双击信号。
 - **TableView**：多列、表头（显隐/高度/配色）、单元格颜色与富格、勾选、行高/列宽、滚动；单元格双击信号。
 - **TreeView**：树形层级、多列、展开/收起、勾选（递归/浅层/三态 `Unchecked / PartiallyChecked / Checked`）、筛选/搜索、排序、`ScrollToNode`、节点背景色/ToolTip、`BeginUpdate/EndUpdate` 批量、默认展开深度、双击信号。
-- **共同能力**：主题接入、字体/颜色定制、选中变化信号、`RenderGuard()` 与渲染线程串行、释放池化/富项/单元格 Label。
 
 ### 图表
 
@@ -226,7 +223,6 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - **ZSignal / Connection / ConnectionGroup**：`Connect` 自动断开、`Fire` 快照遍历、异常安全。
 - **三种分发**：当前线程 / 新线程 / UI 线程。
 - **全局信号**：`UIZSignals::ThemeChanged` / `ThemeReapply` / `LayoutInvalidated` / `DrawOverlay` / `ElementCaptureRequest` / `Error` 等。
-- **串行化**：`RenderGuard()` 在数据修改处与渲染线程串行；窗口/元素生命周期与设备资源释放有明确约定。
 
 ### 链式构造 DSL（可选）
 
@@ -337,9 +333,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.27.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.27.1**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.27.1**：停用实验性独立渲染线程；右键菜单适配非 DWM chrome；修复菜单栏残留 hover、标题栏隐藏/原生标题栏切换后的菜单位置；resize 时同步出帧，避免布局已更新但画面透明；文档清理。
 - **1.27.0**：Win10 Acrylic host backdrop；Win10/Win11 自定义边框与 Snap 阴影修复；`RenderDriver` / WARP 切换与状态栏设备显示；删除公开圆角 API；标题栏字形/最大化状态/拖动动画优化。
 - **1.26.0**：布局测量契约（Grid/Row/Column/Card/Page/ScrollViewer、显式尺寸与 Fill）；ToggleSwitch 拖动切换；Slider 拖动跟手/吸附缓动；Expander 首次展开与折叠再展开修复；UIA provider 生命周期/CFG 崩溃修复；全控件总览页与 280 项自检。
 - **1.25.0**：`Drawer` 侧边抽屉（Overlay / Push / Permanent、四边、圆角遮罩、面板阴影、Esc）；`Window::AddKeyHandler`；信号专项测试与测试改名；`ScrollViewer` 出血跟随内容 bleed。
@@ -363,7 +360,6 @@ ZufyUI/
 - **1.18.1**：文档/配图更新。
 - **1.18.0**：图表 `ZufyUICharts.h`；`TextEdit`；`PageHost` 延迟释放；文档重整。
 - **1.17.0**：UIA；调试通道；布局权值；Label/Button 自动 ToolTip；TreeView 背景/滚动；标题栏 Pin。
-- **1.16.0**：渲染线程默认关；系统对话框；`UIZSignals::Error`；光标/悬停/首列修复。
 - **1.15.0**：数据视图虚拟化；跨线程收口；ComboBox 源索引。
 
 > 更早版本（≤ 1.14）见 [CHANGELOG.md](CHANGELOG.md)。
@@ -383,9 +379,7 @@ ZufyUI/
 
 ZufyUI 原名 `ZUI`（避免与其他同名项目冲突）。
 
-## 实验特性
 
-> ⚠️ **独立渲染线程（编译开关 `ZUFYUI_RENDER_THREAD`）为实验特性，默认关闭、不稳定、bug 较多、不建议开启。** 默认的单线程渲染路径是稳定路径；详见 API 参考「独立渲染线程」一节。
 
 ## 许可证
 
