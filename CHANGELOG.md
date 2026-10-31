@@ -2,7 +2,15 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.27.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.27.1**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-10-31 — 菜单/标题栏/resize 修复与独立渲染线程停用（v1.27.1）
+- **独立渲染线程**：停用并清理实验性 `ZUFYUI_RENDER_THREAD` 路径，保留稳定的单线程渲染与 VBLANK 帧同步代码；README/API 不再公开该实验特性。
+- **右键菜单**：非 DWM chrome 弹出层跳过 DWM frame/圆角处理，设置为不圆角、无 DWM 边框，修复菜单周围多余边框。
+- **顶部菜单栏**：菜单关闭时同时清理 `openIndex_` 与 `hoverIndex_`，避免菜单栏残留半截 hover/打开高亮。
+- **标题栏**：`AdvanceFrame` 改用实际 `IsVisible()` 判断自定义标题栏；`SetTitleBarVisible(false)` 立即清标题栏高度并重新布局，修复隐藏标题栏或切回原生标题栏后菜单仍被下压。
+- **resize**：`WM_SIZE` 调整交换链后同步提交一帧，拖拽期间 `Present1` 不等 vblank，避免布局已按新尺寸更新但画面仍是旧帧/透明。
+- **验证**：x64 Release + ZufyUIDebugger 构建通过；280 项自检通过。
 
 ### 2026-10-29 — Win10 背景/边框、Snap、渲染驱动与 API 收敛（v1.27.0）
 - **Windows 10 Acrylic**：在创建 `HostBackdropBrush` 前启用 `ACCENT_ENABLE_HOSTBACKDROP`，保留自定义模糊/饱和度/tint/噪点链；Win10 不再写 Win11 专属 DWM 属性，避免灰色半透明和边框阴影丢失。

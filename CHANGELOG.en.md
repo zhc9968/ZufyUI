@@ -2,7 +2,15 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.27.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.27.1** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-10-31 — Menu/title-bar/resize fixes and independent render thread disabled (v1.27.1)
+- **Independent render thread**: disabled and cleaned up the experimental `ZUFYUI_RENDER_THREAD` path; stable single-thread rendering and the VBLANK frame-sync code remain. README/API no longer expose the experiment.
+- **Context menu**: non-DWM chrome popups skip DWM frame/corner processing, use no rounding and no DWM border, removing the extra border around menus.
+- **Top menu bar**: closing a menu now clears both `openIndex_` and `hoverIndex_`, preventing a stale half-hover/open highlight.
+- **Title bar**: `AdvanceFrame` uses the title bar's actual `IsVisible()` state; `SetTitleBarVisible(false)` clears the title-bar height and invalidates layout immediately, fixing menus pushed down after hiding the title bar or returning to the native frame.
+- **Resize**: after `WM_SIZE` resizes the swap chain it now submits a frame immediately, and `Present1` does not wait for vblank while dragging, avoiding a layout that is already new while the picture is stale/transparent.
+- **Verification**: x64 Release + ZufyUIDebugger build; 280 self-test checks pass.
 
 ### 2026-10-29 — Windows 10 backdrop/frame, Snap, render driver and API cleanup (v1.27.0)
 - **Windows 10 Acrylic**: enable `ACCENT_ENABLE_HOSTBACKDROP` before creating the HostBackdropBrush, preserving the custom blur/saturation/tint/noise chain; stop writing Win11-only DWM attributes on Win10, avoiding the gray translucent result and lost border/shadow.

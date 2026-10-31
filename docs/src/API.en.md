@@ -2062,7 +2062,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 ###block_red_end
 
-###chapter: Version digest | v1.15.0 → v1.27.0
+###chapter: Version digest | v1.15.0 → v1.27.1
 
 > Only the changes that affect your code are listed.
 
@@ -2177,6 +2177,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
   - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
   - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
+- **v1.27.1**: disabled the experimental independent render thread while preserving VBLANK frame sync; adapted context menus to non-DWM chrome; fixed stale menu-bar hover and menu placement after hiding the title bar or switching to the native frame; resize now submits a new frame immediately instead of leaving a transparent/stale picture.
 - **v1.27.0**:
   - **Windows 10 Acrylic**: enable `ACCENT_ENABLE_HOSTBACKDROP` before creating the HostBackdropBrush on Win10, preserving the custom blur/tint/noise chain; stop writing Win11-only DWM attributes on Win10.
   - **DWM / Snap**: keep `DwmExtendFrameIntoClientArea({1,1,1,1})` for custom frames on both Win10 and Win11; reapply frame state after `WM_SIZE` / `WM_WINDOWPOSCHANGED`, fixing lost borders/shadows after Snap.

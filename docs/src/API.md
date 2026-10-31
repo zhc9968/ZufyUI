@@ -2072,7 +2072,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 ###block_red_end
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.27.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.27.1
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -2188,6 +2188,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
   - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
   - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。
+- **v1.27.1**：停用实验性独立渲染线程，保留 VBLANK 帧同步；右键菜单适配非 DWM chrome；修复菜单栏残留 hover、标题栏隐藏/切回原生标题栏后的菜单位置；resize 时同步提交新帧，避免布局更新但画面透明。
 - **v1.27.0**：
   - **Windows 10 Acrylic**：Win10 在创建 HostBackdropBrush 前启用 `ACCENT_ENABLE_HOSTBACKDROP`，保留自定义模糊/色调/噪点链；不再把 Win11 专属 DWM 属性写到 Win10。
   - **DWM / Snap**：自定义边框在 Win10/Win11 都保留 `DwmExtendFrameIntoClientArea({1,1,1,1})`；`WM_SIZE`/`WM_WINDOWPOSCHANGED` 后重新挂 frame 状态，修复 Snap 丢边框/阴影。
