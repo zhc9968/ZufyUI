@@ -423,6 +423,31 @@ static void test_fix_regressions() {
     sv->SetCollapseEnabled(true);
     CHECK(sv->IsCollapseEnabled());
     CHECK(sv->GetCollapseThreshold() > 0.0f);
+
+    {
+        auto sw = d::ZSplit().size(400.0f, 200.0f);
+        sw->SetMinFirst(300.0f);
+        sw->SetMinSecond(300.0f);
+        sw->SetFirst(d::ZLbl(L"first").shared());
+        sw->SetSecond(d::ZLbl(L"second").shared());
+        sw->Arrange(Rect(0.0f, 0.0f, 400.0f, 200.0f));
+        sw->CollapseSecond();
+        for (int i = 0; i < 30; ++i) sw->UpdateAnimation(1.0f / 60.0f);
+        sw->Arrange(Rect(0.0f, 0.0f, 400.0f, 200.0f));
+        CHECK(sw->GetActivePane() == 1);
+
+        int active = 0;
+        sw->ActivePaneChanged.connect([&active](int side) { active = side; });
+        sw->SwitchToSecond();
+        CHECK(sw->IsSwitching());
+        CHECK(sw->GetSwitchProgress() == 0.0f);
+        for (int i = 0; i < 30; ++i) sw->UpdateAnimation(1.0f / 60.0f);
+        CHECK(!sw->IsSwitching());
+        CHECK(sw->GetActivePane() == 2);
+        CHECK(active == 2);
+        CHECK(sw->IsFirstCollapsed());
+        CHECK(!sw->IsSecondCollapsed());
+    }
 }
 
 static void test_animation_primitives() {
@@ -551,6 +576,29 @@ static void test_drawer() {
         CHECK(content->GetArrangedRect().y == 0.0f);
         CHECK(content->GetArrangedRect().height == 400.0f);
         CHECK(panel->GetArrangedRect().height == 168.0f);
+    }
+
+    {
+        Drawer d;
+        auto content = std::make_shared<ColumnBox>();
+        auto child = std::make_shared<Label>(L"child");
+        content->AddChild(child);
+        d.SetContent(content);
+        d.SetMode(DrawerMode::Push);
+        d.SetPanelSize(200.0f);
+        d.Measure(Size(800, 600));
+        d.Arrange(Rect(0, 0, 800, 600));
+        d.SetOpen(true, false);
+        d.Measure(Size(800, 600));
+        d.Arrange(Rect(0, 0, 800, 600));
+
+        d.Close();
+        d.UpdateAnimation(1.0f);
+        CHECK(content->NeedsLayout());
+        CHECK(child->NeedsLayout());
+        d.Measure(Size(800, 600));
+        d.Arrange(Rect(0, 0, 800, 600));
+        CHECK(child->GetArrangedRect().width == 800.0f);
     }
 
     {
@@ -1261,6 +1309,39 @@ static void test_layout_rfc() {
         const Size ss = sv.Measure(Size(300.0f, 300.0f));
         CHECK(fabs(ss.width - 130.0f) < 0.01f);
         CHECK(fabs(ss.height - 90.0f) < 0.01f);
+    }
+
+    {
+        Card card;
+        card.SetWidth(200.0f);
+        card.SetHeight(300.0f);
+        auto content = std::make_shared<ColumnBox>();
+        content->SetMargin(Thickness(0.0f, 40.0f, 0.0f, 40.0f));
+        card.SetContent(content);
+        card.Measure(Size(200.0f, 300.0f));
+        card.Arrange(Rect(0, 0, 200.0f, 300.0f));
+        CHECK(fabs(content->GetArrangedRect().y - 52.0f) < 0.01f);
+        CHECK(fabs(content->GetArrangedRect().height - 196.0f) < 0.01f);
+    }
+
+    {
+        TextBox box;
+        box.SetPasswordMode(true);
+        box.SetText(L"secret");
+        box.SetWidth(200.0f);
+        box.SetHeight(30.0f);
+        box.Arrange(Rect(0, 0, 200.0f, 30.0f));
+        CHECK(!box.IsPasswordRevealed());
+        box.OnMouseDown(180.0f, 15.0f);
+        box.OnMouseUp(180.0f, 15.0f);
+        CHECK(box.IsPasswordRevealed());
+        box.OnMouseDown(180.0f, 15.0f);
+        box.OnMouseUp(180.0f, 15.0f);
+        CHECK(!box.IsPasswordRevealed());
+        box.SetPasswordRevealButtonVisible(false);
+        box.OnMouseDown(180.0f, 15.0f);
+        box.OnMouseUp(180.0f, 15.0f);
+        CHECK(!box.IsPasswordRevealed());
     }
 
     // RadioGroup / SettingsList 的显式宽高必须进入 Measure

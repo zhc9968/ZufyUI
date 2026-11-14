@@ -89,9 +89,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 26
-#define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.27.1"
+#define ZufyUI_VERSION_MINOR 27
+#define ZufyUI_VERSION_PATCH 2
+#define ZufyUI_VERSION_STRING L"1.27.2"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -1833,14 +1833,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         virtual void SetTitleTextVisible(bool) {}   // 自定义标题栏是否显示标题文字（默认无操作；TitleBar 覆盖）
 
         // ---------- 父子关系 ----------
-        void SetParent(UIElement* parent) {
-            if (parent_) parent_->childrenDirty_ = true;   // 旧父：我的槽位没了（解绑到 nullptr 时旧父同样要失效）
-            if (parent)  parent->childrenDirty_ = true;    // 新父：多了我
-            parent_ = parent;
-            // 挂到已属于某窗口的父级时，立即把自己的子树也归属到该窗口；
-            // 若父级尚未挂载，则等父级挂载时由 AttachWindowRecursive 统一传播。
-            AttachWindowRecursive(parent ? parent->GetWindow() : nullptr);
-        }
+        // 定义见文件末尾（需要 Window 完整类型：脱离父级时要清掉窗口侧持有的裸指针）
+        void SetParent(UIElement* parent);
         UIElement* GetParent() const { return parent_; }
         void MarkChildrenDirty() { childrenDirty_ = true; }   // 子元素列表变化时手动置脏（如 PageHost 的动画状态）
 
@@ -3065,11 +3059,15 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         Size MeasureOverride(const Size& availableSize) override {
             if (!layout_) return Size(width_ > 0.0f ? width_ : 0.0f, height_ > 0.0f ? height_ : 0.0f);
-            const float innerW = (width_ > 0.0f ? width_ : availableSize.width) - padding_ * 2;
-            const float innerH = (height_ > 0.0f ? height_ : availableSize.height) - padding_ * 2;
+            const Thickness margin = layout_->GetMargin();
+            const float innerW = max(0.0f, (width_ > 0.0f ? width_ : availableSize.width)
+                - padding_ * 2 - margin.left - margin.right);
+            const float innerH = max(0.0f, (height_ > 0.0f ? height_ : availableSize.height)
+                - padding_ * 2 - margin.top - margin.bottom);
             Size childSize = layout_->Measure(Size(innerW, innerH));
-            Size out(childSize.width + padding_ * 2, childSize.height + padding_ * 2);
-            if (width_ > 0.0f) out.width = width_;    // 显式尺寸必须参与 Measure，否则父布局按内容高度排、Arrange 又按固定高排 → 卡片互相覆盖
+            Size out(childSize.width + padding_ * 2 + margin.left + margin.right,
+                childSize.height + padding_ * 2 + margin.top + margin.bottom);
+            if (width_ > 0.0f) out.width = width_;    // fixed size wins over content measurement
             if (height_ > 0.0f) out.height = height_;
             return out;
         }
@@ -3077,17 +3075,20 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
             if (!layout_) return;
+            const Thickness margin = layout_->GetMargin();
             const Rect area(finalRect.x + padding_, finalRect.y + padding_,
                 max(0.0f, finalRect.width - padding_ * 2), max(0.0f, finalRect.height - padding_ * 2));
+            const float contentAreaW = max(0.0f, area.width - margin.left - margin.right);
+            const float contentAreaH = max(0.0f, area.height - margin.top - margin.bottom);
             const Size desired = layout_->GetDesiredSize();
-            const float w = contentHAlign_ == LayoutAlignment::Stretch ? area.width : min(area.width, desired.width);
-            const float h = contentVAlign_ == LayoutAlignment::Stretch ? area.height : min(area.height, desired.height);
-            float x = area.x;
-            float y = area.y;
-            if (contentHAlign_ == LayoutAlignment::Center) x += (area.width - w) * 0.5f;
-            else if (contentHAlign_ == LayoutAlignment::End) x += area.width - w;
-            if (contentVAlign_ == LayoutAlignment::Center) y += (area.height - h) * 0.5f;
-            else if (contentVAlign_ == LayoutAlignment::End) y += area.height - h;
+            const float w = contentHAlign_ == LayoutAlignment::Stretch ? contentAreaW : min(contentAreaW, desired.width);
+            const float h = contentVAlign_ == LayoutAlignment::Stretch ? contentAreaH : min(contentAreaH, desired.height);
+            float x = area.x + margin.left;
+            float y = area.y + margin.top;
+            if (contentHAlign_ == LayoutAlignment::Center) x += (contentAreaW - w) * 0.5f;
+            else if (contentHAlign_ == LayoutAlignment::End) x += contentAreaW - w;
+            if (contentVAlign_ == LayoutAlignment::Center) y += (contentAreaH - h) * 0.5f;
+            else if (contentVAlign_ == LayoutAlignment::End) y += contentAreaH - h;
             layout_->Arrange(Rect(x, y, w, h));
         }
 
@@ -4898,6 +4899,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
         bool IsResizable() const { return resizable_; }
 
+        // Keep UI animations running while the user drags or resizes the window.
+        // Default true preserves the historical behavior (animations pause during size/move).
+        void SetSuspendAnimationsWhileResizing(bool on) { suspendAnimationsWhileResizing_ = on; }
+        bool GetSuspendAnimationsWhileResizing() const { return suspendAnimationsWhileResizing_; }
+
         // 圆角偏好（内部只调一次 DwmSetWindowAttribute；不支持的系统会被忽略）
         // 圆角不再作为公开可选 API：Win10 上设置圆角会破坏 DWM 边框/阴影，
         // Win11 Snap 下也可能出现 frame 状态问题。库内部只在 Win11 使用系统默认圆角，
@@ -5226,6 +5232,23 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             pendingRepaint_.erase(elem);
             lastActiveAnimElements_.erase(elem);   // 否则下一帧会把这个已销毁元素当“刚停止动画”塞回 pendingRepaint_ → 悬垂
             activeAnimScratch_.erase(elem);
+        }
+        // UIElement 析构时反向注销"窗口侧持有的裸元素指针"：
+        //   焦点 / 按下 / 元素级捕获 / 悬停 / tooltip 目标。以前只清 pendingRepaint_，
+        //   列表重建（ClearChildren）销毁被聚焦的按钮后，下一次鼠标按下会对已释放对象调 OnBlur() → AV。
+        void ForgetElement(UIElement* elem) {
+            if (!elem) return;
+            ForgetPendingRepaint(elem);
+            ForgetAccessibleElement(elem);
+            if (focusedElement_ == elem) {
+                focusedElement_ = nullptr;
+                focusDirty_ = true;
+                UpdateIMEAssociation();
+            }
+            if (pressedElement_ == elem) pressedElement_ = nullptr;
+            if (mouseCaptureElement_ == elem) mouseCaptureElement_ = nullptr;
+            if (currentHovered_ == elem) currentHovered_ = nullptr;
+            if (tooltipTarget_ == elem) { tooltipTarget_ = nullptr; tooltipProgress_ = 0.0f; }
         }
         void MarkLayoutInvalidated() {
             std::lock_guard<std::recursive_mutex> lk(renderLock_);
@@ -6529,7 +6552,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             // 拖动/缩放窗口时暂停动画：Windows 的 modal move/size 循环本身会持续发
             // WM_MOVE/WM_SIZE，虚拟机上 DWM 已经很吃力；再按 vblank 重绘整窗会让拖动明显卡顿。
             // 松开标题栏（WM_EXITSIZEMOVE）后下一帧继续，动画不会跳变。
-            const bool updateAnimations = !inSizeMove_;
+            const bool updateAnimations = !(inSizeMove_ && suspendAnimationsWhileResizing_);
             if (updateAnimations) {
                 if (rootElement_) {
                     rootElement_->UpdateAnimation(deltaTime);
@@ -7472,6 +7495,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float customTitleBarHeight_ = 0.0f;
         bool titleBarVisible_ = true;
         bool resizable_ = true;
+        bool suspendAnimationsWhileResizing_ = true;
         bool maximizeStateInitialized_ = false;
         bool lastMaximizedState_ = false;
         bool customFrame_ = false;          // 是否处于自定义边框模式
@@ -7567,7 +7591,25 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         if (connectionGroup_) connectionGroup_->disconnectAll();
         // 从所属窗口的待重绘集合里移除自己（防悬垂裸指针）
         if (detail::g_debugHighlight.load() == this) detail::g_debugHighlight.store(nullptr);
-        if (Window* w = GetWindow()) { w->ForgetPendingRepaint(this); w->ForgetAccessibleElement(this); }
+        if (Window* w = GetWindow()) w->ForgetElement(this);   // 窗口侧所有裸指针缓存统一注销
+    }
+    inline void UIElement::SetParent(UIElement* parent) {
+        if (parent_) parent_->childrenDirty_ = true;   // 旧父：我的槽位没了（解绑到 nullptr 时旧父同样要失效）
+        if (parent)  parent->childrenDirty_ = true;    // 新父：多了我
+        // 脱离旧父（或换到另一个窗口）之前，先让旧窗口放掉它持有的裸指针：
+        //   容器 ClearChildren() 是 `SetParent(nullptr)` **然后**才释放 shared_ptr，
+        //   等析构时 windowId_ 已被清成 0 → GetWindow() 返回 null → ForgetElement 根本不会执行，
+        //   于是 focusedElement_/pressedElement_ 指向已释放内存，下一次鼠标按下就 AV
+        //   （dump: Window::SetFocusElement → focusedElement_->IsTextInput()）。
+        if (Window* current = GetWindow()) {
+            if (!parent || parent->GetWindow() != current) {
+                current->ForgetElement(this);
+            }
+        }
+        parent_ = parent;
+        // 挂到已属于某窗口的父级时，立即把自己的子树也归属到该窗口；
+        // 若父级尚未挂载，则等父级挂载时由 AttachWindowRecursive 统一传播。
+        AttachWindowRecursive(parent ? parent->GetWindow() : nullptr);
     }
     inline std::unique_lock<std::recursive_mutex> UIElement::GuardRender() const {
         if (Window* w = GetWindow()) return w->LockRender();

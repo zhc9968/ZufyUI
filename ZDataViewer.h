@@ -3287,6 +3287,10 @@ namespace ZufyUI {
             if (col < 0 || col >= (int)columnWidths_.size()) return DefaultMinColumnWidth;
             return columnWidths_[col];
         }
+        // 内容总宽 < 视口宽时，把多余宽度补给最后一列（默认开）。
+        // 关掉后列宽严格按 SetColumnWidth / 默认 40 计算，内容会按列宽省略成 "...".
+        void SetStretchLastColumn(bool enable) { stretchLastColumn_ = enable; InvalidateLayout(); RequestRepaint(); }
+        bool GetStretchLastColumn() const { return stretchLastColumn_; }
 
         // ---------- 节点操作 ----------
         void ApplyDefaultExpand(const std::shared_ptr<TreeNode>& n) { if (n && defaultExpandDepth_ >= 0 && n->depth < defaultExpandDepth_) n->expanded = true; }
@@ -4821,7 +4825,15 @@ namespace ZufyUI {
 
         float GetEffectiveColumnWidth(int col) const {
             if (col < 0 || col >= (int)columnWidths_.size()) return DefaultMinColumnWidth;
-            return columnWidths_[col];
+            float w = columnWidths_[col];
+            // 默认列宽只有 40：不补宽的话，单列树的中文标签会被整体省略成 "..."。
+            if (stretchLastColumn_ && col == (int)columnWidths_.size() - 1 && arrangedRect_.width > 0.0f) {
+                float total = 0.0f;
+                for (float cw : columnWidths_) total += cw;
+                const float avail = arrangedRect_.width - (showVerticalScrollBar_ ? scrollBarWidth_ : 0.0f);
+                if (avail > total) w += avail - total;
+            }
+            return w;
         }
 
         void UpdateScrollInfo() {
@@ -5030,6 +5042,7 @@ namespace ZufyUI {
         bool headerVisible_;
         int columnCount_;
         std::vector<float> columnWidths_;
+        bool stretchLastColumn_ = true;   // 内容窄于视口时，多余宽度补给最后一列
         std::vector<std::wstring> headerLabels_;
         float indicatorWidth_, indicatorHeightRatio_;
         D2D1_COLOR_F indicatorColor_;

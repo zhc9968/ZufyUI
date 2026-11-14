@@ -1095,6 +1095,7 @@ namespace ZufyUI {
         inline static D2D1_COLOR_F DefaultHoverBgColor = D2D1::ColorF(0.93f, 0.93f, 0.93f, 1.0f);
         inline static D2D1_COLOR_F DefaultHoverBorderColor = D2D1::ColorF(0.4f, 0.4f, 0.4f, 1.0f);
         inline static float DefaultCursorBlinkInterval = 0.5f;
+        inline static float DefaultPasswordRevealButtonWidth = 28.0f;
         inline static float DefaultHoverAnimationSpeed = 10.0f;
         inline static float DefaultHorizontalStretchWeight = 1.0f;
         inline static float DefaultVerticalStretchWeight = 0.0f;
@@ -1150,8 +1151,25 @@ namespace ZufyUI {
         void SetSelectionColor(Color color) { MarkUserColor(); selectionColor_ = color.ToD2D(); selectionBrush_.Reset(); RequestRepaint(); }
         void SetHoverBackgroundColor(Color color) { MarkUserColor(); hoverBgColor_ = color.ToD2D(); RequestRepaint(); }
         void SetHoverBorderColor(Color color) { MarkUserColor(); hoverBorderColor_ = color.ToD2D(); RequestRepaint(); }
-        void SetPasswordMode(bool mode) { passwordMode_ = mode; UpdateDisplayLayout(); UpdateFullDisplayLayout(); EnsureCursorVisible(); RequestRepaint(); }
+        void SetPasswordMode(bool mode) {
+            passwordMode_ = mode;
+            if (!mode) { passwordToggleHovered_ = false; passwordTogglePressed_ = false; }
+            UpdateDisplayLayout();
+            UpdateFullDisplayLayout();
+            EnsureCursorVisible();
+            RequestRepaint();
+        }
         bool IsPasswordMode() const { return passwordMode_; }
+        void SetPasswordRevealButtonVisible(bool visible) {
+            if (passwordRevealButtonVisible_ == visible) return;
+            passwordRevealButtonVisible_ = visible;
+            passwordToggleHovered_ = false;
+            passwordTogglePressed_ = false;
+            EnsureCursorVisible();
+            RequestRepaint();
+        }
+        bool IsPasswordRevealButtonVisible() const { return passwordRevealButtonVisible_; }
+        void TogglePasswordReveal() { SetRevealPassword(!revealPassword_); }
         void SetMaxLength(int maxLength) {
             maxLength_ = maxLength;
             if (maxLength_ >= 0 && text_.size() > (size_t)maxLength_) {
@@ -1203,7 +1221,14 @@ namespace ZufyUI {
         void ClearInputFilter() { inputFilter_ = nullptr; }
         ZSignal<> ReturnPressed;
         void SetPlaceholderColor(Color color) { placeholderColor_ = color.ToD2D(); placeholderBrush_.Reset(); RequestRepaint(); }
-        void SetRevealPassword(bool reveal) { revealPassword_ = reveal; UpdateDisplayLayout(); UpdateFullDisplayLayout(); EnsureCursorVisible(); RequestRepaint(); }
+        void SetRevealPassword(bool reveal) {
+            if (revealPassword_ == reveal) return;
+            revealPassword_ = reveal;
+            UpdateDisplayLayout();
+            UpdateFullDisplayLayout();
+            EnsureCursorVisible();
+            RequestRepaint();
+        }
         bool IsPasswordRevealed() const { return revealPassword_; }
         int GetSelectionStart() const { return selectionStart_; }
         int GetSelectionEnd() const { return selectionEnd_; }
@@ -1340,7 +1365,7 @@ namespace ZufyUI {
             D2D1_RECT_F clipRect = D2D1::RectF(
                 arrangedRect_.x + 5.0f,
                 arrangedRect_.y + 2.0f,
-                arrangedRect_.x + arrangedRect_.width - 5.0f,
+                arrangedRect_.x + arrangedRect_.width - RightTextPadding(),
                 arrangedRect_.y + arrangedRect_.height - 2.0f);
             rt->PushAxisAlignedClip(clipRect, D2D1_ANTIALIAS_MODE_ALIASED);
 
@@ -1367,7 +1392,7 @@ namespace ZufyUI {
                     D2D1_RECT_F textRect = D2D1::RectF(
                         arrangedRect_.x + 5,
                         arrangedRect_.y,
-                        arrangedRect_.x + arrangedRect_.width - 5,
+                        arrangedRect_.x + arrangedRect_.width - RightTextPadding(),
                         arrangedRect_.y + arrangedRect_.height);
                     rt->DrawText(placeholder_.c_str(), (UINT32)placeholder_.length(), fmt, textRect, placeholderBrush_.Get());
                 }
@@ -1403,9 +1428,16 @@ namespace ZufyUI {
             }
 
             rt->PopAxisAlignedClip();
+            DrawPasswordRevealButton(rt);
         }
 
         void OnMouseDown(float x, float y) override {
+            if (PasswordRevealButtonHit(x, y)) {
+                passwordTogglePressed_ = true;
+                passwordToggleHovered_ = true;
+                RequestRepaint();
+                return;
+            }
             int pos = GetCharIndexFromX(x - arrangedRect_.x - 5 + scrollX_);
             bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
             // 点在已有选区内 + 非 shift → 可能是"拖出选中文本"的手势（先不折叠选区）
@@ -1425,6 +1457,19 @@ namespace ZufyUI {
             MouseDown.Fire(x, y);
         }
         void OnMouseMove(float x, float y) override {
+            const bool overPasswordToggle = PasswordRevealButtonHit(x, y);
+            if (overPasswordToggle != passwordToggleHovered_) {
+                passwordToggleHovered_ = overPasswordToggle;
+                RequestRepaint();
+            }
+            if (passwordTogglePressed_) {
+                MouseMove.Fire(x, y);
+                return;
+            }
+            if (overPasswordToggle) {
+                MouseMove.Fire(x, y);
+                return;
+            }
             if (dragArm_) {   // 已装备"拖出选中文本"：按住期间不改变选区
                 if (!dragMoved_ && (fabs(x - dragStartX_) + fabs(y - dragStartY_) > 4.0f)) {
                     dragMoved_ = true;
@@ -1471,7 +1516,14 @@ namespace ZufyUI {
             }
             MouseMove.Fire(x, y);
         }
-        void OnMouseUp(float, float) override {
+        void OnMouseUp(float x, float y) override {
+            if (passwordTogglePressed_) {
+                const bool fire = PasswordRevealButtonHit(x, y);
+                passwordTogglePressed_ = false;
+                if (fire) TogglePasswordReveal();
+                RequestRepaint();
+                return;
+            }
             if (dragArm_ && !dragMoved_) {   // 点了选区内但没拖动 → 折叠到点击处（与 Windows 一致）
                 cursorPos_ = dragClickPos_; selectionAnchor_ = dragClickPos_;
                 selectionStart_ = selectionEnd_ = dragClickPos_;
@@ -1623,7 +1675,13 @@ namespace ZufyUI {
             Blurred.Fire();
         }
         void OnMouseEnter() override { hovered_ = true; RequestRepaint(); MouseEnter.Fire(); }
-        void OnMouseLeave() override { hovered_ = false; RequestRepaint(); MouseLeave.Fire(); }
+        void OnMouseLeave() override {
+            hovered_ = false;
+            passwordToggleHovered_ = false;
+            passwordTogglePressed_ = false;
+            RequestRepaint();
+            MouseLeave.Fire();
+        }
         void UpdateAnimation(float deltaTime) override {
             if (focused_) {
                 cursorBlinkTime_ += deltaTime;
@@ -1650,6 +1708,8 @@ namespace ZufyUI {
             bgBrush_.Reset(); borderBrush_.Reset(); textBrush_.Reset();
             placeholderBrush_.Reset(); selectionBrush_.Reset(); cursorBrush_.Reset();
             compositionBrush_.Reset();
+            passwordToggleBrush_.Reset();
+            passwordToggleHoverBrush_.Reset();
             UIElement::ReleaseDeviceResources();
         }
 
@@ -1662,6 +1722,58 @@ namespace ZufyUI {
         }
 
     private:
+        bool ShowPasswordRevealButton() const {
+            return passwordMode_ && passwordRevealButtonVisible_ && arrangedRect_.width > 40.0f;
+        }
+        float PasswordRevealButtonWidth() const {
+            if (!ShowPasswordRevealButton()) return 0.0f;
+            return min(DefaultPasswordRevealButtonWidth, arrangedRect_.width * 0.3f);
+        }
+        Rect PasswordRevealButtonRect() const {
+            const float w = PasswordRevealButtonWidth();
+            return Rect(arrangedRect_.x + arrangedRect_.width - w - 3.0f,
+                arrangedRect_.y + 3.0f, w, max(0.0f, arrangedRect_.height - 6.0f));
+        }
+        float RightTextPadding() const {
+            const float buttonW = PasswordRevealButtonWidth();
+            return 5.0f + (buttonW > 0.0f ? buttonW + 2.0f : 0.0f);
+        }
+        bool PasswordRevealButtonHit(float x, float y) const {
+            return ShowPasswordRevealButton() && PasswordRevealButtonRect().Contains(x, y);
+        }
+        void DrawPasswordRevealButton(ID2D1RenderTarget* rt) {
+            if (!rt || !ShowPasswordRevealButton()) return;
+            const Rect r = PasswordRevealButtonRect();
+            if (r.width <= 1.0f || r.height <= 1.0f) return;
+            if (passwordToggleHovered_ || passwordTogglePressed_) {
+                D2D1_COLOR_F hc = (revealPassword_ ? accentColor_ : textColor_);
+                hc.a = (passwordTogglePressed_ ? 0.16f : 0.09f);
+                if (!passwordToggleHoverBrush_) rt->CreateSolidColorBrush(hc, passwordToggleHoverBrush_.GetAddressOf());
+                else passwordToggleHoverBrush_->SetColor(hc);
+                if (passwordToggleHoverBrush_)
+                    rt->FillRoundedRectangle(D2D1::RoundedRect(r.ToD2D(), 4.0f, 4.0f), passwordToggleHoverBrush_.Get());
+            }
+            const D2D1_COLOR_F c = revealPassword_ ? accentColor_ : textColor_;
+            if (!passwordToggleBrush_) rt->CreateSolidColorBrush(c, passwordToggleBrush_.GetAddressOf());
+            else passwordToggleBrush_->SetColor(c);
+            if (!passwordToggleBrush_) return;
+
+            const float cx = r.x + r.width * 0.5f;
+            const float cy = r.y + r.height * 0.5f;
+            const float ew = min(r.width, r.height) * 0.72f;
+            const float eh = ew * 0.54f;
+            const D2D1_ELLIPSE eye = D2D1::Ellipse(D2D1::Point2F(cx, cy), ew * 0.5f, eh * 0.5f);
+            rt->DrawEllipse(eye, passwordToggleBrush_.Get(), 1.5f);
+            const float pr = max(1.5f, min(ew, eh) * 0.16f);
+            rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), pr, pr), passwordToggleBrush_.Get());
+            if (revealPassword_) {
+                const float sx = ew * 0.38f;
+                const float sy = eh * 0.55f;
+                rt->DrawLine(D2D1::Point2F(cx - sx, cy - sy), D2D1::Point2F(cx + sx, cy + sy),
+                    passwordToggleBrush_.Get(), 1.5f);
+            }
+        }
+
         float GetCompositionTextWidth() const {
             if (hasComposition_ && !compositionText_.empty()) {
                 IDWriteFactory* dwriteFactory = FontManager::Instance().GetFactory();
@@ -1870,15 +1982,15 @@ namespace ZufyUI {
             }
             float cursorX = GetTextPositionX(globalCursorPos);
             float leftPadding = 5.0f;
-            float rightPadding = 5.0f;
+            float rightPadding = RightTextPadding();
             float viewWidth = arrangedRect_.width - leftPadding - rightPadding;
 
             if (cursorX < scrollX_ + leftPadding) {
                 scrollX_ = cursorX - leftPadding;
                 if (scrollX_ < 0) scrollX_ = 0;
             }
-            else if (cursorX > scrollX_ + viewWidth - rightPadding) {
-                scrollX_ = cursorX - viewWidth + rightPadding;
+            else if (cursorX > scrollX_ + viewWidth) {
+                scrollX_ = cursorX - viewWidth;
             }
             float maxScroll = max(0.0f, GetTextWidth() - viewWidth);
             if (scrollX_ > maxScroll) scrollX_ = maxScroll;
@@ -1903,6 +2015,9 @@ namespace ZufyUI {
         std::wstring placeholder_;
         bool readOnly_ = false;
         bool revealPassword_ = false;
+        bool passwordRevealButtonVisible_ = true;
+        bool passwordToggleHovered_ = false;
+        bool passwordTogglePressed_ = false;
         std::function<bool(wchar_t)> inputFilter_;
         D2D1_COLOR_F placeholderColor_ = D2D1::ColorF(0.6f, 0.6f, 0.6f, 1.0f);
         int cursorPos_;
@@ -1942,6 +2057,8 @@ namespace ZufyUI {
         ComPtr<ID2D1SolidColorBrush> selectionBrush_;
         ComPtr<ID2D1SolidColorBrush> cursorBrush_;
         ComPtr<ID2D1SolidColorBrush> compositionBrush_;
+        ComPtr<ID2D1SolidColorBrush> passwordToggleBrush_;
+        ComPtr<ID2D1SolidColorBrush> passwordToggleHoverBrush_;
     };
 
     // ---------- 下拉框（最终增强版） ----------
@@ -6113,6 +6230,7 @@ namespace ZufyUI {
         inline static float DefaultCollapseThreshold = 28.0f;
         inline static float DefaultHintDuration = 0.16f;
         inline static float DefaultCollapseDuration = 0.22f;
+        inline static float DefaultSwitchDuration = 0.30f;
         inline static float DefaultExpandBtnHoverDuration = 0.12f;
         inline static float DefaultExpandBtnWidth = 14.0f;
         inline static float DefaultExpandBtnHeight = 44.0f;
@@ -6122,6 +6240,7 @@ namespace ZufyUI {
 
         ZSignal<float> SplitChanged;      // 新比例 0..1
         ZSignal<int>   CollapsedChanged;  // 0=未折叠，1=第一栏折叠，2=第二栏折叠
+        ZSignal<int>   ActivePaneChanged; // 1=first fully active, 2=second fully active
 
         // ---- 覆盖层：作为最后一个子元素参与绘制/命中，因此画在两栏内容之上 ----
         class Overlay : public UIElement {
@@ -6172,6 +6291,52 @@ namespace ZufyUI {
         float GetSplitterWidth() const { return splitterW_; }
         void SetMinFirst(float px) { minFirst_ = max(0.0f, px); InvalidateLayout(); }
         void SetMinSecond(float px) { minSecond_ = max(0.0f, px); InvalidateLayout(); }
+
+        // When both minimums cannot fit, keep this pane and collapse the other one.
+        // side: 1 = first/left, 2 = second/right (default 1).
+        void SetInsufficientSpaceDefaultSide(int side) {
+            int s = (side == 2) ? 2 : 1;
+            if (defaultSide_ != s) { defaultSide_ = s; InvalidateLayout(); RequestRepaint(); }
+        }
+        int GetInsufficientSpaceDefaultSide() const { return defaultSide_; }
+        void SetAutoCollapseOnInsufficientSpace(bool on) {
+            if (autoCollapseOnInsufficientSpace_ != on) {
+                autoCollapseOnInsufficientSpace_ = on;
+                InvalidateLayout(); RequestRepaint();
+            }
+        }
+        bool GetAutoCollapseOnInsufficientSpace() const { return autoCollapseOnInsufficientSpace_; }
+        void SetSwitchAnimationDuration(float seconds) { switchDuration_ = max(0.01f, seconds); }
+        float GetSwitchAnimationDuration() const { return switchDuration_; }
+        void SetSwitchAnimationEasing(Easing easing) { switchEasing_ = easing; }
+        Easing GetSwitchAnimationEasing() const { return switchEasing_; }
+        bool IsSwitching() const { return switching_; }
+        float GetSwitchProgress() const { return switchProgress_; }
+        int GetActivePane() const {
+            if (switching_) return switchToSide_;
+            if (collapsedFirst_ && !collapsedSecond_) return 2;
+            if (collapsedSecond_ && !collapsedFirst_) return 1;
+            return 0;
+        }
+        void SwitchToFirst(bool animate = true) { SwitchToPane(1, animate); }
+        void SwitchToSecond(bool animate = true) { SwitchToPane(2, animate); }
+        void SwitchToPane(int side, bool animate = true) {
+            if (side != 1 && side != 2) return;
+            if (switching_ || side == GetActivePane()) return;
+            if (!animate || switchDuration_ <= 0.0f) { ApplyPaneState(side); return; }
+            switchFromSide_ = (collapsedFirst_ ? 2 : collapsedSecond_ ? 1 : (ratio_ >= 0.5f ? 1 : 2));
+            if (switchFromSide_ == side) { ApplyPaneState(side); return; }
+            switchToSide_ = side;
+            switching_ = true;
+            switchProgress_ = 0.0f;
+            switchT_ = 0.0f;
+            MarkChildrenDirty();
+            InvalidateLayout();
+            if (first_) first_->InvalidateLayout();
+            if (second_) second_->InvalidateLayout();
+            ApplyArrange(arrangedRect_);
+            RequestRepaint();
+        }
         void SetSplitterColor(Color c) { splitterColor_ = c; RequestRepaint(); }
         void SetHoverColor(Color c) { MarkUserColor(); hoverColor_ = c; RequestRepaint(); }
 
@@ -6198,15 +6363,17 @@ namespace ZufyUI {
         //   注意：**只有到动画收尾才清 collapseSide_** —— 它驱动 PaneLengths 的折叠插值，
         //   若提前清掉（旧实现直接在开头清 collapsedFirst_），展开会瞬间跳到最小值、没有缓动。
         void Expand() {
-            if (!collapsedFirst_ && !collapsedSecond_) return;
+            if (switching_ || (!collapsedFirst_ && !collapsedSecond_)) return;
             const int side = collapsedFirst_ ? 1 : 2;
             bool vert = (orientation_ == Orientation::Vertical);
             float total = vert ? arrangedRect_.width : arrangedRect_.height;
             float usable = max(1.0f, total - splitterW_);
-            float r = savedRatio_;
-            if (side == 1 && minFirst_ > 0.0f) r = minFirst_ / usable;                 // 第一栏展开到 minFirst_
-            if (side == 2 && minSecond_ > 0.0f) r = (usable - minSecond_) / usable;    // 第二栏展开到 minSecond_（不是压第一栏）
-            ratio_ = clamp(r, 0.0f, 1.0f);
+            if (minFirst_ + minSecond_ > usable) return;   // not enough room: do not expand
+            float target = usable * savedRatio_;
+            if (side == 1 && minFirst_ > 0.0f) target = minFirst_;
+            if (side == 2 && minSecond_ > 0.0f) target = usable - minSecond_;
+            const float firstLen = ClampFirstLen(target, usable);
+            ratio_ = (usable > 0.0f) ? clamp(firstLen / usable, 0.0f, 1.0f) : 0.0f;
             collapseSide_ = side;              // 保持该侧参与 PaneLengths，直到动画收尾
             collapsedFirst_ = collapsedSecond_ = false;
             StartCollapseAnim();
@@ -6228,6 +6395,11 @@ namespace ZufyUI {
             float w = width_ > 0 ? width_ : (availableSize.width != FLT_MAX ? availableSize.width : 200.0f);
             float h = height_ > 0 ? height_ : (availableSize.height != FLT_MAX ? availableSize.height : 200.0f);
             bool vert = (orientation_ == Orientation::Vertical);
+            float measuredW = w, measuredH = h;
+            const float minTotal = minFirst_ + minSecond_;
+            const float preferred = max(minFirst_, minSecond_) + min(minFirst_, minSecond_) * 0.5f + splitterW_;
+            if (width_ <= 0.0f && availableSize.width != FLT_MAX && w < minTotal + splitterW_) measuredW = max(w, preferred);
+            if (height_ <= 0.0f && availableSize.height != FLT_MAX && h < minTotal + splitterW_) measuredH = max(h, preferred);
             float firstLen = 0.0f, secondLen = 0.0f;
             PaneLengths(vert ? w : h, firstLen, secondLen);
             if (vert) {
@@ -6238,10 +6410,18 @@ namespace ZufyUI {
                 if (first_) first_->Measure(Size(w, firstLen));
                 if (second_) second_->Measure(Size(w, secondLen));
             }
-            if (overlay_) overlay_->Measure(Size(w, h));
-            return Size(w, h);
+            if (overlay_) overlay_->Measure(Size(measuredW, measuredH));
+            return Size(measuredW, measuredH);
         }
         void ArrangeOverride(const Rect& finalRect) override {
+            const bool vert = (orientation_ == Orientation::Vertical);
+            const float total = vert ? finalRect.width : finalRect.height;
+            const float usable = max(0.0f, total - splitterW_);
+            if (!switching_ && autoCollapseOnInsufficientSpace_ && first_ && second_ &&
+                !collapseActive() && minFirst_ + minSecond_ > usable) {
+                if (defaultSide_ == 2) CollapseFirst();
+                else CollapseSecond();
+            }
             UIElement::ArrangeOverride(finalRect);
             ApplyArrange(finalRect);
         }
@@ -6279,6 +6459,35 @@ namespace ZufyUI {
             if (overlay_) childrenView_.push_back(overlay_.get());   // 最后 → 画在内容之上
         }
         const std::vector<UIElement*>& GetChildren() const override { return childrenView_; }
+        std::optional<D2D1_RECT_F> GetClipRect() const override {
+            if (switching_) return arrangedRect_.ToD2D();
+            return std::nullopt;
+        }
+        D2D1::Matrix3x2F GetChildRenderTransform(UIElement* child) const override {
+            if (!switching_) return D2D1::Matrix3x2F::Identity();
+            const float t = EasedSwitchProgress();
+            const bool vert = (orientation_ == Orientation::Vertical);
+            const float w = arrangedRect_.width;
+            const float h = arrangedRect_.height;
+            float dx = 0.0f, dy = 0.0f;
+            if (child == first_.get()) {
+                if (switchToSide_ == 1) {
+                    if (vert) dx = -w * (1.0f - t); else dy = -h * (1.0f - t);
+                }
+                else {
+                    if (vert) dx = -w * t; else dy = -h * t;
+                }
+            }
+            else if (child == second_.get()) {
+                if (switchToSide_ == 2) {
+                    if (vert) dx = w * (1.0f - t); else dy = h * (1.0f - t);
+                }
+                else {
+                    if (vert) dx = w * t; else dy = h * t;
+                }
+            }
+            return D2D1::Matrix3x2F::Translation(dx, dy);
+        }
         void AttachWindowRecursive(Window* w) override {
             windowId_ = WindowIdOf(w);
             if (first_) first_->AttachWindowRecursive(w);
@@ -6286,6 +6495,15 @@ namespace ZufyUI {
             if (overlay_) overlay_->AttachWindowRecursive(w);
         }
         void UpdateAnimation(float dt) override {
+            if (switching_) {
+                switchT_ += dt;
+                switchProgress_ = min(1.0f, switchT_ / switchDuration_);
+                if (switchProgress_ >= 1.0f) ApplyPaneState(switchToSide_);
+                if (first_) first_->UpdateAnimation(dt);
+                if (second_) second_->UpdateAnimation(dt);
+                if (HasActiveAnimation()) RequestRepaint();
+                return;
+            }
             if (first_) first_->UpdateAnimation(dt);
             if (second_) second_->UpdateAnimation(dt);
             // 提示覆盖层：alpha 渐入渐出
@@ -6318,6 +6536,7 @@ namespace ZufyUI {
             if (HasActiveAnimation()) RequestRepaint();
         }
         bool HasActiveAnimation() const override {
+            if (switching_) return true;
             if (hintT_ < DefaultHintDuration) return true;
             if (collapseT_ < DefaultCollapseDuration) return true;
             if (btnT_ < DefaultExpandBtnHoverDuration) return true;
@@ -6335,6 +6554,7 @@ namespace ZufyUI {
         }
         void OnMouseMove(float x, float y) override {
             lastX_ = x; lastY_ = y;
+            if (switching_) return;
             if (dragging_) { UpdateDrag(x, y); return; }
             if (collapseActive()) { hovered_ = false; return; }   // 折叠期间只有小按钮要悬停
             Rect hit(splitterRect_.x - 3.0f, splitterRect_.y - 3.0f, splitterRect_.width + 6.0f, splitterRect_.height + 6.0f);
@@ -6343,10 +6563,12 @@ namespace ZufyUI {
         }
         void OnMouseLeave() override { if (hovered_) { hovered_ = false; RequestRepaint(); } }
         void OnMouseDown(float x, float y) override {
+            if (switching_) return;
             Rect hit(splitterRect_.x - 3.0f, splitterRect_.y - 3.0f, splitterRect_.width + 6.0f, splitterRect_.height + 6.0f);
             if (!collapseActive() && hit.Contains(x, y)) { dragging_ = true; pressX_ = x; pressY_ = y; RequestRepaint(); }
         }
         void OnMouseUp(float, float) override {
+            if (switching_) return;
             if (!dragging_) return;
             dragging_ = false;
             // 松手这一刻才真正折叠：该侧尺寸随后带缓动地从当前值变为 0
@@ -6362,7 +6584,7 @@ namespace ZufyUI {
         // 覆盖层要接管鼠标：折叠（或正在折叠）时，光标在小按钮上
         bool OverlayWantsMouse(float x, float y) const {
             if (collapseProg_ <= 0.05f) return false;
-            return expandBtnRect_.width > 1.0f && expandBtnRect_.Contains(x, y);
+            return expandBtnEnabled_ && expandBtnRect_.width > 1.0f && expandBtnRect_.Contains(x, y);
         }
         void OverlayMouseMove(float x, float y) {
             bool h = OverlayWantsMouse(x, y);
@@ -6408,21 +6630,27 @@ namespace ZufyUI {
             // (4)(5) 折叠后的小按钮：圆角浅灰 + 箭头指展开方向 + 悬停缓动，同样画在内容之上
             float fade = clamp(collapseProg_, 0.0f, 1.0f);
             if (collapseActive() && fade > 0.02f && expandBtnRect_.width > 1.0f) {
-                D2D1_COLOR_F bc = D2D1::ColorF(
-                    expandBtnColor_.r + (expandBtnHoverColor_.r - expandBtnColor_.r) * expandBtnHover_,
-                    expandBtnColor_.g + (expandBtnHoverColor_.g - expandBtnColor_.g) * expandBtnHover_,
-                    expandBtnColor_.b + (expandBtnHoverColor_.b - expandBtnColor_.b) * expandBtnHover_,
-                    (expandBtnColor_.a + (expandBtnHoverColor_.a - expandBtnColor_.a) * expandBtnHover_) * fade);
+                const float hover = expandBtnEnabled_ ? expandBtnHover_ : 0.0f;
+                D2D1_COLOR_F bc = expandBtnEnabled_
+                    ? D2D1::ColorF(
+                        expandBtnColor_.r + (expandBtnHoverColor_.r - expandBtnColor_.r) * hover,
+                        expandBtnColor_.g + (expandBtnHoverColor_.g - expandBtnColor_.g) * hover,
+                        expandBtnColor_.b + (expandBtnHoverColor_.b - expandBtnColor_.b) * hover,
+                        (expandBtnColor_.a + (expandBtnHoverColor_.a - expandBtnColor_.a) * hover) * fade)
+                    : D2D1::ColorF(0.86f, 0.86f, 0.86f, 0.95f * fade);
                 if (!expandBtnBrush_) rt->CreateSolidColorBrush(bc, expandBtnBrush_.GetAddressOf());
                 else expandBtnBrush_->SetColor(bc);
                 float rad = min(expandBtnRect_.width, expandBtnRect_.height) * 0.5f;
                 if (expandBtnBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(expandBtnRect_.ToD2D(), rad, rad), expandBtnBrush_.Get());
                 D2D1_COLOR_F bd = splitterColor_.ToD2D(); bd.a *= fade;
+                if (!expandBtnEnabled_) bd = D2D1::ColorF(0.70f, 0.70f, 0.70f, 0.75f * fade);
                 if (!btnBorderBrush_) rt->CreateSolidColorBrush(bd, btnBorderBrush_.GetAddressOf());
                 else btnBorderBrush_->SetColor(bd);
                 if (btnBorderBrush_) rt->DrawRoundedRectangle(D2D1::RoundedRect(expandBtnRect_.ToD2D(), rad, rad), btnBorderBrush_.Get(), 1.0f);
-                if (!expandArrowBrush_) rt->CreateSolidColorBrush(expandArrowColor_.ToD2D(), expandArrowBrush_.GetAddressOf());
-                else expandArrowBrush_->SetColor(expandArrowColor_.ToD2D());
+                D2D1_COLOR_F ac = expandBtnEnabled_ ? expandArrowColor_.ToD2D() : D2D1::ColorF(0.55f, 0.55f, 0.55f, 0.85f);
+                ac.a *= fade;
+                if (!expandArrowBrush_) rt->CreateSolidColorBrush(ac, expandArrowBrush_.GetAddressOf());
+                else expandArrowBrush_->SetColor(ac);
                 if (expandArrowBrush_) {
                     DrawChevron(rt, expandArrowBrush_.Get(),
                                 expandBtnRect_.x + expandBtnRect_.width * 0.5f,
@@ -6449,24 +6677,82 @@ namespace ZufyUI {
         }
         // 两栏像素长度：折叠进度 p 让对应那一侧从当前值线性收敛到 0（折叠 p:0→1 / 展开 p:1→0）
         //   collapseSide_ 在折叠与展开两个方向都保持有效，这样展开才有缓动。
+        float ClampFirstLen(float desired, float usable) const {
+            if (usable <= 0.0f) return 0.0f;
+            const float minTotal = minFirst_ + minSecond_;
+            if (minTotal > usable && minTotal > 0.0f)
+                return usable * (minFirst_ / minTotal);
+            const float lo = minFirst_;
+            const float hi = max(lo, usable - minSecond_);
+            return clamp(desired, lo, hi);
+        }
+
         void PaneLengths(float total, float& firstLen, float& secondLen) const {
             float usable = max(0.0f, total - splitterW_);
-            const float nf = clamp(ratio_ * usable, minFirst_, max(0.0f, usable - minSecond_));
+            const float nf = ClampFirstLen(ratio_ * usable, usable);
             const float ns = max(0.0f, usable - nf);
             const float p = clamp(collapseProg_, 0.0f, 1.0f);
             if (collapseSide_ == 1) { firstLen = max(0.0f, nf * (1.0f - p)); secondLen = max(0.0f, usable - firstLen); return; }
             if (collapseSide_ == 2) { secondLen = max(0.0f, ns * (1.0f - p)); firstLen  = max(0.0f, usable - secondLen); return; }
             firstLen = nf; secondLen = ns;
         }
+        float EasedSwitchProgress() const {
+            return EaseValue(switchEasing_, clamp(switchProgress_, 0.0f, 1.0f));
+        }
+        void ApplyPaneState(int side) {
+            switching_ = false;
+            switchProgress_ = 1.0f;
+            if (side == 1) {
+                collapsedFirst_ = false;
+                collapsedSecond_ = true;
+                collapseSide_ = 2;
+            }
+            else {
+                collapsedFirst_ = true;
+                collapsedSecond_ = false;
+                collapseSide_ = 1;
+            }
+            collapseProg_ = 1.0f;
+            collapseT_ = DefaultCollapseDuration;
+            if (first_) first_->InvalidateLayout();
+            if (second_) second_->InvalidateLayout();
+            InvalidateLayout();
+            MarkChildrenDirty();
+            ApplyArrange(arrangedRect_);
+            CollapsedChanged(GetCollapsedSide());
+            ActivePaneChanged(side);
+            RequestRepaint();
+        }
+
         void ApplyArrange(const Rect& fr) {
             bool vert = (orientation_ == Orientation::Vertical);
             float total = (vert ? fr.width : fr.height);
+            expandBtnEnabled_ = (minFirst_ + minSecond_ <= max(1.0f, total - splitterW_));
             float firstLen = 0.0f, secondLen = 0.0f;
             PaneLengths(total, firstLen, secondLen);
             auto clipTo = [](UIElement* e, const Rect& r) {
                 float b = e->GetBleed();
                 e->SetClipRect(Rect(r.x - b, r.y - b, r.width + b * 2, r.height + b * 2));
             };
+            if (switching_) {
+                if (first_) {
+                    first_->SetVisibleNoInvalidate(true);
+                    first_->Measure(Size(fr.width, fr.height));
+                    first_->Arrange(fr);
+                    clipTo(first_.get(), fr);
+                }
+                if (second_) {
+                    second_->SetVisibleNoInvalidate(true);
+                    second_->Measure(Size(fr.width, fr.height));
+                    second_->Arrange(fr);
+                    clipTo(second_.get(), fr);
+                }
+                if (overlay_) overlay_->SetVisibleNoInvalidate(false);
+                expandBtnRect_ = Rect(0, 0, 0, 0);
+                expandBtnEnabled_ = false;
+                return;
+            }
+            if (overlay_) overlay_->SetVisibleNoInvalidate(true);
             if (vert) {
                 if (first_) { Rect r(fr.x, fr.y, firstLen, fr.height); first_->Arrange(r); clipTo(first_.get(), r); }
                 splitterRect_ = Rect(fr.x + firstLen, fr.y, splitterW_, fr.height);
@@ -6480,15 +6766,17 @@ namespace ZufyUI {
             if (overlay_) overlay_->Arrange(fr);   // 覆盖整块 → 画在两栏之上
             // 小按钮位置：贴着被折叠那一侧的外边缘，沿另一轴居中（按 collapseSide_，折叠/展开都停在同一侧）
             if (collapseActive()) {
+                const float bw = vert ? expandBtnW_ : expandBtnH_;
+                const float bh = vert ? expandBtnH_ : expandBtnW_;
                 if (vert) {
-                    float by = fr.y + (fr.height - expandBtnH_) * 0.5f;
-                    expandBtnRect_ = (collapseSide_ == 1) ? Rect(fr.x + 3.0f, by, expandBtnW_, expandBtnH_)
-                                                          : Rect(fr.x + fr.width - expandBtnW_ - 3.0f, by, expandBtnW_, expandBtnH_);
+                    float by = fr.y + (fr.height - bh) * 0.5f;
+                    expandBtnRect_ = (collapseSide_ == 1) ? Rect(fr.x + 3.0f, by, bw, bh)
+                                                          : Rect(fr.x + fr.width - bw - 3.0f, by, bw, bh);
                 }
                 else {
-                    float bx = fr.x + (fr.width - expandBtnW_) * 0.5f;
-                    expandBtnRect_ = (collapseSide_ == 1) ? Rect(bx, fr.y + 3.0f, expandBtnW_, expandBtnH_)
-                                                          : Rect(bx, fr.y + fr.height - expandBtnH_ - 3.0f, expandBtnW_, expandBtnH_);
+                    float bx = fr.x + (fr.width - bw) * 0.5f;
+                    expandBtnRect_ = (collapseSide_ == 1) ? Rect(bx, fr.y + 3.0f, bw, bh)
+                                                          : Rect(bx, fr.y + fr.height - bh - 3.0f, bw, bh);
                 }
             }
             else expandBtnRect_ = Rect(0, 0, 0, 0);
@@ -6498,8 +6786,9 @@ namespace ZufyUI {
             float total = (vert ? arrangedRect_.width : arrangedRect_.height);
             float usable = max(1.0f, total - splitterW_);
             float pos = (vert ? x : y) - (vert ? arrangedRect_.x : arrangedRect_.y) - splitterW_ * 0.5f;
-            float r = clamp(pos / usable, 0.0f, 1.0f);
-            if (r != ratio_) {
+            const float firstLen = ClampFirstLen(pos, usable);
+            const float r = clamp(firstLen / usable, 0.0f, 1.0f);
+            if (fabs(r - ratio_) > 0.0001f) {
                 ratio_ = r;
                 ApplyArrange(arrangedRect_);
                 if (first_) first_->InvalidateLayout();
@@ -6523,9 +6812,19 @@ namespace ZufyUI {
         std::shared_ptr<Overlay> overlay_;
         float ratio_ = 0.35f, splitterW_ = DefaultSplitterWidth;
         float minFirst_ = 0.0f, minSecond_ = 0.0f;
+        int defaultSide_ = 1;                         // pane kept when both minimums cannot fit
+        bool autoCollapseOnInsufficientSpace_ = true; // collapse the non-default pane automatically
         bool dragging_ = false, hovered_ = false;
         float lastX_ = 0.0f, lastY_ = 0.0f, pressX_ = 0.0f, pressY_ = 0.0f;
         bool collapseEnabled_ = true;
+        bool expandBtnEnabled_ = false;
+        bool switching_ = false;
+        int switchFromSide_ = 0;
+        int switchToSide_ = 0;
+        float switchProgress_ = 0.0f;
+        float switchT_ = 0.0f;
+        float switchDuration_ = DefaultSwitchDuration;
+        Easing switchEasing_ = Easing::EaseInOut;
         float collapseThreshold_ = DefaultCollapseThreshold;
         int   collapseHint_ = 0;
         bool  collapsedFirst_ = false, collapsedSecond_ = false;
@@ -6719,6 +7018,21 @@ namespace ZufyUI {
                 if (focusOnOpen_) w->FocusElement(focusOnOpen_.get());
             }
         }
+        static void InvalidateLayoutTree(UIElement* element) {
+            if (!element) return;
+            element->RefreshChildren();
+            for (UIElement* child : element->GetChildren()) {
+                if (child) InvalidateLayoutTree(child);
+            }
+            element->InvalidateLayout();
+        }
+        void InvalidateContentLayout() {
+            InvalidateLayoutTree(content_.get());
+            InvalidateLayoutTree(panelHost_.get());
+            InvalidateLayoutTree(contentFrame_.get());
+            InvalidateLayout();
+            RequestRepaint();
+        }
         void FinishTransition() {
             if (openRequested_) {
                 FocusOnOpen();
@@ -6728,6 +7042,7 @@ namespace ZufyUI {
                 Closed();
             }
             UpdateEscapeHandler();
+            InvalidateContentLayout();
             ApplyArrange(arrangedRect_);
             RequestRepaint();
         }
@@ -6930,6 +7245,7 @@ namespace ZufyUI {
             openRequested_ = open;
             OpenChanged(open);
             UpdateEscapeHandler();
+            InvalidateContentLayout();
             ApplyArrange(arrangedRect_);
             if (!animate || animDuration_ <= 0.0f) {
                 progress_.Snap(open ? 1.0f : 0.0f);

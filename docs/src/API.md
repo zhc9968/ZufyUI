@@ -801,6 +801,7 @@ void SetBackgroundColor(Color);            // 叠加在背景（空/亚克力/�
 void SetContentOpacity(float opacity);     // 弹窗淡入
 void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
 void SetResizable(bool);   void SetTitle(const std::wstring&);
+void SetSuspendAnimationsWhileResizing(bool);   bool GetSuspendAnimationsWhileResizing() const;
 ```
 - 背景是**自绘**：Acrylic = 宿主背景 + 自带效果链；Mica = 缓存壁纸层。改参数用 `SetBackgroundParams` 或 `UIZSignals::ReloadAcrylic`。
 - 窗口圆角不再提供公开 API：Win10 保持系统直角以保留 DWM 边框/阴影，Win11 跟随系统圆角。需要自定义圆角时请自行调用 Win32 DWM API，并自行处理 Win10/Snap 的边框阴影风险。
@@ -949,6 +950,8 @@ void SetDropItems(const std::vector<std::wstring>&, int selected=-1);  void SetD
 ZSignal<const std::wstring&> TextChanged;   ZSignal<> ReturnPressed;
 void SetText(const std::wstring&);   // 会去掉 \r\n、截断到 maxLength、清撤销
 void SetPlaceholder(...);  void SetPasswordMode(bool);  void SetMaxLength(int);   // -1 不限
+void SetRevealPassword(bool);  bool IsPasswordRevealed() const;  void TogglePasswordReveal();
+void SetPasswordRevealButtonVisible(bool);  bool IsPasswordRevealButtonVisible() const;
 void SetReadOnly(bool);    void SetInputFilter(std::function<bool(wchar_t)>);
 void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
 void SelectAll/Copy/Cut/Paste/Undo/Redo();
@@ -963,6 +966,8 @@ int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
 ###block_red_end
 
 - **`版本`**：error/indicator/IME `v1.12.0`；`v1.18.0` 修 shift+点击语义（无选区时也自锚点扩展）。
+
+密码模式默认隐藏；右侧眼睛按钮可切换明文/密文。代码用 `SetRevealPassword` / `TogglePasswordReveal` 控制显示状态，`SetPasswordRevealButtonVisible(false)` 可隐藏按钮。
 
 ## TextEdit（多行编辑器 / 只读查看器）— v1.18.0
 
@@ -1179,13 +1184,21 @@ enum class Orientation { Vertical, Horizontal };   // Vertical = 左右两栏 + 
 ZSignal<float> SplitChanged;   // 新比例 0..1
 void SetFirst/SetSecond(std::shared_ptr<UIElement>);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
+void SetInsufficientSpaceDefaultSide(int);  int GetInsufficientSpaceDefaultSide() const;
+void SetAutoCollapseOnInsufficientSpace(bool);  bool GetAutoCollapseOnInsufficientSpace() const;
 ZSignal<int> CollapsedChanged;   // 0=未折叠 1=第一栏 2=第二栏
 void SetCollapseEnabled(bool);   bool IsCollapseEnabled() const;   void SetCollapseThreshold(float);
 void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/IsSecondCollapsed() const;
 void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
+void SwitchToFirst/SwitchToSecond(bool animate = true);  void SwitchToPane(int side, bool animate = true);
+void SetSwitchAnimationDuration(float);  void SetSwitchAnimationEasing(Easing);
+bool IsSwitching() const;  float GetSwitchProgress() const;  int GetActivePane() const;
+ZSignal<int> ActivePaneChanged;   // 1=first, 2=second
 bool UseCache() const override { return false; }
 ```
 - **折叠（`v1.21.0`）**：把分隔条拖到**距某侧边缘 `CollapseThreshold`（默认 28px）内** → 该侧内容**上方**浮出半透明强调色覆盖层 + 指向折叠方向的箭头（alpha 渐入渐出）；**此时不改内容**，**松手**才真正折叠（该侧尺寸带缓动从当前值变为 0）。折叠后该侧边缘出现小按钮（圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后该侧尺寸带缓动从 0 变为**最小极限值**（`SetMinFirst/MinSecond`；未设则回到折叠前比例）。整个功能可 `SetCollapseEnabled(false)` 关闭。
+- **全屏面板切换（v1.28.0）**：`SwitchToFirst/Second` 从一个完整面板滑动过渡到另一个完整面板（类似 PageHost），不依赖两面板同时容得下；方向/时长/缓动可配置，结束后更新折叠状态并发出 `ActivePaneChanged`。
+- 当剩余空间连 `minFirst + minSecond` 都放不下时，展开按钮仍然显示，但会变灰、不可悬停也不可点击；空间恢复后自动重新启用。
 
 ###block_red_start
 **易错**
@@ -1482,6 +1495,7 @@ ZSignal<std::shared_ptr<TreeNode>> SelectionChanged, NodeClicked, ItemDoubleClic
 ZSignal<std::shared_ptr<TreeNode>,bool> ExpandChanged;   ZSignal<int> HeaderClicked;
 ZSignal<std::shared_ptr<TreeNode>, TreeNode::CheckState> ItemCheckStateChanged;
 void SetColumnCount(int);  void SetHeaderLabels(const std::vector<std::wstring>&);  void SetColumnWidth(int,float);
+void SetStretchLastColumn(bool);  bool GetStretchLastColumn() const;   // v1.27.2
 std::shared_ptr<TreeNode> AddRoot(const std::wstring&);   std::shared_ptr<TreeNode> AddChild(parent, const std::wstring&);
 void RemoveNode(node);  void RemoveChildren(node);  void MoveNode(node, newParent, int index);  void Clear();
 void BeginUpdate();  void EndUpdate();                       // v1.15.0：延后 BuildVisibleList（避免 O(N^2)）
@@ -1506,7 +1520,8 @@ float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToN
 - `MoveNode` 不能把节点移到自己的后代（返回 `false`，树不变）；忽略返回值会误以为移动成功。
 ###block_red_end
 
-- **`版本`**：`BeginUpdate`/`SetNodeText`/tooltip + 并发 `v1.15.0`；首列省略号修 `v1.16.0`；`Get/SetScrollOffsetY` + `ScrollToNode` + 节点 `bgColor` `v1.17.0`。
+- **`版本`**：`BeginUpdate`/`SetNodeText`/tooltip + 并发 `v1.15.0`；首列省略号修 `v1.16.0`；`Get/SetScrollOffsetY` + `ScrollToNode` + 节点 `bgColor` `v1.17.0`；`SetStretchLastColumn` 末列补宽 `v1.27.2`。
+- **v1.27.2 列宽补充**：`SetStretchLastColumn(true)`（默认）在内容总宽小于视口时把剩余宽度补给最后一列，避免单列树中文标签被 40px 最小列宽截成 `...`；`SetStretchLastColumn(false)` 恢复固定列宽行为。
 
 ###chapter: 图表 | ChartBase、BarChart、LineChart、PieChart（v1.18.0）
 
@@ -1634,6 +1649,7 @@ class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };
 ```cpp
 bool Add(HICON icon, const std::wstring& tooltip, UINT id=1);
 void SetIcon(HICON);  void SetToolTip(const std::wstring&);  void SetMenu(std::shared_ptr<Menu>);
+void SetClickImmediate(bool);   bool IsClickImmediate() const;
 void SetBadge(Color = ...);   void ClearBadge();
 enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
 void ShowBalloon(const std::wstring& title, const std::wstring& text, BalloonIcon = BalloonIcon::Custom, HICON = nullptr, ...);
@@ -2072,7 +2088,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 ###block_red_end
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.27.1
+###chapter: 版本变化摘录 | v1.15.0 → v1.27.2
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -2188,6 +2204,9 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
   - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
   - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。
+- **v1.27.2**：
+  - 窗口裸指针/UIA 生命周期：`Window::ForgetElement` 统一注销焦点/按下/捕获/悬停/tooltip/待重绘/UIA provider；`SetParent` 脱离时提前注销，`UiaDisconnectProvider` 修复 CFG 崩溃。
+  - `TreeView::SetStretchLastColumn`（默认开）末列补宽；SplitView 按钮方向/禁用态、全页面滑动切换与折叠钳制；TrayIcon v3/v4 点击回退；Drawer 关闭刷新；Card margin；密码框眼睛按钮；MessageBox 尺寸修复。
 - **v1.27.1**：停用实验性独立渲染线程，保留 VBLANK 帧同步；右键菜单适配非 DWM chrome；修复菜单栏残留 hover、标题栏隐藏/切回原生标题栏后的菜单位置；resize 时同步提交新帧，避免布局更新但画面透明。
 - **v1.27.0**：
   - **Windows 10 Acrylic**：Win10 在创建 HostBackdropBrush 前启用 `ACCENT_ENABLE_HOSTBACKDROP`，保留自定义模糊/色调/噪点链；不再把 Win11 专属 DWM 属性写到 Win10。

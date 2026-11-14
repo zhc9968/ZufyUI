@@ -724,7 +724,6 @@ namespace ZufyUI {
 
         if (parentWin) SetOwner(parentWin);
         if (!Create(builtWidth_, 180, title_)) return;
-        SetResizable(false);
         SetWindowStyleFlag(WS_MINIMIZEBOX, false);
         SetWindowStyleFlag(WS_MAXIMIZEBOX, false);
         if (parentHwnd && !parentWin) SetWindowLongPtr(GetHwnd(), GWLP_HWNDPARENT, (LONG_PTR)parentHwnd);
@@ -765,10 +764,11 @@ namespace ZufyUI {
             int frameH = (wr0.bottom - wr0.top) - (cr0.bottom - cr0.top);
             float clientW = (float)(builtWidth_ - MulDiv(frameW, 96, dpi));
             if (clientW < 60.0f) clientW = 60.0f;
-            Size want = root->Measure(Size(clientW, 0.0f));
+            Size want = root->Measure(Size(max(0.0f, clientW - rm.left - rm.right), 0.0f));
             int clientH = (int)ceil(want.height + rm.top + rm.bottom);
             if (clientH < 90) clientH = 90;
             SetSize(builtWidth_, clientH + MulDiv(frameH, 96, dpi));
+            SetResizable(false);
             if (buttonRow_) RightAlignButtons();   // 最终尺寸定下来后再摆一次按钮（时机：必须在 SetSize 之后）
         }
         built_ = true;
@@ -891,6 +891,11 @@ namespace ZufyUI {
         }
         void SetToolTip(const std::wstring& tip) { currentTip_ = tip; ApplyTip(tip); if (added_) Shell_NotifyIconW(NIM_MODIFY, &nid_); }
         void SetMenu(std::shared_ptr<Menu> m) { menu_ = m; }
+
+        // Fire Clicked immediately instead of waiting for WM_TIMER. DoubleClicked is still
+        // detected by a timestamp window, so tray input cannot be starved by a busy paint timer.
+        void SetClickImmediate(bool on) { clickImmediate_ = on; }
+        bool IsClickImmediate() const { return clickImmediate_; }
 
         // 徽章：右下角小红点
         void SetBadge(Color color = Color::FromArgb(255, 220, 40, 40)) {
@@ -1112,14 +1117,32 @@ namespace ZufyUI {
                 return 0;
             }
             if (msg == kCallbackMsg) {
-                UINT ev = LOWORD(w);   // NOTIFYICON_VERSION_4：事件类型在 wParam，lParam 才是屏幕坐标
-                                       // （原为 LOWORD(l) → 把鼠标 X 当事件号 → 单击/双击/悬停/气泡/右键菜单全部静默失效）
+                UINT ev = LOWORD(w);
+                const UINT legacy = LOWORD(l);
+                // NOTIFYICON_VERSION_4 puts the event in LOWORD(wParam). If the shell falls
+                // back to v3 (or SetVersion failed), the event is LOWORD(lParam) instead.
+                if (ev != NIN_SELECT && ev != NIN_KEYSELECT && ev != NIN_POPUPOPEN && ev != NIN_POPUPCLOSE &&
+                    ev != NIN_BALLOONUSERCLICK && ev != NIN_BALLOONHIDE && ev != NIN_BALLOONTIMEOUT &&
+                    ev != WM_CONTEXTMENU) {
+                    if (legacy == WM_LBUTTONUP || legacy == WM_RBUTTONUP ||
+                        legacy == WM_LBUTTONDBLCLK || legacy == WM_RBUTTONDBLCLK ||
+                        legacy == WM_MOUSEMOVE || legacy == WM_MOUSELEAVE)
+                        ev = legacy;
+                }
 #ifdef ZufyUI_DEBUG
                 { wchar_t b[64]; swprintf(b, 64, L"[ZufyUI] Tray callback ev=0x%04X\n", (unsigned)ev); ZufyUI_DEBUG_LOG_W(b); }
 #endif
                 switch (ev) {
                 case NIN_SELECT: {   // v4：单击延迟一个双击时间再发；期内再来一次则只发 DoubleClicked（避免"单击 toggle + 双击又 toggle"）
-                    if (pendingClick_) {
+                    if (clickImmediate_) {
+                        DWORD now = GetTickCount();
+                        const bool isDouble = pendingClick_ && (now - lastClickTick_ <= GetDoubleClickTime());
+                        pendingClick_ = !isDouble;
+                        lastClickTick_ = now;
+                        Clicked.Fire();
+                        if (isDouble) DoubleClicked.Fire();
+                    }
+                    else if (pendingClick_) {
                         KillTimer(h, kTrayClickTimer);
                         pendingClick_ = false;
                         DoubleClicked.Fire();
@@ -1136,9 +1159,25 @@ namespace ZufyUI {
                 case NIN_BALLOONUSERCLICK: BalloonClicked.Fire(); break;
                 case NIN_BALLOONHIDE: BalloonDismissed.Fire(); break;
                 case NIN_BALLOONTIMEOUT: BalloonTimeout.Fire(); break;
-                case WM_CONTEXTMENU:      // v4：右键菜单以“回调消息的 lParam”形式发来（不是常规窗口消息）
+                case WM_CONTEXTMENU:
                     RightClicked.Fire();
                     ShowMenuAtCursor();
+                    break;
+                case WM_LBUTTONUP:
+                    Clicked.Fire();
+                    break;
+                case WM_RBUTTONUP:
+                    RightClicked.Fire();
+                    ShowMenuAtCursor();
+                    break;
+                case WM_LBUTTONDBLCLK:
+                    DoubleClicked.Fire();
+                    break;
+                case WM_MOUSEMOVE:
+                    if (!hoverNotified_) { hoverNotified_ = true; HoverEnter.Fire(); }
+                    break;
+                case WM_MOUSELEAVE:
+                    if (hoverNotified_) { hoverNotified_ = false; HoverLeave.Fire(); }
                     break;
                 default: break;
                 }
@@ -1171,7 +1210,10 @@ namespace ZufyUI {
         HICON ownedIcon_ = nullptr;      // AddFromFile 加载的图标
         bool badgeOn_ = false;
         bool iconDirty_ = false;         // badge 图标懒重建标志
-        bool pendingClick_ = false;      // 单击待发（延迟到双击窗口结束）
+        bool pendingClick_ = false;
+        bool clickImmediate_ = true;
+        bool hoverNotified_ = false;
+        DWORD lastClickTick_ = 0;      // 单击待发（延迟到双击窗口结束）
         static constexpr UINT_PTR kTrayClickTimer = 0x7F91;
         Color badgeColor_ = Color::FromArgb(255, 220, 40, 40);
         std::wstring currentTip_;
@@ -1918,7 +1960,11 @@ namespace ZufyUI {
             providers.reserve(ctx->elements.size());
             for (auto& kv : ctx->elements) if (kv.second) providers.push_back(kv.second);
             ctx->elements.clear();
-            for (auto* p : providers) { p->DetachElement(); p->Release(); }
+            for (auto* p : providers) {
+                UiaDisconnectProvider(reinterpret_cast<IRawElementProviderSimple*>(p));
+                p->DetachElement();
+                p->Release();
+            }
             if (ctx->root) { ctx->root->Release(); ctx->root = nullptr; }
         }
 
@@ -2004,7 +2050,14 @@ namespace ZufyUI {
         if (jt != elements.end()) {
             auto* p = jt->second;
             elements.erase(jt);
-            if (p) { p->DetachElement(); p->Release(); }
+            if (p) {
+                // 先让 UIA 端释放对该 provider 的引用，再 Detach/Release。
+                // 只 Detach 不 Disconnect 时，UIA 仍可能持有已释放的 provider 指针，
+                // 下一次无障碍查询就会在 UIA 侧做虚调用 → c0000409 0xa（CFG）。
+                UiaDisconnectProvider(reinterpret_cast<IRawElementProviderSimple*>(p));
+                p->DetachElement();
+                p->Release();
+            }
         }
     }
 

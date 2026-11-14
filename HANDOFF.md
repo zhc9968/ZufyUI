@@ -1,9 +1,10 @@
 ﻿# ZufyUI 交接文档（HANDOFF）
 
 > 给**下一位接手者 / AI 智能体**：读这一份即可上手。配套：`AGENTS.md`（硬规则）、`TODO.md`（本地待办，不发布）、`docs/src/API.md`（API 参考）、`docs/src/API.en.md`（英文）、`README.md`（构建/快速开始）。
-> 版本基线：`1.27.1`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
+> 版本基线：`1.27.2`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
 > v1.27.0 已包含 Win10 Acrylic host backdrop、Win10/Win11 自定义边框与 Snap 阴影、渲染驱动切换、公开圆角 API 移除；布局/UIA/动画修复的历史记录见 CHANGELOG。
 > v1.27.1：停用实验性独立渲染线程，右键菜单适配非 DWM chrome，修复菜单栏残留 hover、标题栏隐藏/原生切换后的菜单位置，以及 resize 新帧滞后。
+> v1.27.2：窗口裸指针/UIA 崩溃修复、TreeView 末列补宽、SplitView 按钮/全页面切换、托盘点击回退、Drawer 关闭刷新、Card margin、密码框眼睛按钮与 MessageBox 高度修复。
 
 ---
 

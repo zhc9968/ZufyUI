@@ -2,7 +2,19 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.27.1** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.27.2** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-11-14 — Stability, control interaction and full-pane transition patch (v1.27.2)
+- **Window raw-pointer / UIA crashes**: added `Window::ForgetElement` to clear focus, pressed, capture, hover, tooltip, pending-repaint and UIA provider caches in one place; `UIElement::SetParent` detaches window-side references before `ClearChildren()` releases the shared pointer, and `~UIElement` remains the fallback. UIA providers now call `UiaDisconnectProvider` before release, fixing the AV and CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE` crashes after list/member rebuilds.
+- **TreeView column width**: added `SetStretchLastColumn(bool)` / `GetStretchLastColumn()` (default on); when total content width is narrower than the viewport, the last column receives the remaining width, fixing Chinese labels truncated to `...` by the 40px minimum column width.
+- **SplitView**: expand buttons now follow the splitter direction; when both minimum sizes cannot fit, the button stays visible but is greyed out and non-interactive. Added `SwitchToFirst/Second/Pane` full-pane slide transitions (PageHost-style easing); they play even when both panes cannot fit and commit the collapse state with `ActivePaneChanged` when finished.
+- **SplitView collapse/drag**: unified `ClampFirstLen`, fixing minimum-width conflicts, reverse drags and expansion with insufficient space; added insufficient-space default-side/auto-collapse configuration.
+- **TrayIcon**: handles both NOTIFYICON_VERSION_4 and v3 `WM_LBUTTONUP`/`WM_RBUTTONUP`/`WM_LBUTTONDBLCLK` fallbacks, fixing unresponsive left/right click and hover; added `SetClickImmediate`.
+- **Drawer**: on close completion, recursively invalidate content layout and repaint, fixing stale content after clicking the overlay scrim.
+- **Card**: content measure/arrange now includes the child layout margin, fixing ignored top/bottom margins in Card → ColumnBox.
+- **TextBox password field**: added a vector eye button on the right in password mode; hidden by default, click toggles plain/masked text; added `TogglePasswordReveal` and `SetPasswordRevealButtonVisible`.
+- **MessageBox**: compute content size and call `SetSize` before disabling resize, so `WM_GETMINMAXINFO` no longer clamps the height and clips the bottom button; measurement width now subtracts the root margin.
+- **Verification**: x64 Release + ZufyUIDebugger build; 297 self-test checks pass.
 
 ### 2026-10-31 — Menu/title-bar/resize fixes and independent render thread disabled (v1.27.1)
 - **Independent render thread**: disabled and cleaned up the experimental `ZUFYUI_RENDER_THREAD` path; stable single-thread rendering and the VBLANK frame-sync code remain. README/API no longer expose the experiment.

@@ -2,7 +2,19 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.27.1**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.27.2**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-11-14 — 稳定性、控件交互与全页面切换补丁（v1.27.2）
+- **窗口裸指针/UIA 崩溃**：新增 `Window::ForgetElement`，统一清焦点、按下、捕获、悬停、tooltip、待重绘与 UIA provider 缓存；`UIElement::SetParent` 在脱离窗口时提前注销，`~UIElement` 继续兜底。UIA provider 释放前调用 `UiaDisconnectProvider`，修复 `ClearChildren()`/成员操作后的 AV 与 CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`。
+- **TreeView 列宽**：新增 `SetStretchLastColumn(bool)` / `GetStretchLastColumn()`（默认开）；内容总宽小于视口时把剩余宽度补给最后一列，修复单列树中文标签被 40px 最小列宽截成 `...`。
+- **SplitView**：左右/上下分栏的展开按钮按分隔条方向自适应；空间不足时按钮仍显示但灰化、不可悬停/点击；新增 `SwitchToFirst/Second/Pane` 全页面滑动过渡（复用 PageHost 风格缓动），即使两侧最小尺寸放不下也完整播放，结束后提交折叠状态并发出 `ActivePaneChanged`。
+- **SplitView 折叠/拖动**：统一 `ClampFirstLen`，修复最小宽度冲突、反向拖动与首尾空间不足展开；新增不足空间默认侧/自动折叠配置。
+- **TrayIcon**：同时处理 NOTIFYICON_VERSION_4 与 v3 的 `WM_LBUTTONUP`/`WM_RBUTTONUP`/`WM_LBUTTONDBLCLK` 回退，修复托盘左键、右键、悬停无响应；新增 `SetClickImmediate`。
+- **Drawer**：关闭完成时递归失效内容区布局并重绘，修复 overlay 外点击关闭后内容不刷新。
+- **Card**：内容布局测量/摆放纳入子布局 margin，修复 Card → ColumnBox 首尾 margin 被忽略。
+- **TextBox 密码框**：密码模式右侧增加矢量眼睛按钮，默认隐藏，点击切换明文/密文；新增 `TogglePasswordReveal`、`SetPasswordRevealButtonVisible` 等控制接口。
+- **MessageBox**：先按内容计算尺寸并 `SetSize`，再禁用缩放，避免 `WM_GETMINMAXINFO` 把高度截断导致底部按钮被裁；测量宽度扣除 root margin。
+- **验证**：x64 Release + ZufyUIDebugger 构建通过；297 项自检通过。
 
 ### 2026-10-31 — 菜单/标题栏/resize 修复与独立渲染线程停用（v1.27.1）
 - **独立渲染线程**：停用并清理实验性 `ZUFYUI_RENDER_THREAD` 路径，保留稳定的单线程渲染与 VBLANK 帧同步代码；README/API 不再公开该实验特性。

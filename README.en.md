@@ -333,9 +333,10 @@ ZufyUI/
 
 ## Version history
 
-> Current version: **1.27.1** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+> Current version: **1.27.2** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 > Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.27.2**: window raw-pointer/UIA crash fixes; TreeView last-column auto-stretch; SplitView button direction/disabled state and full-pane slide transition; TrayIcon click fallbacks; Drawer close refresh; Card margins; password eye button; MessageBox height fix.
 - **1.27.1**: disabled the experimental independent render thread; adapted the context menu to non-DWM chrome; fixed stale menu-bar hover and menu placement after title-bar hide/native-frame switches; resize now presents a frame immediately instead of leaving stale/transparent content; docs cleanup.
 - **1.27.0**: Windows 10 Acrylic host backdrop; custom-frame/Snap shadow fixes on Windows 10/11; `RenderDriver` / WARP switching with status-bar device reporting; public corner API removed; title-bar glyph/maximize-state/drag-animation fixes.
 - **1.26.0**: layout measurement contract (Grid/Row/Column/Card/Page/ScrollViewer, explicit sizing and Fill); ToggleSwitch press-drag; Slider immediate drag/snap easing; Expander first-expand and collapse/re-expand fixes; UIA provider lifetime/CFG crash fix; all-controls overlay page and 280 self-tests.

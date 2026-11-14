@@ -797,6 +797,7 @@ void SetBackgroundColor(Color);
 void SetContentOpacity(float opacity);
 void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
 void SetResizable(bool);   void SetTitle(const std::wstring&);
+void SetSuspendAnimationsWhileResizing(bool);   bool GetSuspendAnimationsWhileResizing() const;
 ```
 - Backdrop is **hand-rolled** (Acrylic = host backdrop + effect chain; Mica = cached wallpaper layer). Change params via `SetBackgroundParams` or `UIZSignals::ReloadAcrylic`.
 - Window corners are no longer a public API: Windows 10 keeps square corners to preserve DWM border/shadow, Windows 11 follows system rounding. Call Win32 DWM APIs yourself if you need custom corners, and handle Win10/Snap border/shadow risks yourself.
@@ -944,6 +945,8 @@ void SetDropItems(const std::vector<std::wstring>&, int selected=-1);  void SetD
 ZSignal<const std::wstring&> TextChanged;   ZSignal<> ReturnPressed;
 void SetText(const std::wstring&);   // strips \r\n, truncates to maxLength, clears undo
 void SetPlaceholder(...);  void SetPasswordMode(bool);  void SetMaxLength(int);   // -1 = unlimited
+void SetRevealPassword(bool);  bool IsPasswordRevealed() const;  void TogglePasswordReveal();
+void SetPasswordRevealButtonVisible(bool);  bool IsPasswordRevealButtonVisible() const;
 void SetReadOnly(bool);    void SetInputFilter(std::function<bool(wchar_t)>);
 void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
 void SelectAll/Copy/Cut/Paste/Undo/Redo();
@@ -958,6 +961,8 @@ int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
 ###block_red_end
 
 - **`Version`**: error/indicator/IME `v1.12.0`; `v1.18.0` fixes shift+click semantics.
+
+Password mode is hidden by default; the eye button on the right toggles masked/plain text. Use `SetRevealPassword` / `TogglePasswordReveal` from code, and `SetPasswordRevealButtonVisible(false)` to hide the button.
 
 ## TextEdit (multi-line editor / viewer) — v1.18.0
 
@@ -1171,13 +1176,21 @@ enum class Orientation { Vertical, Horizontal };   // Vertical = left/right pane
 ZSignal<float> SplitChanged;
 void SetFirst/SetSecond(std::shared_ptr<UIElement>);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
+void SetInsufficientSpaceDefaultSide(int);  int GetInsufficientSpaceDefaultSide() const;
+void SetAutoCollapseOnInsufficientSpace(bool);  bool GetAutoCollapseOnInsufficientSpace() const;
 ZSignal<int> CollapsedChanged;   // 0=expanded 1=first pane 2=second pane
 void SetCollapseEnabled(bool);   bool IsCollapseEnabled() const;   void SetCollapseThreshold(float);
 void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/IsSecondCollapsed() const;
 void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
+void SwitchToFirst/SwitchToSecond(bool animate = true);  void SwitchToPane(int side, bool animate = true);
+void SetSwitchAnimationDuration(float);  void SetSwitchAnimationEasing(Easing);
+bool IsSwitching() const;  float GetSwitchProgress() const;  int GetActivePane() const;
+ZSignal<int> ActivePaneChanged;   // 1=first, 2=second
 bool UseCache() const override { return false; }
 ```
 - **Collapse (`v1.21.0`)**: drag the splitter to within `CollapseThreshold` (default 28px) of one side's edge → a translucent accent **overlay plus an arrow pointing in the collapse direction fades in ON TOP OF that pane's content** (the content is *not* changed yet); the pane actually collapses **on mouse release** (its size eases from the current value to 0). Once collapsed, a small button appears at that edge (rounded light grey + arrow pointing in the expand direction + hover easing); clicking it eases that side from 0 to its **minimum limit** (`SetMinFirst/MinSecond`, or back to the pre-collapse ratio if no minimum is set). The whole feature can be turned off with `SetCollapseEnabled(false)`.
+- **Full-pane switch (v1.28.0)**: `SwitchToFirst/Second` slides from one fully expanded pane to the other (PageHost-style) even when both panes cannot fit at once; duration/easing are configurable, and the collapse state is committed with `ActivePaneChanged` when the transition finishes.
+- When the available space cannot fit `minFirst + minSecond`, the expand button stays visible but is greyed out and non-interactive; it becomes enabled again when enough space returns.
 
 ###block_red_start
 **Pitfall**
@@ -1474,6 +1487,7 @@ ZSignal<std::shared_ptr<TreeNode>> SelectionChanged, NodeClicked, ItemDoubleClic
 ZSignal<std::shared_ptr<TreeNode>,bool> ExpandChanged;   ZSignal<int> HeaderClicked;
 ZSignal<std::shared_ptr<TreeNode>, TreeNode::CheckState> ItemCheckStateChanged;
 void SetColumnCount(int);  void SetHeaderLabels(const std::vector<std::wstring>&);  void SetColumnWidth(int,float);
+void SetStretchLastColumn(bool);  bool GetStretchLastColumn() const;   // v1.27.2
 std::shared_ptr<TreeNode> AddRoot(const std::wstring&);   std::shared_ptr<TreeNode> AddChild(parent, const std::wstring&);
 void RemoveNode(node);  void RemoveChildren(node);  void MoveNode(node, newParent, int index);  void Clear();
 void BeginUpdate();  void EndUpdate();                       // v1.15.0: defer BuildVisibleList (avoids O(N^2))
@@ -1498,7 +1512,8 @@ float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToN
 - `MoveNode` refuses to move a node into its own descendant (returns `false` and leaves the tree unchanged); ignoring the return value makes the move look successful.
 ###block_red_end
 
-- **`Version`**: `BeginUpdate`/`SetNodeText`/tooltip + concurrency `v1.15.0`; first-column ellipsis fix `v1.16.0`; `Get/SetScrollOffsetY` + `ScrollToNode` + `bgColor` `v1.17.0`.
+- **`Version`**: `BeginUpdate`/`SetNodeText`/tooltip + concurrency `v1.15.0`; first-column ellipsis fix `v1.16.0`; `Get/SetScrollOffsetY` + `ScrollToNode` + `bgColor` `v1.17.0`; `SetStretchLastColumn` last-column fill `v1.27.2`.
+- **v1.27.2 column fill**: `SetStretchLastColumn(true)` (default) gives the remaining width to the last column when total content is narrower than the viewport, preventing single-column Chinese labels from being truncated to `...` by the 40px minimum width; `SetStretchLastColumn(false)` restores fixed widths.
 
 ###chapter: Charts | ChartBase, BarChart, LineChart, PieChart (v1.18.0)
 
@@ -1625,6 +1640,7 @@ class ImageDeviceCache { /* device bitmaps keyed by render target */ };
 ```cpp
 bool Add(HICON icon, const std::wstring& tooltip, UINT id=1);
 void SetIcon(HICON);  void SetToolTip(const std::wstring&);  void SetMenu(std::shared_ptr<Menu>);
+void SetClickImmediate(bool);   bool IsClickImmediate() const;
 void SetBadge(Color = ...);   void ClearBadge();
 enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
 void ShowBalloon(const std::wstring& title, const std::wstring& text, BalloonIcon = BalloonIcon::Custom, HICON = nullptr, ...);
@@ -2062,7 +2078,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 ###block_red_end
 
-###chapter: Version digest | v1.15.0 → v1.27.1
+###chapter: Version digest | v1.15.0 → v1.27.2
 
 > Only the changes that affect your code are listed.
 
@@ -2177,6 +2193,9 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
   - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
   - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
+- **v1.27.2**:
+  - Window raw-pointer/UIA lifetime: `Window::ForgetElement` centralizes focus/pressed/capture/hover/tooltip/pending-repaint/UIA provider cleanup; `SetParent` detaches before release and `UiaDisconnectProvider` prevents the CFG crash.
+  - `TreeView::SetStretchLastColumn` (default on) fills the last column; SplitView button direction/disabled state, full-pane slide transition and collapse clamping; TrayIcon v3/v4 click fallbacks; Drawer close refresh; Card margins; password eye button; MessageBox sizing fix.
 - **v1.27.1**: disabled the experimental independent render thread while preserving VBLANK frame sync; adapted context menus to non-DWM chrome; fixed stale menu-bar hover and menu placement after hiding the title bar or switching to the native frame; resize now submits a new frame immediately instead of leaving a transparent/stale picture.
 - **v1.27.0**:
   - **Windows 10 Acrylic**: enable `ACCENT_ENABLE_HOSTBACKDROP` before creating the HostBackdropBrush on Win10, preserving the custom blur/tint/noise chain; stop writing Win11-only DWM attributes on Win10.
