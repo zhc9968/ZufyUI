@@ -5267,6 +5267,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 用于“关闭前询问保存”等。
         ZSignal<bool*> Closing;
         ZSignal<> Closed;
+        ZSignal<float, float> SizeChanged;   // client size in DIP
+        ZSignal<float> DpiChanged;           // DPI scale (96 = 1.0)
 
     private:
         // 移除 kAnimationIdleFramesToStop 相关逻辑，定时器常驻
@@ -5577,6 +5579,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     lastClientW_ = nw; lastClientH_ = nh;
                     clientWidthDip_ = (rc.right - rc.left) * 96.0f / dpi_;
                     clientHeightDip_ = (rc.bottom - rc.top) * 96.0f / dpi_;
+                    SizeChanged.Fire(clientWidthDip_, clientHeightDip_);
                     HRESULT resizeHr = S_OK;
                     if (swapChain_) resizeHr = ResizeSwapChain(nw, nh);
                     layoutNeeded_ = true;
@@ -5640,6 +5643,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 layoutInvalidated_ = true;
                 InvalidateRect(hwnd_, nullptr, FALSE);
                 SyncOverlays();           // DPI 变化 → 浮窗按新 DPI 重新定位
+                DpiChanged.Fire(dpi_ / 96.0f);
                 return 0;
             }
             case WM_DISPLAYCHANGE: InvalidateRect(hwnd_, nullptr, FALSE); UpdateTimerState(); return 0;

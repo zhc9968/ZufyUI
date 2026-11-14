@@ -153,10 +153,6 @@ struct Color {
 ```
 
 ###block_orange_start
-**Note**
-
-- `Color::Lerp(a, b, t)` does **not** clamp `t`; keep it in 0..1 (out of range extrapolates).
-###block_orange_end
 
 ###block_red_start
 **Pitfall**
@@ -297,10 +293,6 @@ ConnectWeak(panel, btn->Clicked, &Panel::OnClick);
 ```
 
 ###block_orange_start
-**Note**
-
-- `Menu` / `MenuItem` / `Timer` still use `signal.connect` and do **not** auto-disconnect.
-###block_orange_end
 
 ###block_red_start
 **Pitfall**
@@ -838,10 +830,6 @@ void SetJumpList(...);  void Flash(int times=5, bool alsoTaskbar=true);  void Fl
 void SetAppUserModelID(const std::wstring&);
 ```
 ###block_orange_start
-**Note**
-
-These are COM calls; failures are **silent no-ops**. `FLASHW_CAPTION` does nothing for a custom title bar; use `FLASHW_ALL` to flash the taskbar too.
-###block_orange_end
 
 - **`Version`**: all `v1.9.6`.
 
@@ -863,15 +851,13 @@ void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // 
 UIElement* GetFocusedElement/HoveredElement/PressedElement() const;
 void FocusElement(UIElement*);
 ZSignal<> Activated, Deactivated;   ZSignal<bool*> Closing;   ZSignal<> Closed;
+ZSignal<float, float> SizeChanged;   // client size in DIP
+ZSignal<float> DpiChanged;           // DPI scale (96 = 1.0)
 ZSignal<> BackdropUnsupported, DeviceLost;   ZSignal<HRESULT> RenderingError;
 std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 ```
 
 ###block_orange_start
-**Limitation**
-
-`Window` currently has **no size/DPI-change signal**. Status bars/panels that mirror the live client size can only refresh on `Activated`, theme change or page change; dragging the window border does not update them automatically. Add a window signal first if you need live updates.
-###block_orange_end
 
 ###block_red_start
 **Pitfall**
@@ -1244,10 +1230,6 @@ Use `Drawer` as the root layout or a `GridLayout` cell; Overlay for temporary co
 ###block_green_end
 
 ###block_orange_start
-**Paint order**
-
-`SetPanelShadow` is painted before the panel background, so the opaque background covers its inner layers and only the outer shadow remains visible; the border is painted last.
-###block_orange_end
 
 ###block_red_start
 **Pitfall**
@@ -1360,10 +1342,6 @@ class StatusBar : public UIElement {
 - Attach to a window with `Window::SetMenuBar` / `SetStatusBar` (see "Custom title bar").
 
 ###block_orange_start
-**Limitation**
-
-`StatusBar::AddPanel` has text/icon only and **no click callback**; a status bar reports state. For clickable segments use normal buttons/custom rows instead.
-###block_orange_end
 
 ## MessageBox / FastButton
 
@@ -1627,6 +1605,7 @@ void SetAnimationEnabled(bool);
 
 ```cpp
 class Image { int Width() const; int Height() const; bool IsNull() const; ... };
+static std::shared_ptr<Image> Image::FromHBITMAP(HBITMAP, bool premultipliedAlpha = true);
 class ImageDeviceCache { /* device bitmaps keyed by render target */ };
 ```
 

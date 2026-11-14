@@ -1487,6 +1487,65 @@ static void test_layout_rfc() {
     }
 }
 
+static void test_quick_patches() {
+    std::printf("Quick patches: selection / HBITMAP alpha\n");
+
+    {
+        ListView lv;
+        lv.AddItem(L"A");
+        lv.AddItem(L"B");
+        lv.AddItem(L"C");
+        lv.SetSelectionMode(ListView::SelectionMode::Multi);
+        lv.ToggleIndexSelection(0);
+        lv.ToggleIndexSelection(2);
+        auto sel = lv.GetSelectedIndices();
+        CHECK(sel.size() == 2);
+        CHECK(sel[0] == 0 && sel[1] == 2);
+        lv.SelectAll();
+        CHECK(lv.GetSelectedIndices().size() == 3);
+        lv.ClearMultiSelection();
+        CHECK(lv.GetSelectedIndices().empty());
+        CHECK(lv.IsMarqueeEnabled());
+        lv.SetMarqueeEnabled(false);
+        CHECK(!lv.IsMarqueeEnabled());
+    }
+
+    {
+        BITMAPINFO bi = {};
+        bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bi.bmiHeader.biWidth = 2;
+        bi.bmiHeader.biHeight = -1;
+        bi.bmiHeader.biPlanes = 1;
+        bi.bmiHeader.biBitCount = 32;
+        bi.bmiHeader.biCompression = BI_RGB;
+        void* bits = nullptr;
+        HDC dc = GetDC(nullptr);
+        HBITMAP hbmp = CreateDIBSection(dc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+        if (dc) ReleaseDC(nullptr, dc);
+        CHECK(hbmp != nullptr && bits != nullptr);
+        if (hbmp && bits) {
+            BYTE* px = static_cast<BYTE*>(bits);
+            px[0] = 50; px[1] = 100; px[2] = 200; px[3] = 128;
+            px[4] = 10; px[5] = 20;  px[6] = 30;  px[7] = 255;
+            auto img = Image::FromHBITMAP(hbmp, false);
+            CHECK(img && !img->IsNull());
+            std::vector<BYTE> out;
+            int w = 0, h = 0;
+            CHECK(img && img->CopyPixelsBgra(out, w, h));
+            CHECK(w == 2 && h == 1);
+            if (out.size() >= 8) {
+                CHECK(out[3] == 128);
+                CHECK(out[7] == 255);
+                CHECK(abs((int)out[0] - 50) <= 1);
+                CHECK(abs((int)out[1] - 100) <= 1);
+                CHECK(abs((int)out[2] - 200) <= 1);
+            }
+            DeleteObject(hbmp);
+        }
+    }
+}
+
+
 int main() {
     SetConsoleOutputCP(CP_UTF8);   // 源码是 UTF-8：不改代码页的话中文断言输出在 cmd 里是乱码
     std::printf("=== ZufyUI 自检 ===\n");
@@ -1499,6 +1558,7 @@ int main() {
     test_dsl_pitfalls();
     test_fix_regressions();
     test_button_and_listview_regressions();
+    test_quick_patches();
     test_animation_primitives();
     test_button_animations();
     test_drawer();

@@ -8,6 +8,7 @@
 - **窗口裸指针/UIA 崩溃**：新增 `Window::ForgetElement`，统一清焦点、按下、捕获、悬停、tooltip、待重绘与 UIA provider 缓存；`UIElement::SetParent` 在脱离窗口时提前注销，`~UIElement` 继续兜底。UIA provider 释放前调用 `UiaDisconnectProvider`，修复 `ClearChildren()`/成员操作后的 AV 与 CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`。
 - **TreeView 列宽**：新增 `SetStretchLastColumn(bool)` / `GetStretchLastColumn()`（默认开）；内容总宽小于视口时把剩余宽度补给最后一列，修复单列树中文标签被 40px 最小列宽截成 `...`。
 - **SplitView**：左右/上下分栏的展开按钮按分隔条方向自适应；空间不足时按钮仍显示但灰化、不可悬停/点击；新增 `SwitchToFirst/Second/Pane` 全页面滑动过渡（复用 PageHost 风格缓动），即使两侧最小尺寸放不下也完整播放，结束后提交折叠状态并发出 `ActivePaneChanged`。
+- **?? / ????**?`Image::FromHBITMAP` ?? 32bpp DIB ??? alpha???????????? `Window::SizeChanged` / `DpiChanged`?????? HBITMAP alpha ???
 - **SplitView 折叠/拖动**：统一 `ClampFirstLen`，修复最小宽度冲突、反向拖动与首尾空间不足展开；新增不足空间默认侧/自动折叠配置。
 - **TrayIcon**：同时处理 NOTIFYICON_VERSION_4 与 v3 的 `WM_LBUTTONUP`/`WM_RBUTTONUP`/`WM_LBUTTONDBLCLK` 回退，修复托盘左键、右键、悬停无响应；新增 `SetClickImmediate`。
 - **Drawer**：关闭完成时递归失效内容区布局并重绘，修复 overlay 外点击关闭后内容不刷新。

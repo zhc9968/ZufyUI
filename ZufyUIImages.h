@@ -152,7 +152,7 @@ namespace ZufyUI {
         // 程序资源：type 传 L"PNG"/L"IMAGE"/RT_RCDATA/RT_BITMAP 等
         static std::shared_ptr<Image> FromResource(HMODULE mod, const wchar_t* name, const wchar_t* type);
         static std::shared_ptr<Image> FromResource(int id, const wchar_t* type);   // 当前模块
-        static std::shared_ptr<Image> FromHBITMAP(HBITMAP hbmp);
+        static std::shared_ptr<Image> FromHBITMAP(HBITMAP hbmp, bool premultipliedAlpha = true);
         static std::shared_ptr<Image> FromHICON(HICON hicon);
         HICON ToHICON() const;   // 转回系统原生图标（新建对象，用完需 DestroyIcon）
         // 导出像素：32bpp BGRA，直通 alpha（非预乘）——用于写 .ico 等
@@ -374,9 +374,50 @@ namespace ZufyUI {
         return FromResource(GetModuleHandle(nullptr), MAKEINTRESOURCEW(id), type);
     }
 
-    inline std::shared_ptr<Image> Image::FromHBITMAP(HBITMAP hbmp) {
+    inline std::shared_ptr<Image> Image::FromHBITMAP(HBITMAP hbmp, bool premultipliedAlpha) {
         IWICImagingFactory* f = ImageManager::Instance().Factory();
         if (!f || !hbmp) return nullptr;
+
+        BITMAP bm = {};
+        if (!GetObjectW(hbmp, sizeof(bm), &bm) || bm.bmWidth <= 0 || bm.bmHeight <= 0)
+            return nullptr;
+
+        // For 32bpp bitmaps read the DIB bytes directly: WICBitmapIgnoreAlpha would
+        // silently discard the alpha channel (dark fringes on shell thumbnails).
+        if (bm.bmBitsPixel == 32) {
+            const int w = bm.bmWidth;
+            const int h = bm.bmHeight;
+            BITMAPINFO bi = {};
+            bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            bi.bmiHeader.biWidth = w;
+            bi.bmiHeader.biHeight = -h;   // top-down, matches WIC
+            bi.bmiHeader.biPlanes = 1;
+            bi.bmiHeader.biBitCount = 32;
+            bi.bmiHeader.biCompression = BI_RGB;
+            std::vector<uint8_t> pixels((size_t)w * h * 4);
+            HDC dc = GetDC(nullptr);
+            if (!dc) return nullptr;
+            const int got = GetDIBits(dc, hbmp, 0, (UINT)h, pixels.data(), &bi, DIB_RGB_COLORS);
+            ReleaseDC(nullptr, dc);
+            if (got == 0) return nullptr;
+
+            bool anyNonZero = false;
+            for (size_t i = 3; i < pixels.size(); i += 4) {
+                if (pixels[i] != 0) { anyNonZero = true; break; }
+            }
+            if (!anyNonZero) {
+                // Legacy 32bpp HBITMAP without an alpha channel: treat as opaque.
+                for (size_t i = 3; i < pixels.size(); i += 4) pixels[i] = 255;
+            }
+
+            const GUID& format = premultipliedAlpha
+                ? GUID_WICPixelFormat32bppPBGRA : GUID_WICPixelFormat32bppBGRA;
+            ComPtr<IWICBitmap> bmp;
+            if (SUCCEEDED(f->CreateBitmapFromMemory((UINT)w, (UINT)h, format,
+                (UINT)(w * 4), (UINT)pixels.size(), pixels.data(), bmp.GetAddressOf())))
+                return detail_img_MakeFromSource(bmp.Get());
+        }
+
         ComPtr<IWICBitmap> bmp;
         if (FAILED(f->CreateBitmapFromHBITMAP(hbmp, nullptr, WICBitmapIgnoreAlpha, bmp.GetAddressOf())))
             return nullptr;

@@ -154,10 +154,6 @@ struct Color {
 ```
 
 ###block_orange_start
-**注意**
-
-- `Color::Lerp(a, b, t)` 的 `t` **不做 clamp**，请自行保证在 0..1（超出会外插）。
-###block_orange_end
 
 ###block_red_start
 **易错**
@@ -298,10 +294,6 @@ ConnectWeak(panel, btn->Clicked, &Panel::OnClick);
 ```
 
 ###block_orange_start
-**注意**
-
-- `Menu` / `MenuItem` / `Timer` 仍用 `signal.connect`，**不自动断开**。
-###block_orange_end
 
 ###block_red_start
 **易错**
@@ -843,10 +835,6 @@ void SetJumpList(...);  void Flash(int times=5, bool alsoTaskbar=true);  void Fl
 void SetAppUserModelID(const std::wstring&);
 ```
 ###block_orange_start
-**注意**
-
-这些是 COM 调用，失败**静默 no-op**。`FLASHW_CAPTION` 对自绘标题栏无效；要连任务栏一起闪用 `FLASHW_ALL`。
-###block_orange_end
 
 - **`版本`**：均 `v1.9.6`。
 
@@ -868,15 +856,13 @@ void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // 
 UIElement* GetFocusedElement/HoveredElement/PressedElement() const;
 void FocusElement(UIElement*);
 ZSignal<> Activated, Deactivated;   ZSignal<bool*> Closing;   ZSignal<> Closed;
+ZSignal<float, float> SizeChanged;   // client size in DIP
+ZSignal<float> DpiChanged;           // DPI scale (96 = 1.0)
 ZSignal<> BackdropUnsupported, DeviceLost;   ZSignal<HRESULT> RenderingError;
 std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 ```
 
 ###block_orange_start
-**限制**
-
-`Window` 目前**没有尺寸/DPI 变化信号**。依赖实时客户区尺寸的 StatusBar/面板只能在 `Activated`、主题切换或切页时刷新；拖动边框时不会自动更新。需要实时更新只能先给窗口加信号。
-###block_orange_end
 
 ###block_red_start
 **易错**
@@ -1252,10 +1238,6 @@ void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgre
 ###block_green_end
 
 ###block_orange_start
-**绘制顺序**
-
-`SetPanelShadow` 画在面板背景之前，内层会被不透明背景盖住，只有外侧阴影可见；边框最后绘制。
-###block_orange_end
 
 ###block_red_start
 **易错**
@@ -1368,10 +1350,6 @@ class StatusBar : public UIElement {
 - 用 `Window::SetMenuBar` / `SetStatusBar` 挂到窗口（见「自定义标题栏」）。
 
 ###block_orange_start
-**限制**
-
-`StatusBar::AddPanel` 只有文本/图标，**没有点击回调**；状态栏只能“显示状态”。需要点击某一段触发动作时，用普通按钮/自定义行，不要指望 StatusBar。
-###block_orange_end
 
 ## MessageBox / FastButton
 
@@ -1634,7 +1612,8 @@ void SetAnimationEnabled(bool);
 ## Image / ImageManager / ImageDeviceCache
 
 ```cpp
-class Image { int Width() const; int Height() const; bool IsNull() const; ... };   // 从文件/资源/HICON/流加载
+class Image { int Width() const; int Height() const; bool IsNull() const; ... };
+static std::shared_ptr<Image> Image::FromHBITMAP(HBITMAP, bool premultipliedAlpha = true);   // 从文件/资源/HICON/流加载
 class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };
 ```
 - 设备丢失时（`UIZSignals::DeviceReset`）应释放与渲染目标绑定的位图缓存。
