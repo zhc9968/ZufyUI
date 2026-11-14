@@ -7,7 +7,9 @@
 ### 2026-11-14 — Stability, control interaction and full-pane transition patch (v1.27.2)
 - **Window raw-pointer / UIA crashes**: added `Window::ForgetElement` to clear focus, pressed, capture, hover, tooltip, pending-repaint and UIA provider caches in one place; `UIElement::SetParent` detaches window-side references before `ClearChildren()` releases the shared pointer, and `~UIElement` remains the fallback. UIA providers now call `UiaDisconnectProvider` before release, fixing the AV and CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE` crashes after list/member rebuilds.
 - **TreeView column width**: added `SetStretchLastColumn(bool)` / `GetStretchLastColumn()` (default on); when total content width is narrower than the viewport, the last column receives the remaining width, fixing Chinese labels truncated to `...` by the 40px minimum column width.
+- **R7 selection consistency**: ListView `GetSelectedIndices` now includes `selectedIndex_`; `SelectAll`/toggle/shift/marquee emit multi-selection signals; clear APIs clear current state. TableView gained `SelectAll`, `GetSelected*` includes the current cell, and clear/marquee emit signals. TreeView `SetSelectedNode` replaces instead of accumulating in multi-select mode.
 - **SplitView**: expand buttons now follow the splitter direction; when both minimum sizes cannot fit, the button stays visible but is greyed out and non-interactive. Added `SwitchToFirst/Second/Pane` full-pane slide transitions (PageHost-style easing); they play even when both panes cannot fit and commit the collapse state with `ActivePaneChanged` when finished.
+- **Async tasks**: added `RunAsync<T>` / `AsyncTask` / `AsyncCancelToken` / `AsyncProgress` / `AsyncOwner`; background execution, cooperative cancellation, coalesced UI progress, ordered completion/failure/cancel callbacks on the UI thread, and callback drop after the weak owner expires; added basic, exception, cancellation, lifetime, 1000 cancellation/completion races and 1000-task randomized stress self-tests.
 - **Image / window events**: `Image::FromHBITMAP` reads 32bpp DIB pixels and preserves alpha (optional premultiplied flag); `Window::SizeChanged` / `DpiChanged` added; multi-select and HBITMAP-alpha self-tests added.
 - **SplitView collapse/drag**: unified `ClampFirstLen`, fixing minimum-width conflicts, reverse drags and expansion with insufficient space; added insufficient-space default-side/auto-collapse configuration.
 - **TrayIcon**: handles both NOTIFYICON_VERSION_4 and v3 `WM_LBUTTONUP`/`WM_RBUTTONUP`/`WM_LBUTTONDBLCLK` fallbacks, fixing unresponsive left/right click and hover; added `SetClickImmediate`.
@@ -15,7 +17,7 @@
 - **Card**: content measure/arrange now includes the child layout margin, fixing ignored top/bottom margins in Card → ColumnBox.
 - **TextBox password field**: added a vector eye button on the right in password mode; hidden by default, click toggles plain/masked text; added `TogglePasswordReveal` and `SetPasswordRevealButtonVisible`.
 - **MessageBox**: compute content size and call `SetSize` before disabling resize, so `WM_GETMINMAXINFO` no longer clamps the height and clips the bottom button; measurement width now subtracts the root margin.
-- **Verification**: x64 Release + ZufyUIDebugger build; 297 self-test checks pass.
+- **Verification**: x64 Release + ZufyUIDebugger build; full self-test (including 1000 cancellation races / randomized stress) passes.
 
 ### 2026-10-31 — Menu/title-bar/resize fixes and independent render thread disabled (v1.27.1)
 - **Independent render thread**: disabled and cleaned up the experimental `ZUFYUI_RENDER_THREAD` path; stable single-thread rendering and the VBLANK frame-sync code remain. README/API no longer expose the experiment.

@@ -49,6 +49,7 @@
 #include <atomic>
 #include <type_traits>
 #include <utility>
+#include <exception>
 #include <tuple>
 #include <wrl/client.h>
 #include <imm.h>
@@ -573,14 +574,17 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
         }
 
-        inline void PostToUIThread(std::function<void()> fn) {
+        inline bool PostToUIThread(std::function<void()> fn) {
             if (std::this_thread::get_id() == g_uiThreadId) {
                 fn();
+                return true;
             }
-            else if (g_uiDispatcherWindow) {
+            if (g_uiDispatcherWindow) {
                 auto* task = new std::function<void()>(std::move(fn));
-                PostMessage(g_uiDispatcherWindow, WM_UI_TASK, 0, (LPARAM)task);
+                if (PostMessage(g_uiDispatcherWindow, WM_UI_TASK, 0, (LPARAM)task)) return true;
+                delete task;
             }
+            return false;
         }
 
         // UTF-16 代理对判定（emoji / 超 BMP 字符；文本控件用它把一对码元当“一个字符”处理）
@@ -862,6 +866,234 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         struct MemberFunctionOwner<R(C::*)(A...) noexcept> { using type = C; };
         template<class R, class C, class... A>
         struct MemberFunctionOwner<R(C::*)(A...) const noexcept> { using type = C; };
+    }
+
+    namespace detail { inline void RecordError(const wchar_t*, const std::wstring&); }
+
+    enum class AsyncTaskStatus { Pending, Running, Completed, Canceled, Failed };
+
+    struct AsyncCanceled : std::exception {
+        const char* what() const noexcept override { return "ZufyUI async operation canceled"; }
+    };
+
+    class AsyncOwner {
+    public:
+        AsyncOwner() = default;
+        template<class T>
+        explicit AsyncOwner(const std::shared_ptr<T>& owner) : hasOwner_(true), owner_(owner) {}
+        template<class T>
+        explicit AsyncOwner(const std::weak_ptr<T>& owner) : hasOwner_(true), owner_(owner) {}
+        bool IsAlive() const { return !hasOwner_ || !owner_.expired(); }
+        bool HasOwner() const { return hasOwner_; }
+        std::shared_ptr<void> Lock() const { return hasOwner_ ? owner_.lock() : std::shared_ptr<void>(); }
+    private:
+        bool hasOwner_ = false;
+        std::weak_ptr<void> owner_;
+    };
+
+    namespace detail {
+        struct AsyncProgressState {
+            std::mutex mutex;
+            std::atomic<bool> pending{false};
+            float value = 0.0f;
+            std::wstring message;
+            std::function<void(float, const std::wstring&)> callback;
+            AsyncOwner owner;
+        };
+
+        template<class T>
+        struct AsyncTaskState {
+            std::atomic<AsyncTaskStatus> status{AsyncTaskStatus::Pending};
+            std::shared_ptr<std::atomic<bool>> cancel = std::make_shared<std::atomic<bool>>(false);
+            std::mutex mutex;
+            std::condition_variable cv;
+            bool finished = false;
+            std::optional<T> result;
+            std::exception_ptr error;
+            AsyncOwner owner;
+            std::function<void(T)> onCompleted;
+            std::function<void(std::exception_ptr)> onFailed;
+            std::function<void()> onCanceled;
+            std::shared_ptr<AsyncProgressState> progress;
+        };
+    }
+
+    class AsyncCancelToken {
+    public:
+        AsyncCancelToken() = default;
+        explicit AsyncCancelToken(std::shared_ptr<std::atomic<bool>> state) : state_(std::move(state)) {}
+        bool IsCancellationRequested() const { return state_ && state_->load(std::memory_order_acquire); }
+        void ThrowIfCancellationRequested() const { if (IsCancellationRequested()) throw AsyncCanceled(); }
+    private:
+        std::shared_ptr<std::atomic<bool>> state_;
+    };
+
+    class AsyncProgress {
+    public:
+        AsyncProgress() = default;
+        explicit AsyncProgress(std::shared_ptr<detail::AsyncProgressState> state) : state_(std::move(state)) {}
+        void Report(float value, const std::wstring& message = {});
+    private:
+        std::shared_ptr<detail::AsyncProgressState> state_;
+    };
+
+    inline void AsyncProgress::Report(float value, const std::wstring& message) {
+        if (!state_) return;
+        {
+            std::lock_guard<std::mutex> lock(state_->mutex);
+            state_->value = value;
+            state_->message = message;
+        }
+        if (state_->pending.exchange(true)) return;
+        auto state = state_;
+        if (!detail::PostToUIThread([state]() {
+            state->pending.store(false);
+            float value = 0.0f;
+            std::wstring message;
+            {
+                std::lock_guard<std::mutex> lock(state->mutex);
+                value = state->value;
+                message = state->message;
+            }
+            auto keepAlive = state->owner.Lock();
+            if (state->owner.HasOwner() && !keepAlive) return;
+            auto callback = state->callback;
+            try {
+                if (callback) callback(value, message);
+            }
+            catch (...) {
+                detail::RecordError(L"Async", L"progress callback threw");
+            }
+            })) state_->pending.store(false);
+    }
+
+    template<class T>
+    class AsyncTask {
+    public:
+        explicit AsyncTask(std::shared_ptr<detail::AsyncTaskState<T>> state) : state_(std::move(state)) {}
+        bool Cancel() {
+            if (!state_) return false;
+            std::lock_guard<std::mutex> lock(state_->mutex);
+            const AsyncTaskStatus s = state_->status.load(std::memory_order_acquire);
+            if (s != AsyncTaskStatus::Running && s != AsyncTaskStatus::Pending) return false;
+            state_->cancel->store(true, std::memory_order_release);
+            return true;
+        }
+        bool IsCancellationRequested() const {
+            return state_ && state_->cancel->load(std::memory_order_acquire);
+        }
+        AsyncTaskStatus GetStatus() const {
+            return state_ ? state_->status.load(std::memory_order_acquire) : AsyncTaskStatus::Canceled;
+        }
+        AsyncCancelToken GetCancelToken() const {
+            return state_ ? AsyncCancelToken(state_->cancel) : AsyncCancelToken();
+        }
+        bool Wait() {
+            if (!state_) return false;
+            std::unique_lock<std::mutex> lock(state_->mutex);
+            state_->cv.wait(lock, [this]() { return state_->finished; });
+            return true;
+        }
+    private:
+        std::shared_ptr<detail::AsyncTaskState<T>> state_;
+    };
+
+    template<class T, class Work>
+    std::shared_ptr<AsyncTask<T>> RunAsync(
+        AsyncOwner owner,
+        Work&& work,
+        std::function<void(T)> onCompleted,
+        std::function<void(std::exception_ptr)> onFailed = {},
+        std::function<void(float, const std::wstring&)> onProgress = {},
+        std::function<void()> onCanceled = {})
+    {
+        static_assert(!std::is_void_v<T>, "RunAsync<T> requires a non-void result type");
+        static_assert(!std::is_reference_v<T>, "RunAsync<T> requires a non-reference result type");
+        auto state = std::make_shared<detail::AsyncTaskState<T>>();
+        state->owner = std::move(owner);
+        state->onCompleted = std::move(onCompleted);
+        state->onFailed = std::move(onFailed);
+        state->onCanceled = std::move(onCanceled);
+        state->progress = std::make_shared<detail::AsyncProgressState>();
+        state->progress->owner = state->owner;
+        state->progress->callback = std::move(onProgress);
+
+        auto task = std::shared_ptr<AsyncTask<T>>(new AsyncTask<T>(state));
+        state->status.store(AsyncTaskStatus::Running, std::memory_order_release);
+
+        auto finish = [state](AsyncTaskStatus resultStatus, std::optional<T> result, std::exception_ptr error) {
+            {
+                std::lock_guard<std::mutex> lock(state->mutex);
+                if (state->status.load(std::memory_order_acquire) != AsyncTaskStatus::Running) return;
+                if (state->cancel->load(std::memory_order_acquire)) resultStatus = AsyncTaskStatus::Canceled;
+                state->status.store(resultStatus, std::memory_order_release);
+                state->result = std::move(result);
+                state->error = std::move(error);
+                state->finished = true;
+            }
+            state->cv.notify_all();
+            detail::PostToUIThread([state, resultStatus]() {
+                auto keepAlive = state->owner.Lock();
+                if (state->owner.HasOwner() && !keepAlive) return;
+                std::optional<T> result;
+                std::exception_ptr error;
+                {
+                    std::lock_guard<std::mutex> lock(state->mutex);
+                    result = std::move(state->result);
+                    error = state->error;
+                }
+                try {
+                    if (resultStatus == AsyncTaskStatus::Completed) {
+                        if (state->onCompleted && result) state->onCompleted(std::move(*result));
+                    }
+                    else if (resultStatus == AsyncTaskStatus::Canceled) {
+                        if (state->onCanceled) state->onCanceled();
+                    }
+                    else if (resultStatus == AsyncTaskStatus::Failed) {
+                        if (state->onFailed) state->onFailed(error);
+                    }
+                }
+                catch (...) {
+                    detail::RecordError(L"Async", L"completion callback threw");
+                }
+                });
+        };
+
+        try {
+            std::thread([state, finish, work = std::forward<Work>(work)]() mutable {
+                AsyncCancelToken token(state->cancel);
+                AsyncProgress progress(state->progress);
+                try {
+                    T result = std::invoke(work, token, progress);
+                    if (state->cancel->load(std::memory_order_acquire))
+                        finish(AsyncTaskStatus::Canceled, std::nullopt, nullptr);
+                    else
+                        finish(AsyncTaskStatus::Completed, std::move(result), nullptr);
+                }
+                catch (...) {
+                    if (state->cancel->load(std::memory_order_acquire))
+                        finish(AsyncTaskStatus::Canceled, std::nullopt, nullptr);
+                    else
+                        finish(AsyncTaskStatus::Failed, std::nullopt, std::current_exception());
+                }
+                }).detach();
+        }
+        catch (...) {
+            finish(AsyncTaskStatus::Failed, std::nullopt, std::current_exception());
+        }
+        return task;
+    }
+
+    template<class T, class Work>
+    std::shared_ptr<AsyncTask<T>> RunAsync(
+        Work&& work,
+        std::function<void(T)> onCompleted,
+        std::function<void(std::exception_ptr)> onFailed = {},
+        std::function<void(float, const std::wstring&)> onProgress = {},
+        std::function<void()> onCanceled = {})
+    {
+        return RunAsync<T>(AsyncOwner{}, std::forward<Work>(work),
+            std::move(onCompleted), std::move(onFailed), std::move(onProgress), std::move(onCanceled));
     }
 
     class ConnectionOwner {
@@ -5268,7 +5500,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         ZSignal<bool*> Closing;
         ZSignal<> Closed;
         ZSignal<float, float> SizeChanged;   // client size in DIP
-        ZSignal<float> DpiChanged;           // DPI scale (96 = 1.0)
+        ZSignal<float> DpiChanged;           // 1.0 / 1.25 / 1.5 ... (96 DPI = 1.0)
 
     private:
         // 移除 kAnimationIdleFramesToStop 相关逻辑，定时器常驻
@@ -5624,6 +5856,16 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 UpdateTimerState();
                 dpi_ = HIWORD(wParam); if (dpi_ == 0) dpi_ = 96;                // DPI 变了必须整条渲染链重建：D2D 上下文 + DComp 目标/visual 树 + 交换链。
                 SetGlobalDpiScale(dpi_ / 96.0f);
+                {
+                    RECT rc; GetClientRect(hwnd_, &rc);
+                    const float nw = (rc.right - rc.left) * 96.0f / dpi_;
+                    const float nh = (rc.bottom - rc.top) * 96.0f / dpi_;
+                    const bool sizeChanged = nw != clientWidthDip_ || nh != clientHeightDip_;
+                    clientWidthDip_ = nw;
+                    clientHeightDip_ = nh;
+                    DpiChanged.Fire(dpi_ / 96.0f);
+                    if (sizeChanged) SizeChanged.Fire(clientWidthDip_, clientHeightDip_);
+                }
                 // 只重建 renderTarget_ 的话，swapChain_/contentVisual_ 等仍是 nullptr，
                 // OnPaint 会在 EnsureSwapBackBuffer() 直接失败 → 一帧都不画，客户区变全透明
                 //（命中测试/DWM 边框与渲染链无关，所以看起来"窗口还活着"）。
@@ -5643,7 +5885,6 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 layoutInvalidated_ = true;
                 InvalidateRect(hwnd_, nullptr, FALSE);
                 SyncOverlays();           // DPI 变化 → 浮窗按新 DPI 重新定位
-                DpiChanged.Fire(dpi_ / 96.0f);
                 return 0;
             }
             case WM_DISPLAYCHANGE: InvalidateRect(hwnd_, nullptr, FALSE); UpdateTimerState(); return 0;

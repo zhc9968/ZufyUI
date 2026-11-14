@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <future>
 #include <latch>
+#include <random>
 #include <stdexcept>
 #include <thread>
 
@@ -448,6 +449,426 @@ static void test_fix_regressions() {
         CHECK(sw->IsFirstCollapsed());
         CHECK(!sw->IsSecondCollapsed());
     }
+}
+
+template<class Pred>
+static bool PumpUntil(Pred pred, int timeoutMs = 3000) {
+    const DWORD start = GetTickCount();
+    while ((int)(GetTickCount() - start) < timeoutMs) {
+        MSG msg;
+        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+        if (pred()) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return pred();
+}
+
+static void test_async_edge_cases() {
+    std::printf("Async edge cases: no dispatcher / throwing callbacks\n");
+    const HWND savedWindow = detail::g_uiDispatcherWindow;
+    const std::thread::id savedThread = detail::g_uiThreadId;
+    detail::g_uiDispatcherWindow = nullptr;
+    detail::g_uiThreadId = std::thread::id();
+
+    {
+        std::atomic<int> progressCalls{ 0 };
+        std::atomic<bool> completed{ false };
+        auto task = RunAsync<int>(AsyncOwner{},
+            [](AsyncCancelToken, AsyncProgress progress) {
+                for (int i = 0; i < 100; ++i) progress.Report((float)i / 100.0f);
+                return 1;
+            },
+            [&](int) { completed = true; },
+            {},
+            [&](float, const std::wstring&) { progressCalls.fetch_add(1); });
+        CHECK(task->Wait());
+        CHECK(!completed.load());
+        CHECK(progressCalls.load() == 0);
+    }
+
+    detail::g_uiDispatcherWindow = savedWindow;
+    detail::g_uiThreadId = savedThread;
+    detail::InitializeUIThread();
+
+    {
+        std::atomic<bool> callbackEntered{ false };
+        auto task = RunAsync<int>(AsyncOwner{},
+            [](AsyncCancelToken, AsyncProgress) { return 2; },
+            [&](int) {
+                callbackEntered = true;
+                throw std::runtime_error("callback");
+            });
+        CHECK(task->Wait());
+        CHECK(PumpUntil([&]() { return callbackEntered.load(); }));
+        CHECK(task->GetStatus() == AsyncTaskStatus::Completed);
+    }
+
+    {
+        std::atomic<bool> progressEntered{ false };
+        auto task = RunAsync<int>(AsyncOwner{},
+            [](AsyncCancelToken, AsyncProgress progress) { progress.Report(0.5f); return 3; },
+            [](int) {},
+            {},
+            [&](float, const std::wstring&) {
+                progressEntered = true;
+                throw std::runtime_error("progress");
+            });
+        CHECK(task->Wait());
+        CHECK(PumpUntil([&]() { return progressEntered.load(); }));
+        CHECK(task->GetStatus() == AsyncTaskStatus::Completed);
+    }
+}
+
+static void test_async_runtime() {
+    std::printf("Async runtime / cancel / progress / lifetime\n");
+    detail::InitializeUIThread();
+    if (!detail::g_uiDispatcherWindow) {
+        std::printf("  [skip] UI dispatcher unavailable\n");
+        return;
+    }
+    const auto uiThread = std::this_thread::get_id();
+
+    {
+        std::promise<int> result;
+        auto done = result.get_future();
+        std::mutex orderMutex;
+        std::vector<int> order;
+        auto task = RunAsync<int>(AsyncOwner{},
+            [](AsyncCancelToken, AsyncProgress progress) {
+                progress.Report(0.25f, L"quarter");
+                progress.Report(0.75f, L"three quarters");
+                return 42;
+            },
+            [&](int value) {
+                std::lock_guard<std::mutex> lock(orderMutex);
+                order.push_back(2);
+                CHECK(std::this_thread::get_id() == uiThread);
+                result.set_value(value);
+            },
+            [](std::exception_ptr) { CHECK(false); },
+            [&](float, const std::wstring&) {
+                std::lock_guard<std::mutex> lock(orderMutex);
+                order.push_back(1);
+                CHECK(std::this_thread::get_id() == uiThread);
+            });
+        CHECK(task->Wait());
+        CHECK(PumpUntil([&]() { return done.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready; }));
+        CHECK(done.get() == 42);
+        CHECK(task->GetStatus() == AsyncTaskStatus::Completed);
+        std::lock_guard<std::mutex> lock(orderMutex);
+        CHECK(!order.empty() && order.back() == 2);
+        CHECK(std::is_sorted(order.begin(), order.end()));
+    }
+
+    {
+        std::shared_ptr<int> owner = std::make_shared<int>(1);
+        std::atomic<bool> progressSeen{ false };
+        std::atomic<bool> completed{ false };
+        auto task = RunAsync<int>(AsyncOwner(owner),
+            [](AsyncCancelToken, AsyncProgress progress) {
+                progress.Report(0.5f, L"owner-drop");
+                return 5;
+            },
+            [&](int) { completed = true; },
+            {},
+            [&](float, const std::wstring&) {
+                progressSeen = true;
+                owner.reset();
+            });
+        CHECK(task->Wait());
+        CHECK(PumpUntil([&]() { return progressSeen.load(); }));
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        MSG msg;
+        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+        CHECK(progressSeen.load());
+        CHECK(!completed.load());
+    }
+
+    {
+        std::atomic<bool> called{ false };
+        auto task = RunAsync<int>(
+            [](AsyncCancelToken, AsyncProgress) { return 3; },
+            [&](int value) { called = (value == 3); });
+        CHECK(task->Wait());
+        CHECK(PumpUntil([&]() { return called.load(); }));
+        CHECK(task->GetStatus() == AsyncTaskStatus::Completed);
+    }
+
+    {
+        std::latch started(1);
+        std::atomic<bool> success{ false }, failed{ false }, canceled{ false };
+        auto task = RunAsync<int>(AsyncOwner{},
+            [&](AsyncCancelToken token, AsyncProgress) {
+                started.count_down();
+                const DWORD begin = GetTickCount();
+                while ((GetTickCount() - begin) < 2000) {
+                    if (token.IsCancellationRequested()) return 0;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
+                return 7;
+            },
+            [&](int) { success = true; },
+            [&](std::exception_ptr) { failed = true; },
+            {},
+            [&]() { canceled = true; });
+        started.wait();
+        CHECK(task->Cancel());
+        CHECK(task->Wait());
+        CHECK(PumpUntil([&]() { return canceled.load() || failed.load() || success.load(); }));
+        CHECK(canceled.load());
+        CHECK(!success.load());
+        CHECK(!failed.load());
+        CHECK(task->GetStatus() == AsyncTaskStatus::Canceled);
+    }
+
+    {
+        std::atomic<bool> failed{ false };
+        auto task = RunAsync<int>(AsyncOwner{},
+            [](AsyncCancelToken, AsyncProgress) -> int { throw std::runtime_error("boom"); },
+            [](int) { CHECK(false); },
+            [&](std::exception_ptr error) {
+                CHECK(error != nullptr);
+                failed = true;
+            });
+        CHECK(task->Wait());
+        CHECK(PumpUntil([&]() { return failed.load(); }));
+        CHECK(task->GetStatus() == AsyncTaskStatus::Failed);
+    }
+
+    {
+        std::latch started(1);
+        std::latch release(1);
+        std::atomic<bool> completed{ false };
+        auto owner = std::make_shared<int>(1);
+        auto task = RunAsync<int>(AsyncOwner(owner),
+            [&](AsyncCancelToken, AsyncProgress) {
+                started.count_down();
+                release.wait();
+                return 99;
+            },
+            [&](int) { completed = true; });
+        started.wait();
+        owner.reset();
+        release.count_down();
+        CHECK(task->Wait());
+        PumpUntil([&]() { return task->GetStatus() != AsyncTaskStatus::Running; });
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        MSG msg;
+        while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+        CHECK(!completed.load());
+        CHECK(task->GetStatus() == AsyncTaskStatus::Completed);
+    }
+
+    {
+        std::latch gate(1);
+        std::mt19937 rng((unsigned)GetTickCount64() ^ (unsigned)(uintptr_t)&rng);
+        std::vector<std::shared_ptr<AsyncTask<int>>> tasks;
+        std::array<std::atomic<int>, 20> calls{};
+        std::vector<bool> canceled(20);
+        for (int i = 0; i < 20; ++i) {
+            calls[i].store(0);
+            canceled[i] = (rng() & 1u) != 0;
+            tasks.push_back(RunAsync<int>(AsyncOwner{},
+                [&, i](AsyncCancelToken token, AsyncProgress progress) {
+                    gate.wait();
+                    for (int step = 0; step < 20; ++step) {
+                        if (token.IsCancellationRequested()) return i;
+                        progress.Report((float)step / 20.0f);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    }
+                    return i;
+                },
+                [&, i](int value) { CHECK(value == i); calls[i].fetch_add(1); },
+                [&](std::exception_ptr) { CHECK(false); },
+                {},
+                [&, i]() { calls[i].fetch_add(100); }));
+        }
+        for (int i = 0; i < 20; ++i) if (canceled[i]) tasks[i]->Cancel();
+        gate.count_down();
+        for (auto& task : tasks) CHECK(task->Wait());
+        CHECK(PumpUntil([&]() {
+            for (int i = 0; i < 20; ++i) {
+                const int expected = canceled[i] ? 100 : 1;
+                if (calls[i].load() != expected) return false;
+            }
+            return true;
+        }));
+        for (int i = 0; i < 20; ++i) {
+            CHECK(tasks[i]->GetStatus() == (canceled[i] ? AsyncTaskStatus::Canceled : AsyncTaskStatus::Completed));
+            CHECK(calls[i].load() == (canceled[i] ? 100 : 1));
+        }
+    }
+}
+
+static void test_async_randomized() {
+    std::printf("Async randomized callbacks / cancellation / owners\n");
+    detail::InitializeUIThread();
+    if (!detail::g_uiDispatcherWindow) {
+        std::printf("  [skip] UI dispatcher unavailable\n");
+        return;
+    }
+
+    constexpr int kTasks = 40;
+    std::latch gate(1);
+    std::mt19937 rng((unsigned)GetTickCount64() ^ (unsigned)(uintptr_t)&rng ^ 0xA5A5F00Du);
+    std::array<std::shared_ptr<AsyncTask<int>>, kTasks> tasks;
+    std::array<std::shared_ptr<int>, kTasks> owners;
+    std::array<std::atomic<int>, kTasks> success{};
+    std::array<std::atomic<int>, kTasks> canceled{};
+    std::array<std::atomic<int>, kTasks> failed{};
+    std::array<bool, kTasks> wasCanceled{};
+    std::array<bool, kTasks> ownerAlive{};
+
+    for (int i = 0; i < kTasks; ++i) {
+        success[i].store(0);
+        canceled[i].store(0);
+        failed[i].store(0);
+        wasCanceled[i] = (rng() & 1u) != 0;
+        ownerAlive[i] = (rng() % 4u) != 0;
+        owners[i] = std::make_shared<int>(i);
+        tasks[i] = RunAsync<int>(AsyncOwner(owners[i]),
+            [&, i](AsyncCancelToken token, AsyncProgress progress) {
+                gate.wait();
+                for (int step = 0; step < 8; ++step) {
+                    if (token.IsCancellationRequested()) return i;
+                    progress.Report((float)step / 8.0f, std::to_wstring(i));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
+                return i;
+            },
+            [&, i](int value) { CHECK(value == i); success[i].fetch_add(1); },
+            [&, i](std::exception_ptr) { failed[i].fetch_add(1); CHECK(false); },
+            {},
+            [&, i]() { canceled[i].fetch_add(1); });
+        if (wasCanceled[i]) tasks[i]->Cancel();
+        if (!ownerAlive[i]) owners[i].reset();
+    }
+    gate.count_down();
+    for (auto& task : tasks) CHECK(task->Wait());
+
+    CHECK(PumpUntil([&]() {
+        for (int i = 0; i < kTasks; ++i) {
+            const int expectedSuccess = (!wasCanceled[i] && ownerAlive[i]) ? 1 : 0;
+            const int expectedCanceled = (wasCanceled[i] && ownerAlive[i]) ? 1 : 0;
+            if (success[i].load() != expectedSuccess) return false;
+            if (canceled[i].load() != expectedCanceled) return false;
+            if (failed[i].load() != 0) return false;
+        }
+        return true;
+    }));
+    for (int i = 0; i < kTasks; ++i) {
+        CHECK(tasks[i]->GetStatus() == (wasCanceled[i] ? AsyncTaskStatus::Canceled : AsyncTaskStatus::Completed));
+        CHECK(success[i].load() == ((!wasCanceled[i] && ownerAlive[i]) ? 1 : 0));
+        CHECK(canceled[i].load() == ((wasCanceled[i] && ownerAlive[i]) ? 1 : 0));
+        CHECK(failed[i].load() == 0);
+    }
+}
+
+static void test_async_stress() {
+    std::printf("Async stress: 1000 randomized tasks / 20 waves\n");
+    detail::InitializeUIThread();
+    if (!detail::g_uiDispatcherWindow) {
+        std::printf("  [skip] UI dispatcher unavailable\n");
+        return;
+    }
+
+    constexpr int kBatch = 50;
+    constexpr int kWaves = 20;
+    std::mt19937 rng((unsigned)GetTickCount64() ^ (unsigned)(uintptr_t)&rng ^ 0xC0FFEEu);
+    for (int wave = 0; wave < kWaves; ++wave) {
+        std::latch gate(1);
+        std::array<std::shared_ptr<AsyncTask<int>>, kBatch> tasks;
+        std::array<std::shared_ptr<int>, kBatch> owners;
+        std::array<std::atomic<int>, kBatch> success{};
+        std::array<std::atomic<int>, kBatch> canceled{};
+        std::array<std::atomic<int>, kBatch> failed{};
+        std::array<bool, kBatch> cancelIt{};
+        std::array<bool, kBatch> throwIt{};
+        std::array<bool, kBatch> ownerAlive{};
+        std::array<int, kBatch> steps{};
+
+        for (int i = 0; i < kBatch; ++i) {
+            success[i].store(0);
+            canceled[i].store(0);
+            failed[i].store(0);
+            cancelIt[i] = (rng() % 4u) == 0;
+            throwIt[i] = (rng() % 7u) == 0;
+            ownerAlive[i] = (rng() % 5u) != 0;
+            steps[i] = 1 + (int)(rng() % 8u);
+            owners[i] = std::make_shared<int>(wave * kBatch + i);
+            tasks[i] = RunAsync<int>(AsyncOwner(owners[i]),
+                [&, i](AsyncCancelToken token, AsyncProgress progress) {
+                    gate.wait();
+                    if (throwIt[i]) throw std::runtime_error("stress");
+                    for (int step = 0; step < steps[i]; ++step) {
+                        if (token.IsCancellationRequested()) return i;
+                        progress.Report((float)step / (float)steps[i], std::to_wstring(i));
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    }
+                    return i;
+                },
+                [&, i](int value) { CHECK(value == i); success[i].fetch_add(1); },
+                [&, i](std::exception_ptr) { failed[i].fetch_add(1); },
+                {},
+                [&, i]() { canceled[i].fetch_add(1); });
+            if (cancelIt[i]) tasks[i]->Cancel();
+            if (!ownerAlive[i]) owners[i].reset();
+        }
+        gate.count_down();
+        for (auto& task : tasks) CHECK(task->Wait());
+        CHECK(PumpUntil([&]() {
+            for (int i = 0; i < kBatch; ++i) {
+                const int expectedSuccess = (!cancelIt[i] && !throwIt[i] && ownerAlive[i]) ? 1 : 0;
+                const int expectedCanceled = (cancelIt[i] && ownerAlive[i]) ? 1 : 0;
+                const int expectedFailed = (!cancelIt[i] && throwIt[i] && ownerAlive[i]) ? 1 : 0;
+                if (success[i].load() != expectedSuccess) return false;
+                if (canceled[i].load() != expectedCanceled) return false;
+                if (failed[i].load() != expectedFailed) return false;
+            }
+            return true;
+        }));
+        for (int i = 0; i < kBatch; ++i) {
+            const AsyncTaskStatus expected = cancelIt[i] ? AsyncTaskStatus::Canceled
+                : (throwIt[i] ? AsyncTaskStatus::Failed : AsyncTaskStatus::Completed);
+            CHECK(tasks[i]->GetStatus() == expected);
+        }
+    }
+}
+
+static void test_async_cancel_race() {
+    std::printf("Async cancel/completion race (1000)\n");
+    detail::InitializeUIThread();
+    if (!detail::g_uiDispatcherWindow) {
+        std::printf("  [skip] UI dispatcher unavailable\n");
+        return;
+    }
+    int races = 0;
+    for (int i = 0; i < 1000; ++i) {
+        std::atomic<bool> success{ false };
+        std::atomic<bool> canceled{ false };
+        auto task = RunAsync<int>(AsyncOwner{},
+            [](AsyncCancelToken, AsyncProgress) { return 1; },
+            [&](int) { success = true; },
+            [](std::exception_ptr) { CHECK(false); },
+            {},
+            [&]() { canceled = true; });
+        const bool requested = task->Cancel();
+        CHECK(task->Wait());
+        CHECK(PumpUntil([&]() { return success.load() || canceled.load(); }));
+        if (requested && success.load()) ++races;
+        CHECK(!(requested && success.load()));
+        CHECK(success.load() != canceled.load());
+    }
+    CHECK(races == 0);
 }
 
 static void test_animation_primitives() {
@@ -1508,6 +1929,54 @@ static void test_quick_patches() {
         CHECK(lv.IsMarqueeEnabled());
         lv.SetMarqueeEnabled(false);
         CHECK(!lv.IsMarqueeEnabled());
+    {
+        ListView lv;
+        lv.AddItem(L"A"); lv.AddItem(L"B"); lv.AddItem(L"C");
+        lv.SetSelectionMode(ListView::SelectionMode::Extended);
+        lv.SetSelectedIndex(1);
+        auto selected = lv.GetSelectedIndices();
+        CHECK(selected.size() == 1 && selected[0] == 1);
+        int multiSignals = 0;
+        lv.SelectionChangedMulti.connect([&](const std::vector<int>&) { ++multiSignals; });
+        lv.ToggleIndexSelection(2);
+        CHECK(multiSignals > 0);
+        lv.ClearSelection();
+        CHECK(lv.GetSelectedIndices().empty());
+    }
+
+    {
+        TableView tv;
+        tv.SetRowCount(2);
+        tv.SetColumnCount(2);
+        int cellSignals = 0;
+        tv.SelectionChangedCells.connect([&](const std::vector<std::pair<int, int>>&) { ++cellSignals; });
+        tv.SetSelectionMode(TableView::SelectionMode::Cell);
+        tv.SetCurrentCell(1, 1);
+        auto cells = tv.GetSelectedCells();
+        CHECK(cells.size() == 1 && cells[0].first == 1 && cells[0].second == 1);
+        tv.SelectAll();
+        CHECK(tv.GetSelectedCells().size() == 4);
+        CHECK(cellSignals > 0);
+        tv.ClearSelection();
+        CHECK(tv.GetSelectedCells().empty());
+        CHECK(cellSignals > 1);
+        tv.SelectRow(0);
+        auto rows = tv.GetSelectedRows();
+        CHECK(rows.size() == 1 && rows[0] == 0);
+    }
+
+    {
+        TreeView tv;
+        auto a = tv.AddRoot(L"A");
+        auto b = tv.AddRoot(L"B");
+        tv.SetSelectionMode(TreeView::SelectionMode::Multi);
+        tv.SetSelectedNode(a);
+        tv.SetSelectedNode(b);
+        auto nodes = tv.GetSelectedNodes();
+        CHECK(nodes.size() == 1);
+        CHECK(nodes[0] == b);
+    }
+
     }
 
     {
@@ -1559,6 +2028,11 @@ int main() {
     test_fix_regressions();
     test_button_and_listview_regressions();
     test_quick_patches();
+    test_async_edge_cases();
+    test_async_runtime();
+    test_async_randomized();
+    test_async_cancel_race();
+    test_async_stress();
     test_animation_primitives();
     test_button_animations();
     test_drawer();

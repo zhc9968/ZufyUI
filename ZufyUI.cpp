@@ -409,6 +409,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         // 窗口状态信号 → 刷新第 5 个面板（"窗口某些状态变化时也跟着变"）
         win.Activated.connect([status]() { status->state = L"活动"; status->Refresh(); });
         win.Deactivated.connect([status]() { status->state = L"非活动"; status->Refresh(); });
+        win.SizeChanged.connect([status](float, float) { status->Refresh(); });
+        win.DpiChanged.connect([status](float) { status->Refresh(); });
         win.DeviceLost.connect([status]() { status->state = L"D3D 设备丢失"; status->Refresh(); });
         win.RenderingError.connect([status](HRESULT hr) {
             wchar_t b[64]; swprintf(b, 64, L"渲染错误 0x%08X", (unsigned)hr);

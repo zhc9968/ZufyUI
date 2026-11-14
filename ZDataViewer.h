@@ -303,31 +303,45 @@ namespace ZufyUI {
         }
         std::vector<int> GetSelectedIndices() const {
             if (selectionMode_ == SelectionMode::Single) return selectedIndex_ >= 0 ? std::vector<int>{ selectedIndex_ } : std::vector<int>{};
-            std::vector<int> v(multiSel_.begin(), multiSel_.end());
+            std::unordered_set<int> selected = multiSel_;
+            if (selectedIndex_ >= 0) selected.insert(selectedIndex_);
+            std::vector<int> v(selected.begin(), selected.end());
             std::sort(v.begin(), v.end());
             return v;
         }
-        void ClearMultiSelection() { multiSel_.clear(); RequestRepaint(); }
+        void ClearMultiSelection() { ClearSelection(); }
+        void ClearSelection() {
+            const bool changed = selectedIndex_ >= 0 || !multiSel_.empty();
+            multiSel_.clear();
+            selectedIndex_ = -1;
+            if (changed) {
+                SelectionChanged(-1);
+                EmitMultiSelection();
+                UpdateIndicatorTarget();
+                RequestRepaint();
+            }
+        }
         void SelectAll() {
             if (selectionMode_ == SelectionMode::Single) return;
             for (int i = 0; i < GetItemCount(); ++i) multiSel_.insert(i);
+            EmitMultiSelection();
             RequestRepaint();
         }
         void ToggleIndexSelection(int index) {
             if (index < 0 || index >= GetItemCount()) return;
             if (multiSel_.count(index)) {
                 multiSel_.erase(index);
-                // 取消选中后必须清 selectedIndex_：否则 IsIndexSelected 仍因 index==selectedIndex_ 判为选中 → 高亮不消失
                 if (selectedIndex_ == index) selectedIndex_ = -1;
             }
             else {
                 multiSel_.insert(index);
                 selectedIndex_ = index;
             }
+            SelectionChanged(selectedIndex_);
+            EmitMultiSelection();
             RequestRepaint();
         }
 
-        // ---------- 扩展：显示选项 ----------
         void SetEmptyText(const std::wstring& text) { emptyText_ = text; RequestRepaint(); }
         std::wstring GetEmptyText() const { return emptyText_; }
         void SetAlternatingRowColors(bool enable) { alternatingRowColors_ = enable; RequestRepaint(); }
@@ -382,10 +396,14 @@ namespace ZufyUI {
             if (selectedIndex_ != index) {
                 selectedIndex_ = index;
                 SelectionChanged(selectedIndex_);
+                EmitMultiSelection();
                 EnsureVisible(selectedIndex_);
                 UpdateIndicatorTarget();
                 InvalidateLayout();
                 RequestRepaint();
+            }
+            else {
+                EmitMultiSelection();
             }
         }
         int GetSelectedIndex() const { return selectedIndex_; }
@@ -950,6 +968,11 @@ namespace ZufyUI {
                             int a = min(va, vb), b = max(va, vb);
                             for (int k = a; k <= b; ++k) multiSel_.insert(SourceOfVisible(k));
                         }
+                        selectedIndex_ = idx;
+                        SelectionChanged(selectedIndex_);
+                        EmitMultiSelection();
+                        EnsureVisible(idx);
+                        UpdateIndicatorTarget();
                         RequestRepaint();
                     }
                     else {
@@ -1089,6 +1112,9 @@ namespace ZufyUI {
 
     private:
         int lastContextRow_ = -1;   // 最近一次右键所在行（OnContextMenu 记录）
+        void EmitMultiSelection() {
+            if (selectionMode_ != SelectionMode::Single) SelectionChangedMulti(GetSelectedIndices());
+        }
         void ShiftMultiSelForInsert(int index, int count) {
             if (count <= 0) return;
             if (!multiSel_.empty()) {
@@ -1106,6 +1132,10 @@ namespace ZufyUI {
             float y0 = min(pressStartCY_, marqueeCurCY_);
             float y1 = max(pressStartCY_, marqueeCurCY_);
             float eff = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
+            if (selectedIndex_ != -1) {
+                selectedIndex_ = -1;
+                SelectionChanged(-1);
+            }
             EnsureView();
             std::unordered_set<int> prev = multiSel_;
             multiSel_.clear();
@@ -1686,7 +1716,29 @@ namespace ZufyUI {
         // ---------- 选择辅助 ----------
         void SelectRow(int row) { SetSelectionMode(SelectionMode::Row); SetCurrentCell(row, 0); }
         void SelectColumn(int col) { SetSelectionMode(SelectionMode::Column); SetCurrentCell(0, col); }
-        void ClearSelection() { selectedRow_ = -1; selectedCol_ = -1; cellSel_.clear(); UpdateIndicatorTarget(); RequestRepaint(); }
+        void SelectAll() {
+            if (selectionMode_ == SelectionMode::None || rowCount_ <= 0 || colCount_ <= 0) return;
+            cellSel_.clear();
+            for (int r = 0; r < rowCount_; ++r)
+                for (int c = 0; c < colCount_; ++c) cellSel_.insert(CellKey(r, c));
+            selectedRow_ = selectedCol_ = -1;
+            SelectionChanged(-1, -1);
+            CurrentCellChanged(-1, -1);
+            SelectionChangedCells(GetSelectedCells());
+            UpdateIndicatorTarget();
+            RequestRepaint();
+        }
+        void ClearSelection() {
+            const bool changed = selectedRow_ >= 0 || selectedCol_ >= 0 || !cellSel_.empty();
+            selectedRow_ = -1; selectedCol_ = -1; cellSel_.clear();
+            if (changed) {
+                SelectionChanged(-1, -1);
+                CurrentCellChanged(-1, -1);
+                SelectionChangedCells({});
+                UpdateIndicatorTarget();
+                RequestRepaint();
+            }
+        }
         void ScrollToCell(int row, int col) { EnsureVisible(row, col); RequestRepaint(); }
 
         void SetHorizontalHeaderLabels(const std::vector<std::wstring>& labels) {
@@ -1834,25 +1886,35 @@ namespace ZufyUI {
         void SetMarqueeCheckSync(bool e) { marqueeCheckSync_ = e; }
         bool IsMarqueeCheckSync() const { return marqueeCheckSync_; }
         std::vector<std::pair<int, int>> GetSelectedCells() const {
+            std::unordered_set<long long> selected = cellSel_;
+            if (selectedRow_ >= 0 && selectedCol_ >= 0) selected.insert(CellKey(selectedRow_, selectedCol_));
             std::vector<std::pair<int, int>> v;
-            for (long long k : cellSel_) v.push_back({ CellKeyRow(k), CellKeyCol(k) });
+            for (long long k : selected) v.push_back({ CellKeyRow(k), CellKeyCol(k) });
+            std::sort(v.begin(), v.end());
             return v;
         }
         std::vector<int> GetSelectedRows() const {
             std::vector<int> rows;
-            for (long long k : cellSel_) { int r = CellKeyRow(k); if (std::find(rows.begin(), rows.end(), r) == rows.end()) rows.push_back(r); }
+            for (auto& cell : GetSelectedCells()) {
+                int r = cell.first;
+                if (std::find(rows.begin(), rows.end(), r) == rows.end()) rows.push_back(r);
+            }
             std::sort(rows.begin(), rows.end());
             return rows;
         }
         std::vector<int> GetSelectedColumns() const {
             std::vector<int> cols;
-            for (long long k : cellSel_) { int c = CellKeyCol(k); if (std::find(cols.begin(), cols.end(), c) == cols.end()) cols.push_back(c); }
+            for (auto& cell : GetSelectedCells()) {
+                int c = cell.second;
+                if (std::find(cols.begin(), cols.end(), c) == cols.end()) cols.push_back(c);
+            }
             std::sort(cols.begin(), cols.end());
             return cols;
         }
         // 框选状态（每行 bool）与行勾选
         std::vector<bool> GetSelectionStates() const {
             std::vector<bool> v(rowCount_, false);
+            if (selectedRow_ >= 0 && selectedRow_ < rowCount_) v[selectedRow_] = true;
             for (int r = 0; r < rowCount_; ++r) {
                 for (int c = 0; c < colCount_; ++c) if (cellSel_.count(CellKey(r, c))) { v[r] = true; break; }
             }
@@ -1891,10 +1953,12 @@ namespace ZufyUI {
             else if (selectionMode_ == SelectionMode::Column) row = 0;
             if (selectedRow_ != row || selectedCol_ != col) {
                 selectedRow_ = row;
+                const bool hadCells = !cellSel_.empty();
                 selectedCol_ = col;
                 cellSel_.clear();
                 SelectionChanged(row, col);
                 CurrentCellChanged(row, col);
+                if (hadCells) SelectionChangedCells({});
                 EnsureVisible(row, col);
                 UpdateIndicatorTarget();
                 InvalidateLayout();
@@ -2694,6 +2758,8 @@ namespace ZufyUI {
         void ApplyMarqueeSelection() {
             float x0 = min(pressStartCX_, marqueeCurCX_), x1 = max(pressStartCX_, marqueeCurCX_);
             float y0 = min(pressStartCY_, marqueeCurCY_), y1 = max(pressStartCY_, marqueeCurCY_);
+            const bool hadCurrent = selectedRow_ >= 0 || selectedCol_ >= 0;
+            selectedRow_ = selectedCol_ = -1;
             EnsureView();
             cellSel_.clear();
             std::vector<int> hitRows, hitCols;   // hitRows = 源行号
@@ -2725,6 +2791,7 @@ namespace ZufyUI {
                 }
             }
             SelectionChangedCells(GetSelectedCells());
+            if (hadCurrent) SelectionChanged(-1, -1);
         }
 
         int GetColumnIndexAtX(float relX) const {
@@ -3428,6 +3495,7 @@ namespace ZufyUI {
             }
             else {
                 if (selectedNode_ == node) return;   // 相同节点不重复触发 SelectionChanged
+                for (auto& r : roots_) SetSelectedRecursive(r, false);
                 if (node) node->selected = true;
                 selectedNode_ = node;
                 SelectionChanged(selectedNode_);

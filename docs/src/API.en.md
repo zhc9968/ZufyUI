@@ -300,6 +300,21 @@ ConnectWeak(panel, btn->Clicked, &Panel::OnClick);
 - do not capture `self`'s `shared_ptr` by value inside a `ConnectWeak` slot — that creates a signal → slot → self → signal strong cycle.
 ###block_red_end
 
+## Async tasks / RunAsync
+
+```cpp
+enum class AsyncTaskStatus { Pending, Running, Completed, Canceled, Failed };
+class AsyncOwner { /* weak owner: callbacks are dropped after it dies */ };
+class AsyncCancelToken { bool IsCancellationRequested() const; void ThrowIfCancellationRequested() const; };
+class AsyncProgress { void Report(float value, const std::wstring& message = {}); };
+template<class T> class AsyncTask { bool Cancel(); bool Wait(); AsyncTaskStatus GetStatus() const; AsyncCancelToken GetCancelToken() const; };
+template<class T, class Work> std::shared_ptr<AsyncTask<T>> RunAsync(AsyncOwner, Work&&,
+    std::function<void(T)> onCompleted, std::function<void(std::exception_ptr)> onFailed = {},
+    std::function<void(float, const std::wstring&)> onProgress = {}, std::function<void()> onCanceled = {});
+```
+
+- **v1.27.2 async:** `RunAsync<T>` runs on a worker, `AsyncCancelToken` cancels cooperatively, `AsyncProgress::Report` coalesces to the UI thread; completion/failure/cancel callbacks are delivered on the UI thread and dropped once `AsyncOwner` expires.
+
 ## Global signals UIZSignals
 
 ```cpp
@@ -856,6 +871,7 @@ ZSignal<float> DpiChanged;           // DPI scale (96 = 1.0)
 ZSignal<> BackdropUnsupported, DeviceLost;   ZSignal<HRESULT> RenderingError;
 std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 ```
+- `SizeChanged` fires on actual client-size changes in DIP (not when minimized); read the initial size with `GetClientWidthDip/HeightDip()`. `DpiChanged` fires first on a DPI change even if device rebuilding later fails; when the DIP client size changes, `SizeChanged` follows.
 
 ###block_orange_start
 
@@ -1397,6 +1413,8 @@ std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   i
 // check / per-item metadata
 void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector<int> GetCheckedIndices() const;
 void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&);
+void SelectAll();  void ClearSelection();  void ClearMultiSelection();
+std::vector<int> GetSelectedIndices() const;  std::vector<bool> GetSelectionStates() const;  bool IsIndexSelected(int) const;
 ```
 
 ###block_red_start
@@ -1424,7 +1442,8 @@ void SetColumnAlignment(int, TextHAlign);   void SetRowHeight(float);  void SetR
 void SetColumnVisible(int,bool);
 // virtualization (v1.15.0; all by source row): SetItemHidden/SetFilter/SetViewComparator/SortView/VisibleCount/SourceOfVisible/VisibleOfSource
 // selection / check / metadata
-void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow(int);  void GetSelectedCells();
+void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow/Column(int);
+void SelectAll();  void ClearSelection();  std::vector<std::pair<int,int>> GetSelectedCells() const;  std::vector<int> GetSelectedRows() const;
 void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int,bool);
 void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&);
 void SetColumnComparator(int, std::function<bool(const std::wstring&,const std::wstring&)>);  void SortByColumn(int,bool=true);

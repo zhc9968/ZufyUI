@@ -295,7 +295,7 @@ namespace ZufyUI {
                 if (SUCCEEDED(f->CreateBitmapFromSource(conv.Get(), WICBitmapCacheOnLoad, cached.GetAddressOf()))) {
                     return Image::FromSource(cached.Get(), (int)w, (int)h, true);
                 }
-                return Image::FromSource(conv.Get(), (int)w, (int)h, true);
+                return nullptr;
             }
         }
         return Image::FromSource(src, (int)w, (int)h, false);
@@ -382,8 +382,6 @@ namespace ZufyUI {
         if (!GetObjectW(hbmp, sizeof(bm), &bm) || bm.bmWidth <= 0 || bm.bmHeight <= 0)
             return nullptr;
 
-        // For 32bpp bitmaps read the DIB bytes directly: WICBitmapIgnoreAlpha would
-        // silently discard the alpha channel (dark fringes on shell thumbnails).
         if (bm.bmBitsPixel == 32) {
             const int w = bm.bmWidth;
             const int h = bm.bmHeight;

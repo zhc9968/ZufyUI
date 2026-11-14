@@ -301,6 +301,21 @@ ConnectWeak(panel, btn->Clicked, &Panel::OnClick);
 - `ConnectWeak` 的槽里不要再按值捕获 `self` 的 `shared_ptr`，否则会形成“信号→槽→self→信号”的强引用环。
 ###block_red_end
 
+## 异步任务 / RunAsync
+
+```cpp
+enum class AsyncTaskStatus { Pending, Running, Completed, Canceled, Failed };
+class AsyncOwner { /* weak owner: callbacks are dropped after it dies */ };
+class AsyncCancelToken { bool IsCancellationRequested() const; void ThrowIfCancellationRequested() const; };
+class AsyncProgress { void Report(float value, const std::wstring& message = {}); };
+template<class T> class AsyncTask { bool Cancel(); bool Wait(); AsyncTaskStatus GetStatus() const; AsyncCancelToken GetCancelToken() const; };
+template<class T, class Work> std::shared_ptr<AsyncTask<T>> RunAsync(AsyncOwner, Work&&,
+    std::function<void(T)> onCompleted, std::function<void(std::exception_ptr)> onFailed = {},
+    std::function<void(float, const std::wstring&)> onProgress = {}, std::function<void()> onCanceled = {});
+```
+
+- **v1.27.2 异步：** `RunAsync<T>` 在后台执行，`AsyncCancelToken` 取消，`AsyncProgress::Report` 合并到 UI 线程；完成/失败/取消回调都在 UI 线程发送，`AsyncOwner` 弱引用失效后丢弃回调。
+
 ## 全局信号 UIZSignals
 
 ```cpp
@@ -861,6 +876,7 @@ ZSignal<float> DpiChanged;           // DPI scale (96 = 1.0)
 ZSignal<> BackdropUnsupported, DeviceLost;   ZSignal<HRESULT> RenderingError;
 std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 ```
+- `SizeChanged` ??????????????DIP?????????????? `GetClientWidthDip/HeightDip()` ???`DpiChanged` ? DPI ??????????????????????DIP ?????????? `SizeChanged`?
 
 ###block_orange_start
 
@@ -1405,6 +1421,8 @@ std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   i
 // 勾选 / 每项元数据
 void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector<int> GetCheckedIndices() const;
 void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&);
+void SelectAll();  void ClearSelection();  void ClearMultiSelection();
+std::vector<int> GetSelectedIndices() const;  std::vector<bool> GetSelectionStates() const;  bool IsIndexSelected(int) const;
 ```
 
 ###block_red_start
@@ -1432,7 +1450,8 @@ void SetColumnAlignment(int, TextHAlign);   void SetRowHeight(float);  void SetR
 void SetColumnVisible(int,bool);
 // 虚拟化（v1.15.0，全部按“源行”）：SetItemHidden/SetFilter/SetViewComparator/SortView/VisibleCount/SourceOfVisible/VisibleOfSource
 // 选中 / 勾选 / 元数据
-void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow(int);  void GetSelectedCells();
+void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow/Column(int);
+void SelectAll();  void ClearSelection();  std::vector<std::pair<int,int>> GetSelectedCells() const;  std::vector<int> GetSelectedRows() const;
 void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int,bool);
 void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&);
 void SetColumnComparator(int, std::function<bool(const std::wstring&,const std::wstring&)>);  void SortByColumn(int,bool=true);
@@ -1617,6 +1636,7 @@ static std::shared_ptr<Image> Image::FromHBITMAP(HBITMAP, bool premultipliedAlph
 class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };
 ```
 - 设备丢失时（`UIZSignals::DeviceReset`）应释放与渲染目标绑定的位图缓存。
+- `Image::FromHBITMAP(hbmp, premultipliedAlpha = true)`??????? **?? HBITMAP ? alpha ?????**?Shell ????????GDI+/?? alpha ??? `false`?32bpp ?? alpha?? 32bpp ???????
 
 ###block_red_start
 **易错**
