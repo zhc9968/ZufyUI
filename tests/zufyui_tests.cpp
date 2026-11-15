@@ -522,6 +522,99 @@ static void test_async_edge_cases() {
     }
 }
 
+static void test_viewcore_list_example() {
+    std::printf("ViewCore: scroll axis / recycle pool / fetch flow\n");
+
+    {
+        viewcore::ScrollAxis axis;
+        axis.SetMetrics(400.0f, 1000.0f * 20.0f);
+        axis.ScrollTo(2000.0f);
+        axis.offset = axis.target;
+        auto range = axis.VisibleRange(20.0f, 20.0f, 1000);
+        CHECK(!range.empty());
+        CHECK(range.first == 99);
+        CHECK(range.last == 121);
+        axis.EnsureVisible(0.0f, 20.0f);
+        CHECK(axis.target == 0.0f);
+        axis.SetMetrics(400.0f, 100.0f);
+        CHECK(axis.maxOffset == 0.0f);
+        CHECK(axis.offset == 0.0f);
+    }
+
+    {
+        int created = 0, released = 0;
+        viewcore::RecyclePool<Label> pool(
+            [&]() { ++created; return std::make_shared<Label>(L"row"); },
+            [&](Label* label) { ++released; label->SetParent(nullptr); },
+            2);
+        auto a = pool.Acquire();
+        auto b = pool.Acquire();
+        CHECK(created == 2);
+        pool.Release(a);
+        pool.Release(b);
+        CHECK(released == 2);
+        auto c = pool.Acquire();
+        CHECK(created == 2);
+        pool.Release(c);
+        pool.Trim(0);
+        CHECK(pool.IdleCount() == 0);
+        CHECK(released == 3);
+    }
+
+    detail::InitializeUIThread();
+    if (!detail::g_uiDispatcherWindow) {
+        std::printf("  [skip] UI dispatcher unavailable\n");
+        return;
+    }
+    {
+        viewcore::FetchFlow<std::vector<int>> flow;
+        std::atomic<bool> ready{ false };
+        flow.Start(AsyncOwner{},
+            [](AsyncCancelToken, AsyncProgress) {
+                return std::vector<int>{ 10, 20, 30 };
+            },
+            [&](std::vector<int> rows) {
+                CHECK(rows.size() == 3);
+                CHECK(rows[1] == 20);
+                ready = true;
+            });
+        CHECK(flow.Wait());
+        CHECK(PumpUntil([&]() { return ready.load(); }));
+        CHECK(flow.GetState() == viewcore::FetchState::Ready);
+    }
+
+    {
+        ListView lv;
+        lv.SetItemCount(10);
+        lv.AddItem(L"virtual-add");
+        CHECK(lv.GetItemCount() == 11);
+        CHECK(lv.GetItemText(10) == L"virtual-add");
+        lv.RemoveItem(10);
+        CHECK(lv.GetItemCount() == 10);
+
+        lv.SetItemProvider(200000, [](int i) { return L"??? " + std::to_wstring(i); });
+        CHECK(lv.GetItemCount() == 200000);
+        CHECK(lv.GetItemText(1234) == L"??? 1234");
+        detail::InitializeUIThread();
+        ListView asyncList;
+        asyncList.SetWidth(300.0f); asyncList.SetHeight(200.0f);
+        asyncList.Arrange(Rect(0, 0, 300.0f, 200.0f));
+        asyncList.SetAsyncItemProvider(1000, [](int first, int count, AsyncCancelToken, AsyncProgress) {
+            ListView::AsyncRowBatch batch;
+            batch.first = first;
+            for (int i = first; i < first + count; ++i) {
+                wchar_t buf[64]; swprintf(buf, 64, L"async %d", i); batch.rows.push_back(buf);
+            }
+            return batch;
+        });
+        asyncList.RefreshChildren();
+        CHECK(PumpUntil([&]() { return asyncList.GetItemText(0) == L"async 0"; }));
+        lv.SetItemCount(1000);
+        CHECK(lv.GetItemCount() == 1000);
+        CHECK(lv.GetItemCount() == 1000);
+    }
+}
+
 static void test_async_runtime() {
     std::printf("Async runtime / cancel / progress / lifetime\n");
     detail::InitializeUIThread();
@@ -2029,6 +2122,7 @@ int main() {
     test_button_and_listview_regressions();
     test_quick_patches();
     test_async_edge_cases();
+    test_viewcore_list_example();
     test_async_runtime();
     test_async_randomized();
     test_async_cancel_race();

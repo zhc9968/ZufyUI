@@ -316,6 +316,20 @@ template<class T, class Work> std::shared_ptr<AsyncTask<T>> RunAsync(AsyncOwner,
 
 - **v1.27.2 异步：** `RunAsync<T>` 在后台执行，`AsyncCancelToken` 取消，`AsyncProgress::Report` 合并到 UI 线程；完成/失败/取消回调都在 UI 线程发送，`AsyncOwner` 弱引用失效后丢弃回调。
 
+## ViewCore / virtual view scaffolding
+
+```cpp
+struct ScrollAxis { float offset, target, viewport, content, maxOffset;
+    void SetMetrics(float viewport, float content);  void ScrollTo(float);  void EnsureVisible(float start, float size);
+    Range VisibleRange(float itemExtent, float overscan = 0, int itemCount = -1) const; };
+template<class T> class RecyclePool { std::shared_ptr<T> Acquire();  void Release(std::shared_ptr<T>);
+    void Trim(size_t maxIdle);  void Clear(); };
+template<class Result> class FetchFlow { void Start(AsyncOwner, Work, Ready, Error = {}, Progress = {}, Canceled = {});
+    void Cancel();  bool Wait();  FetchState GetState() const; };
+```
+
+- ViewCore ???????????????????????????ListView ??? `ScrollAxis` ?????????
+
 ## 全局信号 UIZSignals
 
 ```cpp
@@ -1413,6 +1427,9 @@ void SortItems(std::function<bool(const std::wstring&,const std::wstring&)>);   
 void BeginUpdate();   void EndUpdate();
 // 虚拟化（v1.15.0）
 void SetItemCount(int n);
+void SetItemProvider(int n, std::function<std::wstring(int)>);
+using AsyncRowFetcher = std::function<AsyncRowBatch(int first, int count, AsyncCancelToken, AsyncProgress)>;
+void SetAsyncItemProvider(int n, AsyncRowFetcher);  void NotifyReset(int n = -1);  void NotifyChanged(int first, int count);
 void SetItemHidden(int src, bool=true);   bool IsItemHidden(int src) const;   void ClearHidden();
 void SetFilter(std::function<bool(int)>);  void ClearFilter();
 void SetViewComparator(std::function<bool(int,int)>);  void SortView(bool ascending=true);  void ClearViewSort();

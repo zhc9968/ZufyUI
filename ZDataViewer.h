@@ -53,7 +53,7 @@ namespace ZufyUI {
 
         ListView()
             : selectedIndex_(-1), hoveredIndex_(-1),
-            scrollOffsetY_(0.0f), targetScrollOffsetY_(0.0f), maxScrollY_(0.0f),
+            scrollY_(), scrollOffsetY_(scrollY_.offset), targetScrollOffsetY_(scrollY_.target), maxScrollY_(scrollY_.maxOffset),
             showScrollBar_(false), isDraggingScroll_(false),
             dragStartMouseY_(0.0f), dragStartScrollY_(0.0f),
             itemHeight_(DefaultItemHeight),
@@ -87,6 +87,11 @@ namespace ZufyUI {
 
         // 数据操作
         // Label 化：项 Label 的统一初始化（套用 ListView 字体/对齐/内边距，关闭自身缓存）
+        ~ListView() override {
+            if (asyncAlive_) asyncAlive_->store(false);
+            asyncFlow_.Cancel();
+            ReleaseRowPool();
+        }
         void PrepareItemLabel(std::shared_ptr<Label>& lb) {
             if (!lb) return;
             lb->SetUseCache(false);
@@ -94,16 +99,24 @@ namespace ZufyUI {
             lb->SetAlignment(Label::HAlign::Left, Label::VAlign::Center);
             lb->SetPadding(0.0f);
         }
+        void OnFontChanged() override {
+            for (auto& item : items_) if (item) PrepareItemLabel(item);
+            for (auto& item : pool_) if (item) PreparePoolLabel(item);
+            for (auto& kv : richRows_) if (kv.second) PrepareItemLabel(kv.second);
+            UIElement::OnFontChanged();
+        }
         void AddItemWidget(std::shared_ptr<Label> label) {
             if (!label) return;
             auto _rg = RenderGuard();
             viewDirty_ = true;
             PrepareItemLabel(label);
             if (virtual_) {
-                int src = (int)vtext_.size();
-                vtext_.push_back(label->GetText());
+                if (virtualProvider_ || asyncFetcher_) return;
+                int src = GetItemCount();
+                ++virtualCount_;
+                virtualOverrides_[src] = label->GetText();
                 label->SetParent(this);
-                richRows_[src] = label;              // 富项整行
+                richRows_[src] = label;
             } else {
                 items_.push_back(label);
                 label->SetParent(this);
@@ -113,7 +126,10 @@ namespace ZufyUI {
         void AddItem(const std::wstring& text) {
             if (virtual_) {
                 auto _rg = RenderGuard();
-                vtext_.push_back(text);
+                if (virtualProvider_ || asyncFetcher_) return;
+                int src = GetItemCount();
+                ++virtualCount_;
+                virtualOverrides_[src] = text;
                 viewDirty_ = true;
                 if (batchUpdate_ == 0) { UpdateScrollInfo(); InvalidateLayout(); RequestRepaint(); }
                 return;
@@ -145,6 +161,15 @@ namespace ZufyUI {
         }
         int batchUpdate_ = 0;
         void RemoveItem(int index) {
+            if (virtual_) {
+                if (virtualProvider_ || asyncFetcher_) return;
+                if (index < 0 || index >= GetItemCount()) return;
+                virtualOverrides_.erase(index);
+                std::unordered_map<int, std::wstring> moved;
+                for (auto& kv : virtualOverrides_) if (kv.first > index) moved[kv.first - 1] = std::move(kv.second); else moved[kv.first] = std::move(kv.second);
+                virtualOverrides_ = std::move(moved);
+                --virtualCount_; viewDirty_ = true; childrenDirty_ = true; RequestRepaint(); return;
+            }
             auto _rg = RenderGuard();
             viewDirty_ = true;
             if (index < 0 || index >= (int)items_.size()) return;
@@ -171,10 +196,12 @@ namespace ZufyUI {
             if (batchUpdate_ == 0) { UpdateScrollInfo(); InvalidateLayout(); RequestRepaint(); }
         }
         void Clear() {
+            batchUpdate_ = 0;
+            ReleaseRowPool();
             auto _rg = RenderGuard();
             childrenView_.clear(); childrenDirty_ = true;   // 立即清空（GetChildren 纯读化后防悬垂）
             viewDirty_ = true;
-            virtual_ = false;
+            virtual_ = false; virtualProvider_ = nullptr; asyncFetcher_ = nullptr; asyncCache_.clear(); asyncLoading_ = false; virtualCount_ = 0; virtualOverrides_.clear();
             items_.clear();
             vtext_.clear();
             richRows_.clear();
@@ -203,9 +230,9 @@ namespace ZufyUI {
             viewDirty_ = true;
             if (!label) return;
             if (virtual_) {   // 虚拟模式：替换该源行为富项整行
-                if (index < 0 || index >= (int)vtext_.size()) return;
+                if (index < 0 || index >= GetItemCount()) return;
                 PrepareItemLabel(label); label->SetParent(this);
-                richRows_[index] = label; vtext_[index] = label->GetText();
+                richRows_[index] = label; virtualOverrides_[index] = label->GetText();
                 childrenDirty_ = true; InvalidateLayout(); RequestRepaint();
                 return;
             }
@@ -220,6 +247,7 @@ namespace ZufyUI {
                 if (itt != itemTips_.end()) { itemTips_[newP] = itt->second; itemTips_.erase(itt); }
             }
             items_[index] = label;
+            childrenView_.clear(); childrenDirty_ = true; lastChildrenSig_ = ~0ull;
             PrepareItemLabel(label);
             label->SetParent(this);
             InvalidateLayout();
@@ -228,8 +256,8 @@ namespace ZufyUI {
         void SetItem(int index, const std::wstring& text) {
             auto _rg = RenderGuard();
             if (virtual_) {
-                if (index < 0 || index >= (int)vtext_.size()) return;
-                vtext_[index] = text;
+                if (index < 0 || index >= GetItemCount()) return;
+                virtualOverrides_[index] = text;
                 auto it = richRows_.find(index);
                 if (it != richRows_.end() && it->second) it->second->SetTextFast(text);
                 childrenDirty_ = true; RequestRepaint();
@@ -612,11 +640,16 @@ namespace ZufyUI {
             float right = arrangedRect_.x + arrangedRect_.width - (showScrollBar_ ? scrollBarWidth_ : 0) - 8.0f;
             float w = right - left; if (w < 0.0f) w = 0.0f;
             int first, last; VisibleRange(first, last);
+            RequestAsyncRows(first, last);
             int need = last - first + 1; if (need < 0) need = 0;
-            if ((int)pool_.size() < need) {
+            if (virtual_ && (int)pool_.size() < need) {
                 int old = (int)pool_.size();
                 pool_.resize(need); poolSrc_.resize(need, -1); poolW_.resize(need, -1e30f);
-                for (int k = old; k < need; ++k) { pool_[k] = std::make_shared<Label>(); PreparePoolLabel(pool_[k]); pool_[k]->SetParent(const_cast<ListView*>(this)); }
+                for (int k = old; k < need; ++k) {
+                pool_[k] = labelPool_.Acquire();
+                if (!pool_[k]) pool_[k] = std::make_shared<Label>();
+                PreparePoolLabel(pool_[k]); pool_[k]->SetParent(const_cast<ListView*>(this)); pool_[k]->SetTextFast(L"");
+                }
             }
             for (int vi = first; vi <= last; ++vi) {
                 int src = (vi >= 0 && vi < (int)view_.size()) ? view_[vi] : -1;
@@ -631,7 +664,7 @@ namespace ZufyUI {
                 else if (src < (int)items_.size()) rich = items_[src];
                 Rect rowClip(arrangedRect_.x, arrangedRect_.y,
                     arrangedRect_.width - (showScrollBar_ ? scrollBarWidth_ : 0.0f), arrangedRect_.height);
-                if (rich) { rich->Arrange(rowRect(rich.get())); rich->SetClipRect(rowClip); childrenView_.push_back(rich.get()); continue; }
+                if (rich) { rich->Measure(Size(w, itemHeight_)); rich->Arrange(rowRect(rich.get())); rich->SetClipRect(rowClip); childrenView_.push_back(rich.get()); continue; }
                 int k = vi - first;
                 auto& lb = pool_[k];
                 if (!lb) continue;
@@ -1115,6 +1148,61 @@ namespace ZufyUI {
         void EmitMultiSelection() {
             if (selectionMode_ != SelectionMode::Single) SelectionChangedMulti(GetSelectedIndices());
         }
+        void RequestAsyncRows(int first, int last) {
+            if (!asyncFetcher_ || first < 0 || last < first || view_.empty()) return;
+            int srcFirst = view_[min(first, (int)view_.size() - 1)];
+            int srcLast = view_[min(last, (int)view_.size() - 1)];
+            int count = srcLast - srcFirst + 1;
+            if (count <= 0) return;
+            const int preload = max(64, (count + 1) * 4);
+            srcFirst = max(0, srcFirst - preload);
+            srcLast = min(GetItemCount() - 1, srcLast + preload);
+            count = max(0, srcLast - srcFirst + 1);
+            if (asyncLoading_ && !(srcLast < asyncFirst_ || srcFirst >= asyncFirst_ + asyncCount_)) return;
+            bool allCached = true;
+            for (int i = srcFirst; i <= srcLast; ++i) if (asyncCache_.find(i) == asyncCache_.end()) { allCached = false; break; }
+            if (allCached) return;
+            asyncFirst_ = srcFirst;
+            asyncCount_ = count;
+            asyncLoading_ = true;
+            auto alive = asyncAlive_;
+            asyncFlow_.Start(AsyncOwner(alive),
+                [fetch = asyncFetcher_, first = srcFirst, count = count](AsyncCancelToken token, AsyncProgress progress) {
+                    return fetch(first, count, token, progress);
+                },
+                [this, alive](AsyncRowBatch batch) {
+                    if (!alive->load()) return;
+                    auto _rg = RenderGuard();
+                    const int span = (int)batch.rows.size();
+                    const int keepFirst = max(0, batch.first - span * 2);
+                    const int keepLast = min(GetItemCount() - 1, batch.first + span * 2);
+                    for (auto it = asyncCache_.begin(); it != asyncCache_.end(); ) {
+                        if (it->first < keepFirst || it->first > keepLast) it = asyncCache_.erase(it); else ++it;
+                    }
+                    for (size_t i = 0; i < batch.rows.size(); ++i)
+                        asyncCache_[batch.first + (int)i] = std::move(batch.rows[i]);
+                    asyncLoading_ = false;
+                    for (auto& source : poolSrc_) source = -1;
+                    childrenDirty_ = true;
+                    lastChildrenSig_ = ~0ull;
+                    RequestRepaint();
+                },
+                [this, alive](std::exception_ptr) {
+                    if (!alive->load()) return;
+                    asyncLoading_ = false;
+                    RequestRepaint();
+                },
+                {},
+                [this, alive]() {
+                    if (!alive->load()) return;
+                    asyncLoading_ = false;
+                    RequestRepaint();
+                });
+        }
+        void ReleaseRowPool() {
+            for (auto& label : pool_) labelPool_.Release(label);
+            pool_.clear(); poolSrc_.clear(); poolW_.clear();
+        }
         void ShiftMultiSelForInsert(int index, int count) {
             if (count <= 0) return;
             if (!multiSel_.empty()) {
@@ -1169,7 +1257,7 @@ namespace ZufyUI {
             EnsureView();
             float contentHeight = view_.size() * (buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_);
             showScrollBar_ = contentHeight > arrangedRect_.height;
-            maxScrollY_ = max(0.0f, contentHeight - arrangedRect_.height);
+            scrollY_.SetMetrics(arrangedRect_.height, contentHeight);
             scrollOffsetY_ = clamp(scrollOffsetY_, 0.0f, maxScrollY_);
             targetScrollOffsetY_ = clamp(targetScrollOffsetY_, 0.0f, maxScrollY_);
         }
@@ -1243,14 +1331,21 @@ namespace ZufyUI {
         //   可见序（屏幕第几个）：VisibleCount / SourceOfVisible / VisibleOfSource / SetSelectedVisible / GetSelectedVisible。
         //   勾选/禁用/富项都按**源行号**保持，不随可见序漂移（同 Qt model/view）。
         //   src = 源行号（稳定）；vi = 可见序（随隐藏/筛选/排序变化）。
-        int GetItemCount() const { return virtual_ ? (int)vtext_.size() : (int)items_.size(); }
+        int GetItemCount() const { return virtualProvider_ ? virtualCount_ : (virtual_ ? max((int)vtext_.size(), virtualCount_) : (int)items_.size()); }
         int VisibleCount() const { EnsureView(); return (int)view_.size(); }
         int SourceOfVisible(int vi) const { EnsureView(); return (vi >= 0 && vi < (int)view_.size()) ? view_[vi] : -1; }
         int VisibleOfSource(int src) const { EnsureView(); return (src >= 0 && src < (int)srcToView_.size()) ? srcToView_[src] : -1; }
         std::wstring SourceText(int src) const {
-            if (src < 0) return L"";
+            if (src < 0 || src >= GetItemCount()) return L"";
+            auto ov = virtualOverrides_.find(src);
+            if (ov != virtualOverrides_.end()) return ov->second;
+            if (asyncFetcher_) {
+                auto it = asyncCache_.find(src);
+                return it != asyncCache_.end() ? it->second : std::wstring(L"\u2026");
+            }
+            if (virtualProvider_) return virtualProvider_(src);
             if (virtual_) {
-                auto it = richRows_.find(src);   // 富行以它自己的文本为准
+                auto it = richRows_.find(src);
                 if (it != richRows_.end() && it->second) return it->second->GetText();
                 return (src < (int)vtext_.size()) ? vtext_[src] : std::wstring();
             }
@@ -1260,24 +1355,71 @@ namespace ZufyUI {
 
         // 虚拟源（纯文本行；不再"一源行一个 Label"）。富项仍可用 AddItemWidget(shared_ptr<Label>)。
         void SetItemCount(int n) {
+            ReleaseRowPool();
             auto _rg = RenderGuard();
             virtual_ = true;
-            if (n < 0) n = 0;
-            vtext_.assign((size_t)n, std::wstring());
-            childrenView_.clear();     // 先清裸指针（旧 Label 即将释放），防悬垂
-            items_.clear();            // 从简单模式切来：释放旧 Label（否则永不回收）
-            richRows_.clear();         // 旧富项残留
+            virtualProvider_ = nullptr;
+            asyncFetcher_ = nullptr;
+            asyncCache_.clear();
+            asyncLoading_ = false;
+            virtualCount_ = max(0, n);
+            virtualOverrides_.clear();
+            vtext_.clear();
+            childrenView_.clear();
+            items_.clear();
+            richRows_.clear();
             hiddenRows_.clear();
             disabledRows_.clear();
             checked_.clear();
             multiSel_.clear();
             rowTips_.clear();
             rowTextColors_.clear();
-            filter_ = nullptr; viewCmp_ = nullptr; viewSortActive_ = false;   // 与 Clear() 一致
+            filter_ = nullptr; viewCmp_ = nullptr; viewSortActive_ = false;
             selectedIndex_ = -1; hoveredIndex_ = -1;
             scrollOffsetY_ = 0.0f; targetScrollOffsetY_ = 0.0f;
             viewDirty_ = true; childrenDirty_ = true;
             UpdateScrollInfo(); InvalidateLayout(); RequestRepaint();
+        }
+        void SetItemProvider(int n, std::function<std::wstring(int)> provider) {
+            SetItemCount(n);
+            virtualProvider_ = std::move(provider);
+            viewDirty_ = true; childrenDirty_ = true;
+            UpdateScrollInfo(); InvalidateLayout(); RequestRepaint();
+        }
+        struct AsyncRowBatch {
+            int first = 0;
+            std::vector<std::wstring> rows;
+        };
+        using AsyncRowFetcher = std::function<AsyncRowBatch(int first, int count, AsyncCancelToken, AsyncProgress)>;
+        void SetAsyncItemProvider(int n, AsyncRowFetcher fetcher) {
+            SetItemCount(n);
+            virtualProvider_ = nullptr;
+            asyncFetcher_ = std::move(fetcher);
+            virtualCount_ = max(0, n);
+            asyncCache_.clear();
+            asyncLoading_ = false;
+            asyncFirst_ = 0;
+            asyncCount_ = 0;
+            viewDirty_ = true; childrenDirty_ = true; lastChildrenSig_ = ~0ull;
+            UpdateScrollInfo(); InvalidateLayout(); RequestRepaint();
+        }
+        void NotifyReset(int n = -1) {
+            for (auto& source : poolSrc_) source = -1;
+            if (n >= 0) virtualCount_ = max(0, n);
+            asyncCache_.clear();
+            asyncLoading_ = false;
+            if (asyncFlow_) asyncFlow_.Cancel();
+            viewDirty_ = true; childrenDirty_ = true; lastChildrenSig_ = ~0ull;
+            UpdateScrollInfo(); InvalidateLayout(); RequestRepaint();
+        }
+        void NotifyChanged(int first, int count) {
+            for (auto& source : poolSrc_) source = -1;
+            if (count <= 0) return;
+            for (int i = first; i < first + count; ++i) asyncCache_.erase(i);
+            asyncLoading_ = false;
+            if (asyncFlow_) asyncFlow_.Cancel();
+            childrenDirty_ = true; lastChildrenSig_ = ~0ull;
+            RequestRepaint();
         }
         // 隐藏（只标记，不删数据）
         void SetItemHidden(int src, bool hidden = true) {
@@ -1341,6 +1483,16 @@ namespace ZufyUI {
         std::vector<std::shared_ptr<Label>> items_;   // 源：简单模式/富项整行（虚拟模式为空）
         bool virtual_ = false;                        // true = 源文本在 vtext_
         std::vector<std::wstring> vtext_;
+        std::function<std::wstring(int)> virtualProvider_;
+        int virtualCount_ = 0;
+        std::unordered_map<int, std::wstring> virtualOverrides_;
+        AsyncRowFetcher asyncFetcher_;
+        std::unordered_map<int, std::wstring> asyncCache_;
+        bool asyncLoading_ = false;
+        int asyncFirst_ = 0;
+        int asyncCount_ = 0;
+        std::shared_ptr<std::atomic<bool>> asyncAlive_ = std::make_shared<std::atomic<bool>>(true);
+        viewcore::FetchFlow<AsyncRowBatch> asyncFlow_;
         mutable std::vector<int> view_;               // 可见序：view_[vi] = 源行号
         mutable std::vector<int> srcToView_;          // 源行号 → 可见序（-1 = 不可见）
         mutable bool viewDirty_ = true;
@@ -1356,11 +1508,16 @@ namespace ZufyUI {
         mutable std::vector<std::shared_ptr<Label>> pool_;
         mutable std::vector<int> poolSrc_;            // 池槽 → 源行号
         mutable std::vector<float> poolW_;            // 池槽 → 上次测量宽度（宽度变化时需重测）
+        viewcore::RecyclePool<Label> labelPool_{
+            []() { return std::make_shared<Label>(); },
+            [](Label* label) { if (label) label->SetParent(nullptr); },
+            64 };
         int selectedIndex_;
         int hoveredIndex_;
-        float scrollOffsetY_;
-        float targetScrollOffsetY_;
-        float maxScrollY_;
+        viewcore::ScrollAxis scrollY_;
+        float& scrollOffsetY_ = scrollY_.offset;
+        float& targetScrollOffsetY_ = scrollY_.target;
+        float& maxScrollY_ = scrollY_.maxOffset;
         bool showScrollBar_;
         bool isDraggingScroll_;
         float dragStartMouseY_;
@@ -2065,6 +2222,14 @@ namespace ZufyUI {
             else if (a == TextHAlign::Right) ha = Label::HAlign::Right;
             if (lb->GetHorizontalAlignment() != ha) lb->SetAlignment(ha, Label::VAlign::Center);
             lb->SetPadding(0.0f);
+        }
+        void OnFontChanged() override {
+            for (size_t i = 0; i < pool_.size(); ++i) {
+                if (pool_[i] && i < poolCell_.size() && poolCell_[i] >= 0)
+                    PrepareCellLabel(pool_[i], CellKeyCol(poolCell_[i]));
+            }
+            for (auto& kv : richCells_) if (kv.second) PrepareCellLabel(kv.second, CellKeyCol(kv.first));
+            UIElement::OnFontChanged();
         }
 
         // 影响“可见单元格布局”的全部判据集中到一处 → 单一签名

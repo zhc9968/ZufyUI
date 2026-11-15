@@ -1096,6 +1096,159 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             std::move(onCompleted), std::move(onFailed), std::move(onProgress), std::move(onCanceled));
     }
 
+    namespace viewcore {
+        struct Range {
+            int first = 0;
+            int last = -1;
+            bool empty() const { return last < first; }
+            int count() const { return empty() ? 0 : last - first + 1; }
+        };
+
+        struct ScrollAxis {
+            float offset = 0.0f;
+            float target = 0.0f;
+            float viewport = 0.0f;
+            float content = 0.0f;
+            float maxOffset = 0.0f;
+
+            void SetMetrics(float viewportSize, float contentSize) {
+                viewport = max(0.0f, viewportSize);
+                content = max(0.0f, contentSize);
+                maxOffset = max(0.0f, content - viewport);
+                offset = clamp(offset, 0.0f, maxOffset);
+                target = clamp(target, 0.0f, maxOffset);
+            }
+            void Clamp() {
+                offset = clamp(offset, 0.0f, maxOffset);
+                target = clamp(target, 0.0f, maxOffset);
+            }
+            void ScrollTo(float value) { target = clamp(value, 0.0f, maxOffset); }
+            void ScrollBy(float delta) { ScrollTo(target + delta); }
+            void EnsureVisible(float start, float size) {
+                const float end = start + max(0.0f, size);
+                if (start < offset) ScrollTo(start);
+                else if (end > offset + viewport) ScrollTo(end - viewport);
+            }
+            bool Update(float dt, float speed) {
+                if (fabs(target - offset) <= 0.01f) { offset = target; return false; }
+                offset += (target - offset) * min(1.0f, max(0.0f, speed) * dt);
+                if (fabs(target - offset) <= 0.01f) offset = target;
+                return true;
+            }
+            Range VisibleRange(float itemExtent, float overscan = 0.0f, int itemCount = -1) const {
+                if (itemExtent <= 0.0f) return {};
+                const float lo = max(0.0f, offset - max(0.0f, overscan));
+                const float hi = offset + viewport + max(0.0f, overscan);
+                int first = (int)floor(lo / itemExtent);
+                int last = (int)floor(hi / itemExtent);
+                if (first < 0) first = 0;
+                if (itemCount >= 0 && last >= itemCount) last = itemCount - 1;
+                if (last < first) return {};
+                return { first, last };
+            }
+        };
+
+        struct ScrollViewport {
+            ScrollAxis x, y;
+        };
+
+        template<class T>
+        class RecyclePool {
+        public:
+            using Factory = std::function<std::shared_ptr<T>()>;
+            using ReleaseFn = std::function<void(T*)>;
+
+            explicit RecyclePool(Factory factory = {}, ReleaseFn release = {}, size_t maxIdle = 64)
+                : factory_(std::move(factory)), release_(std::move(release)), maxIdle_(maxIdle) {}
+
+            std::shared_ptr<T> Acquire() {
+                if (!idle_.empty()) {
+                    auto item = std::move(idle_.back());
+                    idle_.pop_back();
+                    return item;
+                }
+                return factory_ ? factory_() : nullptr;
+            }
+            void Release(std::shared_ptr<T> item) {
+                if (!item) return;
+                if (release_) release_(item.get());
+                if (idle_.size() < maxIdle_) idle_.push_back(std::move(item));
+            }
+            void Trim(size_t maxIdle) {
+                maxIdle_ = maxIdle;
+                while (idle_.size() > maxIdle_) idle_.pop_back();
+            }
+            void Clear() { idle_.clear(); }
+            size_t IdleCount() const { return idle_.size(); }
+            size_t MaxIdle() const { return maxIdle_; }
+        private:
+            Factory factory_;
+            ReleaseFn release_;
+            size_t maxIdle_ = 64;
+            std::vector<std::shared_ptr<T>> idle_;
+        };
+
+        enum class FetchState { Idle, Loading, Ready, Failed, Canceled };
+
+        template<class Result>
+        class FetchFlow {
+        public:
+            using Work = std::function<Result(AsyncCancelToken, AsyncProgress)>;
+            using Ready = std::function<void(Result)>;
+            using Error = std::function<void(std::exception_ptr)>;
+            using Progress = std::function<void(float, const std::wstring&)>;
+            using Canceled = std::function<void()>;
+
+            void Start(AsyncOwner owner, Work work, Ready ready, Error error = {}, Progress progress = {}, Canceled canceled = {}) {
+                EnsureState();
+                const uint64_t generation = ++state_->generation;
+                if (task_) task_->Cancel();
+                state_->state.store(FetchState::Loading, std::memory_order_release);
+                auto state = state_;
+                task_ = RunAsync<Result>(std::move(owner), std::move(work),
+                    [state, generation, ready = std::move(ready)](Result result) {
+                        if (generation != state->generation.load(std::memory_order_acquire)) return;
+                        state->state.store(FetchState::Ready, std::memory_order_release);
+                        if (ready) ready(std::move(result));
+                    },
+                    [state, generation, error = std::move(error)](std::exception_ptr e) {
+                        if (generation != state->generation.load(std::memory_order_acquire)) return;
+                        state->state.store(FetchState::Failed, std::memory_order_release);
+                        if (error) error(e);
+                    },
+                    [state, generation, progress = std::move(progress)](float value, const std::wstring& message) {
+                        if (generation != state->generation.load(std::memory_order_acquire)) return;
+                        if (progress) progress(value, message);
+                    },
+                    [state, generation, canceled = std::move(canceled)]() {
+                        if (generation != state->generation.load(std::memory_order_acquire)) return;
+                        state->state.store(FetchState::Canceled, std::memory_order_release);
+                        if (canceled) canceled();
+                    });
+            }
+            void Cancel() {
+                if (!state_) return;
+                ++state_->generation;
+                state_->state.store(FetchState::Canceled, std::memory_order_release);
+                if (task_) task_->Cancel();
+            }
+            FetchState GetState() const {
+                return state_ ? state_->state.load(std::memory_order_acquire) : FetchState::Idle;
+            }
+            bool Wait() { return task_ ? task_->Wait() : false; }
+            explicit operator bool() const { return state_ != nullptr; }
+
+        private:
+            struct State {
+                std::atomic<uint64_t> generation{ 0 };
+                std::atomic<FetchState> state{ FetchState::Idle };
+            };
+            void EnsureState() { if (!state_) state_ = std::make_shared<State>(); }
+            std::shared_ptr<State> state_;
+            std::shared_ptr<AsyncTask<Result>> task_;
+        };
+    }
+
     class ConnectionOwner {
     protected:
         ConnectionOwner() : connectionGroup_(std::make_shared<ConnectionGroup>()) {}

@@ -1021,9 +1021,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 rich->AddChild(inner.shared());          // 内嵌 Label → 走 Window 合成递归画出
                 lv->AddItemWidget(rich.shared()); })),
             ZCell(1, 2, ZBtn(L"虚拟 20万").on<&Button::Clicked>([lv]() {
-                lv->SetItemCount(200000);
-                for (int i = 0; i < 200000; ++i)
-                    lv->SetItem(i, L"虚拟行 " + std::to_wstring(i) + ((i % 7 == 0) ? L" *" : L"")); })),
+                lv->SetAsyncItemProvider(200000, [](int first, int count, AsyncCancelToken, AsyncProgress) {
+                    ListView::AsyncRowBatch batch;
+                    batch.first = first;
+                    for (int i = first; i < first + count; ++i) {
+                        wchar_t buf[96];
+                        const unsigned x = (unsigned)i * 2654435761u;
+                        swprintf(buf, 96, L"\u865A\u62DF\u884C %d  \u968F\u673A %08X", i, x);
+                        batch.rows.push_back(buf);
+                    }
+                    return batch;
+                });
+            })),
             ZCell(1, 3, ZBtn(L"隐藏偶数行").on<&Button::Clicked>([lv]() {
                 for (int i = 0; i < lv->GetItemCount(); i += 2) lv->SetItemHidden(i, true); })),
             // 注意：SetFilter / SetViewComparator 的 lambda 存在 ListView 内部，
