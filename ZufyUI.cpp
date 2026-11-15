@@ -1046,7 +1046,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 lv->SetViewComparator([raw](int a, int b) { return raw->GetItemText(a) < raw->GetItemText(b); });
                 lv->SortView(true); })),
             ZCell(2, 2, ZBtn(L"重置视图").on<&Button::Clicked>([lv]() {
-                lv->ClearHidden(); lv->ClearFilter(); lv->ClearViewSort(); }))
+                lv->ClearHidden(); lv->ClearFilter(); lv->ClearViewSort(); })),
+            ZCell(2, 3, ZBtn(L"\u865A\u62DF\u5BCC Label 10\u4E07").on<&Button::Clicked>([lv]() {
+                lv->SetItemLabelProvider(100000, [](int i, Label& lb) {
+                    LabelRun a; a.text = L"Rich "; a.color = Color::FromArgb(255, 0, 120, 212);
+                    LabelRun b; b.text = std::to_wstring(i); b.color = Color::FromArgb(255, 220, 40, 40);
+                    lb.SetRichText({ a, b });
+                    lb.SetIcon((i & 1) ? Icon::Folder : Icon::Save);
+                });
+            })),
+            ZCell(3, 0, ZBtn(L"\u5F02\u6B65\u5BCC Label 10\u4E07").on<&Button::Clicked>([lv]() {
+                lv->SetAsyncLabelProvider(100000, [](int first, int count, AsyncCancelToken, AsyncProgress) {
+                    AsyncLabelBatch batch;
+                    batch.first = first;
+                    batch.rows.reserve((size_t)count);
+                    for (int i = first; i < first + count; ++i) {
+                        ViewLabelData d;
+                        LabelRun a; a.text = L"Async "; a.color = Color::FromArgb(255, 0, 120, 212);
+                        LabelRun b; b.text = std::to_wstring(i); b.color = Color::FromArgb(255, 220, 40, 40);
+                        d.runs.push_back(a); d.runs.push_back(b);
+                        d.icon = (i & 1) ? Icon::Folder : Icon::Save;
+                        batch.rows.push_back(std::move(d));
+                    }
+                    return batch;
+                });
+            }))
         ).spacing(6.0f, 6.0f).shared());
 
         SetScrollablePage(page4, col.shared());
@@ -1112,6 +1136,45 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 tv->SetItem(r, 2, (r % 3 == 0) ? L"北京" : (r % 3 == 1) ? L"上海" : L"广州");
                 tv->SetItem(r, 3, L"备注 " + std::to_wstring(r));
             } }).shared();
+        auto btnRich = ZBtn(L"\u865A\u62DF\u5BCC\u5355\u5143 10\u4E07").on<&Button::Clicked>([tv]() {
+            tv->SetCellLabelProvider(100000, 4, [](int r, int c, Label& lb) {
+                LabelRun a; a.text = L"Cell "; a.color = Color::FromArgb(255, 0, 120, 212);
+                LabelRun b; b.text = std::to_wstring(r) + L"," + std::to_wstring(c);
+                b.color = Color::FromArgb(255, 220, 40, 40);
+                lb.SetRichText({ a, b });
+                lb.SetIcon((c & 1) ? Icon::Folder : Icon::Save);
+            });
+        }).shared();
+        auto btnAsyncRich = ZBtn(L"\u5F02\u6B65\u5BCC\u5355\u5143 10\u4E07").on<&Button::Clicked>([tv]() {
+            tv->SetAsyncCellLabelProvider(100000, 4, [](int first, int count, AsyncCancelToken, AsyncProgress) {
+                AsyncCellBatch batch;
+                batch.first = first; batch.cols = 4;
+                batch.rows.reserve((size_t)count);
+                for (int r = first; r < first + count; ++r) {
+                    std::vector<ViewLabelData> row;
+                    for (int c = 0; c < 4; ++c) {
+                        ViewLabelData d;
+                        LabelRun a; a.text = L"Cell "; a.color = Color::FromArgb(255, 0, 120, 212);
+                        LabelRun b; b.text = std::to_wstring(r) + L"," + std::to_wstring(c);
+                        b.color = Color::FromArgb(255, 220, 40, 40);
+                        d.runs.push_back(a); d.runs.push_back(b);
+                        d.icon = (c & 1) ? Icon::Folder : Icon::Save;
+                        row.push_back(std::move(d));
+                    }
+                    batch.rows.push_back(std::move(row));
+                }
+                return batch;
+            });
+        }).shared();
+        auto btnClip = ZBtn(L"\u88C1\u526A\uFF1AClip").shared();
+        btnClip->Connect(btnClip->Clicked, [tv, b = btnClip.get()]() {
+            static int mode = 0;
+            mode = (mode + 1) % 3;
+            Label::RichTextClip clip = mode == 0 ? Label::RichTextClip::Clip
+                : (mode == 1 ? Label::RichTextClip::Ellipsis : Label::RichTextClip::None);
+            tv->SetRichTextClip(clip);
+            b->SetText(mode == 0 ? L"\u88C1\u526A\uFF1AClip" : (mode == 1 ? L"\u88C1\u526A\uFF1AEllipsis" : L"\u88C1\u526A\uFF1ANone"));
+        });
         auto btnHideCol = ZBtn(L"隐藏备注列").shared();
         btnHideCol->Connect(btnHideCol->Clicked, [tv, b = btnHideCol.get()]() {   // 自引用要裸指针（否则引用环）
             bool vis = tv->IsColumnVisible(3);
@@ -1128,7 +1191,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         col->AddChild(ZGrid(
             ZCell(0, 0, btnRowSel), ZCell(0, 1, btnColSel), ZCell(0, 2, btnCellSel), ZCell(0, 3, btnSortAge),
             ZCell(1, 0, btnHideRows), ZCell(1, 1, btnFilter), ZCell(1, 2, btnReset), ZCell(1, 3, btnBig),
-            ZCell(2, 0, btnHideCol)
+            ZCell(2, 0, btnHideCol), ZCell(2, 1, btnRich), ZCell(2, 2, btnAsyncRich), ZCell(2, 3, btnClip)
         ).spacing(6.0f, 6.0f).shared());
 
         SetScrollablePage(page5, col.shared());
@@ -1186,8 +1249,121 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             ZCell(0, 1, ZBtn(L"折叠全部").on<&Button::Clicked>([tv, root1, root2]() {
                 tv->ExpandNodeRecursive(root1, false); tv->ExpandNodeRecursive(root2, false); })),
             ZCell(0, 2, ZBtn(L"搜索 1-2").on<&Button::Clicked>([tv]() { tv->Search(L"1-2"); })),
-            ZCell(0, 3, ZBtn(L"清除过滤").on<&Button::Clicked>([tv]() { tv->ClearFilter(); }))
+            ZCell(0, 3, ZBtn(L"清除过滤").on<&Button::Clicked>([tv]() { tv->ClearFilter(); })),
+            ZCell(1, 0, ZBtn(L"\u5BCC\u8282\u70B9").on<&Button::Clicked>([tv]() {
+                tv->SetNodeLabelProvider([](const std::shared_ptr<TreeNode>& node, int c, Label& lb) {
+                    std::wstring text = (node && c < (int)node->columns.size() && node->columns[c]) ? node->columns[c]->GetText() : L"";
+                    LabelRun a; a.text = text; a.color = Color::FromArgb(255, 0, 120, 212);
+                    lb.SetRichText({ a });
+                    if (c == 0) lb.SetIcon(node && !node->children.empty() ? Icon::Folder : Icon::Save);
+                    else lb.SetIcon(Icon::Save);
+                });
+            })),
+            ZCell(1, 1, ZBtn(L"\u5F02\u6B65\u5BCC\u8282\u70B9").on<&Button::Clicked>([tv]() {
+                tv->SetAsyncNodeLabelProvider([](int first, int count, AsyncCancelToken, AsyncProgress) {
+                    AsyncCellBatch batch;
+                    batch.first = first; batch.cols = 1;
+                    batch.rows.reserve((size_t)count);
+                    for (int i = first; i < first + count; ++i) {
+                        ViewLabelData d;
+                        LabelRun r; r.text = L"Node " + std::to_wstring(i);
+                        r.color = Color::FromArgb(255, 0, 120, 212);
+                        d.runs.push_back(r);
+                        d.icon = Icon::Save;
+                        batch.rows.push_back({ std::move(d) });
+                    }
+                    return batch;
+                });
+            }))
         ).spacing(6.0f, 6.0f).shared());
+
+        AddSection(col, L"\u6811\u5F62\u89C6\u56FE\u538B\u529B\uFF1A\u540C\u6B65 / \u5F02\u6B65\u5BCC\u6587\u672C + \u5FEB\u901F\u6EDA\u52A8");
+        auto stressInfo = ZLbl(L"Tree stress: idle").shared();
+        auto stressTree = ZTree().size(560.0f, 260.0f).cache(false);
+        stressTree->SetColumnCount(1);
+        stressTree->SetHeaderLabels({ L"Stress Node" });
+        auto loadStressChildren = [stressTree](const std::shared_ptr<TreeNode>& node) {
+            if (!node || node->userData != (void*)1) return;
+            node->userData = (void*)2;
+            stressTree->BeginBatch();
+            stressTree->RemoveChildren(node);
+            if (node->depth < 4) {
+                for (int c = 0; c < 6; ++c) {
+                    auto child = stressTree->AddChild(node, L"L" + std::to_wstring(node->depth + 1) + L"." + std::to_wstring(c));
+                    child->userData = (void*)1;
+                    child->tooltip = L"L" + std::to_wstring(node->depth + 1) + L"." + std::to_wstring(c);
+                    auto placeholder = stressTree->AddChild(child, L"...");
+                    placeholder->userData = (void*)3;
+                }
+            }
+            stressTree->EndBatch();
+        };
+        auto prepareStress = [stressTree]() {
+            if (stressTree->GetRootCount() > 0) return;
+            stressTree->BeginBatch();
+            for (int i = 0; i < 10; ++i) {
+                auto root = stressTree->AddRoot(L"root " + std::to_wstring(i));
+                root->userData = (void*)1;
+                root->tooltip = L"root " + std::to_wstring(i);
+                auto placeholder = stressTree->AddChild(root, L"...");
+                placeholder->userData = (void*)3;
+            }
+            stressTree->EndBatch();
+        };
+        stressTree->SetLazyLoader(loadStressChildren);
+        auto stressTimer = win.CreateTimer(16);
+        stressTimer->Stop();
+        auto stressTick = std::make_shared<int>(0);
+        stressTimer->Tick.connect([stressTree, stressInfo, stressTick]() {
+            auto nodes = stressTree->GetVisibleNodes();
+            if (nodes.empty()) return;
+            int i = (*stressTick * 37) % (int)nodes.size();
+            auto node = nodes[(size_t)i];
+            if ((*stressTick % 3) == 0 && node) stressTree->ExpandNode(node, !node->expanded);
+            stressTree->ScrollToNode(node);
+            if ((*stressTick & 7) == 0) stressTree->RefreshNodeLabels();
+            stressInfo->SetText(L"Tree stress: tick " + std::to_wstring(*stressTick) +
+                L" / visible " + std::to_wstring(nodes.size()) + L" / node " + std::to_wstring(i));
+            ++*stressTick;
+        }, ConnectionThread::CurrentThread, nullptr);
+        auto stressSync = ZBtn(L"\u540C\u6B65\u60F0\u6027\u538B\u529B").on<&Button::Clicked>([stressTree, stressTimer, stressInfo, prepareStress]() {
+            prepareStress();
+            stressTree->SetNodeLabelProvider([](const std::shared_ptr<TreeNode>& node, int, Label& lb) {
+                std::wstring text = (node && !node->tooltip.empty()) ? node->tooltip : L"node";
+                LabelRun a; a.text = L"sync "; a.color = Color::FromArgb(255, 0, 120, 212);
+                LabelRun b; b.text = text; b.color = Color::FromArgb(255, 220, 40, 40);
+                lb.SetRichText({ a, b });
+                lb.SetIcon(Icon::Save);
+            });
+            stressInfo->SetText(L"Tree stress: sync provider running");
+            stressTimer->Start();
+        }).shared();
+        auto stressAsync = ZBtn(L"\u5F02\u6B65\u60F0\u6027\u538B\u529B").on<&Button::Clicked>([stressTree, stressTimer, stressInfo, prepareStress]() {
+            prepareStress();
+            stressTree->SetAsyncNodeLabelProvider([](int first, int count, AsyncCancelToken token, AsyncProgress) {
+                AsyncCellBatch batch;
+                batch.first = first; batch.cols = 1;
+                for (int i = first; i < first + count; ++i) {
+                    if (token.IsCancellationRequested()) break;
+                    ViewLabelData d;
+                    LabelRun a; a.text = L"async "; a.color = Color::FromArgb(255, 0, 120, 212);
+                    LabelRun b; b.text = L"node " + std::to_wstring(i); b.color = Color::FromArgb(255, 220, 40, 40);
+                    d.runs = { a, b };
+                    d.icon = Icon::Folder;
+                    batch.rows.push_back({ std::move(d) });
+                }
+                return batch;
+            });
+            stressInfo->SetText(L"Tree stress: async provider running");
+            stressTimer->Start();
+        }).shared();
+        auto stressStop = ZBtn(L"\u505C\u6B62\u538B\u529B").on<&Button::Clicked>([stressTimer, stressInfo]() {
+            stressTimer->Stop();
+            stressInfo->SetText(L"Tree stress: stopped");
+        }).shared();
+        col->AddChild(stressInfo);
+        col->AddChild(stressTree.shared());
+        col->AddChild(ZRow(stressSync, stressAsync, stressStop).spacing(8.0f).shared());
 
         SetScrollablePage(page6, col.shared());
     }
@@ -1591,7 +1767,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 menu->AddItem(L"退出", [w]() { w->Close(); });
                 s_tray.SetMenu(menu);
                 bool ok = s_tray.Add(loadAppImage(), L"ZufyUI 托盘演示");   // 库自带 Image
-                if (mbResult) mbResult->SetText(ok ? L"托盘：已添加（右键看菜单，悬停看提示）" : L"托盘：添加失败");
+                if (mbResult) mbResult->SetText(ok ? L"托盘：已添加（右键看菜单，悬停看提示）" : (L"托盘：添加失败：" + s_tray.GetLastErrorText()));
             }
             else {
                 s_tray.Remove();

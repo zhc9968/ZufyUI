@@ -2463,8 +2463,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         static FontSpec GetGlobalFont() { return FontManager::Instance().GetGlobalFont(); }
 
         // 实例级字体覆盖
-        void SetFont(const FontSpec& spec) {
-            StoreFontOverride(std::optional<FontSpec>(spec));   // 同锁内写 fontOverride_ + 失效缓存（定义在 Window 之后）
+        virtual void SetFont(const FontSpec& spec) {
+            StoreFontOverride(std::optional<FontSpec>(spec));   // ͬ����д fontOverride_ + ʧЧ���棨������ Window ֮��
             InvalidateLayout();
             RequestRepaint();
         }
@@ -2483,7 +2483,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             spec.weight = weight;
             SetFont(spec);
         }
-        void ClearFont() {
+        virtual void ClearFont() {
             StoreFontOverride(std::nullopt);
             InvalidateLayout();
             RequestRepaint();
@@ -2496,7 +2496,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         virtual std::optional<FontSpec> GetTypeDefaultFont() const { return std::nullopt; }
 
         // 字体解析链：实例覆盖 → 类型默认 → 全局默认
-        FontSpec GetEffectiveFontSpec() const {
+        virtual FontSpec GetEffectiveFontSpec() const {
             if (fontOverride_) return *fontOverride_;
             if (auto t = GetTypeDefaultFont()) return *t;
             return FontManager::Instance().GetGlobalFont();

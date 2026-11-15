@@ -187,8 +187,16 @@ namespace ZufyUI {
     }
 
     // ---------- 标签（支持对齐、换行/省略号，最终修正版） ----------
+    struct LabelRun {
+        std::wstring text;
+        std::optional<FontSpec> font;
+        Color color = Color(0.0f, 0.0f, 0.0f, 0.0f);
+        bool underline = false;
+    };
+
     class Label : public UIElement {
     public:
+        enum class RichTextClip { None, Clip, Ellipsis };
         AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Text; }
         std::wstring DefaultAccessibleName() const override { return text_; }
         enum class TextOverflow {
@@ -219,13 +227,44 @@ namespace ZufyUI {
         void SetText(const std::wstring& text) {
             bool changed = (text_ != text);
             text_ = text;
+            if (!richRuns_.empty()) richRuns_.clear();
             InvalidateLayout();
             RequestRepaint();
             if (changed) TextChanged(text_);
         }
         // 虚拟列表 / 元素池"重绑"专用：只置自身布局脏（不冒泡到根），且不 RequestRepaint（重绘由容器驱动）。
-        void SetTextFast(const std::wstring& text) { bool changed = (text_ != text); text_ = text; InvalidateLayoutSelf(); if (changed) TextChanged(text_); }
+        void SetTextFast(const std::wstring& text) {
+            bool changed = (text_ != text);
+            text_ = text;
+            if (!richRuns_.empty()) richRuns_.clear();
+            InvalidateLayoutSelf();
+            if (changed) TextChanged(text_);
+        }
         std::wstring GetText() const { return text_; }
+        void SetRichText(const std::vector<LabelRun>& runs) {
+            richRuns_ = runs;
+            std::wstring text;
+            for (auto& r : richRuns_) text += r.text;
+            bool changed = (text_ != text);
+            text_ = std::move(text);
+            InvalidateLayout();
+            RequestRepaint();
+            if (changed) TextChanged(text_);
+        }
+        void ClearRichText() {
+            if (richRuns_.empty()) return;
+            richRuns_.clear();
+            InvalidateLayout();
+            RequestRepaint();
+        }
+        bool HasRichText() const { return !richRuns_.empty(); }
+        const std::vector<LabelRun>& GetRichText() const { return richRuns_; }
+        void SetRichTextClip(RichTextClip mode) {
+            if (richClip_ == mode) return;
+            richClip_ = mode;
+            RequestRepaint();
+        }
+        RichTextClip GetRichTextClip() const { return richClip_; }
         // 拖源模式：按住并拖动 → 发起 OLE 拖出（用于把图片标签 / 任意标签拖出去）
         void SetDragSource(std::function<void(DragDataBuilder&)> fn, DWORD allowed = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK) { dragSource_ = std::move(fn); dragAllowed_ = allowed; }
         void OnMouseDown(float x, float y) override { if (dragSource_) { dragArm_ = true; dragMoved_ = false; dragStartX_ = x; dragStartY_ = y; } }
@@ -350,6 +389,13 @@ namespace ZufyUI {
             return Label::DefaultFontSpec;
         }
 
+        FontSpec GetEffectiveFontSpec() const override {
+            if (HasFontOverride()) return UIElement::GetEffectiveFontSpec();
+            if (parent_ && (parent_->HasFontOverride() || parent_->GetTypeDefaultFont().has_value()))
+                return parent_->GetEffectiveFontSpec();
+            return UIElement::GetEffectiveFontSpec();
+        }
+
         Size MeasureOverride(const Size& availableSize) override {
             float padW = padding_.left + padding_.right;
             float padH = padding_.top + padding_.bottom;
@@ -359,9 +405,11 @@ namespace ZufyUI {
 
             // 图标尺寸（图片优先；否则用字体字形图标）
             float iw = 0, ih = 0;
-            if (image_ && !image_->IsNull() && !imageFit_) {
-                iw = iconSize_.width > 0 ? iconSize_.width : (float)image_->Width();
-                ih = iconSize_.height > 0 ? iconSize_.height : (float)image_->Height();
+            if (image_ && !image_->IsNull()) {
+                if (!imageFit_) {
+                    iw = iconSize_.width > 0 ? iconSize_.width : (float)image_->Width();
+                    ih = iconSize_.height > 0 ? iconSize_.height : (float)image_->Height();
+                }
             }
             else if (glyphIcon_ != Icon::None) {
                 float fsz = GlyphSize();
@@ -376,7 +424,22 @@ namespace ZufyUI {
 
             // 文本尺寸
             float textW = 0, textH = 0;
-            if (!text_.empty()) {
+            if (!richRuns_.empty()) {
+                for (auto& run : richRuns_) {
+                    if (run.text.empty()) continue;
+                    FontSpec spec = run.font ? *run.font : GetEffectiveFontSpec();
+                    IDWriteTextFormat* rfmt = FontManager::Instance().GetFormat(spec);
+                    if (!rfmt) continue;
+                    auto layout = FontManager::Instance().GetStyledLayout(
+                        run.text, rfmt, 10000.0f, 10000.0f, true, (int)hAlign_, (int)vAlign_, 0.0f, 0);
+                    if (!layout) continue;
+                    DWRITE_TEXT_METRICS metrics{};
+                    layout->GetMetrics(&metrics);
+                    textW += metrics.width;
+                    textH = max(textH, metrics.height);
+                }
+            }
+            else if (!text_.empty()) {
                 IDWriteFactory* factory = FontManager::Instance().GetFactory();
                 IDWriteTextFormat* fmt = GetFontFormat();
                 if (factory && fmt) {
@@ -544,6 +607,70 @@ namespace ZufyUI {
                     }
                 }
             }
+            if (!richRuns_.empty()) {
+                const float left = (textLeft_ > 0.0f) ? textLeft_ : (arrangedRect_.x + padding_.left);
+                const float top = arrangedRect_.y + padding_.top;
+                const float boxH = arrangedRect_.height - padding_.top - padding_.bottom;
+                float maxH = 0.0f;
+                for (auto& run : richRuns_) {
+                    if (run.text.empty()) continue;
+                    FontSpec spec = run.font ? *run.font : GetEffectiveFontSpec();
+                    IDWriteTextFormat* rfmt = FontManager::Instance().GetFormat(spec);
+                    if (!rfmt) continue;
+                    auto rl = FontManager::Instance().GetStyledLayout(
+                        run.text, rfmt, 10000.0f, 10000.0f, true, (int)hAlign_, (int)vAlign_, 0.0f, 0);
+                    if (!rl) continue;
+                    DWRITE_TEXT_METRICS m{};
+                    rl->GetMetrics(&m);
+                    maxH = max(maxH, m.height);
+                }
+                float x = left;
+                const float richH = max(1.0f, boxH);
+                const float right = arrangedRect_.x + arrangedRect_.width - padding_.right;
+                const bool clipRich = richClip_ != RichTextClip::None;
+                D2D1_RECT_F richClip = arrangedRect_.ToD2D();
+                if (clipRich) rt->PushAxisAlignedClip(richClip, D2D1_ANTIALIAS_MODE_ALIASED);
+                for (auto& run : richRuns_) {
+                    if (run.text.empty()) continue;
+                    FontSpec spec = run.font ? *run.font : GetEffectiveFontSpec();
+                    IDWriteTextFormat* rfmt = FontManager::Instance().GetFormat(spec);
+                    if (!rfmt) continue;
+                    auto rl = FontManager::Instance().GetStyledLayout(
+                        run.text, rfmt, 10000.0f, richH, true, (int)HAlign::Left, (int)VAlign::Top, 0.0f, 0);
+                    if (!rl) continue;
+                    DWRITE_TEXT_METRICS m{};
+                    rl->GetMetrics(&m);
+                    float y = top;
+                    if (vAlign_ == VAlign::Center) y += max(0.0f, (boxH - m.height) * 0.5f);
+                    else if (vAlign_ == VAlign::Bottom) y += max(0.0f, boxH - m.height);
+                    if (richClip_ == RichTextClip::Ellipsis && m.width > 0.0f && x + m.width > right) {
+                        auto ell = FontManager::Instance().GetStyledLayout(
+                            L"...", rfmt, 10000.0f, richH, true, (int)HAlign::Left, (int)VAlign::Top, 0.0f, 0);
+                        DWRITE_TEXT_METRICS em{};
+                        if (ell) ell->GetMetrics(&em);
+                        Color c = run.color.a > 0.0f ? run.color : textColor_;
+                        if (!textBrush_) rt->CreateSolidColorBrush(c.ToD2D(), textBrush_.GetAddressOf());
+                        else textBrush_->SetColor(c.ToD2D());
+                        if (ell && textBrush_)
+                            rt->DrawTextLayout(D2D1::Point2F(Snap(max(left, right - em.width)), Snap(y)), ell.Get(), textBrush_.Get());
+                        break;
+                    }
+                    Color c = run.color.a > 0.0f ? run.color : textColor_;
+                    if (!textBrush_) rt->CreateSolidColorBrush(c.ToD2D(), textBrush_.GetAddressOf());
+                    else textBrush_->SetColor(c.ToD2D());
+                    if (!IsEffectivelyEnabled() && textBrush_) textBrush_->SetColor(DefaultDisabledColor.ToD2D());
+                    if (textBrush_) {
+                        rt->DrawTextLayout(D2D1::Point2F(Snap(x), Snap(y)), rl.Get(), textBrush_.Get());
+                        if (run.underline) {
+                            float uy = y + m.height - 1.0f;
+                            rt->DrawLine(D2D1::Point2F(Snap(x), Snap(uy)), D2D1::Point2F(Snap(x + m.width), Snap(uy)), textBrush_.Get(), 1.0f);
+                        }
+                    }
+                    x += m.width;
+                }
+                if (clipRich) rt->PopAxisAlignedClip();
+                return;
+            }
             if (text_.empty()) return;
 
             IDWriteTextFormat* fmt = GetFontFormat();
@@ -637,6 +764,8 @@ namespace ZufyUI {
         }
 
         std::wstring text_;
+        std::vector<LabelRun> richRuns_;
+        RichTextClip richClip_ = RichTextClip::Clip;
         Color textColor_;
         TextOverflow overflow_;
         HAlign hAlign_;
@@ -1016,8 +1145,16 @@ namespace ZufyUI {
 
         // 字体变化时，label 也要跟着变
         void OnFontChanged() override {
-            if (label_) label_->SetFont(GetEffectiveFontSpec());
+            if (label_) label_->OnFontChanged();
             UIElement::OnFontChanged();
+        }
+        void SetFont(const FontSpec& spec) override {
+            UIElement::SetFont(spec);
+            if (label_) label_->OnFontChanged();
+        }
+        void ClearFont() override {
+            UIElement::ClearFont();
+            if (label_) label_->OnFontChanged();
         }
 
         void ReleaseDeviceResources() override {
@@ -8687,11 +8824,14 @@ namespace ZufyUI {
         inline static float HeaderHeight = 66.0f, Pad = 8.0f, CornerRadius = 8.0f;
         inline static Color Bg = Color::FromArgb(255, 252, 252, 252), Border = Color::FromArgb(255, 224, 224, 224),
                              TitleCol = Color::FromArgb(255, 32, 32, 32), SubCol = Color::FromArgb(255, 120, 120, 120);
-        Expander(const std::wstring& title = L"", const std::wstring& subtitle = L"") : title_(title), subtitle_(subtitle) {
+        Expander(const std::wstring& title = L"", const std::wstring& subtitle = L"")
+            : title_(title), subtitle_(subtitle),
+              bgColor_(Bg), borderColor_(Border), titleColor_(TitleCol), subColor_(SubCol),
+              hoverColor_(Color::FromArgb(255, 238, 238, 238)) {
             header_ = std::make_shared<ExpanderHeader>();
             header_->SetParent(this); header_->SetHeight(HeaderHeight);
             header_->title = title_; header_->subtitle = subtitle_;
-            header_->bg = Bg; header_->titleCol = TitleCol; header_->subCol = SubCol; header_->cornerRadius = CornerRadius;
+            header_->bg = bgColor_; header_->titleCol = titleColor_; header_->subCol = subColor_; header_->hoverBg = hoverColor_; header_->cornerRadius = CornerRadius;
             header_->onToggle = [this] { Toggle(); };
             header_->expanded = expanded_;
             header_->rotProg = expandProg_;
@@ -8702,7 +8842,7 @@ namespace ZufyUI {
         Icon GetIcon() const { return header_ ? header_->icon : Icon::None; }
         // 主题：卡片底/边框/标题/副标题/悬停
         void SetColors(Color bg, Color border, Color title, Color sub, Color hover) { MarkUserColor();
-            Bg = bg; Border = border; TitleCol = title; SubCol = sub;
+            bgColor_ = bg; borderColor_ = border; titleColor_ = title; subColor_ = sub; hoverColor_ = hover;
             if (header_) { header_->bg = bg; header_->titleCol = title; header_->subCol = sub; header_->hoverBg = hover; header_->RequestRepaint(); }
             RequestRepaint();
         }
@@ -8786,8 +8926,8 @@ namespace ZufyUI {
         void Draw(ID2D1RenderTarget* rt) override {
             const Rect& r = arrangedRect_;
             if (r.width <= 0 || r.height <= 0) return;
-            if (!bgB_) rt->CreateSolidColorBrush(Bg.ToD2D(), bgB_.GetAddressOf()); else bgB_->SetColor(Bg.ToD2D());
-            if (!bdB_) rt->CreateSolidColorBrush(Border.ToD2D(), bdB_.GetAddressOf()); else bdB_->SetColor(Border.ToD2D());
+            if (!bgB_) rt->CreateSolidColorBrush(bgColor_.ToD2D(), bgB_.GetAddressOf()); else bgB_->SetColor(bgColor_.ToD2D());
+            if (!bdB_) rt->CreateSolidColorBrush(borderColor_.ToD2D(), bdB_.GetAddressOf()); else bdB_->SetColor(borderColor_.ToD2D());
             if (bgB_) rt->FillRoundedRectangle(D2D1::RoundedRect(r.ToD2D(), CornerRadius, CornerRadius), bgB_.Get());
             if (bdB_) rt->DrawRoundedRectangle(D2D1::RoundedRect(r.ToD2D(), CornerRadius, CornerRadius), bdB_.Get(), 1.0f);
         }
@@ -8798,6 +8938,7 @@ namespace ZufyUI {
         std::shared_ptr<UIElement> content_;
         bool expanded_ = true;
         float animT_ = 1.0f, expandProg_ = 1.0f, contentH_ = 0.0f, animSeconds_ = 0.18f;
+        Color bgColor_, borderColor_, titleColor_, subColor_, hoverColor_;
         ComPtr<ID2D1SolidColorBrush> bgB_, bdB_, tB_, sB_;
     };
 

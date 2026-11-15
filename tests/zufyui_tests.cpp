@@ -609,9 +609,262 @@ static void test_viewcore_list_example() {
         });
         asyncList.RefreshChildren();
         CHECK(PumpUntil([&]() { return asyncList.GetItemText(0) == L"async 0"; }));
+
+        ListView asyncRich;
+        asyncRich.SetWidth(300.0f); asyncRich.SetHeight(200.0f);
+        asyncRich.Arrange(Rect(0, 0, 300.0f, 200.0f));
+        asyncRich.SetAsyncLabelProvider(1000, [](int first, int count, AsyncCancelToken, AsyncProgress) {
+            AsyncLabelBatch batch;
+            batch.first = first;
+            for (int i = first; i < first + count; ++i) {
+                ViewLabelData d;
+                LabelRun r; r.text = L"rich " + std::to_wstring(i);
+                r.color = Color::FromArgb(255, 255, 0, 0);
+                d.runs.push_back(r);
+                d.icon = Icon::Close;
+                batch.rows.push_back(std::move(d));
+            }
+            return batch;
+        });
+        asyncRich.RefreshChildren();
+        CHECK(PumpUntil([&]() { return asyncRich.GetItemText(0) == L"rich 0"; }));
+        asyncRich.RefreshChildren();
+        bool asyncRichFound = false;
+        for (UIElement* e : asyncRich.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->GetText() == L"rich 0" && lb->HasRichText() && lb->GetIcon() == Icon::Close)
+                asyncRichFound = lb->GetDesiredSize().width > 0.0f && lb->GetDesiredSize().height > 0.0f;
+        }
+        CHECK(asyncRichFound);
+
+        TableView asyncTable;
+        asyncTable.SetWidth(400.0f); asyncTable.SetHeight(200.0f);
+        asyncTable.SetAsyncCellLabelProvider(1000, 2, [](int first, int count, AsyncCancelToken, AsyncProgress) {
+            AsyncCellBatch batch;
+            batch.first = first; batch.cols = 2;
+            for (int r = first; r < first + count; ++r) {
+                std::vector<ViewLabelData> row;
+                for (int c = 0; c < 2; ++c) {
+                    ViewLabelData d;
+                    LabelRun run; run.text = L"cell " + std::to_wstring(r) + L"," + std::to_wstring(c);
+                    d.runs.push_back(run);
+                    d.icon = Icon::Close;
+                    row.push_back(std::move(d));
+                }
+                batch.rows.push_back(std::move(row));
+            }
+            return batch;
+        });
+        asyncTable.Arrange(Rect(0, 0, 400.0f, 200.0f));
+        asyncTable.RefreshChildren();
+        CHECK(PumpUntil([&]() { return asyncTable.GetItemText(0, 0) == L"cell 0,0"; }));
+        asyncTable.RefreshChildren();
+        bool asyncCellFound = false;
+        for (UIElement* e : asyncTable.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->GetText() == L"cell 0,0" && lb->HasRichText() && lb->GetIcon() == Icon::Close)
+                asyncCellFound = lb->GetDesiredSize().width > 0.0f && lb->GetDesiredSize().height > 0.0f;
+        }
+        CHECK(asyncCellFound);
+
+        TreeView asyncTree;
+        asyncTree.SetColumnCount(1);
+        asyncTree.AddRoot(L"raw");
+        asyncTree.SetAsyncNodeLabelProvider([](int first, int count, AsyncCancelToken, AsyncProgress) {
+            AsyncCellBatch batch;
+            batch.first = first; batch.cols = 1;
+            for (int i = first; i < first + count; ++i) {
+                ViewLabelData d;
+                LabelRun run; run.text = L"node " + std::to_wstring(i);
+                d.runs.push_back(run);
+                d.icon = Icon::Close;
+                batch.rows.push_back({ std::move(d) });
+            }
+            return batch;
+        });
+        asyncTree.Arrange(Rect(0, 0, 300.0f, 200.0f));
+        asyncTree.RefreshChildren();
+        bool asyncNodeFound = false;
+        CHECK(PumpUntil([&]() {
+            asyncTree.RefreshChildren();
+            for (UIElement* e : asyncTree.GetChildren()) {
+                auto* lb = dynamic_cast<Label*>(e);
+                if (lb && lb->GetText() == L"node 0" && lb->HasRichText() && lb->GetIcon() == Icon::Close) {
+                    asyncNodeFound = lb->GetDesiredSize().width > 0.0f && lb->GetDesiredSize().height > 0.0f;
+                    return true;
+                }
+            }
+            return false;
+        }));
+        CHECK(asyncNodeFound);
+
         lv.SetItemCount(1000);
         CHECK(lv.GetItemCount() == 1000);
         CHECK(lv.GetItemCount() == 1000);
+    }
+}
+
+static void test_virtual_label_stress() {
+    std::printf("Virtual label providers: sync / async stress\n");
+    detail::InitializeUIThread();
+    if (!detail::g_uiDispatcherWindow) {
+        std::printf("  [skip] UI dispatcher unavailable\n");
+        return;
+    }
+    const int rounds = 24;
+
+    {
+        ListView lv;
+        lv.SetWidth(360.0f); lv.SetHeight(240.0f);
+        lv.Arrange(Rect(0, 0, 360.0f, 240.0f));
+        lv.SetItemLabelProvider(200000, [](int i, Label& lb) {
+            LabelRun a; a.text = L"row "; a.color = Color::FromArgb(255, 0, 120, 212);
+            LabelRun b; b.text = std::to_wstring(i); b.color = Color::FromArgb(255, 220, 40, 40);
+            lb.SetRichText({ a, b });
+            lb.SetIcon((i & 1) ? Icon::Folder : Icon::Save);
+        });
+        for (int i = 0; i < rounds; ++i) {
+            lv.ScrollToItem((i * 7919) % 200000);
+            lv.UpdateAnimation(1.0f);
+            lv.RefreshChildren();
+            CHECK(!lv.GetChildren().empty());
+        }
+    }
+
+    {
+        ListView lv;
+        lv.SetWidth(360.0f); lv.SetHeight(240.0f);
+        lv.Arrange(Rect(0, 0, 360.0f, 240.0f));
+        lv.SetAsyncLabelProvider(50000, [](int first, int count, AsyncCancelToken token, AsyncProgress) {
+            AsyncLabelBatch batch;
+            batch.first = first;
+            for (int i = first; i < first + count; ++i) {
+                if (token.IsCancellationRequested()) break;
+                ViewLabelData d;
+                LabelRun a; a.text = L"async "; a.color = Color::FromArgb(255, 0, 120, 212);
+                LabelRun b; b.text = std::to_wstring(i);
+                d.runs = { a, b };
+                d.icon = (i & 1) ? Icon::Folder : Icon::Save;
+                batch.rows.push_back(std::move(d));
+            }
+            return batch;
+        });
+        for (int i = 0; i < rounds; ++i) {
+            const int target = (i * 997) % 50000;
+            lv.ScrollToItem(target);
+            lv.UpdateAnimation(1.0f);
+            lv.RefreshChildren();
+            CHECK(PumpUntil([&]() {
+                lv.RefreshChildren();
+                return lv.GetItemText(target).rfind(L"async ", 0) == 0;
+            }));
+        }
+    }
+
+    {
+        TableView tv;
+        tv.SetWidth(420.0f); tv.SetHeight(220.0f);
+        tv.SetCellLabelProvider(100000, 4, [](int r, int c, Label& lb) {
+            LabelRun a; a.text = L"c" + std::to_wstring(c) + L" ";
+            a.color = Color::FromArgb(255, 0, 120, 212);
+            LabelRun b; b.text = std::to_wstring(r);
+            b.color = Color::FromArgb(255, 220, 40, 40);
+            lb.SetRichText({ a, b });
+            lb.SetIcon((c & 1) ? Icon::Folder : Icon::Save);
+        });
+        tv.Arrange(Rect(0, 0, 420.0f, 220.0f));
+        for (int i = 0; i < rounds; ++i) {
+            tv.ScrollToCell((i * 7919) % 100000, i & 3);
+            tv.UpdateAnimation(1.0f);
+            tv.RefreshChildren();
+            CHECK(!tv.GetChildren().empty());
+        }
+    }
+
+    {
+        TableView tv;
+        tv.SetWidth(420.0f); tv.SetHeight(220.0f);
+        tv.SetAsyncCellLabelProvider(50000, 4, [](int first, int count, AsyncCancelToken token, AsyncProgress) {
+            AsyncCellBatch batch;
+            batch.first = first; batch.cols = 4;
+            for (int r = first; r < first + count; ++r) {
+                if (token.IsCancellationRequested()) break;
+                std::vector<ViewLabelData> row;
+                for (int c = 0; c < 4; ++c) {
+                    ViewLabelData d;
+                    LabelRun a; a.text = L"a" + std::to_wstring(c) + L" ";
+                    LabelRun b; b.text = std::to_wstring(r);
+                    d.runs = { a, b };
+                    d.icon = (c & 1) ? Icon::Folder : Icon::Save;
+                    row.push_back(std::move(d));
+                }
+                batch.rows.push_back(std::move(row));
+            }
+            return batch;
+        });
+        tv.Arrange(Rect(0, 0, 420.0f, 220.0f));
+        for (int i = 0; i < rounds; ++i) {
+            const int target = (i * 997) % 50000;
+            tv.ScrollToCell(target, 0);
+            tv.UpdateAnimation(1.0f);
+            tv.RefreshChildren();
+            CHECK(PumpUntil([&]() {
+                tv.RefreshChildren();
+                return tv.GetItemText(target, 0).rfind(L"a0 ", 0) == 0;
+            }));
+        }
+    }
+
+    {
+        TreeView tv;
+        tv.SetColumnCount(2);
+        for (int i = 0; i < 400; ++i) tv.AddRoot(L"root " + std::to_wstring(i));
+        tv.SetNodeLabelProvider([](const std::shared_ptr<TreeNode>& node, int c, Label& lb) {
+            if (c == 0 && node && !node->children.empty()) lb.SetIcon(Icon::Folder);
+            else lb.SetIcon(Icon::Save);
+        });
+        tv.SetWidth(420.0f); tv.SetHeight(220.0f);
+        tv.Arrange(Rect(0, 0, 420.0f, 220.0f));
+        for (int i = 0; i < rounds; ++i) {
+            tv.ScrollToNode(tv.GetRootAt(i % 400));
+            tv.UpdateAnimation(1.0f);
+            tv.RefreshNodeLabels();
+            tv.RefreshChildren();
+            CHECK(!tv.GetChildren().empty());
+        }
+    }
+
+    {
+        TreeView tv;
+        tv.SetColumnCount(1);
+        for (int i = 0; i < 400; ++i) tv.AddRoot(L"root " + std::to_wstring(i));
+        tv.SetAsyncNodeLabelProvider([](int first, int count, AsyncCancelToken token, AsyncProgress) {
+            AsyncCellBatch batch;
+            batch.first = first; batch.cols = 1;
+            for (int i = first; i < first + count; ++i) {
+                if (token.IsCancellationRequested()) break;
+                ViewLabelData d;
+                LabelRun a; a.text = L"n"; a.color = Color::FromArgb(255, 0, 120, 212);
+                LabelRun b; b.text = std::to_wstring(i);
+                d.runs = { a, b };
+                d.icon = Icon::Save;
+                batch.rows.push_back({ std::move(d) });
+            }
+            return batch;
+        });
+        tv.SetWidth(420.0f); tv.SetHeight(220.0f);
+        tv.Arrange(Rect(0, 0, 420.0f, 220.0f));
+        for (int i = 0; i < rounds; ++i) {
+            tv.RefreshChildren();
+            CHECK(PumpUntil([&]() {
+                tv.RefreshChildren();
+                for (UIElement* e : tv.GetChildren()) {
+                    auto* lb = dynamic_cast<Label*>(e);
+                    if (lb && lb->HasRichText()) return true;
+                }
+                return false;
+            }));
+        }
     }
 }
 
@@ -1947,6 +2200,57 @@ static void test_layout_rfc() {
         CHECK(hasContent);
     }
 
+    {
+        const Color oldBg = Expander::Bg, oldBorder = Expander::Border;
+        Expander a(L"A");
+        a.SetColors(Color::FromArgb(255, 10, 20, 30), Color::FromArgb(255, 40, 50, 60),
+            Color::FromArgb(255, 70, 80, 90), Color::FromArgb(255, 100, 110, 120),
+            Color::FromArgb(255, 130, 140, 150));
+        CHECK(Expander::Bg.ToD2D().r == oldBg.ToD2D().r &&
+            Expander::Bg.ToD2D().g == oldBg.ToD2D().g &&
+            Expander::Border.ToD2D().b == oldBorder.ToD2D().b);
+    }
+
+    {
+        Button b(L"Font");
+        FontSpec f;
+        f.size = 27.0f;
+        b.SetFont(f);
+        auto lb = b.GetLabel();
+        CHECK(lb != nullptr);
+        CHECK(!lb->HasFontOverride());
+        CHECK(fabs(lb->GetEffectiveFontSpec().size - 27.0f) < 0.01f);
+        lb->ClearFont();
+        CHECK(!lb->HasFontOverride());
+        CHECK(fabs(lb->GetEffectiveFontSpec().size - 27.0f) < 0.01f);
+    }
+
+    {
+        BITMAPINFO bi = {};
+        bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bi.bmiHeader.biWidth = 10;
+        bi.bmiHeader.biHeight = 10;
+        bi.bmiHeader.biPlanes = 1;
+        bi.bmiHeader.biBitCount = 32;
+        bi.bmiHeader.biCompression = BI_RGB;
+        void* bits = nullptr;
+        HDC dc = GetDC(nullptr);
+        HBITMAP hbmp = CreateDIBSection(dc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
+        if (dc) ReleaseDC(nullptr, dc);
+        CHECK(hbmp != nullptr && bits != nullptr);
+        if (hbmp && bits) {
+            auto img = Image::FromHBITMAP(hbmp, false);
+            Label lb(L"Image");
+            lb.SetImage(img);
+            lb.SetImageFit(true);
+            const Size noIcon = lb.Measure(Size(500.0f, 500.0f));
+            lb.SetIcon(Icon::Close);
+            const Size withIcon = lb.Measure(Size(500.0f, 500.0f));
+            CHECK(fabs(noIcon.width - withIcon.width) < 0.01f);
+            DeleteObject(hbmp);
+        }
+    }
+
     // ToggleSwitch：点击切换；拖动时 knob 跟随鼠标，松开按阈值切换
     {
         ToggleSwitch sw(false);
@@ -2070,6 +2374,199 @@ static void test_quick_patches() {
         CHECK(nodes[0] == b);
     }
 
+    {
+        ListView lv;
+        lv.SetItemLabelProvider(1000, [](int i, Label& lb) {
+            lb.SetText(L"row " + std::to_wstring(i));
+            lb.SetIcon(Icon::Close);
+        });
+        lv.Measure(Size(300.0f, 120.0f));
+        lv.Arrange(Rect(0, 0, 300.0f, 120.0f));
+        lv.RefreshChildren();
+        bool listRich = false;
+        for (UIElement* e : lv.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->GetText().rfind(L"row ", 0) == 0) {
+                listRich = lb->GetIcon() == Icon::Close;
+                break;
+            }
+        }
+        CHECK(listRich);
+    }
+
+    {
+        TableView tv;
+        tv.SetCellLabelProvider(1000, 2, [](int r, int c, Label& lb) {
+            lb.SetText(L"cell " + std::to_wstring(r) + L"," + std::to_wstring(c));
+            lb.SetIcon(Icon::Close);
+        });
+        tv.Measure(Size(300.0f, 120.0f));
+        tv.Arrange(Rect(0, 0, 300.0f, 120.0f));
+        tv.RefreshChildren();
+        bool tableRich = false;
+        for (UIElement* e : tv.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->GetText().rfind(L"cell ", 0) == 0) {
+                tableRich = lb->GetIcon() == Icon::Close;
+                break;
+            }
+        }
+        CHECK(tableRich);
+    }
+
+    {
+        TreeView tv;
+        tv.SetColumnCount(1);
+        tv.AddRoot(L"raw");
+        tv.SetNodeLabelProvider([](const std::shared_ptr<TreeNode>&, int, Label& lb) {
+            lb.SetText(L"rich node");
+            lb.SetIcon(Icon::Close);
+        });
+        tv.Measure(Size(300.0f, 120.0f));
+        tv.Arrange(Rect(0, 0, 300.0f, 120.0f));
+        tv.RefreshChildren();
+        bool treeRich = false;
+        for (UIElement* e : tv.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->GetText() == L"rich node") {
+                treeRich = lb->GetIcon() == Icon::Close;
+                break;
+            }
+        }
+        CHECK(treeRich);
+    }
+
+    {
+        ListView lv;
+        int mode = 0;
+        lv.SetItemLabelProvider(100, [&mode](int i, Label& lb) {
+            lb.SetText(L"row " + std::to_wstring(i));
+            if (mode == 0) lb.SetIcon(Icon::Close);
+        });
+        lv.Measure(Size(300.0f, 120.0f));
+        lv.Arrange(Rect(0, 0, 300.0f, 120.0f));
+        lv.RefreshChildren();
+        bool icon0 = false;
+        for (UIElement* e : lv.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->GetText() == L"row 0") icon0 = lb->GetIcon() == Icon::Close;
+        }
+        CHECK(icon0);
+        mode = 1;
+        lv.NotifyChanged(0, 1);
+        lv.RefreshChildren();
+        bool iconCleared = false;
+        for (UIElement* e : lv.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->GetText() == L"row 0") iconCleared = lb->GetIcon() == Icon::None;
+        }
+        CHECK(iconCleared);
+    }
+
+    {
+        TableView tv;
+        int mode = 0;
+        tv.SetCellLabelProvider(20, 2, [&mode](int r, int c, Label& lb) {
+            lb.SetText(L"cell " + std::to_wstring(r) + L"," + std::to_wstring(c));
+            if (mode == 0) lb.SetIcon(Icon::Close);
+        });
+        tv.Measure(Size(300.0f, 120.0f));
+        tv.Arrange(Rect(0, 0, 300.0f, 120.0f));
+        tv.RefreshChildren();
+        bool icon0 = false;
+        for (UIElement* e : tv.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->GetText() == L"cell 0,0") icon0 = lb->GetIcon() == Icon::Close;
+        }
+        CHECK(icon0);
+        mode = 1;
+        tv.SetRowCount(20);
+        tv.RefreshChildren();
+        bool iconCleared = false;
+        for (UIElement* e : tv.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->GetText() == L"cell 0,0") iconCleared = lb->GetIcon() == Icon::None;
+        }
+        CHECK(iconCleared);
+    }
+
+    {
+        TreeView tv;
+        tv.SetColumnCount(1);
+        tv.AddRoot(L"raw");
+        int mode = 0;
+        tv.SetNodeLabelProvider([&mode](const std::shared_ptr<TreeNode>&, int, Label& lb) {
+            if (mode == 0) lb.SetIcon(Icon::Close);
+        });
+        tv.Measure(Size(300.0f, 120.0f));
+        tv.Arrange(Rect(0, 0, 300.0f, 120.0f));
+        tv.RefreshChildren();
+        bool icon0 = false;
+        for (UIElement* e : tv.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->GetText() == L"raw") icon0 = lb->GetIcon() == Icon::Close;
+        }
+        CHECK(icon0);
+        mode = 1;
+        tv.RefreshNodeLabels();
+        tv.RefreshChildren();
+        bool iconCleared = false;
+        for (UIElement* e : tv.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->GetText() == L"raw") iconCleared = lb->GetIcon() == Icon::None;
+        }
+        CHECK(iconCleared);
+    }
+
+    {
+        TreeView tv;
+        auto root = tv.AddRoot(L"lazy-root");
+        int loads = 0;
+        tv.SetLazyLoader([&](std::shared_ptr<TreeNode> node) {
+            if (++loads == 1) tv.AddChild(node, L"lazy-child");
+        });
+        tv.ExpandNode(root, true);
+        CHECK(loads == 1);
+        CHECK(tv.GetVisibleNodes().size() == 2);
+    }
+
+    {
+        Label lb;
+        LabelRun r1; r1.text = L"red"; r1.color = Color::FromArgb(255, 255, 0, 0);
+        LabelRun r2; r2.text = L"blue"; r2.color = Color::FromArgb(255, 0, 0, 255);
+        lb.SetRichText({ r1, r2 });
+        CHECK(lb.HasRichText());
+        CHECK(lb.GetText() == L"redblue");
+        CHECK(lb.GetRichTextClip() == Label::RichTextClip::Clip);
+        lb.SetRichTextClip(Label::RichTextClip::Ellipsis);
+        CHECK(lb.GetRichTextClip() == Label::RichTextClip::Ellipsis);
+        lb.SetRichTextClip(Label::RichTextClip::None);
+        CHECK(lb.GetRichTextClip() == Label::RichTextClip::None);
+        CHECK(lb.Measure(Size(500.0f, 100.0f)).width > 0.0f);
+        lb.SetText(L"plain");
+        CHECK(!lb.HasRichText());
+        CHECK(lb.GetText() == L"plain");
+    }
+
+    {
+        ListView lv;
+        lv.SetItemLabelProvider(10, [](int i, Label& lb) {
+            LabelRun a; a.text = L"row "; a.color = Color::FromArgb(255, 255, 0, 0);
+            LabelRun b; b.text = std::to_wstring(i); b.color = Color::FromArgb(255, 0, 0, 255);
+            lb.SetRichText({ a, b });
+            lb.SetIcon(Icon::Close);
+        });
+        lv.Measure(Size(300.0f, 120.0f));
+        lv.Arrange(Rect(0, 0, 300.0f, 120.0f));
+        lv.RefreshChildren();
+        bool rich = false;
+        for (UIElement* e : lv.GetChildren()) {
+            auto* lb = dynamic_cast<Label*>(e);
+            if (lb && lb->HasRichText() && lb->GetText() == L"row 0") rich = lb->GetIcon() == Icon::Close;
+        }
+        CHECK(rich);
+    }
+
     }
 
     {
@@ -2108,6 +2605,8 @@ static void test_quick_patches() {
 }
 
 
+
+
 int main() {
     SetConsoleOutputCP(CP_UTF8);   // 源码是 UTF-8：不改代码页的话中文断言输出在 cmd 里是乱码
     std::printf("=== ZufyUI 自检 ===\n");
@@ -2123,6 +2622,7 @@ int main() {
     test_quick_patches();
     test_async_edge_cases();
     test_viewcore_list_example();
+    test_virtual_label_stress();
     test_async_runtime();
     test_async_randomized();
     test_async_cancel_race();

@@ -821,19 +821,21 @@ namespace ZufyUI {
         TrayIcon& operator=(const TrayIcon&) = delete;
 
         bool Add(HICON icon, const std::wstring& tooltip, UINT id = 1) {
+            lastError_.clear();
             EnsureWindow();
-            if (!hwnd_) return false;
+            if (!hwnd_) { LogTrayFailure(L"NIM_ADD (no window)"); return false; }
+            if (!icon) { LogTrayFailure(L"NIM_ADD (null icon)"); return false; }
 
             if (added_ && id_ == id) {   // 已加过同 ID：只更新图标/提示，避免重复 NIM_ADD 失败
                 baseIcon_ = icon;
                 ApplyTip(tooltip);
                 InvalidateIcon();
                 nid_.hIcon = CurrentIcon();
-                Shell_NotifyIconW(NIM_MODIFY, &nid_);
+                if (!Shell_NotifyIconW(NIM_MODIFY, &nid_)) LogTrayFailure(L"NIM_MODIFY");
                 return true;
             }
             if (added_) {                // 换 ID：先删旧的
-                Shell_NotifyIconW(NIM_DELETE, &nid_);
+                if (!Shell_NotifyIconW(NIM_DELETE, &nid_)) LogTrayFailure(L"NIM_DELETE");
                 added_ = false;
             }
 
@@ -843,36 +845,42 @@ namespace ZufyUI {
             nid_.cbSize = sizeof(nid_);
             nid_.hWnd = hwnd_;
             nid_.uID = id_;
-            nid_.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_SHOWTIP;
+            nid_.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
             nid_.uCallbackMessage = kCallbackMsg;
             nid_.hIcon = CurrentIcon();
             ApplyTip(tooltip);
-            if (!Shell_NotifyIconW(NIM_ADD, &nid_)) return false;
-            nid_.uVersion = NOTIFYICON_VERSION_4;
-            Shell_NotifyIconW(NIM_SETVERSION, &nid_);
+            if (!RegisterNotificationIcon()) return false;
             added_ = true;
             return true;
         }
         bool AddFromResource(int resId, const std::wstring& tooltip, UINT id = 1) {
             HICON h = (HICON)LoadImageW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(resId),
                 IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+            if (!h) { LogTrayFailure(L"AddFromResource (LoadImage failed)"); return false; }
+            AdoptIcon(h);
             return Add(h, tooltip, id);
         }
         // 直接吃库自带 Image（或任何带 ToHICON() 的图片类型）
         template <class TImage>
         bool Add(std::shared_ptr<TImage> icon, const std::wstring& tooltip, UINT id = 1) {
-            HICON h = icon ? icon->ToHICON() : nullptr;
-            if (ownedIcon_) { DestroyIcon(ownedIcon_); ownedIcon_ = nullptr; }
-            ownedIcon_ = h;   // 由 TrayIcon 负责销毁
+            if (!icon) { LogTrayFailure(L"Add(Image) (null image)"); return false; }
+            HICON h = icon->ToHICON();
+            if (!h) { LogTrayFailure(L"Add(Image) (ToHICON failed)"); return false; }
+            AdoptIcon(h);
             return Add(h, tooltip, id);
         }
         template <class TImage>
-        void SetIcon(std::shared_ptr<TImage> icon) { SetIcon(icon ? icon->ToHICON() : nullptr); }
+        void SetIcon(std::shared_ptr<TImage> icon) {
+            HICON h = icon ? icon->ToHICON() : nullptr;
+            if (!h) return;
+            AdoptIcon(h);
+            SetIcon(h);
+        }
         bool AddFromFile(const std::wstring& icoPath, const std::wstring& tooltip, UINT id = 1) {
             HICON h = (HICON)LoadImageW(nullptr, icoPath.c_str(), IMAGE_ICON, 0, 0,
                 LR_LOADFROMFILE | LR_DEFAULTSIZE);
-            if (!h) return false;
-            ownedIcon_ = h;
+            if (!h) { LogTrayFailure(L"AddFromFile (LoadImage failed)"); return false; }
+            AdoptIcon(h);
             return Add(h, tooltip, id);
         }
         void Remove() {
@@ -896,6 +904,7 @@ namespace ZufyUI {
         // detected by a timestamp window, so tray input cannot be starved by a busy paint timer.
         void SetClickImmediate(bool on) { clickImmediate_ = on; }
         bool IsClickImmediate() const { return clickImmediate_; }
+        const std::wstring& GetLastErrorText() const { return lastError_; }
 
         // 徽章：右下角小红点
         void SetBadge(Color color = Color::FromArgb(255, 220, 40, 40)) {
@@ -1093,21 +1102,88 @@ namespace ZufyUI {
                     };
                 wc.hInstance = GetModuleHandleW(nullptr);
                 wc.lpszClassName = L"ZufyUI_TrayIconWindow";
-                RegisterClassExW(&wc);
+                if (!RegisterClassExW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+                    wchar_t buf[160];
+                    swprintf(buf, 160, L"TrayIcon RegisterClassExW failed: err=%lu", GetLastError());
+                    RecordTrayError(buf);
+                    return;
+                }
                 classRegistered = true;
             }
             taskbarCreatedMsg_ = RegisterWindowMessageW(L"TaskbarCreated");
             hwnd_ = CreateWindowExW(0, L"ZufyUI_TrayIconWindow", L"", WS_POPUP,
                 0, 0, 0, 0, nullptr, nullptr, GetModuleHandleW(nullptr), this);
+            if (!hwnd_) {
+                wchar_t buf[160];
+                swprintf(buf, 160, L"TrayIcon CreateWindowExW failed: err=%lu", GetLastError());
+                RecordTrayError(buf);
+            }
+            else {
+                ChangeWindowMessageFilterEx(hwnd_, kCallbackMsg, MSGFLT_ALLOW, nullptr);
+                if (taskbarCreatedMsg_) ChangeWindowMessageFilterEx(hwnd_, taskbarCreatedMsg_, MSGFLT_ALLOW, nullptr);
+            }
+        }
+
+        bool RegisterNotificationIcon() {
+            nid_.uFlags &= ~NIF_SHOWTIP;
+            if (!Shell_NotifyIconW(NIM_ADD, &nid_)) { LogTrayFailure(L"NIM_ADD"); return false; }
+            nid_.uVersion = NOTIFYICON_VERSION_4;
+            if (Shell_NotifyIconW(NIM_SETVERSION, &nid_)) {
+                nid_.uFlags |= NIF_SHOWTIP;
+                if (!Shell_NotifyIconW(NIM_MODIFY, &nid_)) LogTrayFailure(L"NIM_MODIFY (SHOWTIP)");
+            }
+            else {
+                LogTrayFailure(L"NIM_SETVERSION");
+            }
+            return true;
+        }
+
+        void AdoptIcon(HICON h) {
+            if (ownedIcon_) DestroyIcon(ownedIcon_);
+            ownedIcon_ = h;
+        }
+
+        static bool IsProcessElevated() {
+            HANDLE token = nullptr;
+            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) return false;
+            TOKEN_ELEVATION elevation = {};
+            DWORD size = sizeof(elevation);
+            BOOL ok = GetTokenInformation(token, TokenElevation, &elevation, size, &size);
+            CloseHandle(token);
+            return ok && elevation.TokenIsElevated != 0;
+        }
+
+        void LogTrayFailure(const wchar_t* what) {
+            DWORD err = GetLastError();
+            DWORD session = 0;
+            ProcessIdToSessionId(GetCurrentProcessId(), &session);
+            wchar_t buf[320];
+            swprintf(buf, 320, L"TrayIcon %ls failed: hwnd=%p id=%u hIcon=%p flags=0x%X err=%lu session=%lu elevated=%d",
+                what, (void*)nid_.hWnd, nid_.uID, (void*)nid_.hIcon, nid_.uFlags, err, session,
+                IsProcessElevated() ? 1 : 0);
+            RecordTrayError(buf);
+        }
+
+        void RecordTrayError(const wchar_t* msg) {
+            lastError_ = msg ? msg : L"";
+            ZufyUI_DEBUG_LOG_W(lastError_.c_str());
+            detail::RecordError(L"TrayIcon", lastError_);
+            wchar_t dir[MAX_PATH] = {};
+            DWORD n = GetEnvironmentVariableW(L"LOCALAPPDATA", dir, MAX_PATH);
+            if (n == 0 || n >= MAX_PATH) return;
+            std::wstring logDir = std::wstring(dir) + L"\\ZufyUI";
+            CreateDirectoryW(logDir.c_str(), nullptr);
+            std::wstring path = logDir + L"\\tray.log";
+            FILE* fp = nullptr;
+            if (_wfopen_s(&fp, path.c_str(), L"a, ccs=UTF-8") == 0 && fp) {
+                fwprintf(fp, L"%ls\n", lastError_.c_str());
+                fclose(fp);
+            }
         }
 
         LRESULT Handle(HWND h, UINT msg, WPARAM w, LPARAM l) {
             if (msg == taskbarCreatedMsg_) {   // explorer 重启后自动重加
-                if (added_) {
-                    Shell_NotifyIconW(NIM_ADD, &nid_);
-                    nid_.uVersion = NOTIFYICON_VERSION_4;
-                    Shell_NotifyIconW(NIM_SETVERSION, &nid_);
-                }
+                if (added_) RegisterNotificationIcon();
                 return 0;
             }
             if (msg == WM_TIMER && w == kTrayClickTimer) {   // 单击延迟到双击窗口结束
@@ -1217,6 +1293,7 @@ namespace ZufyUI {
         static constexpr UINT_PTR kTrayClickTimer = 0x7F91;
         Color badgeColor_ = Color::FromArgb(255, 220, 40, 40);
         std::wstring currentTip_;
+        std::wstring lastError_;
         std::shared_ptr<Menu> menu_;
     };
 

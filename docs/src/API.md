@@ -912,6 +912,9 @@ enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bo
 Label(const std::wstring& text = L"");   // 默认空文本；不再自动显示 "Label"
 void SetText(const std::wstring&);   std::wstring GetText() const;      // 失效布局 + 重绘
 void SetTextFast(const std::wstring&);   // 仅池化 rebind：自身脏、不冒泡、不重绘
+struct LabelRun { std::wstring text; std::optional<FontSpec> font; Color color = Color(0,0,0,0); bool underline = false; };
+void SetRichText(const std::vector<LabelRun>&);  void ClearRichText();  bool HasRichText() const;
+enum class RichTextClip { None, Clip, Ellipsis };  void SetRichTextClip(RichTextClip);  RichTextClip GetRichTextClip() const;
 void SetTextColor(Color);   void SetTextOverflow(TextOverflow);
 void SetAlignment(HAlign, VAlign);   void SetPadding(const Thickness&);
 void SetBackgroundColor(Color);  void SetBackgroundCornerRadius(float);
@@ -1405,6 +1408,14 @@ class MessageBox : public Window {
 ###block_red_end
 
 ###chapter: 数据视图 | ListView、TableView、TreeView、TreeNode（虚拟化、隐藏/筛选/可见序）
+```cpp
+struct ViewLabelData { std::wstring text; std::vector<LabelRun> runs; Icon icon = Icon::None; float iconSize = 0; Color iconColor, textColor; };
+struct AsyncLabelBatch { int first = 0; std::vector<ViewLabelData> rows; };
+struct AsyncCellBatch { int first = 0; int cols = 0; std::vector<std::vector<ViewLabelData>> rows; };
+using AsyncLabelFetcher = std::function<AsyncLabelBatch(int, int, AsyncCancelToken, AsyncProgress)>;
+using AsyncCellFetcher = std::function<AsyncCellBatch(int, int, AsyncCancelToken, AsyncProgress)>;
+```
+
 
 ###block_red_start
 **易错重灾区**
@@ -1430,6 +1441,9 @@ void SetItemCount(int n);
 void SetItemProvider(int n, std::function<std::wstring(int)>);
 using AsyncRowFetcher = std::function<AsyncRowBatch(int first, int count, AsyncCancelToken, AsyncProgress)>;
 void SetAsyncItemProvider(int n, AsyncRowFetcher);  void NotifyReset(int n = -1);  void NotifyChanged(int first, int count);
+using ItemLabelProvider = std::function<void(int, Label&)>;   void SetItemLabelProvider(int n, ItemLabelProvider);
+void SetAsyncLabelProvider(int n, AsyncLabelFetcher);
+void SetRichTextClip(Label::RichTextClip);
 void SetItemHidden(int src, bool=true);   bool IsItemHidden(int src) const;   void ClearHidden();
 void SetFilter(std::function<bool(int)>);  void ClearFilter();
 void SetViewComparator(std::function<bool(int,int)>);  void SortView(bool ascending=true);  void ClearViewSort();
@@ -1462,6 +1476,9 @@ ZSignal<int,int> CellClicked, CellDoubleClicked, CurrentCellChanged, CellRightCl
 ZSignal<int> HeaderClicked;  ZSignal<std::vector<std::pair<int,int>>> SelectionChangedCells;
 void SetRowCount(int);  void SetColumnCount(int);  void AppendRow/Column(); InsertRow/Column(int); RemoveRow/Column(int);
 void SetItem(int row,int col,const std::wstring&);  std::wstring GetItemText(int r,int c) const;
+using CellLabelProvider = std::function<void(int,int, Label&)>;   void SetCellLabelProvider(int rows,int cols,CellLabelProvider);
+void SetAsyncCellLabelProvider(int rows, int cols, AsyncCellFetcher);
+void SetRichTextClip(Label::RichTextClip);
 void SetHeaderLabel(int,const std::wstring&);  void SetColumnWidth(int,float);   // 最小 40
 void SetColumnAlignment(int, TextHAlign);   void SetRowHeight(float);  void SetRowHeightAt(int,float);
 void SetColumnVisible(int,bool);
@@ -1509,10 +1526,15 @@ ZSignal<std::shared_ptr<TreeNode>> SelectionChanged, NodeClicked, ItemDoubleClic
 ZSignal<std::shared_ptr<TreeNode>,bool> ExpandChanged;   ZSignal<int> HeaderClicked;
 ZSignal<std::shared_ptr<TreeNode>, TreeNode::CheckState> ItemCheckStateChanged;
 void SetColumnCount(int);  void SetHeaderLabels(const std::vector<std::wstring>&);  void SetColumnWidth(int,float);
+using NodeLabelProvider = std::function<void(const std::shared_ptr<TreeNode>&, int, Label&)>;
+void SetNodeLabelProvider(NodeLabelProvider);   void RefreshNodeLabels();
+void SetAsyncNodeLabelProvider(AsyncCellFetcher);
+void SetRichTextClip(Label::RichTextClip);
 void SetStretchLastColumn(bool);  bool GetStretchLastColumn() const;   // v1.27.2
 std::shared_ptr<TreeNode> AddRoot(const std::wstring&);   std::shared_ptr<TreeNode> AddChild(parent, const std::wstring&);
 void RemoveNode(node);  void RemoveChildren(node);  void MoveNode(node, newParent, int index);  void Clear();
 void BeginUpdate();  void EndUpdate();                       // v1.15.0：延后 BuildVisibleList（避免 O(N^2)）
+void SetLazyLoader(std::function<void(std::shared_ptr<TreeNode>)>);   // called before expanding a node
 void SetNodeText(node,int col,const std::wstring&);   void SetNodeTooltip(node, ...);   void SetNodeIcon(node, ...);
 void ExpandNode(node,bool);  void ExpandAll();  void CollapseAll();  void ExpandToDepth(int);
 void SetDefaultExpandDepth(int);                             // 只影响之后插入的节点
