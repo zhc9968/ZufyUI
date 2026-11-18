@@ -223,23 +223,24 @@ namespace ZufyUI {
     class TitleBar : public UIElement {
     public:
         TitleBar() { height_ = 32.0f; }
+        void RefreshTitleVisual() { InvalidateCache(); RequestRepaint(); }
 
-        void SetTitle(const std::wstring& t) { title_ = t; RequestRepaint(); }
+        void SetTitle(const std::wstring& t) { title_ = t; RefreshTitleVisual(); }
         void SetWindowTitle(const std::wstring& t) override { SetTitle(t); }   // 窗口 SetTitle/SetWindowText 时同步
         const std::wstring& GetTitle() const { return title_; }
-        void SetIcon(std::shared_ptr<Image> img) { icon_ = std::move(img); RequestRepaint(); }
+        void SetIcon(std::shared_ptr<Image> img) { icon_ = std::move(img); RefreshTitleVisual(); }
         // Window::SetAppIcon 统一入口会调这里，把 HICON 转成 Image 显示在标题栏上
         void SetWindowIconFromHICON(HICON h) override { if (h) { SetShowIcon(true); SetIcon(Image::FromHICON(h)); } }
 
         // 图标上的徽章 / 进度环
-        void SetIconBadge(bool on, Color color = Color::FromArgb(255, 220, 40, 40)) { iconBadgeOn_ = on; iconBadgeColor_ = color; RequestRepaint(); }
-        void ClearIconBadge() { iconBadgeOn_ = false; RequestRepaint(); }
-        void SetIconProgress(float progress) { iconProgress_ = progress; RequestRepaint(); }   // 0~1；<0 清除
-        void ClearIconProgress() { iconProgress_ = -1.0f; RequestRepaint(); }
+        void SetIconBadge(bool on, Color color = Color::FromArgb(255, 220, 40, 40)) { iconBadgeOn_ = on; iconBadgeColor_ = color; RefreshTitleVisual(); }
+        void ClearIconBadge() { iconBadgeOn_ = false; RefreshTitleVisual(); }
+        void SetIconProgress(float progress) { iconProgress_ = progress; RefreshTitleVisual(); }   // 0~1；<0 清除
+        void ClearIconProgress() { iconProgress_ = -1.0f; RefreshTitleVisual(); }
         std::shared_ptr<Image> GetIcon() const { return icon_; }
-        void SetIconSize(float w, float h) { iconW_ = w; iconH_ = h; InvalidateLayout(); RequestRepaint(); }
-        void SetShowIcon(bool on) { showIcon_ = on; InvalidateLayout(); RequestRepaint(); }
-        void SetShowTitle(bool on) { showTitle_ = on; InvalidateLayout(); RequestRepaint(); }
+        void SetIconSize(float w, float h) { iconW_ = w; iconH_ = h; InvalidateLayout(); RefreshTitleVisual(); }
+        void SetShowIcon(bool on) { showIcon_ = on; InvalidateLayout(); RefreshTitleVisual(); }
+        void SetShowTitle(bool on) { showTitle_ = on; InvalidateLayout(); RefreshTitleVisual(); }
         void SetTitleTextVisible(bool on) override { if (showTitle_ != on) SetShowTitle(on); }   // Window 每帧可能调；未变不重排
         void OnWindowMaximizeChanged(bool) override {
             // 最大化/还原字形由 CaptionButton 在 Draw 时读 IsZoomed；但它是缓存元素，
@@ -247,16 +248,16 @@ namespace ZufyUI {
             for (auto& b : buttons_)
                 if (b && b->GetKind() == CaptionButton::Kind::MaximizeRestore) b->RequestRepaint();
         }
-        void SetContentPadding(float left, float right = 8.0f) { padLeft_ = left; padRight_ = right; InvalidateLayout(); RequestRepaint(); }
-        void SetBackgroundColor(Color c) { bgColor_ = c; RequestRepaint(); }
-        void SetActiveBackgroundColor(Color c) { activeBgColor_ = c; RequestRepaint(); }
-        void SetTitleColor(Color c) { titleColor_ = c; RequestRepaint(); }
-        void SetActiveTitleColor(Color c) { activeTitleColor_ = c; RequestRepaint(); }
-        void SetButtonWidth(float w) { userButtonWidth_ = true; buttonWidth_ = max(0.0f, w); for (auto& b : buttons_) b->SetButtonWidth(w); InvalidateLayout(); RequestRepaint(); }
-        void SetButtonHeight(float h) { userButtonHeight_ = true; buttonHeight_ = max(0.0f, h); InvalidateLayout(); RequestRepaint(); }
+        void SetContentPadding(float left, float right = 8.0f) { padLeft_ = left; padRight_ = right; InvalidateLayout(); RefreshTitleVisual(); }
+        void SetBackgroundColor(Color c) { bgColor_ = c; RefreshTitleVisual(); }
+        void SetActiveBackgroundColor(Color c) { activeBgColor_ = c; RefreshTitleVisual(); }
+        void SetTitleColor(Color c) { titleColor_ = c; RefreshTitleVisual(); }
+        void SetActiveTitleColor(Color c) { activeTitleColor_ = c; RefreshTitleVisual(); }
+        void SetButtonWidth(float w) { userButtonWidth_ = true; buttonWidth_ = max(0.0f, w); for (auto& b : buttons_) b->SetButtonWidth(w); InvalidateLayout(); RefreshTitleVisual(); }
+        void SetButtonHeight(float h) { userButtonHeight_ = true; buttonHeight_ = max(0.0f, h); InvalidateLayout(); RefreshTitleVisual(); }
         // 覆盖右边距（默认 1.0 DIP：按钮右边缘与标题栏右边缘齐平；不跟随 DWM 推算）
-        void SetRightMargin(float m) { rightMarginOverride_ = true; rightMargin_ = max(0.0f, m); InvalidateLayout(); RequestRepaint(); }
-        void ClearRightMargin() { rightMarginOverride_ = false; InvalidateLayout(); RequestRepaint(); }
+        void SetRightMargin(float m) { rightMarginOverride_ = true; rightMargin_ = max(0.0f, m); InvalidateLayout(); RefreshTitleVisual(); }
+        void ClearRightMargin() { rightMarginOverride_ = false; InvalidateLayout(); RefreshTitleVisual(); }
 
         bool IsFocusable() const override { return false; }   // 不参与 Tab 焦点
         bool UseCache() const override { return true; }
@@ -266,8 +267,8 @@ namespace ZufyUI {
             for (auto& b : buttons_) b->AttachWindowRecursive(w);
             if (w && !connected_) {
                 connected_ = true;
-                Connect(w->Activated, [this]() { active_ = true; RequestRepaint(); });
-                Connect(w->Deactivated, [this]() { active_ = false; RequestRepaint(); });
+                Connect(w->Activated, [this]() { active_ = true; RefreshTitleVisual(); });
+                Connect(w->Deactivated, [this]() { active_ = false; RefreshTitleVisual(); });
             }
         }
 
@@ -333,7 +334,7 @@ namespace ZufyUI {
         void SetButtonsEnabled(bool on) {
             buttonsEnabled_ = on;
             for (auto& b : buttons_) b->SetEnabled(on);
-            RequestRepaint();
+            RefreshTitleVisual();
         }
         bool AreButtonsEnabled() const { return buttonsEnabled_; }
 
@@ -345,7 +346,7 @@ namespace ZufyUI {
         // 单独禁用/启用某个按钮：置灰、不响应鼠标、不报告系统按钮码
         void SetButtonEnabled(CaptionButton::Kind k, bool on) {
             if (auto b = GetButton(k)) b->SetEnabled(on);
-            RequestRepaint();
+            RefreshTitleVisual();
         }
         bool IsButtonEnabled(CaptionButton::Kind k) const {
             auto b = GetButton(k);
@@ -353,7 +354,7 @@ namespace ZufyUI {
         }
         // 单独显示/隐藏某个按钮：隐藏后不再占位（布局自动重排）
         void SetButtonVisible(CaptionButton::Kind k, bool on) {
-            if (auto b = GetButton(k)) { b->SetVisible(on); InvalidateLayout(); RequestRepaint(); }
+            if (auto b = GetButton(k)) { b->SetVisible(on); InvalidateLayout(); RefreshTitleVisual(); }
         }
         bool IsButtonVisible(CaptionButton::Kind k) const {
             auto b = GetButton(k);
@@ -366,7 +367,7 @@ namespace ZufyUI {
             b->SetButtonWidth(buttonWidth_);
             b->SetParent(this);
             buttons_.insert(buttons_.begin(), std::move(b));
-            InvalidateLayout(); RequestRepaint();
+            InvalidateLayout(); RefreshTitleVisual();
         }
 
         bool HasActiveAnimation() const override {
@@ -480,7 +481,7 @@ namespace ZufyUI {
             b->SetParent(this);
             buttons_.push_back(std::move(b));
             InvalidateLayout();
-            RequestRepaint();
+            RefreshTitleVisual();
         }
 
         std::wstring title_;
@@ -1670,8 +1671,8 @@ namespace ZufyUI {
 
         // UIA 的 provider 方法会在 COM/RPC 线程调用；context、缓存、elem_ 都必须与 UI 线程串行访问。
         inline std::recursive_mutex& UiaMutex() {
-            static std::recursive_mutex m;
-            return m;
+            static std::recursive_mutex* m = new std::recursive_mutex();
+            return *m;
         }
 
         struct UiaWindowContext {
@@ -1681,7 +1682,8 @@ namespace ZufyUI {
         };
         using UiaContextPtr = std::shared_ptr<UiaWindowContext>;
         inline std::unordered_map<Window*, UiaContextPtr>& UiaContexts() {
-            static std::unordered_map<Window*, UiaContextPtr> m; return m;
+            static auto* m = new std::unordered_map<Window*, UiaContextPtr>();
+            return *m;
         }
 
         class ZufyUIElementProvider : public IRawElementProviderSimple,

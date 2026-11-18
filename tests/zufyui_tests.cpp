@@ -1830,6 +1830,49 @@ static void test_api_feedback() {
         card.SetContent(L"Title", L"Description", action);
         CHECK(card.GetContent() != nullptr);
     }
+
+    {
+        ListView lv;
+        lv.SetItemCount(5);
+        lv.SetCheckable(true);
+        lv.SetMarqueeCheckSync(true);
+        lv.SetSelectionMode(ListView::SelectionMode::Multi);
+        lv.SetSelectedIndex(1);
+        CHECK(lv.GetCheckedIndices() == std::vector<int>{ 1 });
+        lv.SetSelectedIndex(2);
+        CHECK(lv.GetCheckedIndices() == std::vector<int>{ 2 });
+        lv.SelectAll();
+        CHECK(lv.GetCheckedIndices().size() == 5);
+        lv.ClearSelection();
+        CHECK(lv.GetCheckedIndices().empty());
+    }
+
+    {
+        TableView tv;
+        tv.SetRowCount(5);
+        tv.SetColumnCount(2);
+        tv.SetCheckable(true);
+        tv.SetMarqueeCheckSync(true);
+        tv.SetSelectionMode(TableView::SelectionMode::Row);
+        tv.SelectRow(1);
+        CHECK(tv.GetCheckedRows() == std::vector<int>{ 1 });
+        tv.SelectAll();
+        CHECK(tv.GetCheckedRows().size() == 5);
+        tv.ClearSelection();
+        CHECK(tv.GetCheckedRows().empty());
+    }
+
+    {
+        TreeView tv;
+        tv.AddRoot(L"a");
+        auto b = tv.AddRoot(L"b");
+        tv.SetCheckable(true);
+        tv.SetMarqueeCheckSync(true);
+        tv.SetSelectedNode(b);
+        CHECK(tv.GetNodeCheckState(b) == TreeNode::CheckState::Checked);
+        tv.ClearSelection();
+        CHECK(tv.GetNodeCheckState(b) == TreeNode::CheckState::Unchecked);
+    }
 }
 
 static void test_layout_rfc() {

@@ -382,6 +382,7 @@ namespace ZufyUI {
         }
         void ClearMultiSelection() { ClearSelection(); }
         void ClearSelection() {
+            auto previous = CurrentSelectionSourceSet();
             const bool changed = selectedIndex_ >= 0 || !multiSel_.empty();
             multiSel_.clear();
             selectedIndex_ = -1;
@@ -391,15 +392,19 @@ namespace ZufyUI {
                 UpdateIndicatorTarget();
                 RequestRepaint();
             }
+            SyncChecksWithSelection(previous);
         }
         void SelectAll() {
             if (selectionMode_ == SelectionMode::Single) return;
+            auto previous = CurrentSelectionSourceSet();
             for (int i = 0; i < GetItemCount(); ++i) multiSel_.insert(i);
             EmitMultiSelection();
+            SyncChecksWithSelection(previous);
             RequestRepaint();
         }
         void ToggleIndexSelection(int index) {
             if (index < 0 || index >= GetItemCount()) return;
+            auto previous = CurrentSelectionSourceSet();
             if (multiSel_.count(index)) {
                 multiSel_.erase(index);
                 if (selectedIndex_ == index) selectedIndex_ = -1;
@@ -411,6 +416,7 @@ namespace ZufyUI {
             SelectionChanged(selectedIndex_);
             EmitMultiSelection();
             RequestRepaint();
+            SyncChecksWithSelection(previous);
         }
 
         void SetEmptyText(const std::wstring& text) { emptyText_ = text; RequestRepaint(); }
@@ -461,8 +467,27 @@ namespace ZufyUI {
         void SetCheckMarkColor(Color c) { checkMarkColor_ = c.ToD2D(); RequestRepaint(); }
 
         // 选择
+        std::unordered_set<int> CurrentSelectionSourceSet() const {
+            std::unordered_set<int> selected = multiSel_;
+            if (selectedIndex_ >= 0) selected.insert(selectedIndex_);
+            return selected;
+        }
+        void SyncChecksWithSelection(const std::unordered_set<int>& previous) {
+            if (!marqueeCheckSync_ || !itemsCheckable_) return;
+            std::unordered_set<int> now = CurrentSelectionSourceSet();
+            std::unordered_set<int> affected = previous;
+            affected.insert(now.begin(), now.end());
+            for (int src : affected) {
+                bool want = now.count(src) > 0;
+                bool has = checked_.count(src) > 0;
+                if (want == has) continue;
+                if (want) checked_.insert(src); else checked_.erase(src);
+                ItemCheckStateChanged(src, want);
+            }
+        }
         void SetSelectedIndex(int index) {
             if (index < -1 || index >= GetItemCount()) return;
+            auto previous = CurrentSelectionSourceSet();
             multiSel_.clear();
             if (selectedIndex_ != index) {
                 selectedIndex_ = index;
@@ -476,6 +501,7 @@ namespace ZufyUI {
             else {
                 EmitMultiSelection();
             }
+            SyncChecksWithSelection(previous);
         }
         int GetSelectedIndex() const { return selectedIndex_; }
         std::wstring GetSelectedText() const { return GetItemText(selectedIndex_); }
@@ -1046,6 +1072,7 @@ namespace ZufyUI {
                 lastClickIndex_ = idx;
                 bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
                 bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+                auto previousSelection = CurrentSelectionSourceSet();
                 if (selectionMode_ == SelectionMode::Single) {
                     SetSelectedIndex(idx);
                 }
@@ -1074,6 +1101,7 @@ namespace ZufyUI {
                         SetSelectedIndex(idx);
                     }
                 }
+                SyncChecksWithSelection(previousSelection);
                 ItemClicked(idx);
                 if (isDouble) ItemDoubleClicked(idx);
             }
@@ -2087,6 +2115,7 @@ namespace ZufyUI {
         void SelectRow(int row) { SetSelectionMode(SelectionMode::Row); SetCurrentCell(row, 0); }
         void SelectColumn(int col) { SetSelectionMode(SelectionMode::Column); SetCurrentCell(0, col); }
         void SelectAll() {
+            auto previousRows = CurrentSelectedRows();
             if (selectionMode_ == SelectionMode::None || rowCount_ <= 0 || colCount_ <= 0) return;
             cellSel_.clear();
             for (int r = 0; r < rowCount_; ++r)
@@ -2095,10 +2124,12 @@ namespace ZufyUI {
             SelectionChanged(-1, -1);
             CurrentCellChanged(-1, -1);
             SelectionChangedCells(GetSelectedCells());
+            SyncCheckedRowsWithSelection(previousRows);
             UpdateIndicatorTarget();
             RequestRepaint();
         }
         void ClearSelection() {
+            auto previousRows = CurrentSelectedRows();
             const bool changed = selectedRow_ >= 0 || selectedCol_ >= 0 || !cellSel_.empty();
             selectedRow_ = -1; selectedCol_ = -1; cellSel_.clear();
             if (changed) {
@@ -2107,6 +2138,7 @@ namespace ZufyUI {
                 SelectionChangedCells({});
                 UpdateIndicatorTarget();
                 RequestRepaint();
+                SyncCheckedRowsWithSelection(previousRows);
             }
         }
         void ScrollToCell(int row, int col) { EnsureVisible(row, col); RequestRepaint(); }
@@ -2315,7 +2347,29 @@ namespace ZufyUI {
         void SetCheckBoxColor(Color c) { checkBoxColor_ = c.ToD2D(); RequestRepaint(); }
         void SetCheckMarkColor(Color c) { checkMarkColor_ = c.ToD2D(); RequestRepaint(); }
 
+        std::unordered_set<int> CurrentSelectedRows() const {
+            std::unordered_set<int> rows;
+            if (!cellSel_.empty()) {
+                for (long long key : cellSel_) rows.insert(CellKeyRow(key));
+            }
+            else if (selectedRow_ >= 0) rows.insert(selectedRow_);
+            return rows;
+        }
+        void SyncCheckedRowsWithSelection(const std::unordered_set<int>& previous) {
+            if (!marqueeCheckSync_ || !itemsCheckable_) return;
+            std::unordered_set<int> now = CurrentSelectedRows();
+            std::unordered_set<int> affected = previous;
+            affected.insert(now.begin(), now.end());
+            for (int row : affected) {
+                bool want = now.count(row) > 0;
+                bool has = checkedRows_.count(row) > 0;
+                if (want == has) continue;
+                if (want) checkedRows_.insert(row); else checkedRows_.erase(row);
+                ItemCheckStateChanged(row, want);
+            }
+        }
         void SetCurrentCell(int row, int col) {
+            auto previousRows = CurrentSelectedRows();
             if (row < -1 || row >= rowCount_ || col < -1 || col >= colCount_) return;
             if (selectionMode_ == SelectionMode::None) return;
             if (row == -1 || col == -1) { row = -1; col = -1; }   // 清除态统一，避免 row=-1 而 col 被强制成 0
@@ -2334,6 +2388,7 @@ namespace ZufyUI {
                 InvalidateLayout();
                 RequestRepaint();
             }
+            SyncCheckedRowsWithSelection(previousRows);
         }
         int GetCurrentRow() const { return selectedRow_; }
         int GetCurrentColumn() const { return selectedCol_; }
@@ -4001,7 +4056,34 @@ namespace ZufyUI {
         }
 
         // ---------- 选择 ----------
+        std::unordered_set<TreeNode*> CurrentSelectedNodeSet() const {
+            std::unordered_set<TreeNode*> out;
+            std::function<void(const std::shared_ptr<TreeNode>&)> collect = [&](const std::shared_ptr<TreeNode>& n) {
+                if (!n) return;
+                if (n->selected) out.insert(n.get());
+                for (auto& c : n->children) collect(c);
+            };
+            for (auto& r : roots_) collect(r);
+            return out;
+        }
+        void SyncNodeChecksWithSelection(const std::unordered_set<TreeNode*>& previous) {
+            if (!marqueeCheckSync_) return;
+            std::unordered_set<TreeNode*> now = CurrentSelectedNodeSet();
+            std::unordered_set<TreeNode*> affected = previous;
+            affected.insert(now.begin(), now.end());
+            for (TreeNode* raw : affected) {
+                if (!raw || !raw->checkable) continue;
+                bool want = now.count(raw) > 0;
+                auto st = want ? TreeNode::CheckState::Checked : TreeNode::CheckState::Unchecked;
+                if (raw->checkState == st) continue;
+                raw->checkState = st;
+                EnsureCheckAnim(FindNode(raw));
+                if (auto sp = FindNode(raw)) ItemCheckStateChanged(sp, st);
+                UpdateParentCheckState(FindNode(raw));
+            }
+        }
         void SetSelectedNode(std::shared_ptr<TreeNode> node) {
+            auto previous = CurrentSelectedNodeSet();
             if (selectionMode_ == SelectionMode::Single) {
                 if (selectedNode_ != node) {
                     for (auto& r : roots_) SetSelectedRecursive(r, false);
@@ -4026,6 +4108,7 @@ namespace ZufyUI {
                 InvalidateLayout();
                 RequestRepaint();
             }
+            SyncNodeChecksWithSelection(previous);
         }
         std::shared_ptr<TreeNode> GetSelectedNode() const { return selectedNode_; }
 
@@ -4037,6 +4120,7 @@ namespace ZufyUI {
         SelectionMode GetSelectionMode() const { return selectionMode_; }
 
         void ClearSelection() {
+            auto previous = CurrentSelectedNodeSet();
             for (auto& r : roots_) SetSelectedRecursive(r, false);
             selectedNode_ = nullptr;
             SelectionChanged(nullptr);
@@ -4044,6 +4128,7 @@ namespace ZufyUI {
             UpdateIndicatorTarget();
             InvalidateLayout();
             RequestRepaint();
+            SyncNodeChecksWithSelection(previous);
         }
         bool IsNodeSelected(std::shared_ptr<TreeNode> node) const { return node && node->selected; }
         std::vector<std::shared_ptr<TreeNode>> GetSelectedNodes() const {
@@ -4077,17 +4162,21 @@ namespace ZufyUI {
         }
         int GetSelectedCount() const { return (int)GetSelectedNodes().size(); }
         void SelectAll() {
+            auto previous = CurrentSelectedNodeSet();
             if (selectionMode_ == SelectionMode::Single) return;
             for (auto& r : roots_) SetSelectedRecursive(r, true);
             EmitMultiSelection();
+            SyncNodeChecksWithSelection(previous);
             InvalidateLayout();
             RequestRepaint();
         }
         void ToggleNodeSelection(std::shared_ptr<TreeNode> node) {
+            auto previous = CurrentSelectedNodeSet();
             if (!node) return;
             node->selected = !node->selected;
             selectedNode_ = node;
             EmitMultiSelection();
+            SyncNodeChecksWithSelection(previous);
             RequestRepaint();
         }
 
@@ -5014,6 +5103,7 @@ namespace ZufyUI {
 
                 bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
                 bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+                auto previousSelection = CurrentSelectedNodeSet();
                 if (selectionMode_ == SelectionMode::Single) {
                     SetSelectedNode(nodeAt);
                 }
@@ -5042,6 +5132,7 @@ namespace ZufyUI {
                     }
                 }
 
+                SyncNodeChecksWithSelection(previousSelection);
                 NodeClicked(nodeAt);
                 if (isDouble) ItemDoubleClicked(nodeAt);
             }

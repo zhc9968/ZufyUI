@@ -2101,6 +2101,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 控件可重写此方法声明不使用离屏缓存（如动画频繁的控件）
         virtual bool UseCache() const { return useCache_; }
         void SetUseCache(bool use) { if (useCache_ && !use) { cacheBitmap_.Reset(); cacheValid_ = false; } useCache_ = use; }
+        void InvalidateCache() { cacheBitmap_.Reset(); cacheValid_ = false; }
 
         // 获取元素需要应用于其子元素的裁剪矩形，返回 std::nullopt 表示不裁剪
         virtual std::optional<D2D1_RECT_F> GetClipRect() const {
@@ -8348,8 +8349,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         // 注意：函数内 static 的析构顺序取决于首次进入点；若在 AppCore 析构之后才清空最后一个 standalone 菜单会有顺序风险。
         static std::shared_ptr<MenuWindow>& StandaloneHolder() {
-            static std::shared_ptr<MenuWindow> s;
-            return s;
+            static auto* s = new std::shared_ptr<MenuWindow>();
+            return *s;
         }
 
         bool OnMenuKeyDown(int vk) override {
