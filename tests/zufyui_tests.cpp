@@ -1774,6 +1774,64 @@ public:
     void Draw(ID2D1RenderTarget*) override {}
 };
 
+static void test_api_feedback() {
+    std::printf("API feedback: self-delete / incremental / ids / Card\n");
+
+    {
+        auto button = std::make_shared<Button>(L"self-delete");
+        Button* raw = button.get();
+        button->Clicked.connect([&button]() { button.reset(); });
+        raw->OnMouseDown(1.0f, 1.0f);
+        raw->OnMouseUp(1.0f, 1.0f);
+        CHECK(button == nullptr);
+    }
+
+    {
+        ColumnBox col;
+        auto a = std::make_shared<Label>(L"a");
+        auto b = std::make_shared<Label>(L"b");
+        col.AddChild(a);
+        col.AddChild(b);
+        col.RemoveChild(a);
+        CHECK(a->GetParent() == nullptr);
+        CHECK(b->GetParent() == &col);
+        col.InsertChild(0, a);
+        CHECK(a->GetParent() == &col);
+        col.RemoveChildAt(0);
+        CHECK(a->GetParent() == nullptr);
+    }
+
+    {
+        TableView tv;
+        tv.BeginUpdate();
+        tv.SetRowCount(4);
+        tv.SetColumnCount(2);
+        tv.SetItem(1, 1, L"updated");
+        tv.EndUpdate();
+        CHECK(tv.GetRowCount() == 4);
+        CHECK(tv.GetItemText(1, 1) == L"updated");
+    }
+
+    {
+        TabView tv;
+        int first = tv.AddTab(L"first", nullptr, true, 101);
+        int second = tv.AddTab(L"second", nullptr, true, 202);
+        CHECK(first == 0 && second == 1);
+        CHECK(tv.FindTabById(202) == 1);
+        CHECK(tv.GetTabId(0) == 101);
+        CHECK(tv.RemoveTabById(101));
+        CHECK(tv.GetTabCount() == 1);
+        CHECK(tv.FindTabById(101) == -1);
+    }
+
+    {
+        Card card;
+        auto action = std::make_shared<Button>(L"action");
+        card.SetContent(L"Title", L"Description", action);
+        CHECK(card.GetContent() != nullptr);
+    }
+}
+
 static void test_layout_rfc() {
     std::printf("布局 RFC：轨道 / 对齐 / justify\n");
 
@@ -2630,6 +2688,7 @@ int main() {
     test_animation_primitives();
     test_button_animations();
     test_drawer();
+    test_api_feedback();
     test_layout_rfc();
     test_backdrop_defaults();
     test_signal_lifetime();

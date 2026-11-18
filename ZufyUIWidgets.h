@@ -797,6 +797,24 @@ namespace ZufyUI {
     };
 
     // ---------- 按钮（内部使用 Label 渲染文本） ----------
+    inline void Card::SetContent(const std::wstring& title, const std::wstring& description, std::shared_ptr<UIElement> action) {
+        auto col = std::make_shared<ColumnBox>();
+        col->SetSpacing(6.0f);
+        if (!title.empty()) {
+            auto titleLabel = std::make_shared<Label>(title);
+            titleLabel->SetFontWeight(DWRITE_FONT_WEIGHT_SEMI_BOLD);
+            col->AddChild(titleLabel);
+        }
+        if (!description.empty()) {
+            auto desc = std::make_shared<Label>(description);
+            desc->SetTextOverflow(Label::TextOverflow::Wrap);
+            desc->SetTextColor(ThemeManager::AppTheme().Get(ThemeRole::TextSecondary));
+            col->AddChild(desc);
+        }
+        if (action) col->AddChild(action);
+        SetLayout(col);
+    }
+
     class Button : public UIElement {
     public:
         AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Button; }
@@ -1112,7 +1130,9 @@ namespace ZufyUI {
             }
             if (isPressed_ && !dragMoved_) {   // 拖动过就不再触发点击
                 if (checkable_) SetChecked(!checked_);
+                auto life = lifetime_;
                 Clicked();                     // 按钮点击始终回调
+                if (!life->alive.load(std::memory_order_acquire)) return;
                 if (dropOpenOnClick_ && dropMenu_) ShowDropMenu();
             }
             isPressed_ = false; dragArm_ = false;
@@ -1135,7 +1155,9 @@ namespace ZufyUI {
             if (!IsEffectivelyEnabled()) return;
             if ((key == VK_SPACE || key == VK_RETURN) && isPressed_) {
                 if (checkable_) SetChecked(!checked_);
+                auto life = lifetime_;
                 Clicked();
+                if (!life->alive.load(std::memory_order_acquire)) return;
                 if (dropOpenOnClick_ && dropMenu_) ShowDropMenu();
                 isPressed_ = false;
                 RequestRepaint();
@@ -5153,6 +5175,7 @@ namespace ZufyUI {
             std::shared_ptr<Label> label; // 页签标题就是一个 Label（自带图标、整体对齐等）
             std::shared_ptr<Page> page;   // 内容用 Page 承载（复用 PageHost 的过渡动画）
             bool closable = false;
+            int id = -1;
             float x = 0.0f;               // 动画中的当前左坐标（关闭/增删时平滑移动）
             bool  xInit = false;
         };
@@ -5225,14 +5248,14 @@ namespace ZufyUI {
             l->SetAlignment(Label::HAlign::Center, Label::VAlign::Center);
             return l;
         }
-        int AddTab(const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
-            return AddTab(MakeTabLabel(title), content, closable);
+        int AddTab(const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false, int id = -1) {
+            return AddTab(MakeTabLabel(title), content, closable, id);
         }
-        int AddTab(std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
+        int AddTab(std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false, int id = -1) {
             auto _rg = RenderGuard();
             if (!label) label = MakeTabLabel(L"");
             label->SetParent(this);
-            Tab t; t.label = label; t.page = MakePage(content); t.closable = closable;
+            Tab t; t.label = label; t.page = MakePage(content); t.closable = closable; t.id = id;
             tabs_.push_back(std::move(t));
             int idx = (int)tabs_.size() - 1;
             if (contentHost_) contentHost_->AddPage(tabs_[idx].page);
@@ -5242,16 +5265,16 @@ namespace ZufyUI {
             if (selectedIndex_ != oldSel) SelectionChanged(selectedIndex_);   // 首个页签自动选中也要通知
             return idx;
         }
-        void InsertTab(int index, const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
-            InsertTab(index, MakeTabLabel(title), content, closable);
+        void InsertTab(int index, const std::wstring& title, std::shared_ptr<UIElement> content = nullptr, bool closable = false, int id = -1) {
+            InsertTab(index, MakeTabLabel(title), content, closable, id);
         }
-        void InsertTab(int index, std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false) {
+        void InsertTab(int index, std::shared_ptr<Label> label, std::shared_ptr<UIElement> content = nullptr, bool closable = false, int id = -1) {
             auto _rg = RenderGuard();
             if (index < 0) index = 0;
             if (index > (int)tabs_.size()) index = (int)tabs_.size();
             if (!label) label = MakeTabLabel(L"");
             label->SetParent(this);
-            Tab t; t.label = label; t.page = MakePage(content); t.closable = closable;
+            Tab t; t.label = label; t.page = MakePage(content); t.closable = closable; t.id = id;
             tabs_.insert(tabs_.begin() + index, std::move(t));
             int oldSel = selectedIndex_;
             if (selectedIndex_ < 0) selectedIndex_ = 0;
@@ -5290,6 +5313,22 @@ namespace ZufyUI {
             if (selectedIndex_ != oldSel) SelectionChanged(selectedIndex_);
         }
         int GetTabCount() const { return (int)tabs_.size(); }
+        int FindTabById(int id) const {
+            for (int i = 0; i < (int)tabs_.size(); ++i) if (tabs_[i].id == id) return i;
+            return -1;
+        }
+        int GetTabId(int index) const {
+            return (index >= 0 && index < (int)tabs_.size()) ? tabs_[index].id : -1;
+        }
+        void SetTabId(int index, int id) {
+            if (index >= 0 && index < (int)tabs_.size()) tabs_[index].id = id;
+        }
+        bool RemoveTabById(int id) {
+            int index = FindTabById(id);
+            if (index < 0) return false;
+            RemoveTab(index);
+            return true;
+        }
         void SetTabTitle(int index, const std::wstring& title) {
             auto _rg = RenderGuard();
             if (index < 0 || index >= (int)tabs_.size()) return;

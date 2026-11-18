@@ -1292,8 +1292,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                     auto child = stressTree->AddChild(node, L"L" + std::to_wstring(node->depth + 1) + L"." + std::to_wstring(c));
                     child->userData = (void*)1;
                     child->tooltip = L"L" + std::to_wstring(node->depth + 1) + L"." + std::to_wstring(c);
-                    auto placeholder = stressTree->AddChild(child, L"...");
-                    placeholder->userData = (void*)3;
+                    stressTree->SetNodeHasChildren(child, node->depth + 1 < 4);
                 }
             }
             stressTree->EndBatch();
@@ -1305,8 +1304,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 auto root = stressTree->AddRoot(L"root " + std::to_wstring(i));
                 root->userData = (void*)1;
                 root->tooltip = L"root " + std::to_wstring(i);
-                auto placeholder = stressTree->AddChild(root, L"...");
-                placeholder->userData = (void*)3;
+                stressTree->SetNodeHasChildren(root, true);
             }
             stressTree->EndBatch();
         };

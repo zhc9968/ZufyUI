@@ -601,8 +601,8 @@ class Layout : public UIElement { bool UseCache() const override { return false;
 enum class LayoutAlignment { Start, Center, End, Stretch };
 enum class Justify { Start, Center, End, SpaceBetween, SpaceAround };
 ColumnBox(); RowBox();
-void AddChild(std::shared_ptr<UIElement>);
-void ClearChildren();
+void AddChild(std::shared_ptr<UIElement>);  void ClearChildren();
+void RemoveChild(std::shared_ptr<UIElement>);  void RemoveChildAt(int);  void InsertChild(int, std::shared_ptr<UIElement>);
 void SetSpacing(float);
 void SetJustify(Justify);              // 主轴：Start/Center/End/SpaceBetween/SpaceAround
 void SetCrossAlign(LayoutAlignment);   // 交叉轴，默认 Stretch（兼容旧行为）
@@ -645,6 +645,7 @@ class LayoutHost : public UIElement {
     void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // 默认 Stretch
 };
 class Card  : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
+void SetContent(const std::wstring& title, const std::wstring& description, std::shared_ptr<UIElement> action=nullptr);
 class Page  : public LayoutHost { DefaultPadding=10; ... };
 void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // 一行套 ScrollViewer(fill)+8px 边距
 ```
@@ -1293,8 +1294,8 @@ void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgre
 ```cpp
 struct Tab { std::shared_ptr<Label> label; std::shared_ptr<Page> page; bool closable; ... };
 ZSignal<int> SelectionChanged;   ZSignal<int> TabCloseRequested;
-int  AddTab(const std::wstring&, std::shared_ptr<UIElement> content=nullptr, bool closable=false);
-int  AddTab(std::shared_ptr<Label>, ...);
+int  AddTab(const std::wstring&, std::shared_ptr<UIElement> content=nullptr, bool closable=false, int id=-1);
+int  AddTab(std::shared_ptr<Label>, ...);  int FindTabById(int) const;  int GetTabId(int) const;  bool RemoveTabById(int);
 void InsertTab(int, ...);  void RemoveTab(int);  void ClearTabs();
 void SetTabTitle(int, ...);  void SetTabLabel(int, std::shared_ptr<Label>);  void SetTabContent(int, ...);
 void SetSelectedIndex(int);  int GetSelectedIndex() const;
@@ -1474,7 +1475,7 @@ enum class SelectionMode { Cell, Row, Column, None };
 static long long CellKey(int r,int c); static int CellKeyRow(long long); static int CellKeyCol(long long);
 ZSignal<int,int> CellClicked, CellDoubleClicked, CurrentCellChanged, CellRightClicked;
 ZSignal<int> HeaderClicked;  ZSignal<std::vector<std::pair<int,int>>> SelectionChangedCells;
-void SetRowCount(int);  void SetColumnCount(int);  void AppendRow/Column(); InsertRow/Column(int); RemoveRow/Column(int);
+void SetRowCount(int);  void SetColumnCount(int);  void BeginUpdate();  void EndUpdate();  void AppendRow/Column(); InsertRow/Column(int); RemoveRow/Column(int);
 void SetItem(int row,int col,const std::wstring&);  std::wstring GetItemText(int r,int c) const;
 using CellLabelProvider = std::function<void(int,int, Label&)>;   void SetCellLabelProvider(int rows,int cols,CellLabelProvider);
 void SetAsyncCellLabelProvider(int rows, int cols, AsyncCellFetcher);
@@ -1506,6 +1507,7 @@ std::vector<std::shared_ptr<Label>> columns;   // 每列一个真实 Label；col
 std::weak_ptr<TreeNode> parent;                // 弱引用！用 .lock()
 std::vector<std::shared_ptr<TreeNode>> children;
 bool expanded;  int depth;  void* userData;
+bool hasChildren;  bool hasChildrenHinted;
 std::wstring icon;  bool checkable;  CheckState checkState;  bool selected;  bool enabled;
 std::wstring tooltip;   Color bgColor = Color(0,0,0,0);   // 行背景，v1.17.0
 ```
@@ -1535,7 +1537,7 @@ std::shared_ptr<TreeNode> AddRoot(const std::wstring&);   std::shared_ptr<TreeNo
 void RemoveNode(node);  void RemoveChildren(node);  void MoveNode(node, newParent, int index);  void Clear();
 void BeginUpdate();  void EndUpdate();                       // v1.15.0：延后 BuildVisibleList（避免 O(N^2)）
 void SetLazyLoader(std::function<void(std::shared_ptr<TreeNode>)>);   // called before expanding a node
-void SetNodeText(node,int col,const std::wstring&);   void SetNodeTooltip(node, ...);   void SetNodeIcon(node, ...);
+void SetNodeText(node,int col,const std::wstring&);   void SetNodeTooltip(node, ...);   void SetNodeIcon(node, ...);   void SetNodeHasChildren(node, bool);
 void ExpandNode(node,bool);  void ExpandAll();  void CollapseAll();  void ExpandToDepth(int);
 void SetDefaultExpandDepth(int);                             // 只影响之后插入的节点
 void SetFilter(std::function<bool(const std::shared_ptr<TreeNode>&)>);   void Search(const std::wstring&);

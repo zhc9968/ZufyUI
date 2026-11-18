@@ -1852,6 +1852,16 @@ namespace ZufyUI {
         }
 
         // 数据模型
+        void BeginUpdate() { ++updateDepth_; }
+        void EndUpdate() {
+            if (updateDepth_ > 0 && --updateDepth_ == 0) {
+                childrenDirty_ = true;
+                lastChildrenSig_ = ~0ull;
+                UpdateScrollInfo();
+                InvalidateLayout();
+                RequestRepaint();
+            }
+        }
         void SetRowCount(int rows) {
             auto _rg = RenderGuard();
             rows = max(0, rows);
@@ -3512,6 +3522,7 @@ namespace ZufyUI {
         }
 
         int rowCount_, colCount_;
+        int updateDepth_ = 0;
         std::unordered_set<int> disabledRows_;
         std::unordered_set<int> hiddenColumns_;
         std::unordered_map<int, TextHAlign> columnAlign_;
@@ -3630,6 +3641,8 @@ namespace ZufyUI {
 
         // ---- 扩展字段 ----
         std::wstring icon;                                  // 第一列前置图标（一个字符或 emoji，可空）
+        bool hasChildren = false;
+        bool hasChildrenHinted = false;
         bool checkable = false;                             // 是否显示勾选框
         CheckState checkState = CheckState::Unchecked;      // 勾选状态（支持三态）
         bool selected = false;                              // 多选模式下的选中标记
@@ -3803,7 +3816,11 @@ namespace ZufyUI {
         }
         void BeginBatch() { BeginUpdate(); }
         void EndBatch() { EndUpdate(); }
-        void SetLazyLoader(std::function<void(std::shared_ptr<TreeNode>)> loader) { lazyLoader_ = std::move(loader); }
+        void SetLazyLoader(std::function<void(std::shared_ptr<TreeNode>)> loader) {
+            lazyLoader_ = std::move(loader);
+            InvalidateLayout();
+            RequestRepaint();
+        }
         using NodeLabelProvider = std::function<void(const std::shared_ptr<TreeNode>&, int, Label&)>;
         void SetRichTextClip(Label::RichTextClip mode) {
             richClip_ = mode;
@@ -4326,6 +4343,13 @@ namespace ZufyUI {
         // 手工设置排序指示（实际排序请用 SortChildren 或外部排序）
         void SetSortIndicator(int col, bool ascending) { sortColumn_ = col; sortAscending_ = ascending; RequestRepaint(); }
         void ClearSortIndicator() { sortColumn_ = -1; RequestRepaint(); }
+        void SetNodeHasChildren(std::shared_ptr<TreeNode> node, bool hasChildren) {
+            if (!node) return;
+            node->hasChildren = hasChildren;
+            node->hasChildrenHinted = true;
+            InvalidateLayout();
+            RequestRepaint();
+        }
         void SetNodeIcon(std::shared_ptr<TreeNode> node, const std::wstring& icon) { if (node) { node->icon = icon; RequestRepaint(); } }
         // 便捷：按列写/读文本（列槽不存在或为空时自动创建 Label；列数不足自动补齐到 columnCount_）
         void SetNodeText(std::shared_ptr<TreeNode> node, int col, const std::wstring& text) {
@@ -4957,7 +4981,7 @@ namespace ZufyUI {
             auto nodeAt = (idx >= 0 && idx < (int)visibleNodes_.size()) ? visibleNodes_[idx] : nullptr;
             if (nodeAt) {
                 // 命中区与 Draw 的箭头可见条件一致：根节点在 rootDecorated_=false 时不显示箭头，也不响应点击
-                if (!nodeAt->children.empty() && (nodeAt->depth > 0 || rootDecorated_)) {
+                if (HasChildren(nodeAt) && (nodeAt->depth > 0 || rootDecorated_)) {
                     float indentX = GetNodeTextStartX(nodeAt);
                     if (x >= indentX - kNodeBaseIndent && x <= indentX) { ToggleNode(nodeAt); return; }
                 }
@@ -5082,7 +5106,7 @@ namespace ZufyUI {
                 SetSelectedNode(visibleNodes_[idx >= (int)visibleNodes_.size() - 1 ? 0 : idx + 1]);
                 break;
             case VK_RIGHT:
-                if (selectedNode_ && !selectedNode_->children.empty() && !selectedNode_->expanded)
+                if (selectedNode_ && HasChildren(selectedNode_) && !selectedNode_->expanded)
                     ExpandNode(selectedNode_, true);
                 break;
             case VK_LEFT:
@@ -5430,10 +5454,16 @@ namespace ZufyUI {
         // 首列装饰（三角/勾选/图标）布局：空间不足时依次隐藏 图标 → 勾选 → 三角，保证文本有最小显示宽度。
         // Draw 与 RefreshChildren 共用，保证文字起点一致。
         struct FirstColDecor { bool triangle = false; bool check = false; bool icon = false; float textLeft = 0.0f; };
+        bool HasChildren(const std::shared_ptr<TreeNode>& node) const {
+            if (!node) return false;
+            if (node->hasChildrenHinted) return node->hasChildren;
+            if (lazyLoader_) return true;
+            return !node->children.empty();
+        }
         FirstColDecor GetFirstColDecor(std::shared_ptr<TreeNode> node, float cellRight) const {
             FirstColDecor d;
             if (!node) { d.textLeft = GetNodeTextStartX(node); return d; }
-            bool tri = !node->children.empty() && (node->depth > 0 || rootDecorated_);
+            bool tri = HasChildren(node) && (node->depth > 0 || rootDecorated_);
             bool chk = node->checkable;
             bool ico = !node->icon.empty();
             float indentX = GetNodeTextStartX(node);

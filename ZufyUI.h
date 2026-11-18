@@ -794,13 +794,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
             // RAII：slot 抛异常时也必须把 tlDepth 还原（否则本线程后续 Fire 永久走重入分支、tlSnapshot 残留旧连接）
             struct DepthGuard {
-                std::mutex* mtx; int* depth; std::vector<std::shared_ptr<ConnectionData>>* snap;
+                int* depth; std::vector<std::shared_ptr<ConnectionData>>* snap;
                 ~DepthGuard() {
-                    std::lock_guard<std::mutex> lock(*mtx);
                     (*depth)--;
-                    if (*depth == 0) snap->clear();   // 释放最后一次快照持有的 shared_ptr
+                    if (*depth == 0) snap->clear();
                 }
-            } depthGuard{ &mutex_, &tlDepth, &tlSnapshot };
+            } depthGuard{ &tlDepth, &tlSnapshot };
 
             for (auto& data : *snapshot) {
                 if (!data || !data->state) continue;
@@ -2527,6 +2526,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
     protected:
+        struct LifetimeState { std::atomic<bool> alive{ true }; };
+        std::shared_ptr<LifetimeState> lifetime_ = std::make_shared<LifetimeState>();
         float bleed_ = 4.0f;  // 离屏缓存出血尺寸（四周额外空间）
         UIElement* parent_;
         bool visible_;
@@ -2592,6 +2593,31 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             for (auto& c : children_) if (c) c->SetParent(nullptr);
             children_.clear();
             childrenView_.clear();   // 立即清视图缓冲：否则在下次 RefreshChildren() 前 GetChildren() 会返回已释放的裸指针
+            InvalidateLayout();
+        }
+
+        void RemoveChild(const std::shared_ptr<UIElement>& child) {
+            auto it = std::find(children_.begin(), children_.end(), child);
+            if (it == children_.end()) return;
+            if (*it) (*it)->SetParent(nullptr);
+            children_.erase(it);
+            childrenView_.clear();
+            InvalidateLayout();
+        }
+        void RemoveChildAt(int index) {
+            if (index < 0 || index >= (int)children_.size()) return;
+            auto child = children_[(size_t)index];
+            if (child) child->SetParent(nullptr);
+            children_.erase(children_.begin() + index);
+            childrenView_.clear();
+            InvalidateLayout();
+        }
+        void InsertChild(int index, std::shared_ptr<UIElement> child) {
+            if (!child) return;
+            index = max(0, min(index, (int)children_.size()));
+            children_.insert(children_.begin() + index, child);
+            child->SetParent(this);
+            childrenView_.clear();
             InvalidateLayout();
         }
         void SetSpacing(float spacing) { spacing_ = spacing; InvalidateLayout(); }
@@ -2768,6 +2794,31 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             for (auto& c : children_) if (c) c->SetParent(nullptr);
             children_.clear();
             childrenView_.clear();   // 立即清视图缓冲（同 ColumnBox）
+            InvalidateLayout();
+        }
+
+        void RemoveChild(const std::shared_ptr<UIElement>& child) {
+            auto it = std::find(children_.begin(), children_.end(), child);
+            if (it == children_.end()) return;
+            if (*it) (*it)->SetParent(nullptr);
+            children_.erase(it);
+            childrenView_.clear();
+            InvalidateLayout();
+        }
+        void RemoveChildAt(int index) {
+            if (index < 0 || index >= (int)children_.size()) return;
+            auto child = children_[(size_t)index];
+            if (child) child->SetParent(nullptr);
+            children_.erase(children_.begin() + index);
+            childrenView_.clear();
+            InvalidateLayout();
+        }
+        void InsertChild(int index, std::shared_ptr<UIElement> child) {
+            if (!child) return;
+            index = max(0, min(index, (int)children_.size()));
+            children_.insert(children_.begin() + index, child);
+            child->SetParent(this);
+            childrenView_.clear();
             InvalidateLayout();
         }
         void SetSpacing(float spacing) { spacing_ = spacing; InvalidateLayout(); }
@@ -3411,6 +3462,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     // ---------- 卡片控件 ----------
     class Card : public LayoutHost {
     public:
+        using LayoutHost::SetContent;
         inline static float DefaultPadding = 12.0f;
         inline static float DefaultCornerRadius = 8.0f;
         inline static Color DefaultBgColor = Color::FromArgb(255, 255, 255, 255);
@@ -3441,6 +3493,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         float GetDefaultHorizontalStretchWeight() const override { return DefaultHorizontalStretchWeight; }
         float GetDefaultVerticalStretchWeight() const override { return DefaultVerticalStretchWeight; }
+
+        void SetContent(const std::wstring& title, const std::wstring& description, std::shared_ptr<UIElement> action = nullptr);
 
         Size MeasureOverride(const Size& availableSize) override {
             if (!layout_) return Size(width_ > 0.0f ? width_ : 0.0f, height_ > 0.0f ? height_ : 0.0f);
@@ -7986,6 +8040,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         return EnsureFontCache();
     }
     inline UIElement::~UIElement() {
+        if (lifetime_) lifetime_->alive.store(false, std::memory_order_release);
         if (connectionGroup_) connectionGroup_->disconnectAll();
         // 从所属窗口的待重绘集合里移除自己（防悬垂裸指针）
         if (detail::g_debugHighlight.load() == this) detail::g_debugHighlight.store(nullptr);
