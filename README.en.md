@@ -138,7 +138,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 
 ### Basic controls
 
-- **Label**: multi-line/wrap/ellipsis/max lines, horizontal & vertical alignment, font and colours, inline child controls, leading icon, image + `SetImageFit`, automatic tooltip when elided.
+- **Label**: multi-line/wrap/ellipsis/max lines, horizontal & vertical alignment, font and colours, inline child controls, leading icon, image + `SetImageFit`, automatic tooltip when elided. Ellipsis decisions use a 0.5 DIP tolerance.
 - **Button**: text/icon, hover/pressed/disabled, `Clicked`; auto-widens to its text (can be disabled); rich/arbitrary content (`GetLabel()->AddChild` / `SetContent`); drop 2x2 (`SetDropWriteBack` x `SetDropOpenOnClick`, single-select menu, `DropSelected` / `DropMenuOpened`); `CaptionButton` for minimize/maximize/close/Pin.
 - **TextBox**: placeholder, password mode, max length, read-only, selection/caret, copy/cut/paste, undo, IME composition & candidate positioning, UTF-16 surrogate pairs, drag & drop, shift+click.
 - **TextEdit**: multi-line editor / read-only viewer, standard undo/redo (restores selection and caret), Tab indentation, scrolling, read-only rich text `TextRun`.

@@ -927,6 +927,7 @@ std::wstring GetToolTip() const override;   // auto full-text tooltip when ellip
 - when both image and glyph are set, **image wins**.
 - `GetDesiredSize()` is only the last `Measure` result; measuring with `FLT_MAX` gives the ideal size, not the parent-constrained size.
 ###block_red_end
+- Ellipsis decisions use the same 0.5 DIP tolerance as Arrange, preventing valid text from being elided at fractional font sizes.
 
 - **`Version`**: `SetIcon` family `v1.13.0`; auto tooltip `v1.17.0`.
 

@@ -138,7 +138,7 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 
 ### 基础控件
 
-- **Label**：多行/换行/省略号/最大行数、水平/垂直对齐、字体与颜色、内联子控件、前导图标、图片 + `SetImageFit`、省略时自动 ToolTip。
+- **Label**：多行/换行/省略号/最大行数、水平/垂直对齐、字体与颜色、内联子控件、前导图标、图片 + `SetImageFit`、省略时自动 ToolTip。 省略号判断使用 0.5 DIP 容差。
 - **Button**：文本/图标、悬停/按下/禁用、`Clicked`；按文案自动撑宽（可关）；富文本/任意内容（`GetLabel()->AddChild` / `SetContent`）；下拉 2×2（`SetDropWriteBack` × `SetDropOpenOnClick`，单选菜单，`DropSelected` / `DropMenuOpened`）；`CaptionButton` 提供最小化/最大化/关闭/Pin。
 - **TextBox**：placeholder、密码模式、最大长度、只读、选区/光标、复制/剪切/粘贴、撤销、IME 组合输入与候选框定位、UTF-16 代理对、拖放、Shift+点击。
 - **TextEdit**：多行编辑器 / 只读查看器、标准撤销/重做（还原选区与光标）、Tab 缩进、滚动、只读富文本 `TextRun`。

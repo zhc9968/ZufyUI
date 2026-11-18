@@ -932,6 +932,7 @@ std::wstring GetToolTip() const override;   // 省略时自动全量 tooltip（v
 - 同时设了 image 与 glyph 时 **image 优先**。
 - `GetDesiredSize()` 只是上一次 `Measure` 的结果；用 `FLT_MAX` 直接测量得到的是理想尺寸，不代表父容器夹取后的尺寸。
 ###block_red_end
+- 省略号判断与 Arrange 统一使用 0.5 DIP 容差，避免小数字号下可容纳文本被误截断。
 
 - **`版本`**：`SetIcon` 家族 `v1.13.0`；省略自动 tooltip `v1.17.0`。
 

@@ -704,7 +704,7 @@ namespace ZufyUI {
                     if (measureLayout) {
                         DWRITE_TEXT_METRICS metrics;
                         measureLayout->GetMetrics(&metrics);
-                        if (metrics.width > boxW && displayText.length() > 3) {
+                        if (metrics.width > boxW + 0.5f && displayText.length() > 3) {
                             const std::wstring suffix = L"...";
                             int len = (int)displayText.length();
                             int lo = 0, hi = len - 1, best = -1;
@@ -720,7 +720,7 @@ namespace ZufyUI {
                                 testLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
                                 DWRITE_TEXT_METRICS tm;
                                 testLayout->GetMetrics(&tm);
-                                if (tm.width <= boxW) { best = mid; lo = mid + 1; }
+                                if (tm.width <= boxW + 0.5f) { best = mid; lo = mid + 1; }
                                 else hi = mid - 1;
                             }
                             displayText = (best >= 0) ? (displayText.substr(0, best) + suffix) : suffix;

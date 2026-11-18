@@ -2632,6 +2632,15 @@ static void test_quick_patches() {
     }
 
     {
+        Label lb(L"0123456789");
+        const Size natural = lb.Measure(Size(FLT_MAX, FLT_MAX));
+        lb.SetWidth(natural.width - 0.2f);
+        lb.Measure(Size(natural.width, natural.height));
+        lb.Arrange(Rect(0.0f, 0.0f, natural.width - 0.2f, natural.height));
+        CHECK(lb.GetToolTip().empty());
+    }
+
+    {
         Label lb;
         LabelRun r1; r1.text = L"red"; r1.color = Color::FromArgb(255, 255, 0, 0);
         LabelRun r2; r2.text = L"blue"; r2.color = Color::FromArgb(255, 0, 0, 255);
