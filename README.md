@@ -377,6 +377,11 @@ ZufyUI/
 - API Reference (English)：<https://zhc9968.github.io/ZufyUI/docs/API.en.html>
 - 源文件：[docs/src/API.md](docs/src/API.md) / [docs/src/API.en.md](docs/src/API.en.md)（入口：[docs/README.md](docs/README.md)）
 
+## 第三方代码与致谢
+
+- 窗口弹窗行为（`Placement`/`MoveBounds`/`CloseReason`、owner 跟随与移动边界、关闭拦截、`DefaultTitleBar` 按钮联动、弹窗首帧）参考并适配自 **whrct22** 的 ZufyUI 分支（MIT，commit `33c9d7e`，<https://gitee.com/whrct22/ZufyUI>）。
+- 完整来源、作者与许可证声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
 ## 关于
 
 ZufyUI 原名 `ZUI`（避免与其他同名项目冲突）。

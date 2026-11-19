@@ -10,6 +10,7 @@
 - **关闭策略**：新增 `CloseReason`、`RequestClose`、`ForceClose`、`Opening/Opened/CloseRequested/CloseAccepted/CloseCancelled`。支持禁用关闭、Esc 关闭、关闭拦截和强制关闭。
 - **标题栏联动**：自定义标题栏的关闭按钮使用 `RequestClose(Caption)`；`BehaviorChanged` 同步 owner-client 下的最大化不可用状态。
 - **弹窗首帧**：`RenderNowSync` 在首次 `Show` 时先推进布局并合成帧，减少弹窗首次显示空白。
+- **知识产权**：弹窗行为适配自 **whrct22** 的 ZufyUI 分支（MIT，commit `33c9d7e`），详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 - **验证**：x64/x86 Release + ZufyUIDebugger 构建通过，自检通过。
 
 ### 2026-11-14 — 稳定性、控件交互与全页面切换补丁（v1.27.2）

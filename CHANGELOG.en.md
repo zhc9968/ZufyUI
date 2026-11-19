@@ -10,6 +10,7 @@
 - **Close policy**: `CloseReason`, `RequestClose`, `ForceClose`, and `Opening/Opened/CloseRequested/CloseAccepted/CloseCancelled`; supports disabled close, Escape close, close veto, and forced close.
 - **Title bar integration**: the custom title bar close button uses `RequestClose(Caption)`; `BehaviorChanged` keeps the maximize button disabled in owner-client mode.
 - **Popup first frame**: `RenderNowSync` advances layout and renders a frame on first `Show`, reducing blank first frames.
+- **Attribution**: the popup behavior was adapted from **whrct22**'s ZufyUI fork (MIT, commit `33c9d7e`); see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 - **Verification**: x64/x86 Release + ZufyUIDebugger builds and self-tests pass.
 
 ### 2026-11-14 — Stability, control interaction and full-pane transition patch (v1.27.2)

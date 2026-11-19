@@ -519,6 +519,8 @@ namespace ZufyUI {
     // ------------------------------------------------------------------
     // DefaultTitleBar：内置三件套 + 图标 + 标题
     // ------------------------------------------------------------------
+    // Policy-button sync adapted from whrct22's ZufyUI fork (MIT):
+    // https://gitee.com/whrct22/ZufyUI  commit 33c9d7e8c1608f850b6bb31da1692084a71a5721
     class DefaultTitleBar : public TitleBar {
     public:
         DefaultTitleBar() {

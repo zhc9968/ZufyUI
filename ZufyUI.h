@@ -4464,6 +4464,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     // ---------- 窗口 ----------
     class Window : public ConnectionOwner {
     public:
+        // Popup behavior adapted from whrct22's ZufyUI fork (MIT):
+        // https://gitee.com/whrct22/ZufyUI  commit 33c9d7e8c1608f850b6bb31da1692084a71a5721
         enum class Placement { SystemDefault, CenterOwner, CenterScreen };
         enum class MoveBounds { Unrestricted, OwnerClient, MonitorWorkArea };
         enum class CloseReason { Programmatic, Caption, Escape, System, Forced };

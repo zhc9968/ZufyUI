@@ -378,6 +378,11 @@ If you need something (a control, platform integration, performance/compatibilit
 - API 参考（中文）: <https://zhc9968.github.io/ZufyUI/docs/API.html>
 - Sources: [docs/src/API.en.md](docs/src/API.en.md) / [docs/src/API.md](docs/src/API.md) (entry: [docs/README.md](docs/README.md))
 
+## Third-party code and acknowledgements
+
+- The window popup behavior (`Placement` / `MoveBounds` / `CloseReason`, owner following and move bounds, close veto, `DefaultTitleBar` button sync, popup first frame) was adapted from **whrct22**'s ZufyUI fork (MIT, commit `33c9d7e`, <https://gitee.com/whrct22/ZufyUI>).
+- See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the source, author, and license details.
+
 ## About
 
 ZufyUI was originally named `ZUI` (to avoid clashes with other projects of the same name).
