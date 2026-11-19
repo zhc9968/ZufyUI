@@ -15,9 +15,19 @@ namespace {
         L"首页", L"基础控件", L"输入与滚动", L"嵌套与联动", L"列表视图", L"表格视图",
         L"树形视图", L"树形增强", L"图像", L"多窗口", L"窗口属性", L"新控件A", L"新控件B",
         L"多行文本", L"条形图", L"折线图", L"饼图", L"拖放", L"设置卡片", L"主题", L"DSL", L"环境组合", L"原生HWND", L"抽屉",
-        L"布局压力测试", L"全控件总览"
+        L"布局压力测试", L"弹窗行为", L"全控件总览"
     };
     inline constexpr int kPageCount = (int)(sizeof(kPageNames) / sizeof(kPageNames[0]));
+    inline const wchar_t* CloseReasonName(Window::CloseReason reason) {
+        switch (reason) {
+        case Window::CloseReason::Programmatic: return L"Programmatic";
+        case Window::CloseReason::Caption:      return L"Caption";
+        case Window::CloseReason::Escape:       return L"Escape";
+        case Window::CloseReason::System:       return L"System";
+        case Window::CloseReason::Forced:       return L"Forced";
+        }
+        return L"Unknown";
+    }
 
     // ---- 各页共用排版助手（原来每页各抄一份：section 14 份 / accent 7 份 / Scroll 包装 15 份）----
     inline void AddSection(const std::shared_ptr<ColumnBox>& col, const std::wstring& title) {
@@ -377,6 +387,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     navList->AddItem(L"原生HWND");
     navList->AddItem(L"抽屉");
     navList->AddItem(L"布局压力测试");
+    navList->AddItem(L"弹窗行为");
     navList->AddItem(L"全控件总览");
     navList->SetSelectedIndex(0);
     mainRow->AddChild(navList);
@@ -566,6 +577,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             { Icon::Settings, L"多窗口",     L"独立窗口 / 子窗口 / 模态 / 托盘 / 任务栏 / 跳转列表",  9 },
             { Icon::Settings, L"窗口属性",   L"背景层（亚克力·云母）/ 标题栏 / 尺寸 / 切换缓动",      10 },
             { Icon::Copy,     L"拖放",       L"接收文件与文本 / 拖出文本与文件",                      17 },
+            { Icon::Settings, L"弹窗行为",   L"位置 / owner 跟随 / 移动边界 / 关闭策略 / 标题栏 / 首帧", 25 },
         });
         homeCard(L"主题 / DSL / 极限组合", {
             { Icon::Favorite, L"主题",       L"浅色 / 深色 / 高对比度 + ThemeRole 色卡",              19 },
@@ -1998,6 +2010,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         ).spacing(10.0f).shared());
         col->AddChild(ZRow(ZLbl(L"可调整大小 SetResizable").minWidth(kLabelW),
             ZToggle(true).on<&ToggleSwitch::Toggled>([w = &win](bool on) { w->SetResizable(on); })
+        ).spacing(10.0f).shared());
+
+        col->AddChild(ZRow(ZLbl(L"非阻塞 Present").minWidth(kLabelW),
+            ZToggle(false).on<&ToggleSwitch::Toggled>([w = &win](bool on) { w->SetNonBlockingPresent(on); })
+        ).spacing(10.0f).shared());
+        col->AddChild(ZRow(ZLbl(L"高刷新帧节拍（需上方开启）").minWidth(kLabelW),
+            ZToggle(false).on<&ToggleSwitch::Toggled>([w = &win](bool on) { w->SetDisplayFramePacing(on); })
         ).spacing(10.0f).shared());
 
         // 页面切换缓动
@@ -3626,6 +3645,265 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         labPage->SetLayout(labRoot);
         mainHost->AddPage(labPage);
     }
+
+    // ---------- 弹窗行为完整测试页 ----------
+    auto pagePopup = std::make_shared<Page>();
+    {
+        auto col = std::make_shared<ColumnBox>();
+        col->SetSpacing(8.0f);
+        col->SetMargin(Thickness(14, 14, 14, 14));
+
+        AddSection(col, L"弹窗行为完整测试：位置 / owner 跟随 / 移动边界 / 关闭策略 / 标题栏 / 首帧");
+        auto intro = std::make_shared<Label>(
+            L"先选参数并打开弹窗，再拖动主窗口测试跟随、拖动弹窗测试边界。"
+            L"关闭按钮、Esc、Alt+F4、标题栏关闭和强制关闭都会记录到下方事件日志。");
+        intro->SetTextOverflow(Label::TextOverflow::Wrap);
+        col->AddChild(intro);
+
+        auto placement = std::make_shared<ComboBox>();
+        placement->SetItems({ L"系统默认位置", L"居中于 owner", L"居中于屏幕" });
+        placement->SetSelectedIndex(1);
+
+        auto bounds = std::make_shared<ComboBox>();
+        bounds->SetItems({ L"无限制（可拖出边界）", L"限制在 owner 客户区", L"限制在当前显示器工作区" });
+        bounds->SetSelectedIndex(0);
+
+        auto addChoiceRow = [&col](const wchar_t* text, const std::shared_ptr<UIElement>& control) {
+            auto row = std::make_shared<RowBox>();
+            row->SetSpacing(10.0f);
+            row->SetFillWidth(true);
+            auto label = std::make_shared<Label>(text);
+            label->SetWidth(190.0f);
+            label->SetTextOverflow(Label::TextOverflow::Wrap);
+            control->SetFillWidth(true);
+            row->AddChild(label);
+            row->AddChild(control);
+            col->AddChild(row);
+        };
+        addChoiceRow(L"弹窗初始位置（Placement）", placement);
+        addChoiceRow(L"移动边界（MoveBounds）", bounds);
+
+        auto movable = std::make_shared<ToggleSwitch>(true);
+        auto follow = std::make_shared<ToggleSwitch>(true);
+        auto escape = std::make_shared<ToggleSwitch>(true);
+        auto closable = std::make_shared<ToggleSwitch>(true);
+        auto guard = std::make_shared<ToggleSwitch>(false);
+
+        auto addToggleRow = [&col](const wchar_t* text, const std::shared_ptr<ToggleSwitch>& toggle) {
+            auto row = std::make_shared<RowBox>();
+            row->SetSpacing(10.0f);
+            row->SetFillWidth(true);
+            auto label = std::make_shared<Label>(text);
+            label->SetWidth(190.0f);
+            row->AddChild(label);
+            row->AddChild(toggle);
+            col->AddChild(row);
+        };
+        addToggleRow(L"允许拖动（SetMovable）", movable);
+        addToggleRow(L"owner 移动时跟随（SetFollowOwner）", follow);
+        addToggleRow(L"Esc 关闭（SetCloseOnEscape）", escape);
+        addToggleRow(L"允许关闭（SetCloseEnabled）", closable);
+        addToggleRow(L"拦截普通关闭（CloseRequested）", guard);
+
+        auto hint = std::make_shared<Label>(
+            L"提示：限制在 owner 客户区时最大化按钮会置灰；拦截开启后标题栏关闭、Esc 和 Alt+F4 都会留在弹窗内，"
+            L"需用“强制关闭”或先关闭拦截。居中于屏幕在“限制在 owner 客户区”下仍会被边界拉回 owner。");
+        hint->SetTextOverflow(Label::TextOverflow::Wrap);
+        col->AddChild(hint);
+
+        auto logText = std::make_shared<std::wstring>(L"事件日志：尚未打开弹窗。");
+        auto log = std::make_shared<Label>(*logText);
+        log->SetTextOverflow(Label::TextOverflow::Wrap);
+        log->SetFillWidth(true);
+        col->AddChild(log);
+
+        auto appendLog = [logText, log](const std::wstring& line) {
+            *logText += L"\n" + line;
+            log->SetText(*logText);
+        };
+
+        auto popupKeep = std::make_shared<std::vector<std::shared_ptr<Window>>>();
+        std::weak_ptr<std::vector<std::shared_ptr<Window>>> popupKeepWeak = popupKeep;
+        auto retain = [popupKeepWeak](const std::shared_ptr<Window>& window) {
+            auto keep = popupKeepWeak.lock();
+            if (!keep) return;
+            for (auto it = keep->begin(); it != keep->end();) {
+                if (!(*it)->IsValid()) it = keep->erase(it);
+                else ++it;
+            }
+            keep->push_back(window);
+        };
+
+        auto open = std::make_shared<Button>(L"打开测试弹窗");
+        open->SetFillWidth(true);
+        col->AddChild(open);
+
+        open->Connect(open->Clicked, [w = &win, placement, bounds, movable, follow, escape, closable, guard,
+                                      popupKeep, retain, appendLog, appIcon]() {
+            auto popup = Application::Instance().CreateWindow(480, 380, L"弹窗行为测试", w);
+            if (!popup) {
+                appendLog(L"CreateWindow 失败");
+                return;
+            }
+            retain(popup);
+            popup->SetMinSize(380, 300);
+
+            int placementIndex = placement->GetSelectedIndex();
+            int boundsIndex = bounds->GetSelectedIndex();
+            if (placementIndex < 0) placementIndex = 0;
+            if (boundsIndex < 0) boundsIndex = 0;
+            popup->SetPlacement((Window::Placement)placementIndex);
+            popup->SetMoveBounds((Window::MoveBounds)boundsIndex);
+            popup->SetMovable(movable->IsOn());
+            popup->SetFollowOwner(follow->IsOn());
+            popup->SetCloseOnEscape(escape->IsOn());
+            popup->SetCloseEnabled(closable->IsOn());
+
+            auto tb = std::make_shared<DefaultTitleBar>();
+            tb->SetTitle(L"弹窗行为测试");
+            tb->SetHeight(34.0f);
+            if (appIcon) tb->SetIcon(appIcon);
+            popup->SetCustomTitleBar(tb);
+
+            auto root = popup->GetRootColumnBox();
+            root->SetSpacing(10.0f);
+            root->SetMargin(Thickness(16, 16, 16, 16));
+
+            auto summary = std::make_shared<Label>(
+                L"Placement=" + placement->GetSelectedText() + L"  /  MoveBounds=" + bounds->GetSelectedText());
+            summary->SetTextOverflow(Label::TextOverflow::Wrap);
+            root->AddChild(summary);
+
+            auto body = std::make_shared<Label>(
+                L"拖动主窗口验证 FollowOwner；拖动本窗口到边界验证 MoveBounds；"
+                L"在输入框里打字可验证焦点和子窗口跟随。");
+            body->SetTextOverflow(Label::TextOverflow::Wrap);
+            root->AddChild(body);
+
+            auto edit = std::make_shared<TextBox>();
+            edit->SetPlaceholder(L"输入内容，测试弹窗内输入与跟随");
+            edit->SetFillWidth(true);
+            root->AddChild(edit);
+
+            auto feedback = std::make_shared<Label>(L"标题栏关闭 = Caption；Esc = Escape；Alt+F4/系统菜单 = System。");
+            feedback->SetTextOverflow(Label::TextOverflow::Wrap);
+            root->AddChild(feedback);
+
+            auto actions = std::make_shared<GridLayout>();
+            actions->SetSpacing(8.0f, 8.0f);
+            auto closeBtn = std::make_shared<Button>(L"关闭（RequestClose）");
+            auto forceBtn = std::make_shared<Button>(L"强制关闭");
+            auto centerOwnerBtn = std::make_shared<Button>(L"居中 owner");
+            auto centerScreenBtn = std::make_shared<Button>(L"居中屏幕");
+            auto followBtn = std::make_shared<Button>(L"切换 FollowOwner");
+            auto boundsBtn = std::make_shared<Button>(L"切换 MoveBounds");
+            auto closeStateBtn = std::make_shared<Button>(L"切换关闭可用");
+            auto childBtn = std::make_shared<Button>(L"添加跟随子窗");
+            for (auto& button : { closeBtn, forceBtn, centerOwnerBtn, centerScreenBtn,
+                                  followBtn, boundsBtn, closeStateBtn, childBtn })
+                button->SetFillWidth(true);
+            actions->AddChild(closeBtn, 0, 0);
+            actions->AddChild(forceBtn, 0, 1);
+            actions->AddChild(centerOwnerBtn, 1, 0);
+            actions->AddChild(centerScreenBtn, 1, 1);
+            actions->AddChild(followBtn, 2, 0);
+            actions->AddChild(boundsBtn, 2, 1);
+            actions->AddChild(closeStateBtn, 3, 0);
+            actions->AddChild(childBtn, 3, 1);
+            root->AddChild(actions);
+
+            Window* host = popup.get();
+            closeBtn->Connect(closeBtn->Clicked, [host, feedback]() {
+                feedback->SetText(L"已调用 RequestClose(Programmatic)");
+                host->RequestClose(Window::CloseReason::Programmatic);
+            });
+            forceBtn->Connect(forceBtn->Clicked, [host, feedback]() {
+                feedback->SetText(L"已调用 ForceClose()；会跳过关闭拦截");
+                host->ForceClose();
+            });
+            centerOwnerBtn->Connect(centerOwnerBtn->Clicked, [host, feedback]() {
+                host->CenterOnOwner();
+                feedback->SetText(L"已调用 CenterOnOwner()");
+            });
+            centerScreenBtn->Connect(centerScreenBtn->Clicked, [host, feedback]() {
+                host->CenterOnScreen();
+                feedback->SetText(L"已调用 CenterOnScreen()");
+            });
+            followBtn->Connect(followBtn->Clicked, [host, feedback]() {
+                host->SetFollowOwner(!host->GetFollowOwner());
+                feedback->SetText(host->GetFollowOwner() ? L"FollowOwner = 开" : L"FollowOwner = 关");
+            });
+            boundsBtn->Connect(boundsBtn->Clicked, [host, feedback]() {
+                int next = ((int)host->GetMoveBounds() + 1) % 3;
+                host->SetMoveBounds((Window::MoveBounds)next);
+                static const wchar_t* names[] = { L"Unrestricted", L"OwnerClient", L"MonitorWorkArea" };
+                feedback->SetText(std::wstring(L"MoveBounds = ") + names[next]);
+            });
+            closeStateBtn->Connect(closeStateBtn->Clicked, [host, feedback]() {
+                host->SetCloseEnabled(!host->IsCloseEnabled());
+                feedback->SetText(host->IsCloseEnabled() ? L"关闭可用 = 是" : L"关闭可用 = 否（标题栏按钮会置灰）");
+            });
+            childBtn->Connect(childBtn->Clicked, [host, retain, appendLog, appIcon]() {
+                auto child = Application::Instance().CreateWindow(300, 200, L"跟随子窗", host);
+                if (!child) {
+                    appendLog(L"创建跟随子窗失败");
+                    return;
+                }
+                retain(child);
+                child->SetMinSize(240, 160);
+                child->SetFollowOwner(true);
+                child->SetMoveBounds(Window::MoveBounds::OwnerClient);
+                child->SetPlacement(Window::Placement::CenterOwner);
+                auto childTb = std::make_shared<DefaultTitleBar>();
+                childTb->SetTitle(L"跟随子窗");
+                childTb->SetHeight(34.0f);
+                if (appIcon) childTb->SetIcon(appIcon);
+                child->SetCustomTitleBar(childTb);
+                auto childRoot = child->GetRootColumnBox();
+                childRoot->SetSpacing(8.0f);
+                childRoot->SetMargin(Thickness(14, 14, 14, 14));
+                auto childText = std::make_shared<Label>(L"拖动父弹窗时我会跟随；我自己的移动被限制在父弹窗客户区。");
+                childText->SetTextOverflow(Label::TextOverflow::Wrap);
+                childRoot->AddChild(childText);
+                child->Connect(child->Closed, [appendLog]() { appendLog(L"跟随子窗 Closed"); });
+                child->Connect(child->CloseCancelled, [appendLog](Window::CloseReason reason) {
+                    appendLog(L"跟随子窗 CloseCancelled: " + std::wstring(CloseReasonName(reason)));
+                });
+                appendLog(L"创建跟随子窗（FollowOwner + MoveBounds::OwnerClient）");
+                child->Show();
+            });
+
+            popup->Connect(popup->Opening, [appendLog]() { appendLog(L"Opening"); });
+            popup->Connect(popup->Opened, [appendLog]() { appendLog(L"Opened（首帧已提交）"); });
+            popup->Connect(popup->CloseRequested, [guard, appendLog](Window::CloseReason reason, bool* cancel) {
+                appendLog(L"CloseRequested: " + std::wstring(CloseReasonName(reason)));
+                if (guard->IsOn()) {
+                    if (cancel) *cancel = true;
+                    appendLog(L"  -> 被 CloseRequested 拦截");
+                }
+            });
+            popup->Connect(popup->CloseAccepted, [appendLog](Window::CloseReason reason) {
+                appendLog(L"CloseAccepted: " + std::wstring(CloseReasonName(reason)));
+            });
+            popup->Connect(popup->CloseCancelled, [appendLog](Window::CloseReason reason) {
+                appendLog(L"CloseCancelled: " + std::wstring(CloseReasonName(reason)));
+            });
+            popup->Connect(popup->Closed, [appendLog]() { appendLog(L"Closed（HWND 已销毁）"); });
+
+            appendLog(L"创建弹窗：Placement=" + placement->GetSelectedText() +
+                      L"，MoveBounds=" + bounds->GetSelectedText() +
+                      L"，Movable=" + (movable->IsOn() ? L"开" : L"关") +
+                      L"，FollowOwner=" + (follow->IsOn() ? L"开" : L"关") +
+                      L"，CloseEnabled=" + (closable->IsOn() ? L"开" : L"关") +
+                      L"，Guard=" + (guard->IsOn() ? L"开" : L"关"));
+            popup->Show();
+            appendLog(L"Show() 返回");
+        });
+
+        SetScrollablePage(pagePopup, col);
+    }
+
+    mainHost->AddPage(pagePopup);
 
     auto pageAll = std::make_shared<Page>();
     {

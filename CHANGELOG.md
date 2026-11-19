@@ -2,7 +2,16 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.27.3**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.28.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-11-19 — 非阻塞 Present、高刷新帧节拍、私有字体与 UIA 生命周期（v1.28.0）
+- **非阻塞 Present**：新增 `Window::SetNonBlockingPresent`（opt-in）。开启后 `Present1(0, DXGI_PRESENT_DO_NOT_WAIT)`；队列忙时由现有定时器/帧时钟重试最新帧，不阻塞 UI 线程、不空转。
+- **高刷新帧节拍**：新增 `SetDisplayFramePacing` / `GetDisplayRefreshHz` 与 `ZufyUIFrameClock.h`。后台线程只做定时器 + `PostMessage`，布局、绘制、Present 仍在 UI 线程；默认关，菜单默认开。
+- **菜单同步**：`MenuWindowBase` 默认同步非阻塞 Present 与帧节拍；`UseNonBlockingPresent` / `UseFramePacing` 是静态退避开关；隐藏、关闭、`WM_DESTROY` 与析构都会 `Stop()` 帧时钟。
+- **私有字体**：`FontManager::SetAppFontCollection`；必须在任何 format/layout 之前安装，内部持有集合引用；菜单直接 `CreateTextFormat` 路径仍用系统字体。
+- **UIA 生命周期**：根 provider 与子 provider 统一 `DetachElement + UiaDisconnectProvider`；`WM_DESTROY` 调用 `UiaReturnRawElementProvider(hwnd,0,0,nullptr)`；`UiaDisconnectProvider` 移出 `UiaMutex` 锁外；`SetRootLayout` / `SetAccessibilityEnabled(false)` 也统一回收。
+- **Demo**：“窗口属性”页新增非阻塞 Present / 高刷新帧节拍开关；“弹窗行为”页覆盖位置、跟随、边界、关闭策略与事件日志。
+- **验证**：x64 `7408` / x86 `7425` 自检通过。
 
 ### 2026-11-19 — 弹窗窗口行为（v1.27.3）
 - **窗口位置**：新增 `Window::Placement`（系统默认 / 居中于 owner / 居中于屏幕），以及 `CenterOnOwner/CenterOnScreen`。

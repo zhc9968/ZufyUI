@@ -59,6 +59,7 @@
 #include <deque>
 #include <array>
 #include <cstdio>
+#include "ZufyUIFrameClock.h"
 #include "ZufyUIAcrylic.h"   // 手写 DComp 效果类 + 官方亚克力/云母配方（需放在 namespace ZufyUI 之前）
 
 // 调试输出宏：默认关闭，定义 ZufyUI_DEBUG 后启用（不删除调试代码）
@@ -90,9 +91,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 27
-#define ZufyUI_VERSION_PATCH 3
-#define ZufyUI_VERSION_STRING L"1.27.3"
+#define ZufyUI_VERSION_MINOR 28
+#define ZufyUI_VERSION_PATCH 0
+#define ZufyUI_VERSION_STRING L"1.28.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -1511,18 +1512,35 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         // 按 spec 获取共享的 IDWriteTextFormat（带缓存）
+        // Install an application-owned DirectWrite collection once, before any
+        // format/layout is created. The collection is AddRef'ed internally.
+        // Returns false if a cache already exists or a collection is installed.
+        bool SetAppFontCollection(IDWriteFontCollection* collection) {
+            if (!collection) return false;
+            std::lock_guard<std::mutex> lock(mtx_);
+            if (appFontCollection_ || !formatCache_.empty() || !layoutCache_.empty()) return false;
+            appFontCollection_ = collection;
+            return true;
+        }
+
         IDWriteTextFormat* GetFormat(const FontSpec& spec) {
+            ComPtr<IDWriteFontCollection> appCollection;
             {
                 std::lock_guard<std::mutex> lock(mtx_);
                 auto it = formatCache_.find(spec);
                 if (it != formatCache_.end()) return it->second.Get();
+                if (appFontCollection_) {
+                    UINT32 index = 0; BOOL exists = FALSE;
+                    if (SUCCEEDED(appFontCollection_->FindFamilyName(spec.familyName.c_str(), &index, &exists)) && exists)
+                        appCollection = appFontCollection_;
+                }
             }
             IDWriteFactory* factory = GetFactory();
             if (!factory) return nullptr;
 
             ComPtr<IDWriteTextFormat> fmt;
             HRESULT hr = factory->CreateTextFormat(
-                spec.familyName.c_str(), nullptr,
+                spec.familyName.c_str(), appCollection.Get(),
                 spec.weight, spec.style, spec.stretch,
                 spec.size, spec.locale.c_str(), &fmt);
             if (FAILED(hr) || !fmt) return nullptr;
@@ -1680,6 +1698,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         ComPtr<IDWriteFactory> dwriteFactory_;
+        ComPtr<IDWriteFontCollection> appFontCollection_;
         std::once_flag factoryOnce_;
         mutable std::mutex mtx_;   // 保护 formatCache_ / layoutCache_ / layoutFifo_（防未来跨线程调用）
         std::unordered_map<FontSpec, ComPtr<IDWriteTextFormat>, FontSpecHash> formatCache_;   // 契约：永不淘汰
@@ -1913,6 +1932,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         LRESULT HandleGetObject(Window* w, HWND hwnd, WPARAM wParam, LPARAM lParam);
         // UIA：窗口销毁时释放根 provider / 缓存（定义在 ZufyUIWindowTool.h）
         void ReleaseAccessibility(Window* w);
+        void NotifyUiaWindowDestroyed(HWND hwnd);
 
         // ---------- 调试 / 自动化（默认关；只返回"当前这一帧"；库不做文件读写）----------
         struct FrameStats {
@@ -4550,6 +4570,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         virtual ~Window() {
+            displayClock_.Stop();
             if (connectionGroup_) connectionGroup_->disconnectAll();
             // 析构必须在 UI 线程执行。
             // 1) 置生存令牌死亡：render 线程此后不再 pin 本窗口（含队列里已存在的裸 Window* 项）；
@@ -4596,6 +4617,23 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // A3：帧率上限 —— 不限时跟随显示器 vblank；>0 限制动画平均出帧率（降 GPU/CPU）。
         //   每窗口覆盖进程默认；SetFrameRateLimit(0) 显式取消上限（不再走默认）。
         void SetFrameRateLimit(int fps) { frameRateLimit_.store((fps < 0) ? 0 : fps, std::memory_order_relaxed); }
+        // Opt in to Present1(0, DXGI_PRESENT_DO_NOT_WAIT). A busy queue is retried
+        // by the existing timer / display clock; the UI thread never waits in Present.
+        void SetNonBlockingPresent(bool enabled) {
+            nonBlockingPresent_ = enabled;
+            if (!enabled) displayClock_.Stop();
+            UpdateTimerState();
+        }
+        bool GetNonBlockingPresent() const { return nonBlockingPresent_; }
+        // Opt in to high-resolution pacing for the nonblocking path. Without this,
+        // the normal 16ms timer drives retries (about 60 Hz on every monitor).
+        void SetDisplayFramePacing(bool enabled) {
+            displayFramePacing_ = enabled;
+            if (!enabled) displayClock_.Stop();
+            UpdateTimerState();
+        }
+        bool GetDisplayFramePacing() const { return displayFramePacing_; }
+        double GetDisplayRefreshHz() const { return displayClock_.RefreshHz(); }
         int  GetFrameRateLimit() const { int v = frameRateLimit_.load(std::memory_order_relaxed); return v >= 0 ? v : s_defaultFrameRateLimit.load(std::memory_order_relaxed); }
         static void SetDefaultFrameRateLimit(int fps) { s_defaultFrameRateLimit.store((fps < 0) ? 0 : fps, std::memory_order_relaxed); }
         static int  GetDefaultFrameRateLimit() { return s_defaultFrameRateLimit.load(std::memory_order_relaxed); }
@@ -4709,7 +4747,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         // 屏蔽本窗口输入（模态弹窗作为本窗口子窗口时用；不 disable HWND，避免连带影响子弹窗）
         void SetInputBlocked(bool on) { inputBlocked_ = on; }
-        void SetAccessibilityEnabled(bool on) { accessibilityEnabled_ = on; }   // 无障碍（UIA）默认开启
+        void SetAccessibilityEnabled(bool on) {
+            accessibilityEnabled_ = on;
+            if (!on) {
+                detail::ReleaseAccessibility(this);
+                detail::NotifyUiaWindowDestroyed(hwnd_);
+            }
+        }
         bool IsAccessibilityEnabled() const { return accessibilityEnabled_; }
         // 每窗口一个自动化 ID 计数器（未显式设 AutomationId 的元素自动编号 e1/e2…）；避免多窗口/多根全局撞号
         unsigned NextAccessibleAutoId() { return ++accessibleAutoIdCounter_; }
@@ -4942,7 +4986,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         void SetRootLayout(std::shared_ptr<Layout> layout) {
             if (!layout) return;
-            if (rootElement_ && rootElement_ != layout) rootElement_->AttachWindowRecursive(nullptr);
+            if (rootElement_ && rootElement_ != layout) {
+                detail::ReleaseAccessibility(this);
+                detail::NotifyUiaWindowDestroyed(hwnd_);
+                rootElement_->AttachWindowRecursive(nullptr);
+            }
             rootElement_ = layout;
             rootElement_->AttachWindowRecursive(this);
             layoutNeeded_ = true;
@@ -5730,6 +5778,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (!elem) return;
             std::lock_guard<std::recursive_mutex> lk(renderLock_);   // 与 render 线程的 clear/erase 串行（跨线程竞态）
             pendingRepaint_.insert(elem);
+            if (displayClock_.Running() && hwnd_ && IsWindowVisible(hwnd_) && !IsIconic(hwnd_))
+                displayClock_.Request();
         }
         // UIElement 析构时反向注销：pendingRepaint_ 里的裸指针不得指向已销毁元素（防将来有人解引用）
         void ForgetPendingRepaint(UIElement* elem) {
@@ -5962,6 +6012,14 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 }
                 return DefWindowProc(hwnd_, message, wParam, lParam);
             }
+            case detail::DisplayFrameClock::Message:
+                if (!displayClock_.Consume(wParam, lParam)) return 0;
+                if (!IsWindowVisible(hwnd_) || IsIconic(hwnd_)) return 0;
+                if (HasRenderWork()) {
+                    InvalidateRect(hwnd_, nullptr, FALSE);
+                    UpdateWindow(hwnd_);
+                }
+                return 0;
             case WM_PAINT: OnPaint(); return 0;
             case WM_ERASEBKGND: return 1;
             case WM_NCCALCSIZE:
@@ -6058,6 +6116,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 RefreshWindowFrameState();
                 break;
             case WM_MOVE:
+                if (displayClock_.Running()) displayClock_.UpdateMonitor(false);
                 UpdateWallpaperLayer();   // 手动背景：只挪图层 Offset，不重画 -> 实时跟手
                 SyncOverlays();           // 外部浮窗立即跟随窗口移动（不再等 16ms 定时器）
                 return 0;
@@ -6172,7 +6231,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 SyncOverlays();           // DPI 变化 → 浮窗按新 DPI 重新定位
                 return 0;
             }
-            case WM_DISPLAYCHANGE: InvalidateRect(hwnd_, nullptr, FALSE); UpdateTimerState(); return 0;
+            case WM_DISPLAYCHANGE:
+                if (displayClock_.Running()) displayClock_.UpdateMonitor(true);
+                InvalidateRect(hwnd_, nullptr, FALSE); UpdateTimerState(); return 0;
 #if ZUFYUI_VBLANK_CLOCK
             case detail::WM_RENDER_TICK: {   // A1：render 线程驱动的动画推进（替代 WM_PAINT 续帧）
                 frameTickPending_.store(false);
@@ -6220,7 +6281,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                             customTitleBar_->SetWindowTitle(lastWindowTitle_);
                         }
                     }
-                    if (HasRenderWork()) {
+                    if (displayClock_.Running()) {
+                        if (HasRenderWork()) displayClock_.Request(); else displayClock_.Cancel();
+                    }
+                    if (!displayClock_.Running() && HasRenderWork()) {
                         // 只保留"排队"这一种驱动：真正的动画由 present 驱动（vblank 节拍）。
                         // 这里不要再 RDW_UPDATENOW 同步画 —— 会和 present 驱动叠成"每帧画两遍"，更耗 GPU 还堵消息泵（右键/淡入被拖）。
                         // 同样加让位闸门：本线程若有别的窗口（弹窗/对话框）等着画，先别插本窗的 WM_PAINT。
@@ -6403,6 +6467,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 return 0;
             }
             case WM_DESTROY:
+                displayClock_.Stop();
                 if (taskbarList_) {   // 清理任务栏进度/覆盖徽章，避免窗口关闭后残留
                     taskbarList_->SetProgressState(hwnd_, TBPF_NOPROGRESS);
                     taskbarList_->SetOverlayIcon(hwnd_, nullptr, L"");
@@ -6423,6 +6488,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                         ids.erase(std::remove(ids.begin(), ids.end(), myId), ids.end());
                     }
                 }
+                detail::ReleaseAccessibility(this);   // detach providers before clearing window ids
+                detail::NotifyUiaWindowDestroyed(hwnd_);   // UIA event map still holds provider refs
                 if (rootElement_) rootElement_->AttachWindowRecursive(nullptr);  // 清除整棵树的窗口指针，避免外部持有元素时悬垂
                 if (customTitleBar_) customTitleBar_->AttachWindowRecursive(nullptr); if (menuBar_) menuBar_->AttachWindowRecursive(nullptr); if (statusBar_) statusBar_->AttachWindowRecursive(nullptr);  // 标题栏同样清归属
                 hwnd_ = nullptr;
@@ -6469,6 +6536,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
         bool HasRenderWork() const {
             std::lock_guard<std::recursive_mutex> lk(renderLock_);   // 与 UI 线程的 MarkRepaint 串行
+            if (presentRetry_) return true;
             if (layoutInvalidated_ || focusDirty_ || !pendingRepaint_.empty()) return true;
             // 用上次合成收集到的活跃动画集合判断，避免每个 timer tick 都全树递归 HasActiveAnimation()
             if (!activeAnimScratch_.empty()) return true;
@@ -6961,8 +7029,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             std::lock_guard<std::mutex> g(gpuLock_);
             if (!swapChain_) return S_OK;
             DXGI_PRESENT_PARAMETERS pp{};
-            UINT syncInterval = inSizeMove_ ? 0 : 1;
-            HRESULT hr = swapChain_->Present1(syncInterval, 0, &pp);
+            UINT syncInterval = (nonBlockingPresent_ || inSizeMove_) ? 0 : 1;
+            HRESULT hr = swapChain_->Present1(syncInterval,
+                nonBlockingPresent_ ? DXGI_PRESENT_DO_NOT_WAIT : 0, &pp);
+            presentRetry_ = nonBlockingPresent_ && hr == DXGI_ERROR_WAS_STILL_DRAWING;
+            if (presentRetry_) return S_FALSE;   // retry latest state via timer/clock; no busy spin
             lastPresentMs_.store(detail::NowMs(), std::memory_order_relaxed);   // A3：帧率上限的时基
             return hr;
         }
@@ -7152,7 +7223,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             // 立刻排队下一帧，让节拍由 vblank 决定（而不是定时器 ~15.6ms vs vblank 16.67ms 的错位）。
             // 注意：只在"确实有动画在跑"时这样做 —— 用 HasRenderWork() 会因"悬停在带 tooltip 的元素"
             // 恒为 true 而变成自持死循环，把 WM_TIMER（UpdateTooltip/标题轮询）饿死。
-            if (SUCCEEDED(hr) && !activeAnimScratch_.empty()) {
+            if (!nonBlockingPresent_ && SUCCEEDED(hr) && !activeAnimScratch_.empty()) {
                 // present 驱动下一帧。前提：Present1(1) 已同步到 vblank，所以"立刻再排一帧"能贴住 vblank ——
                 // 这正是它比纯 WM_TIMER 驱动流畅的原因，不能退化成定时器驱动。
                 // 但"排下一帧"= 让本窗无效 = 合成一个本窗的 WM_PAINT；而合成消息里 WM_PAINT 是"谁有未处理区域就先给谁"。
@@ -7190,6 +7261,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                         RenderingError.Fire(hr);
                         detail::RecordError(L"RenderingError", L"EndDraw hr=0x" + std::to_wstring((unsigned)hr));
                         EndPaint(hwnd_, &ps);
+
                         return;
                     }
                     // 设备重建后，清空缓存，但布局不需要重做
@@ -7205,6 +7277,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
 
             EndPaint(hwnd_, &ps);
+
+            if (displayClock_.Running()) {
+                displayClock_.SetLimit(GetFrameRateLimit());
+                if (IsWindowVisible(hwnd_) && !IsIconic(hwnd_) && HasRenderWork()) displayClock_.Request();
+                else displayClock_.Cancel();
+            }
         }
 
         // 以下为原有事件处理函数，保留不变
@@ -7914,6 +7992,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (hwnd_ && IsWindow(hwnd_)) {
                 shouldRun = IsWindowVisible(hwnd_) && !IsIconic(hwnd_);
             }
+            if (shouldRun && displayFramePacing_ && nonBlockingPresent_) {
+                displayClock_.Start(hwnd_);
+                displayClock_.SetLimit(GetFrameRateLimit());
+            }
+            else displayClock_.Cancel();
             if (shouldRun && !timerRunning_) {
                 SetTimer(hwnd_, 1, 16, nullptr);
                 timerRunning_ = true;
@@ -8155,6 +8238,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool haveBehaviorRect_ = false;
         bool inputBlocked_ = false;   // 模态弹窗（子窗口形态）时屏蔽本窗口输入
         bool accessibilityEnabled_ = true;   // 无障碍（UIA）：默认开启
+        bool nonBlockingPresent_ = false;
+        bool displayFramePacing_ = false;
+        detail::DisplayFrameClock displayClock_;
+        bool presentRetry_ = false;
         detail::FrameStats debugStats_;      // 调试：当前帧统计（仅调试开启时更新）
         bool wasMinimized_ = false;         // 上一状态是否最小化（只有“最小化→还原”才恢复 owned 子窗口）
         bool inSizeMove_ = false;           // 正在拖动/缩放循环：WM_NCHITTEST 直接返回 HTCAPTION，避免每次全树命中检测
@@ -8370,6 +8457,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     // ============================================================================
     class MenuWindowBase : public Window {
     public:
+        // Escape hatches for menu-specific presentation policy.
+        inline static bool UseNonBlockingPresent = true;
+        inline static bool UseFramePacing = true;
         MenuWindowBase() = default;
         ~MenuWindowBase() {
             if (!parent_ && detail::g_activeMenu == this) detail::g_activeMenu = nullptr;   // 析构清全局登记，防悬垂
@@ -8378,11 +8468,18 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 以弹出层创建：width/height 为 DIP 的“内容尺寸”（窗口另加阴影边距）
         bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY) {
             contentWidthDip_ = widthDip; contentHeightDip_ = heightDip;
-            AdjustToWorkArea(screenX, screenY);            // 按工作区避让，避免弹出到屏幕外
+            AdjustToWorkArea(screenX, screenY);
             screenX_ = screenX; screenY_ = screenY;
-            SetBackdrop(Backdrop::None, 0x00000000);   // 背景全透明
+            SetBackdrop(Backdrop::None, 0x00000000);
             SetContentOpacity(1.0f);
-            return Window::Create(widthDip + shadowDip_ * 2, heightDip + shadowDip_ * 2, L"");
+            bool ok = Window::Create(widthDip + shadowDip_ * 2, heightDip + shadowDip_ * 2, L"");
+            if (ok) {
+                // Menus are short-lived but input-critical. Do not block the UI
+                // thread in Present; pace hover animation by the monitor clock.
+                if (UseNonBlockingPresent) SetNonBlockingPresent(true);
+                if (UseFramePacing) SetDisplayFramePacing(true);
+            }
+            return ok;
         }
 
         // 在屏幕 (screenX,screenY)（内容左上角）处弹出

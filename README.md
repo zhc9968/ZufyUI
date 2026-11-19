@@ -125,6 +125,9 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // 顺带换成云母
 - **元素级离屏缓存**：默认开启、可逐个关闭；带出血（bleed）避免裁掉阴影/边框；`ReleaseDeviceResourcesRecursive()` 整树释放；设备丢失后自动重建。
 - **高 DPI**：Per-Monitor V2、`WM_DPICHANGED`、全 DIP 坐标、`Snap()` 吸附物理像素；光标/悬停/IME 候选框同口径。
 - **帧率上限**：窗口级 `SetFrameRateLimit` + 全局默认值。
+
+- **非阻塞 Present / 高刷新帧节拍**：`SetNonBlockingPresent` + `SetDisplayFramePacing`；默认关，菜单默认开。
+- **私有字体**：`FontManager::SetAppFontCollection` 安装 DirectWrite 字体集合（须在任何 format/layout 之前）。
 - **内建诊断**：帧统计、repaint / layout / cache / draw TopN、统一日志 `detail::Log`、`UIZSignals::Error`。
 
 ### 布局
@@ -333,9 +336,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.27.3**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.28.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.28.0**：非阻塞 Present / 高刷新帧节拍（opt-in）、私有 DirectWrite 字体集合、UIA provider 生命周期收口（根 provider 断开、WM_DESTROY 清理事件映射）、菜单默认同步非阻塞与帧节拍。
 - **1.27.3**：窗口弹出行为（居中 owner/屏幕、owner 跟随移动、移动边界、关闭原因/拦截、标题栏按钮同步、首帧稳定）。
 - **1.27.2**：窗口裸指针/UIA 崩溃修复；TreeView 末列自动补宽；SplitView 按钮方向/禁用态与全页面滑动切换；托盘点击回退；Drawer 关闭刷新；Card margin；密码框眼睛按钮；MessageBox 高度修复。
 - **1.27.1**：停用实验性独立渲染线程；右键菜单适配非 DWM chrome；修复菜单栏残留 hover、标题栏隐藏/原生标题栏切换后的菜单位置；resize 时同步出帧，避免布局已更新但画面透明；文档清理。

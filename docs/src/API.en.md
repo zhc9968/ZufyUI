@@ -372,7 +372,8 @@ struct FontSpec {
 ```cpp
 static FontManager& Instance();
 IDWriteFactory* GetFactory();
-IDWriteTextFormat* GetFormat(const FontSpec&);        // never evicted
+IDWriteTextFormat* GetFormat(const FontSpec&);
+bool SetAppFontCollection(IDWriteFontCollection*);   // install once, before formats
 ComPtr<IDWriteTextLayout> GetRawLayout(text, fmt, maxW, maxH, noWrap);
 ComPtr<IDWriteTextLayout> GetDisplayLayout(origText, fmt, maxW, maxH, noWrap);   // ellipsized
 ComPtr<IDWriteTextLayout> GetStyledLayout(text, fmt, w, h, noWrap, hAlign, vAlign, lineSpacing, maxLines);
@@ -381,6 +382,7 @@ void CacheDisplayLayout(...);  void CacheStyledDisplayLayout(...);
 void SetGlobalFont(const FontSpec&);
 ZSignal<> GlobalFontChanged;
 ```
+- `SetAppFontCollection` must be called before any format/layout is created; it returns `false` when a cache or collection already exists. The manager holds a reference; menu paths that call `CreateTextFormat` directly still use system fonts.
 - The layout cache is **bounded** (400 entries, FIFO evicts ¼) and returns strong refs (`ComPtr`), safe during use.
 
 ###block_red_start
@@ -729,7 +731,11 @@ void Show(); void ShowNoActivate(); void Hide(); void Raise(); void Close();
 void Run();  int RunModal(Window* owner = nullptr);
 void SetInputBlocked(bool);  bool IsInputBlocked() const;
 std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
+void SetNonBlockingPresent(bool);   bool GetNonBlockingPresent() const;
+void SetDisplayFramePacing(bool);   bool GetDisplayFramePacing() const;
+double GetDisplayRefreshHz() const;
 ```
+- `SetNonBlockingPresent` / `SetDisplayFramePacing` are off by default and on for menus by default; pacing is effective only with nonblocking Present. `GetDisplayRefreshHz()` returns the current monitor refresh rate (60 when unknown).
 
 ###block_red_start
 **Pitfall**
@@ -2141,7 +2147,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 ###block_red_end
 
-###chapter: Version digest | v1.15.0 → v1.27.3
+###chapter: Version digest | v1.15.0 → v1.28.0
 
 > Only the changes that affect your code are listed.
 
@@ -2256,6 +2262,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
   - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
   - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
+- **v1.28.0**: nonblocking Present / high-refresh pacing (`SetNonBlockingPresent` / `SetDisplayFramePacing` / `GetDisplayRefreshHz`); private `IDWriteFontCollection`; UIA root/child provider teardown and `WM_DESTROY` event-map cleanup; menus opt into the same presentation policy by default.
 - **v1.27.3**: popup window behavior. `Placement` (center owner/screen), `FollowOwner`, `MoveBounds` (owner client / monitor work area), `CloseReason`, `RequestClose/ForceClose` and close-veto signals; `SetMovable/SetCloseEnabled/SetCloseOnEscape`; custom title-bar buttons follow window policy; reliable popup first frame.
 - **v1.27.2**:
   - Window raw-pointer/UIA lifetime: `Window::ForgetElement` centralizes focus/pressed/capture/hover/tooltip/pending-repaint/UIA provider cleanup; `SetParent` detaches before release and `UiaDisconnectProvider` prevents the CFG crash.

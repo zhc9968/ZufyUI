@@ -149,6 +149,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="ZDataViewer.h" />
     <ClInclude Include="ZufyUI.h" />
+    <ClInclude Include="ZufyUIFrameClock.h" />
     <ClInclude Include="ZufyUIAcrylic.h" />
     <ClInclude Include="ZufyUIIcons.h" />
     <ClInclude Include="ZufyUIImages.h" />

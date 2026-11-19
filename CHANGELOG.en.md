@@ -2,7 +2,16 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.27.3** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.28.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-11-19 — Nonblocking Present, high-refresh pacing, private fonts, UIA lifetime (v1.28.0)
+- **Nonblocking Present**: opt-in `Window::SetNonBlockingPresent`. When enabled, `Present1(0, DXGI_PRESENT_DO_NOT_WAIT)`; a busy queue is retried by the existing timer/frame clock without blocking or busy-spinning.
+- **High-refresh pacing**: `SetDisplayFramePacing` / `GetDisplayRefreshHz` and `ZufyUIFrameClock.h`. The worker only arms a timer and posts a message; layout/drawing/Present stay on the UI thread. Off by default; menus enable it by default.
+- **Menu sync**: `MenuWindowBase` uses nonblocking Present + frame pacing by default; `UseNonBlockingPresent` / `UseFramePacing` are static opt-outs. Hide, close, `WM_DESTROY` and destruction call `Stop()` on the clock.
+- **Private fonts**: `FontManager::SetAppFontCollection`; install before any format/layout, the manager holds a reference. Menu paths that call `CreateTextFormat` directly still use system fonts.
+- **UIA lifetime**: root and child providers share `DetachElement + UiaDisconnectProvider`; `WM_DESTROY` calls `UiaReturnRawElementProvider(hwnd,0,0,nullptr)`; `UiaDisconnectProvider` runs outside `UiaMutex`; `SetRootLayout` / `SetAccessibilityEnabled(false)` release consistently.
+- **Demo**: window-properties page gained nonblocking Present / pacing toggles; popup page covers placement, follow, bounds, close policy and event logs.
+- **Verification**: x64 `7408` / x86 `7425` self-tests pass.
 
 ### 2026-11-19 — Popup window behavior (v1.27.3)
 - **Window placement**: `Window::Placement` (system default / center on owner / center on screen) plus `CenterOnOwner/CenterOnScreen`.

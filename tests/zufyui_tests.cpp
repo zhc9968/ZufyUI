@@ -1849,6 +1849,17 @@ static void test_api_feedback() {
         CHECK(w.GetCloseOnEscape());
         CHECK(w.GetFollowOwner());
         CHECK(!w.IsCloseEnabled());
+        CHECK(!w.GetNonBlockingPresent());
+        CHECK(!w.GetDisplayFramePacing());
+        w.SetNonBlockingPresent(true);
+        w.SetDisplayFramePacing(true);
+        CHECK(w.GetNonBlockingPresent());
+        CHECK(w.GetDisplayFramePacing());
+        CHECK(w.GetDisplayRefreshHz() > 0.0);
+        w.SetDisplayFramePacing(false);
+        w.SetNonBlockingPresent(false);
+        CHECK(!w.GetNonBlockingPresent());
+        CHECK(!w.GetDisplayFramePacing());
     }
 
     {

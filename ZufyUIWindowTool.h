@@ -1656,6 +1656,13 @@ namespace ZufyUI {
     // ============================================================================
     namespace detail {
 
+        // UIA lifetime invariants (do not relax):
+        // 1. Providers are owned by UiaWindowContext; the context map changes only under UiaMutex.
+        // 2. Window teardown calls ReleaseAccessibility before HWND ids/element tree are cleared.
+        // 3. Every provider is DetachElement()'d before UiaDisconnectProvider/Release.
+        // 4. Never hold UiaMutex across UiaDisconnectProvider: COM/RPC may re-enter the provider.
+        // 5. WM_DESTROY calls UiaReturnRawElementProvider(hwnd,0,0,nullptr) to clear UIA's event map.
+        // 6. Root and child providers use the same detach/disconnect path; no special-case leak.
         inline long UiaControlTypeOf(AccessibleRole r) {
             using R = AccessibleRole;
             switch (r) {
@@ -2045,23 +2052,42 @@ namespace ZufyUI {
         }
 
         inline void ReleaseAccessibility(Window* w) {
-            std::lock_guard<std::recursive_mutex> lock(UiaMutex());
-            auto it = UiaContexts().find(w);
-            if (it == UiaContexts().end()) return;
-            UiaContextPtr ctx = it->second;
-            UiaContexts().erase(it);
-            if (!ctx) return;
-            ctx->window = nullptr;
             std::vector<ZufyUIElementProvider*> providers;
-            providers.reserve(ctx->elements.size());
-            for (auto& kv : ctx->elements) if (kv.second) providers.push_back(kv.second);
-            ctx->elements.clear();
+            ZufyUIElementProvider* root = nullptr;
+            UiaContextPtr ctx;
+            {
+                std::lock_guard<std::recursive_mutex> lock(UiaMutex());
+                auto it = UiaContexts().find(w);
+                if (it == UiaContexts().end()) return;
+                ctx = it->second;
+                UiaContexts().erase(it);
+                if (!ctx) return;
+                ctx->window = nullptr;
+                providers.reserve(ctx->elements.size());
+                for (auto& kv : ctx->elements) if (kv.second) providers.push_back(kv.second);
+                ctx->elements.clear();
+                for (auto* p : providers) p->DetachElement();
+                if (ctx->root) {
+                    root = static_cast<ZufyUIElementProvider*>(ctx->root.Detach());
+                    if (root) root->DetachElement();
+                }
+            }
+            // UiaDisconnectProvider can synchronously call back into the provider.
+            // Never hold the context mutex across it: a COM/RPC callback would deadlock.
             for (auto* p : providers) {
                 UiaDisconnectProvider(reinterpret_cast<IRawElementProviderSimple*>(p));
-                p->DetachElement();
                 p->Release();
             }
-            if (ctx->root) { ctx->root->Release(); ctx->root = nullptr; }
+            if (root) {
+                UiaDisconnectProvider(reinterpret_cast<IRawElementProviderSimple*>(root));
+                root->Release();
+            }
+        }
+
+        inline void NotifyUiaWindowDestroyed(HWND hwnd) {
+            // Required by UiaReturnRawElementProvider: releases references that
+            // UIA's raised-event map holds for this HWND.
+            if (hwnd) UiaReturnRawElementProvider(hwnd, 0, 0, nullptr);
         }
 
         inline LRESULT HandleGetObject(Window* w, HWND hwnd, WPARAM wParam, LPARAM lParam) {
@@ -2138,22 +2164,23 @@ namespace ZufyUI {
         }
     }
     inline void Window::ForgetAccessibleElement(UIElement* e) {
-        std::lock_guard<std::recursive_mutex> lock(detail::UiaMutex());
-        auto it = detail::UiaContexts().find(this);
-        if (it == detail::UiaContexts().end() || !it->second) return;
-        auto& elements = it->second->elements;
-        auto jt = elements.find(e);
-        if (jt != elements.end()) {
-            auto* p = jt->second;
+        detail::ZufyUIElementProvider* provider = nullptr;
+        {
+            std::lock_guard<std::recursive_mutex> lock(detail::UiaMutex());
+            auto it = detail::UiaContexts().find(this);
+            if (it == detail::UiaContexts().end() || !it->second) return;
+            auto& elements = it->second->elements;
+            auto jt = elements.find(e);
+            if (jt == elements.end()) return;
+            provider = jt->second;
             elements.erase(jt);
-            if (p) {
-                // 先让 UIA 端释放对该 provider 的引用，再 Detach/Release。
-                // 只 Detach 不 Disconnect 时，UIA 仍可能持有已释放的 provider 指针，
-                // 下一次无障碍查询就会在 UIA 侧做虚调用 → c0000409 0xa（CFG）。
-                UiaDisconnectProvider(reinterpret_cast<IRawElementProviderSimple*>(p));
-                p->DetachElement();
-                p->Release();
-            }
+            if (provider) provider->DetachElement();
+        }
+        if (provider) {
+            // Do not call into UIA while holding the context mutex: the COM/RPC
+            // callback can re-enter the provider and deadlock on that mutex.
+            UiaDisconnectProvider(reinterpret_cast<IRawElementProviderSimple*>(provider));
+            provider->Release();
         }
     }
 

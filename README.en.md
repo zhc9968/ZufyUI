@@ -125,6 +125,9 @@ win.SetBackdrop(Backdrop::Mica, 0x00000000);   // also switch to Mica
 - **Per-element offscreen caching**: on by default, can be disabled per element; bleed keeps shadows/borders from being clipped; `ReleaseDeviceResourcesRecursive()` releases a whole subtree; automatic recovery after device loss.
 - **High DPI**: Per-Monitor V2, `WM_DPICHANGED`, DIP coordinates, `Snap()` to physical pixels; cursor/hover/IME candidate geometry use the same scale.
 - **Frame-rate limit**: per-window `SetFrameRateLimit` plus a global default.
+
+- **Nonblocking Present / high-refresh pacing**: `SetNonBlockingPresent` + `SetDisplayFramePacing`; off by default, on for menus by default.
+- **Private fonts**: `FontManager::SetAppFontCollection` installs a DirectWrite collection before any format/layout is created.
 - **Built-in diagnostics**: frame stats, repaint / layout / cache / draw TopN, unified `detail::Log`, `UIZSignals::Error`.
 
 ### Layout
@@ -333,9 +336,10 @@ ZufyUI/
 
 ## Version history
 
-> Current version: **1.27.3** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+> Current version: **1.28.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 > Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.28.0**: opt-in nonblocking Present / high-refresh frame pacing, private DirectWrite font collections, UIA provider lifecycle hardening (root disconnect + WM_DESTROY event-map cleanup), and menus using the same presentation policy by default.
 - **1.27.3**: popup window behavior (center on owner/screen, follow owner movement, move bounds, close reasons/veto, title-bar button sync, reliable first frame).
 - **1.27.2**: window raw-pointer/UIA crash fixes; TreeView last-column auto-stretch; SplitView button direction/disabled state and full-pane slide transition; TrayIcon click fallbacks; Drawer close refresh; Card margins; password eye button; MessageBox height fix.
 - **1.27.1**: disabled the experimental independent render thread; adapted the context menu to non-DWM chrome; fixed stale menu-bar hover and menu placement after title-bar hide/native-frame switches; resize now presents a frame immediately instead of leaving stale/transparent content; docs cleanup.

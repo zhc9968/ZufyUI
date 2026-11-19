@@ -375,7 +375,8 @@ struct FontSpec {
 ```cpp
 static FontManager& Instance();
 IDWriteFactory* GetFactory();
-IDWriteTextFormat* GetFormat(const FontSpec&);        // 格式缓存，永不淘汰
+IDWriteTextFormat* GetFormat(const FontSpec&);
+bool SetAppFontCollection(IDWriteFontCollection*);   // install once, before formats
 ComPtr<IDWriteTextLayout> GetRawLayout(text, fmt, maxW, maxH, noWrap);
 ComPtr<IDWriteTextLayout> GetDisplayLayout(origText, fmt, maxW, maxH, noWrap);   // 带省略号
 ComPtr<IDWriteTextLayout> GetStyledLayout(text, fmt, w, h, noWrap, hAlign, vAlign, lineSpacing, maxLines);
@@ -384,6 +385,7 @@ void CacheDisplayLayout(...); void CacheStyledDisplayLayout(...);
 void SetGlobalFont(const FontSpec&);
 ZSignal<> GlobalFontChanged;
 ```
+- `SetAppFontCollection` 必须在任何 format/layout 创建之前调用；已有缓存或已安装时返回 `false`。内部持有集合引用；菜单直接 `CreateTextFormat` 的路径仍用系统字体。
 - 布局缓存**有上限**（400 条，FIFO 淘汰 ¼）；返回强引用（`ComPtr`），调用期间不会被淘汰。
 
 ###block_red_start
@@ -733,7 +735,11 @@ void Show(); void ShowNoActivate(); void Hide(); void Raise(); void Close();
 void Run();  int RunModal(Window* owner = nullptr);
 void SetInputBlocked(bool);  bool IsInputBlocked() const;
 std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
+void SetNonBlockingPresent(bool);   bool GetNonBlockingPresent() const;
+void SetDisplayFramePacing(bool);   bool GetDisplayFramePacing() const;
+double GetDisplayRefreshHz() const;
 ```
+- `SetNonBlockingPresent` / `SetDisplayFramePacing` 默认关，菜单默认开；`SetDisplayFramePacing` 仅在非阻塞 Present 下生效。`GetDisplayRefreshHz()` 返回当前显示器刷新率（未知时为 60）。
 
 ###block_red_start
 **易错**
@@ -2152,7 +2158,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 ###block_red_end
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.27.3
+###chapter: 版本变化摘录 | v1.15.0 → v1.28.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -2268,6 +2274,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
   - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
   - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。
+- **v1.28.0**：非阻塞 Present / 高刷新帧节拍（`SetNonBlockingPresent` / `SetDisplayFramePacing` / `GetDisplayRefreshHz`）；私有 `IDWriteFontCollection`；UIA 根/子 provider 统一断开、`WM_DESTROY` 清理 UIA 事件映射；菜单默认同步提示策略。
 - **v1.27.3**：窗口弹出行为。`Placement`（居中 owner/屏幕）、`FollowOwner`、`MoveBounds`（owner 客户区/显示器工作区）、`CloseReason`、`RequestClose/ForceClose` 与关闭拦截信号；`SetMovable/SetCloseEnabled/SetCloseOnEscape`；自定义标题栏按钮随窗口策略同步；弹窗首帧预推进。
 - **v1.27.2**：
   - 窗口裸指针/UIA 生命周期：`Window::ForgetElement` 统一注销焦点/按下/捕获/悬停/tooltip/待重绘/UIA provider；`SetParent` 脱离时提前注销，`UiaDisconnectProvider` 修复 CFG 崩溃。
