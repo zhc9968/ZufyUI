@@ -2,7 +2,15 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.27.2** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.27.3** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-11-19 — Popup window behavior (v1.27.3)
+- **Window placement**: `Window::Placement` (system default / center on owner / center on screen) plus `CenterOnOwner/CenterOnScreen`.
+- **Owner follow and move bounds**: `SetFollowOwner` and `MoveBounds` (unrestricted / owner client / monitor work area); owned child windows follow owner movement and are constrained.
+- **Close policy**: `CloseReason`, `RequestClose`, `ForceClose`, and `Opening/Opened/CloseRequested/CloseAccepted/CloseCancelled`; supports disabled close, Escape close, close veto, and forced close.
+- **Title bar integration**: the custom title bar close button uses `RequestClose(Caption)`; `BehaviorChanged` keeps the maximize button disabled in owner-client mode.
+- **Popup first frame**: `RenderNowSync` advances layout and renders a frame on first `Show`, reducing blank first frames.
+- **Verification**: x64/x86 Release + ZufyUIDebugger builds and self-tests pass.
 
 ### 2026-11-14 — Stability, control interaction and full-pane transition patch (v1.27.2)
 - **Window raw-pointer / UIA crashes**: added `Window::ForgetElement` to clear focus, pressed, capture, hover, tooltip, pending-repaint and UIA provider caches in one place; `UIElement::SetParent` detaches window-side references before `ClearChildren()` releases the shared pointer, and `~UIElement` remains the fallback. UIA providers now call `UiaDisconnectProvider` before release, fixing the AV and CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE` crashes after list/member rebuilds.

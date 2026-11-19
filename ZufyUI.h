@@ -91,8 +91,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 27
-#define ZufyUI_VERSION_PATCH 2
-#define ZufyUI_VERSION_STRING L"1.27.2"
+#define ZufyUI_VERSION_PATCH 3
+#define ZufyUI_VERSION_STRING L"1.27.3"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -4464,6 +4464,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     // ---------- 窗口 ----------
     class Window : public ConnectionOwner {
     public:
+        enum class Placement { SystemDefault, CenterOwner, CenterScreen };
+        enum class MoveBounds { Unrestricted, OwnerClient, MonitorWorkArea };
+        enum class CloseReason { Programmatic, Caption, Escape, System, Forced };
         inline static Backdrop DefaultBackdrop = Backdrop::None;
         inline static DWORD DefaultBackdropColor = 0xFFFFFFFF;   // 默认纯白背景（Backdrop::None + 不透明白）
         inline static bool DefaultBackdropTintSet = false;      // 是否通过 SetDefaultBackdrop 显式设过 tint
@@ -4580,7 +4583,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             std::lock_guard<std::recursive_mutex> lk(renderLock_);
             if (dying_.load()) return;
             if (!renderTarget_) { if (FAILED(CreateDeviceResources())) return; }
-            RenderFrame();
+            AdvanceFrame();
+            HRESULT hr = RenderFrame();
+            if (FAILED(hr)) {
+                RenderingError.Fire(hr);
+                if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE);
+            }
         }
 
         // A3：帧率上限 —— 不限时跟随显示器 vblank；>0 限制动画平均出帧率（降 GPU/CPU）。
@@ -4847,11 +4855,16 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (owner_ && ownedMinimizePolicy_ == OwnedMinimizePolicy::DisableMinimize)
                 style &= ~WS_MINIMIZEBOX;   // 方案4：创建时就置灰最小化按钮
             int cposX = x, cposY = y;
+            explicitPosition_ = x != CW_USEDEFAULT || y != CW_USEDEFAULT;
             GetCreatePos(cposX, cposY);   // 可重写：覆盖成绝对位置
             hwnd_ = CreateWindowExW(GetCreateExStyle(), L"ZufyUIWindowClass", title.c_str(), style,
                 cposX, cposY, physicalWidth, physicalHeight,
                 hwndOwner, nullptr, GetModuleHandle(nullptr), this);
             if (!hwnd_) { detail::ReportError(L"Window::Create: CreateWindowExW failed"); return false; }
+            if (!closeEnabled_) {
+                if (HMENU menu = GetSystemMenu(hwnd_, FALSE))
+                    EnableMenuItem(menu, SC_CLOSE, MF_BYCOMMAND | MF_GRAYED);
+            }
 
             dpi_ = GetDpiForWindow(hwnd_);
             if (dpi_ == 0) dpi_ = 96;
@@ -4961,6 +4974,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 多窗口常用：把窗口移动到指定位置 / 设置尺寸（单位 DIP）
         void SetPosition(int x, int y) {
             if (!hwnd_) return;
+            explicitPosition_ = true;
             SetWindowPos(hwnd_, nullptr, MulDiv(x, dpi_, 96), MulDiv(y, dpi_, 96), 0, 0, SWP_NOSIZE | SWP_NOZORDER);
         }
         void SetSize(int width, int height) {
@@ -4972,8 +4986,24 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         HWND GetHwnd() const { return hwnd_; }
 
         // 便捷：显示 / 隐藏 / 置顶（z 序最上）
-        void Show() { if (hwnd_) ShowWindow(hwnd_, SW_SHOW); }
-        void ShowNoActivate() { if (hwnd_) ShowWindow(hwnd_, SW_SHOWNOACTIVATE); }
+        void Show() {
+            if (!hwnd_) return;
+            const bool becomingVisible = !IsWindowVisible(hwnd_);
+            if (becomingVisible) { Opening.Fire(); if (!hwnd_) return; }
+            PrepareWindowShow();
+            if (!hwnd_) return;
+            ShowWindow(hwnd_, SW_SHOW);
+            if (becomingVisible && hwnd_) Opened.Fire();
+        }
+        void ShowNoActivate() {
+            if (!hwnd_) return;
+            const bool becomingVisible = !IsWindowVisible(hwnd_);
+            if (becomingVisible) { Opening.Fire(); if (!hwnd_) return; }
+            PrepareWindowShow();
+            if (!hwnd_) return;
+            ShowWindow(hwnd_, SW_SHOWNOACTIVATE);
+            if (becomingVisible && hwnd_) Opened.Fire();
+        }
         void Hide() { if (hwnd_) ShowWindow(hwnd_, SW_HIDE); }
         void Raise() { if (hwnd_) SetWindowPos(hwnd_, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE); }
 
@@ -4993,6 +5023,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         // 父子（owned）窗口：设置所有者后，本窗口会始终位于所有者之上，并随所有者最小化。
         void SetOwner(Window* owner) {
+            for (Window* ancestor = owner; ancestor; ancestor = ancestor->owner_)
+                if (ancestor == this) return;
             owner_ = owner;
             if (hwnd_) SetWindowLongPtr(hwnd_, GWLP_HWNDPARENT, (LONG_PTR)(owner ? owner->hwnd_ : nullptr));
         }
@@ -5006,6 +5038,38 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 if (w && w != this && w->GetOwner() == this) out.push_back(w);
             return out;
         }
+
+        void SetPlacement(Placement value) { placement_ = value; placementApplied_ = false; }
+        Placement GetPlacement() const { return placement_; }
+        void CenterOnOwner() { CenterWindow(true); }
+        void CenterOnScreen() { CenterWindow(false); }
+        void SetMovable(bool value) { movable_ = value; BehaviorChanged.Fire(); }
+        bool IsMovable() const { return movable_; }
+        void SetCloseEnabled(bool value) {
+            closeEnabled_ = value;
+            if (hwnd_) {
+                if (HMENU menu = GetSystemMenu(hwnd_, FALSE))
+                    EnableMenuItem(menu, SC_CLOSE, MF_BYCOMMAND | (value ? MF_ENABLED : MF_GRAYED));
+            }
+            BehaviorChanged.Fire();
+        }
+        bool IsCloseEnabled() const { return closeEnabled_; }
+        void SetCloseOnEscape(bool value) { closeOnEscape_ = value; }
+        bool GetCloseOnEscape() const { return closeOnEscape_; }
+        void SetFollowOwner(bool value) { followOwner_ = value; }
+        bool GetFollowOwner() const { return followOwner_; }
+        void SetMoveBounds(MoveBounds value) {
+            moveBounds_ = value;
+            if (hwnd_ && value == MoveBounds::OwnerClient && IsZoomed(hwnd_)) ShowWindow(hwnd_, SW_RESTORE);
+            ConstrainToMoveBounds();
+            BehaviorChanged.Fire();
+        }
+        MoveBounds GetMoveBounds() const { return moveBounds_; }
+        void RequestClose(CloseReason reason = CloseReason::Programmatic) {
+            if (hwnd_) PostMessageW(hwnd_, WM_CLOSE, kCloseRequestTag, static_cast<LPARAM>(reason));
+        }
+        void ForceClose() { RequestClose(CloseReason::Forced); }
+        CloseReason GetCloseReason() const { return closeReason_; }
 
         // ================= 自定义标题栏 / 窗口外观 =================
         // 安装自定义标题栏（参数一般是 ZufyUIWindowTool.h 里的 TitleBar；基类 UIElement 即可）。
@@ -5351,12 +5415,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         // 窗口动作（供自定义标题栏的按钮调用）
         void Minimize() { if (hwnd_) ShowWindow(hwnd_, SW_MINIMIZE); }
-        void Maximize() { if (hwnd_) ShowWindow(hwnd_, SW_MAXIMIZE); }
+        void Maximize() { if (hwnd_ && moveBounds_ != MoveBounds::OwnerClient) ShowWindow(hwnd_, SW_MAXIMIZE); }
         void Restore() { if (hwnd_) ShowWindow(hwnd_, SW_RESTORE); }
-        void MaximizeRestore() { if (hwnd_) ShowWindow(hwnd_, IsZoomed(hwnd_) ? SW_RESTORE : SW_MAXIMIZE); }
+        void MaximizeRestore() { if (hwnd_) { if (IsZoomed(hwnd_)) Restore(); else Maximize(); } }
         bool IsMaximizedWindow() const { return hwnd_ && IsZoomed(hwnd_) != FALSE; }
         // 发起系统级拖动：拖动 / Aero Snap / 双击最大化全部交给系统
-        void BeginSystemDrag() { if (hwnd_) { ReleaseCapture(); SendMessageW(hwnd_, WM_NCLBUTTONDOWN, HTCAPTION, 0); } }
+        void BeginSystemDrag() { if (hwnd_ && movable_) { ReleaseCapture(); SendMessageW(hwnd_, WM_NCLBUTTONDOWN, HTCAPTION, 0); } }
 
         // ---- 闪烁提示 ----
         // 注意：FLASHW_CAPTION 对“自定义标题栏”无效；要任务栏也闪必须用 FLASHW_ALL。
@@ -5528,7 +5592,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         // 关闭本窗口（其余窗口不受影响；全部关闭后消息循环才会退出）
-        void Close() { if (hwnd_) PostMessageW(hwnd_, WM_CLOSE, 0, 0); }
+        void Close() { RequestClose(CloseReason::Programmatic); }
 
         // ---------- 自定义标题栏 / 窗口外观：实现 ----------
         // Win10 没有 DWMWA_WINDOW_CORNER_PREFERENCE（Win11 22000+ 才有）。
@@ -5703,6 +5767,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 窗口实例信号：按窗口区分激活/失活/关闭
         ZSignal<> Activated;
         ZSignal<> Deactivated;
+        ZSignal<> Opening;
+        ZSignal<> Opened;
+        ZSignal<CloseReason, bool*> CloseRequested;
+        ZSignal<CloseReason> CloseAccepted;
+        ZSignal<CloseReason> CloseCancelled;
+        ZSignal<> BehaviorChanged;
         // 请求关闭时触发（点关闭按钮 / Close() / 系统关闭菜单）。槽把 *cancel 置 true 可阻止关闭，
         // 用于“关闭前询问保存”等。
         ZSignal<bool*> Closing;
@@ -5912,7 +5982,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     if (inSizeMove_) return HTCAPTION;   // 拖动/缩放中直接返回，避免每次 NCHITTEST 都整树命中检测（拖动高 CPU 主因）
                     POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
                     ScreenToClient(hwnd_, &pt);
-                    return HitTestNonClient(pt);
+                    LRESULT hit = HitTestNonClient(pt);
+                    return !movable_ && hit == HTCAPTION ? HTCLIENT : hit;
                 }
                 break;
             case WM_NCMOUSEMOVE:
@@ -5941,7 +6012,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     if (customTitleBar_) customTitleBar_->SetNonClientButtonPressed((int)wParam, false);
                     if (wParam == HTMINBUTTON) { Minimize(); return 0; }
                     if (wParam == HTMAXBUTTON) { MaximizeRestore(); return 0; }
-                    if (wParam == HTCLOSE) { Close(); return 0; }
+                    if (wParam == HTCLOSE) { RequestClose(CloseReason::Caption); return 0; }
                 }
                 break;
             case WM_NCRBUTTONUP:
@@ -5974,7 +6045,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     customTitleBar_->SetWindowTitle(lastWindowTitle_);
                 }
                 break;   // 交给 DefWindowProc 真正设置窗口标题
+            case WM_WINDOWPOSCHANGING:
+                ConstrainWindowPosition(reinterpret_cast<WINDOWPOS*>(lParam));
+                break;
             case WM_WINDOWPOSCHANGED:
+                SyncFollowingWindows();
                 // 最大化/还原/全屏切换有时先于 WM_SIZE 改变状态；这里补一次，保证按钮字形不滞后。
                 SyncMaximizeState();
                 // Snap 完成后 DWM 可能在此消息之后重算 frame；再补一次 margin/圆角。
@@ -6194,6 +6269,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 // 菜单打开时：菜单是"临时顶层交互"，键盘优先级高于窗口
                 if (detail::ForwardKeyToActiveMenu((int)wParam)) return 0;
                 if (OnWindowKeyDown((int)wParam)) return 0;
+                if (wParam == VK_ESCAPE && closeOnEscape_) { RequestClose(CloseReason::Escape); return 0; }
                 if (!keyHandlers_.empty()) {
                     auto handlers = keyHandlers_;
                     for (auto& entry : handlers) {
@@ -6304,6 +6380,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 pressedElement_ = nullptr;
                 return 0;
             case WM_SYSCOMMAND:
+                if ((wParam & 0xFFF0) == SC_MAXIMIZE && moveBounds_ == MoveBounds::OwnerClient) return 0;
+                if ((wParam & 0xFFF0) == SC_MOVE && !movable_) return 0;
+                if ((wParam & 0xFFF0) == SC_CLOSE) { RequestClose(CloseReason::System); return 0; }
                 // owned 子窗口被“单独最小化”的处理（见 OwnedMinimizePolicy）
                 if (owner_ && (wParam & 0xFFF0) == SC_MINIMIZE) {
                     if (ownedMinimizePolicy_ == OwnedMinimizePolicy::Hide) {
@@ -6316,11 +6395,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 }
                 break;
             case WM_CLOSE: {
-                if (OnWindowClosing()) return 0;   // 虚函数形式取消关闭
-                bool cancel = false;
-                Closing.Fire(&cancel);
-                if (cancel) return 0;   // 槽取消关闭（如“关闭前询问保存”）
-                break;                  // 交给 DefWindowProc → DestroyWindow
+                CloseReason reason = (wParam == kCloseRequestTag && lParam >= 0 && lParam <= (LPARAM)CloseReason::Forced)
+                    ? static_cast<CloseReason>(lParam) : CloseReason::System;
+                HandleCloseRequest(reason);
+                return 0;
             }
             case WM_DESTROY:
                 if (taskbarList_) {   // 清理任务栏进度/覆盖徽章，避免窗口关闭后残留
@@ -7847,6 +7925,117 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float PixelToDipX(int pixelX) const { return pixelX * 96.0f / dpi_; }
         float PixelToDipY(int pixelY) const { return pixelY * 96.0f / dpi_; }
 
+        static constexpr WPARAM kCloseRequestTag = 0x5A554659;
+
+        HWND EffectiveOwnerHwnd() const {
+            return hwnd_ ? GetWindow(hwnd_, GW_OWNER) : (owner_ ? owner_->hwnd_ : nullptr);
+        }
+        static RECT WorkAreaFor(HWND window) {
+            MONITORINFO info{ sizeof(MONITORINFO) };
+            if (GetMonitorInfoW(MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST), &info)) return info.rcWork;
+            RECT result{}; SystemParametersInfoW(SPI_GETWORKAREA, 0, &result, 0); return result;
+        }
+        bool ReadMoveBounds(RECT& result) const {
+            if (moveBounds_ == MoveBounds::OwnerClient) {
+                HWND parent = EffectiveOwnerHwnd();
+                if (!parent || !IsWindow(parent) || IsIconic(parent)) return false;
+                GetClientRect(parent, &result);
+                MapWindowPoints(parent, nullptr, reinterpret_cast<POINT*>(&result), 2);
+                return result.right > result.left && result.bottom > result.top;
+            }
+            if (moveBounds_ == MoveBounds::MonitorWorkArea) { result = WorkAreaFor(hwnd_); return true; }
+            return false;
+        }
+        static void FitWindowRect(RECT& rect, const RECT& bounds) {
+            LONG width = min(rect.right - rect.left, bounds.right - bounds.left);
+            LONG height = min(rect.bottom - rect.top, bounds.bottom - bounds.top);
+            rect.left = max(bounds.left, min(rect.left, bounds.right - width));
+            rect.top = max(bounds.top, min(rect.top, bounds.bottom - height));
+            rect.right = rect.left + max(1L, width);
+            rect.bottom = rect.top + max(1L, height);
+        }
+        void CenterWindow(bool useOwner) {
+            if (!hwnd_) return;
+            HWND parent = useOwner ? EffectiveOwnerHwnd() : nullptr;
+            RECT bounds = WorkAreaFor(parent ? parent : hwnd_), anchor = bounds, rect{};
+            if (parent && IsWindow(parent) && !IsIconic(parent)) GetWindowRect(parent, &anchor);
+            GetWindowRect(hwnd_, &rect);
+            LONG width = rect.right - rect.left, height = rect.bottom - rect.top;
+            rect.left = anchor.left + (anchor.right - anchor.left - width) / 2;
+            rect.top = anchor.top + (anchor.bottom - anchor.top - height) / 2;
+            rect.right = rect.left + width; rect.bottom = rect.top + height;
+            FitWindowRect(rect, bounds);
+            SetWindowPos(hwnd_, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+                SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+        void ConstrainToMoveBounds() {
+            if (!hwnd_ || IsIconic(hwnd_)) return;
+            RECT bounds{}, rect{}, original{};
+            if (!ReadMoveBounds(bounds)) return;
+            GetWindowRect(hwnd_, &rect); original = rect; FitWindowRect(rect, bounds);
+            if (!EqualRect(&rect, &original))
+                SetWindowPos(hwnd_, nullptr, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+                    SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+        void ConstrainWindowPosition(WINDOWPOS* position) {
+            if (!hwnd_ || IsIconic(hwnd_) || !position) return;
+            RECT bounds{}, rect{};
+            if (!ReadMoveBounds(bounds)) return;
+            GetWindowRect(hwnd_, &rect);
+            LONG width = position->flags & SWP_NOSIZE ? rect.right - rect.left : position->cx;
+            LONG height = position->flags & SWP_NOSIZE ? rect.bottom - rect.top : position->cy;
+            if (!(position->flags & SWP_NOMOVE)) { rect.left = position->x; rect.top = position->y; }
+            rect.right = rect.left + width; rect.bottom = rect.top + height;
+            FitWindowRect(rect, bounds);
+            position->x = rect.left; position->y = rect.top;
+            position->cx = rect.right - rect.left; position->cy = rect.bottom - rect.top;
+            position->flags &= ~(SWP_NOMOVE | SWP_NOSIZE);
+        }
+        void SyncFollowingWindows() {
+            if (!hwnd_ || IsIconic(hwnd_)) return;
+            RECT now{}; GetWindowRect(hwnd_, &now);
+            LONG dx = haveBehaviorRect_ ? now.left - lastBehaviorRect_.left : 0;
+            LONG dy = haveBehaviorRect_ ? now.top - lastBehaviorRect_.top : 0;
+            lastBehaviorRect_ = now; haveBehaviorRect_ = true;
+            for (Window* child : GetOwnedWindows()) {
+                if (!child->hwnd_ || IsIconic(child->hwnd_)) continue;
+                if (child->followOwner_ && (dx || dy)) {
+                    RECT rect{}; GetWindowRect(child->hwnd_, &rect);
+                    SetWindowPos(child->hwnd_, nullptr, rect.left + dx, rect.top + dy, 0, 0,
+                        SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+                }
+                child->ConstrainToMoveBounds();
+            }
+        }
+        void PrepareWindowShow() {
+            if (!hwnd_ || IsWindowVisible(hwnd_)) return;
+            if (!placementApplied_) {
+                placementApplied_ = true;
+                if (!explicitPosition_) {
+                    if (placement_ == Placement::CenterOwner) CenterOnOwner();
+                    else if (placement_ == Placement::CenterScreen) CenterOnScreen();
+                }
+            }
+            ConstrainToMoveBounds();
+            RenderNowSync();
+        }
+        void HandleCloseRequest(CloseReason reason) {
+            if (!hwnd_ || evaluatingClose_) return;
+            const bool forced = reason == CloseReason::Forced;
+            if (!forced && !closeEnabled_) { CloseCancelled.Fire(reason); return; }
+            if (!forced) {
+                evaluatingClose_ = true;
+                bool cancel = OnWindowClosing();
+                if (!cancel) Closing.Fire(&cancel);
+                if (!cancel) CloseRequested.Fire(reason, &cancel);
+                evaluatingClose_ = false;
+                if (cancel || !hwnd_) { CloseCancelled.Fire(reason); return; }
+            }
+            closeReason_ = reason;
+            CloseAccepted.Fire(reason);
+            if (hwnd_) DestroyWindow(hwnd_);
+        }
+
         HWND hwnd_;
         detail::AppCore* core_ = nullptr;
         int id_ = 0;
@@ -7955,6 +8144,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         std::vector<Rect> dragRegions_;     // 收集到的可拖动区域（客户坐标 DIP）
         std::vector<UIElement*> npBefore_, npAfter_;   // 不参与布局的元素（仅重排后重建，避免每帧全树收集）
         OwnedMinimizePolicy ownedMinimizePolicy_ = OwnedMinimizePolicy::Hide;   // 见 OwnedMinimizePolicy
+        Placement placement_ = Placement::SystemDefault;
+        MoveBounds moveBounds_ = MoveBounds::Unrestricted;
+        CloseReason closeReason_ = CloseReason::Programmatic;
+        bool movable_ = true, closeEnabled_ = true, closeOnEscape_ = false, followOwner_ = false;
+        bool placementApplied_ = false, explicitPosition_ = false, evaluatingClose_ = false;
+        RECT lastBehaviorRect_{};
+        bool haveBehaviorRect_ = false;
         bool inputBlocked_ = false;   // 模态弹窗（子窗口形态）时屏蔽本窗口输入
         bool accessibilityEnabled_ = true;   // 无障碍（UIA）：默认开启
         detail::FrameStats debugStats_;      // 调试：当前帧统计（仅调试开启时更新）

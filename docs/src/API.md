@@ -901,6 +901,29 @@ std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 - `Closing` 里把 `*cancel = true` 可取消关闭。`Closing` 的参数是 `bool*`（不是引用）。
 ###block_red_end
 
+## 弹窗窗口行为（v1.27.3）
+
+```cpp
+enum class Placement { SystemDefault, CenterOwner, CenterScreen };
+enum class MoveBounds { Unrestricted, OwnerClient, MonitorWorkArea };
+enum class CloseReason { Programmatic, Caption, Escape, System, Forced };
+void SetPlacement(Placement);   Placement GetPlacement() const;
+void CenterOnOwner();   void CenterOnScreen();
+void SetMovable(bool);   bool IsMovable() const;
+void SetCloseEnabled(bool);   bool IsCloseEnabled() const;
+void SetCloseOnEscape(bool);   bool GetCloseOnEscape() const;
+void SetFollowOwner(bool);   bool GetFollowOwner() const;
+void SetMoveBounds(MoveBounds);   MoveBounds GetMoveBounds() const;
+void RequestClose(CloseReason = CloseReason::Programmatic);   void ForceClose();
+ZSignal<> Opening, Opened, BehaviorChanged;
+ZSignal<CloseReason, bool*> CloseRequested;   ZSignal<CloseReason> CloseAccepted, CloseCancelled;
+```
+
+- `CenterOwner` 仅在未显式设置初始位置时生效；`SetPosition` 会标记为显式位置。
+- `FollowOwner` 让 owned 子窗口在 owner 移动时跟随；`MoveBounds` 同时用于拖动和屏幕/工作区裁剪。
+- 关闭优先级：`CloseRequested` 可拦截；`ForceClose` 跳过拦截但仍走正常 HWND 清理。
+- 首次 `Show` 前会推进一帧，减少弹窗首帧空白。
+
 ###chapter: 基础控件 | Label、Button、TextBox、TextEdit、ComboBox
 
 > 本类控件共享的坑：文本布局按 `(文本, 盒, 格式)` 全局缓存；改内部字符串务必走 setter（否则绕过失效逻辑）；`Color` 分量是 [0,1]；`SetEnabled(false)` ≠ `SetVisible(false)`。
@@ -2129,7 +2152,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 ###block_red_end
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.27.2
+###chapter: 版本变化摘录 | v1.15.0 → v1.27.3
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -2245,6 +2268,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
   - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
   - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。
+- **v1.27.3**：窗口弹出行为。`Placement`（居中 owner/屏幕）、`FollowOwner`、`MoveBounds`（owner 客户区/显示器工作区）、`CloseReason`、`RequestClose/ForceClose` 与关闭拦截信号；`SetMovable/SetCloseEnabled/SetCloseOnEscape`；自定义标题栏按钮随窗口策略同步；弹窗首帧预推进。
 - **v1.27.2**：
   - 窗口裸指针/UIA 生命周期：`Window::ForgetElement` 统一注销焦点/按下/捕获/悬停/tooltip/待重绘/UIA provider；`SetParent` 脱离时提前注销，`UiaDisconnectProvider` 修复 CFG 崩溃。
   - `TreeView::SetStretchLastColumn`（默认开）末列补宽；SplitView 按钮方向/禁用态、全页面滑动切换与折叠钳制；TrayIcon v3/v4 点击回退；Drawer 关闭刷新；Card margin；密码框眼睛按钮；MessageBox 尺寸修复。

@@ -1832,6 +1832,26 @@ static void test_api_feedback() {
     }
 
     {
+        Window w;
+        CHECK(w.GetPlacement() == Window::Placement::SystemDefault);
+        CHECK(w.GetMoveBounds() == Window::MoveBounds::Unrestricted);
+        CHECK(w.IsMovable());
+        CHECK(w.IsCloseEnabled());
+        w.SetPlacement(Window::Placement::CenterOwner);
+        w.SetMoveBounds(Window::MoveBounds::OwnerClient);
+        w.SetMovable(false);
+        w.SetCloseOnEscape(true);
+        w.SetFollowOwner(true);
+        w.SetCloseEnabled(false);
+        CHECK(w.GetPlacement() == Window::Placement::CenterOwner);
+        CHECK(w.GetMoveBounds() == Window::MoveBounds::OwnerClient);
+        CHECK(!w.IsMovable());
+        CHECK(w.GetCloseOnEscape());
+        CHECK(w.GetFollowOwner());
+        CHECK(!w.IsCloseEnabled());
+    }
+
+    {
         ListView lv;
         lv.SetItemCount(5);
         lv.SetCheckable(true);

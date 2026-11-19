@@ -333,9 +333,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.27.2**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.27.3**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.27.3**：窗口弹出行为（居中 owner/屏幕、owner 跟随移动、移动边界、关闭原因/拦截、标题栏按钮同步、首帧稳定）。
 - **1.27.2**：窗口裸指针/UIA 崩溃修复；TreeView 末列自动补宽；SplitView 按钮方向/禁用态与全页面滑动切换；托盘点击回退；Drawer 关闭刷新；Card margin；密码框眼睛按钮；MessageBox 高度修复。
 - **1.27.1**：停用实验性独立渲染线程；右键菜单适配非 DWM chrome；修复菜单栏残留 hover、标题栏隐藏/原生标题栏切换后的菜单位置；resize 时同步出帧，避免布局已更新但画面透明；文档清理。
 - **1.27.0**：Win10 Acrylic host backdrop；Win10/Win11 自定义边框与 Snap 阴影修复；`RenderDriver` / WARP 切换与状态栏设备显示；删除公开圆角 API；标题栏字形/最大化状态/拖动动画优化。

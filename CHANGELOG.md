@@ -2,7 +2,15 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.27.2**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.27.3**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-11-19 — 弹窗窗口行为（v1.27.3）
+- **窗口位置**：新增 `Window::Placement`（系统默认 / 居中于 owner / 居中于屏幕），以及 `CenterOnOwner/CenterOnScreen`。
+- **owner 跟随与移动边界**：新增 `SetFollowOwner` 和 `MoveBounds`（无限制 / owner 客户区 / 显示器工作区）。owner 移动时 owned 子窗口跟随并裁剪。
+- **关闭策略**：新增 `CloseReason`、`RequestClose`、`ForceClose`、`Opening/Opened/CloseRequested/CloseAccepted/CloseCancelled`。支持禁用关闭、Esc 关闭、关闭拦截和强制关闭。
+- **标题栏联动**：自定义标题栏的关闭按钮使用 `RequestClose(Caption)`；`BehaviorChanged` 同步 owner-client 下的最大化不可用状态。
+- **弹窗首帧**：`RenderNowSync` 在首次 `Show` 时先推进布局并合成帧，减少弹窗首次显示空白。
+- **验证**：x64/x86 Release + ZufyUIDebugger 构建通过，自检通过。
 
 ### 2026-11-14 — 稳定性、控件交互与全页面切换补丁（v1.27.2）
 - **窗口裸指针/UIA 崩溃**：新增 `Window::ForgetElement`，统一清焦点、按下、捕获、悬停、tooltip、待重绘与 UIA provider 缓存；`UIElement::SetParent` 在脱离窗口时提前注销，`~UIElement` 继续兜底。UIA provider 释放前调用 `UiaDisconnectProvider`，修复 `ClearChildren()`/成员操作后的 AV 与 CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`。

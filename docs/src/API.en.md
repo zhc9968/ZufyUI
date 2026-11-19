@@ -896,6 +896,29 @@ std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 - in `Closing`, set `*cancel = true` to veto the close. The parameter is `bool*` (not a reference).
 ###block_red_end
 
+## Popup window behavior (v1.27.3)
+
+```cpp
+enum class Placement { SystemDefault, CenterOwner, CenterScreen };
+enum class MoveBounds { Unrestricted, OwnerClient, MonitorWorkArea };
+enum class CloseReason { Programmatic, Caption, Escape, System, Forced };
+void SetPlacement(Placement);   Placement GetPlacement() const;
+void CenterOnOwner();   void CenterOnScreen();
+void SetMovable(bool);   bool IsMovable() const;
+void SetCloseEnabled(bool);   bool IsCloseEnabled() const;
+void SetCloseOnEscape(bool);   bool GetCloseOnEscape() const;
+void SetFollowOwner(bool);   bool GetFollowOwner() const;
+void SetMoveBounds(MoveBounds);   MoveBounds GetMoveBounds() const;
+void RequestClose(CloseReason = CloseReason::Programmatic);   void ForceClose();
+ZSignal<> Opening, Opened, BehaviorChanged;
+ZSignal<CloseReason, bool*> CloseRequested;   ZSignal<CloseReason> CloseAccepted, CloseCancelled;
+```
+
+- Center placement applies only when no explicit initial position was set; `SetPosition` marks it explicit.
+- `FollowOwner` moves owned child windows with the owner; `MoveBounds` constrains drag and monitor/owner-client bounds.
+- `CloseRequested` can veto; `ForceClose` bypasses veto but still performs normal HWND cleanup.
+- The first `Show` advances a frame before showing, reducing blank first popup frames.
+
 ###chapter: Basic controls | Label, Button, TextBox, TextEdit, ComboBox
 
 > Shared pitfalls: text layout is globally cached by `(text, box, format)`; change internal strings via setters (or you bypass invalidation); `Color` components are [0,1]; `SetEnabled(false)` ≠ `SetVisible(false)`.
@@ -2118,7 +2141,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 ###block_red_end
 
-###chapter: Version digest | v1.15.0 → v1.27.2
+###chapter: Version digest | v1.15.0 → v1.27.3
 
 > Only the changes that affect your code are listed.
 
@@ -2233,6 +2256,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
   - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
   - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
+- **v1.27.3**: popup window behavior. `Placement` (center owner/screen), `FollowOwner`, `MoveBounds` (owner client / monitor work area), `CloseReason`, `RequestClose/ForceClose` and close-veto signals; `SetMovable/SetCloseEnabled/SetCloseOnEscape`; custom title-bar buttons follow window policy; reliable popup first frame.
 - **v1.27.2**:
   - Window raw-pointer/UIA lifetime: `Window::ForgetElement` centralizes focus/pressed/capture/hover/tooltip/pending-repaint/UIA provider cleanup; `SetParent` detaches before release and `UiaDisconnectProvider` prevents the CFG crash.
   - `TreeView::SetStretchLastColumn` (default on) fills the last column; SplitView button direction/disabled state, full-pane slide transition and collapse clamping; TrayIcon v3/v4 click fallbacks; Drawer close refresh; Card margins; password eye button; MessageBox sizing fix.

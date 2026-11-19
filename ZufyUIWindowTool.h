@@ -532,7 +532,21 @@ namespace ZufyUI {
             // 默认行为在这里接线（按钮本身只发 Clicked；自定义标题栏可自行改写/拦截）
             Connect(minBtn_->Clicked, [this]() { if (Window* w = GetWindow()) w->Minimize(); });
             Connect(maxBtn_->Clicked, [this]() { if (Window* w = GetWindow()) w->MaximizeRestore(); });
-            Connect(closeBtn_->Clicked, [this]() { if (Window* w = GetWindow()) w->Close(); });
+            Connect(closeBtn_->Clicked, [this]() { if (Window* w = GetWindow()) w->RequestClose(Window::CloseReason::Caption); });
+        }
+        void AttachWindowRecursive(Window* window) override {
+            TitleBar::AttachWindowRecursive(window);
+            if (window && !behaviorConnected_) {
+                behaviorConnected_ = true;
+                closeBtn_->SetEnabled(window->IsCloseEnabled());
+                maxBtn_->SetEnabled(window->GetMoveBounds() != Window::MoveBounds::OwnerClient);
+                Connect(window->BehaviorChanged, [this]() {
+                    if (Window* host = GetWindow()) {
+                        closeBtn_->SetEnabled(host->IsCloseEnabled());
+                        maxBtn_->SetEnabled(host->GetMoveBounds() != Window::MoveBounds::OwnerClient);
+                    }
+                });
+            }
         }
         std::shared_ptr<CaptionButton> GetMinButton() const { return minBtn_; }
         std::shared_ptr<CaptionButton> GetMaxButton() const { return maxBtn_; }
@@ -548,6 +562,7 @@ namespace ZufyUI {
 
     private:
         std::shared_ptr<CaptionButton> minBtn_, maxBtn_, closeBtn_;
+        bool behaviorConnected_ = false;
     };
 
     // ============================================================================
