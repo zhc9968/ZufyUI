@@ -6,7 +6,6 @@
 - **WinUI 3 / Fluent Design 风格。** 亚克力 / 云母、圆角、层次阴影、强调色与动效，接近 Windows 11 原生观感。
 - **能嵌原生内容。** `HwndView` 把 WebView2、摄像头、第三方控件甚至进程外 HWND 嵌进布局（跨进程、区域裁剪、随窗口移动）。
 
-> 适合：仅限 Windows 的系统工具、工控上位机、需要 WebView2 / 视频窗口的桌面客户端，以及想摆脱 MFC / Qt 体积与授权问题的团队。
 
 **👉 [下载 Release Demo](https://github.com/zhc9968/ZufyUI/releases)** · [Gitee Releases](https://gitee.com/zhc9968/ZufyUI/releases) · [在线 API](https://zhc9968.github.io/ZufyUI/docs/API.html) · [English](README.en.md) · MIT
 
@@ -336,9 +335,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.28.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.29.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.29.0**：窗口过渡与指针/焦点反馈（光标状态、TextBox/ComboBox/Slider、数据视图滚动条）、菜单回调排队与 PageHost 反向导航、字体继承与布局修正；API 文档清理第 8 章标题和乱码。
 - **1.28.0**：非阻塞 Present / 高刷新帧节拍（opt-in）、私有 DirectWrite 字体集合、UIA provider 生命周期收口（根 provider 断开、WM_DESTROY 清理事件映射）、菜单默认同步非阻塞与帧节拍。
 - **1.27.3**：窗口弹出行为（居中 owner/屏幕、owner 跟随移动、移动边界、关闭原因/拦截、标题栏按钮同步、首帧稳定）。
 - **1.27.2**：窗口裸指针/UIA 崩溃修复；TreeView 末列自动补宽；SplitView 按钮方向/禁用态与全页面滑动切换；托盘点击回退；Drawer 关闭刷新；Card margin；密码框眼睛按钮；MessageBox 高度修复。

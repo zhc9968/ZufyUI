@@ -1,7 +1,7 @@
 ﻿# ZufyUI API Reference
 
 > This document covers the entire public API of the ZufyUI framework, **organized by usage category** (not by code/header order).
-> Companion reading: [Project README & build](../../README.en.md).
+> Companion reading: [Project README & build](https://github.com/zhc9968/ZufyUI/blob/master/README.en.md).
 
 > **How to read**: this is not just a signature list — each class first explains overall behavior, then each method's side effects, defaults and pitfalls. **You can use it correctly without reading the source.**
 
@@ -475,6 +475,9 @@ void SetVisible(bool);  void SetVisibleNoInvalidate(bool);  bool IsVisible() con
 void SetEnabled(bool);  bool IsEnabled() const;  bool IsEffectivelyEnabled() const;
 void SetToolTip(const std::wstring&);   virtual std::wstring GetToolTip() const;
 void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;
+void SetPointerCursors(HCURSOR normal, HCURSOR pressed, HCURSOR disabled);
+HCURSOR GetPointerCursor(bool pressed) const;  virtual HCURSOR GetPointerCursorAt(float x, float y, bool pressed) const;
+virtual void OnPointerCancel();   // capture stolen/system cancel
 ```
 - Disabled elements are excluded from hit-test/hover. Tooltips **walk up** to parents.
 
@@ -734,6 +737,10 @@ std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
 void SetNonBlockingPresent(bool);   bool GetNonBlockingPresent() const;
 void SetDisplayFramePacing(bool);   bool GetDisplayFramePacing() const;
 double GetDisplayRefreshHz() const;
+enum class PresentationState { Hidden, Opening, Open, Closing, Closed };
+void SetTransitionDurations(int enterMs, int exitMs);
+PresentationState GetPresentationState() const;  float GetPresentationProgress() const;  bool IsTransitionActive() const;
+inline static std::function<void(Window&)> DefaultWindowSetup;
 ```
 - `SetNonBlockingPresent` / `SetDisplayFramePacing` are off by default and on for menus by default; pacing is effective only with nonblocking Present. `GetDisplayRefreshHz()` returns the current monitor refresh rate (60 when unknown).
 
@@ -999,6 +1006,9 @@ void SetRevealPassword(bool);  bool IsPasswordRevealed() const;  void TogglePass
 void SetPasswordRevealButtonVisible(bool);  bool IsPasswordRevealButtonVisible() const;
 void SetReadOnly(bool);    void SetInputFilter(std::function<bool(wchar_t)>);
 void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
+void SetCursorBlinkInterval(float);  void SetCursorColor(Color);  void SetCursorThickness(float);
+void SetFocusedBackgroundColor(Color);  void ClearFocusedBackgroundColor();
+void SetFocusedBorderColor(Color);  void ClearFocusedBorderColor();  void SetIndicatorAlwaysVisible(bool);
 void SelectAll/Copy/Cut/Paste/Undo/Redo();
 int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
 ```
@@ -2147,7 +2157,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 ###block_red_end
 
-###chapter: Version digest | v1.15.0 → v1.28.0
+###chapter: Version digest | v1.15.0 → v1.29.0
 
 > Only the changes that affect your code are listed.
 
@@ -2262,6 +2272,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
   - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
   - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
+- **v1.29.0**: pointer/focus/input feedback (cursor states, pointer cancel, TextBox focus styling/caret/password eye, ComboBox keyboard, Slider release, data-view/scrollbar/Expander cursors); window transitions (`SetTransitionDurations` / `PresentationState` / `DefaultWindowSetup`); menu `QueueToUIThread` and PageHost reverse navigation; Expander/SettingsList/chart font inheritance, MenuBar/Button/EnsureVisible fixes; API doc mojibake and chapter 8 title fixes.
 - **v1.28.0**: nonblocking Present / high-refresh pacing (`SetNonBlockingPresent` / `SetDisplayFramePacing` / `GetDisplayRefreshHz`); private `IDWriteFontCollection`; UIA root/child provider teardown and `WM_DESTROY` event-map cleanup; menus opt into the same presentation policy by default.
 - **v1.27.3**: popup window behavior. `Placement` (center owner/screen), `FollowOwner`, `MoveBounds` (owner client / monitor work area), `CloseReason`, `RequestClose/ForceClose` and close-veto signals; `SetMovable/SetCloseEnabled/SetCloseOnEscape`; custom title-bar buttons follow window policy; reliable popup first frame.
 - **v1.27.2**:

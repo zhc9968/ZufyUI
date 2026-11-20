@@ -2500,6 +2500,7 @@ namespace ZufyUI {
         }
         else if (auto* tb = dynamic_cast<TitleBar*>(e)) {
             tb->SetTitleColor(st.Get(ThemeRole::Text));
+            tb->SetActiveTitleColor(st.Get(ThemeRole::Text));
         }
         const auto& kids = e->GetChildren();
         for (UIElement* c : kids) ApplyThemeToChromeTree(c, winTheme);

@@ -2,7 +2,15 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.28.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.29.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-11-20 — Pointer/focus feedback, window transitions and docs (v1.29.0)
+- **Pointer / focus / input feedback**: added `SetPointerCursors` / `GetPointerCursorAt` / `OnPointerCancel`; TextBox gained focus background/border, caret colour/thickness, indicator and password-eye fixes; ComboBox supports keyboard expand and up/down selection; Slider commits the final release coordinate; ListView/TableView/TreeView, ScrollBar, Expander, SettingsList and NumberBox gained cursor/cancel handling.
+- **Layout / font fixes**: Expander, SettingsList, ChartBase/PieChart now inherit the effective font; MenuBar reserves fractional glyph width; Button `FillWidth` measurement is fixed; ListView defers `EnsureVisible` before first Arrange; title-bar active title colour is fixed.
+- **Window transitions**: added `PresentationState`, `SetTransitionDurations`, `GetPresentationState`, `GetPresentationProgress`, `IsTransitionActive` and `DefaultWindowSetup`; normal windows fade with DComp, default duration remains 0, and menu-owned opacity animation is unaffected.
+- **Menus / PageHost**: menu click callbacks use `QueueToUIThread` so a menu cannot be destroyed on the WndProc stack; PageHost supports reversing mid-transition and fixes the EaseOut reverse progress calculation.
+- **Docs**: fixed chapter 8 title mojibake, the companion README link and four API doc lines; regenerated the Chinese and English API docs.
+- **Verification**: x64 / x86 Release + ZufyUIDebugger builds and full self-tests pass.
 
 ### 2026-11-19 — Nonblocking Present, high-refresh pacing, private fonts, UIA lifetime (v1.28.0)
 - **Nonblocking Present**: opt-in `Window::SetNonBlockingPresent`. When enabled, `Present1(0, DXGI_PRESENT_DO_NOT_WAIT)`; a busy queue is retried by the existing timer/frame clock without blocking or busy-spinning.

@@ -658,8 +658,13 @@ namespace ZufyUI {
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
             UpdateScrollInfo();
+            if (pendingEnsureVisible_ >= 0 && finalRect.height > 0) {
+                const int pending = pendingEnsureVisible_;
+                pendingEnsureVisible_ = -1;
+                EnsureVisible(pending);
+            }
             UpdateIndicatorTarget();
-            childrenDirty_ = true;              // 重排过 → 可见子元素列表必须重建（含滚动后坐标）
+            childrenDirty_ = true;
         }
 
 
@@ -911,6 +916,17 @@ namespace ZufyUI {
                 else borderBrush_->SetColor(borderColor_);
                 if (borderBrush_) rt->DrawRoundedRectangle(D2D1::RoundedRect(arrangedRect_.ToD2D(), 4, 4), borderBrush_.Get(), 1.0f);
             }
+        }
+
+        HCURSOR GetPointerCursorAt(float x, float y, bool pressed) const override {
+            if (!IsEffectivelyEnabled()) return GetPointerCursor(pressed);
+            if (isDraggingScroll_) return LoadCursor(nullptr, IDC_SIZENS);
+            if (!pressed && arrangedRect_.Contains(x,y) && showScrollBar_ && x >= arrangedRect_.x + arrangedRect_.width - scrollBarWidth_)
+                return LoadCursor(nullptr, IDC_HAND);
+            return GetPointerCursor(pressed);
+        }
+        void OnPointerCancel() override {
+            isDraggingScroll_ = false; pressActive_ = false; marqueeActive_ = false; OnMouseLeave();
         }
 
         UIElement* HitTest(float x, float y) override {
@@ -1404,8 +1420,12 @@ namespace ZufyUI {
             targetScrollOffsetY_ = clamp(targetScrollOffsetY_, 0.0f, maxScrollY_);
         }
 
+        int pendingEnsureVisible_ = -1;
         void EnsureVisible(int index) {
             if (index < 0) return;
+            // Before the first arrangement there is no viewport. Computing a
+            // scroll offset against height=0 hides even the first selected row.
+            if (arrangedRect_.height <= 0) { pendingEnsureVisible_ = index; return; }
             int vi = VisibleOfSource(index);
             if (vi < 0) return;
             float effectiveRowHeight = buttonMode_ ? (itemHeight_ + buttonSpacing_) : itemHeight_;
@@ -2833,6 +2853,22 @@ namespace ZufyUI {
                     rt->DrawLine(D2D1::Point2F(arrangedRect_.x, sepY),
                         D2D1::Point2F(arrangedRect_.x + viewportWidth, sepY), gridLineBrush_.Get(), 1.0f);
             }
+        }
+
+        HCURSOR GetPointerCursorAt(float x, float y, bool pressed) const override {
+            if (!IsEffectivelyEnabled()) return GetPointerCursor(pressed);
+            if (isResizingColumn_ || isDraggingHorizontal_) return LoadCursor(nullptr, IDC_SIZEWE);
+            if (isDraggingVertical_) return LoadCursor(nullptr, IDC_SIZENS);
+            if (!pressed && arrangedRect_.Contains(x,y) &&
+                ((showVerticalScrollBar_ && x >= arrangedRect_.x + arrangedRect_.width - scrollBarWidth_) ||
+                 (showHorizontalScrollBar_ && y >= arrangedRect_.y + arrangedRect_.height - scrollBarWidth_)))
+                return LoadCursor(nullptr, IDC_HAND);
+            return GetPointerCursor(pressed);
+        }
+        void OnPointerCancel() override {
+            isDraggingVertical_ = false; isDraggingHorizontal_ = false;
+            isResizingColumn_ = false; resizeColumnIndex_ = -1;
+            pressActive_ = false; marqueeActive_ = false; OnMouseLeave();
         }
 
         UIElement* HitTest(float x, float y) override {
@@ -4890,6 +4926,22 @@ namespace ZufyUI {
                     rt->DrawLine(D2D1::Point2F(arrangedRect_.x, sepY),
                         D2D1::Point2F(arrangedRect_.x + viewportWidth, sepY), gridLineBrush_.Get(), 1.0f);
             }
+        }
+
+        HCURSOR GetPointerCursorAt(float x, float y, bool pressed) const override {
+            if (!IsEffectivelyEnabled()) return GetPointerCursor(pressed);
+            if (isResizingColumn_ || isDraggingHorizontal_) return LoadCursor(nullptr, IDC_SIZEWE);
+            if (isDraggingVertical_) return LoadCursor(nullptr, IDC_SIZENS);
+            if (!pressed && arrangedRect_.Contains(x,y) &&
+                ((showVerticalScrollBar_ && x >= arrangedRect_.x + arrangedRect_.width - scrollBarWidth_) ||
+                 (showHorizontalScrollBar_ && y >= arrangedRect_.y + arrangedRect_.height - scrollBarWidth_)))
+                return LoadCursor(nullptr, IDC_HAND);
+            return GetPointerCursor(pressed);
+        }
+        void OnPointerCancel() override {
+            isDraggingVertical_ = false; isDraggingHorizontal_ = false;
+            isResizingColumn_ = false; resizeColumnIndex_ = -1;
+            pressActive_ = false; marqueeActive_ = false; OnMouseLeave();
         }
 
         UIElement* HitTest(float x, float y) override {

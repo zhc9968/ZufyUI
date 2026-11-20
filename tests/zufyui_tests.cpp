@@ -1860,6 +1860,13 @@ static void test_api_feedback() {
         w.SetNonBlockingPresent(false);
         CHECK(!w.GetNonBlockingPresent());
         CHECK(!w.GetDisplayFramePacing());
+        CHECK(w.GetPresentationState() == Window::PresentationState::Hidden);
+        w.SetTransitionDurations(120, 180);
+        CHECK(!w.IsTransitionActive());
+        CHECK(w.GetPresentationProgress() == 1.0f);
+        Label pointerProbe;
+        pointerProbe.SetPointerCursors(LoadCursor(nullptr, IDC_HAND), LoadCursor(nullptr, IDC_SIZEWE), nullptr);
+        CHECK(pointerProbe.GetPointerCursor(false) != nullptr);
     }
 
     {

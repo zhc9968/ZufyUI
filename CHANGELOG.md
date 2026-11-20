@@ -2,7 +2,15 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.28.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.29.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-11-20 — 指针/焦点反馈、窗口过渡与文档修复（v1.29.0）
+- **指针 / 焦点 / 输入反馈**：新增 `SetPointerCursors` / `GetPointerCursorAt` / `OnPointerCancel`；完善 TextBox 焦点背景/边框、光标颜色/粗细、指示条和密码眼睛；ComboBox 支持键盘展开与上下选择；Slider 松手补齐最终坐标；ListView/TableView/TreeView、ScrollBar、Expander、SettingsList、NumberBox 补光标与取消状态。
+- **布局 / 字体修正**：Expander、SettingsList、ChartBase/PieChart 继承有效字体；MenuBar 增加分数字形宽度余量；Button `FillWidth` Measure 修正；ListView 首次 Arrange 前的 `EnsureVisible` 延迟处理；标题栏激活标题色修正。
+- **窗口过渡**：新增 `PresentationState`、`SetTransitionDurations`、`GetPresentationState`、`GetPresentationProgress`、`IsTransitionActive` 和 `DefaultWindowSetup`；普通窗口支持 DComp 淡入淡出，默认时长仍为 0，菜单自身的透明度动画不受影响。
+- **菜单 / PageHost**：菜单点击回调改用 `QueueToUIThread`，避免在 WndProc 栈上析构菜单；PageHost 支持切换中途反向导航，并修正 EaseOut 反向进度计算。
+- **文档**：修复第 8 章标题乱码、配套 README 链接和 4 处 API 文档乱码，重新生成中英文 API 文档。
+- **验证**：x64 / x86 Release + ZufyUIDebugger 构建与全量自检通过。
 
 ### 2026-11-19 — 非阻塞 Present、高刷新帧节拍、私有字体与 UIA 生命周期（v1.28.0）
 - **非阻塞 Present**：新增 `Window::SetNonBlockingPresent`（opt-in）。开启后 `Present1(0, DXGI_PRESENT_DO_NOT_WAIT)`；队列忙时由现有定时器/帧时钟重试最新帧，不阻塞 UI 线程、不空转。
@@ -25,11 +33,11 @@
 ### 2026-11-14 — 稳定性、控件交互与全页面切换补丁（v1.27.2）
 - **窗口裸指针/UIA 崩溃**：新增 `Window::ForgetElement`，统一清焦点、按下、捕获、悬停、tooltip、待重绘与 UIA provider 缓存；`UIElement::SetParent` 在脱离窗口时提前注销，`~UIElement` 继续兜底。UIA provider 释放前调用 `UiaDisconnectProvider`，修复 `ClearChildren()`/成员操作后的 AV 与 CFG `FAST_FAIL_GUARD_ICALL_CHECK_FAILURE`。
 - **TreeView 列宽**：新增 `SetStretchLastColumn(bool)` / `GetStretchLastColumn()`（默认开）；内容总宽小于视口时把剩余宽度补给最后一列，修复单列树中文标签被 40px 最小列宽截成 `...`。
-- **R7 ?????**?ListView `GetSelectedIndices` ?? `selectedIndex_`?`SelectAll`/`Toggle`/Shift/?????????`ClearSelection`/`ClearMultiSelection` ?????TableView ?? `SelectAll`?`GetSelected*` ??????????/???????TreeView `SetSelectedNode` ??????????????
-- **ViewCore ????**??? `viewcore::ScrollAxis/ScrollViewport`?`RecyclePool<T>`?`FetchFlow<Result>`?ListView ??? `ScrollAxis` ??????????? `SetItemProvider(count, fetch)` ? `SetAsyncItemProvider(count, fetcher)` ??????demo ? 20 ????????????
+- **R7 选择一致性**：ListView `GetSelectedIndices` 现在包含 `selectedIndex_`；`SelectAll`/切换/Shift/框选都会发出多选信号；清空 API 会清理当前状态。TableView 新增 `SelectAll`，`GetSelected*` 包含当前单元格，清空/框选也会发信号。TreeView 多选模式下 `SetSelectedNode` 改为替换而不是累积。
+- **ViewCore 脚手架**：新增 `viewcore::ScrollAxis/ScrollViewport`、`RecyclePool<T>` 和 `FetchFlow<Result>`；ListView 使用 `ScrollAxis` 管理垂直滚动状态，并支持 `SetItemProvider(count, fetch)` / `SetAsyncItemProvider(count, fetcher)` 虚拟文本；demo 用 20 万条伪随机数据做异步压力。
 - **SplitView**：左右/上下分栏的展开按钮按分隔条方向自适应；空间不足时按钮仍显示但灰化、不可悬停/点击；新增 `SwitchToFirst/Second/Pane` 全页面滑动过渡（复用 PageHost 风格缓动），即使两侧最小尺寸放不下也完整播放，结束后提交折叠状态并发出 `ActivePaneChanged`。
-- **????**??? `RunAsync<T>` / `AsyncTask` / `AsyncCancelToken` / `AsyncProgress` / `AsyncOwner`???????????????? UI ???????/??/????????? UI?????????????????????????????1000 ???/????? 1000 ??????????
-- **?? / ????**?`Image::FromHBITMAP` ?? 32bpp DIB ??? alpha???????????? `Window::SizeChanged` / `DpiChanged`?????? HBITMAP alpha ???
+- **异步任务**：新增 `RunAsync<T>` / `AsyncTask` / `AsyncCancelToken` / `AsyncProgress` / `AsyncOwner`；后台执行、协作取消、合并 UI 进度、UI 线程上的完成/失败/取消回调，以及弱 owner 过期后丢弃回调；补充基础、异常、取消、生命周期、1000 次取消/完成竞态和 1000 任务随机压力自检。
+- **图像 / 窗口事件**：`Image::FromHBITMAP` 读取 32bpp DIB 像素并保留 alpha（可选预乘标志）；新增 `Window::SizeChanged` / `DpiChanged`；补多选和 HBITMAP alpha 自检。
 - **SplitView 折叠/拖动**：统一 `ClampFirstLen`，修复最小宽度冲突、反向拖动与首尾空间不足展开；新增不足空间默认侧/自动折叠配置。
 - **TrayIcon**：同时处理 NOTIFYICON_VERSION_4 与 v3 的 `WM_LBUTTONUP`/`WM_RBUTTONUP`/`WM_LBUTTONDBLCLK` 回退，修复托盘左键、右键、悬停无响应；新增 `SetClickImmediate`。
 - **Drawer**：关闭完成时递归失效内容区布局并重绘，修复 overlay 外点击关闭后内容不刷新。
@@ -94,7 +102,7 @@
 
 - **新增 · Button 富文本 / 自定义内容**：内部 `Label` 现在是真正的子元素，`GetLabel()->AddChild(...)` 会正常布局/合成/绘制；新增 `SetContent(shared_ptr<UIElement>)` / `ClearContent()`，可整体替换按钮内容。
 - **新增 · Button 下拉 2×2**：`SetDropWriteBack(bool)` × `SetDropOpenOnClick(bool)`。按钮点击**始终触发 `Clicked`**；开菜单时先回调再弹菜单。菜单为**单选**（上次选中项有标记），选中触发 `DropSelected(index)`，可 `GetDropSelectedIndex/GetDropSelectedText` 读取；`SetDropItems` 建文字列表，`SetDropMenu` 接自定义菜单，`ShowDropMenu()` 可在 `DropOpenOnClick=false` 时手动打开。菜单只在按钮下方弹出，不弹 MessageBox。
-- **?? ? ??????**?`GetDpiScale()` ?? 96/144??? 1.0/1.5?????????????????????? `/96` ??????????demo ??? split ???? MessageBox?
+- **修复（下拉菜单位置）**：`GetDpiScale()` 返回 96/144（不是 1.0/1.5）；旧乘法会把菜单送到屏幕右下角。除以 96 后菜单会落在按钮下方，demo 的 split 点击也不再弹 MessageBox。
 - **修复 · `SetBackdrop`**：未显式设置 tint 时，`SetBackdrop(Acrylic/Mica)` 不再使用不透明白色叠加层（旧默认 `backdropFollowAlpha_=0xFF` 会盖住系统材质）；`None` 仍保持默认不透明白；显式 tint（含 alpha）保持不变。新增 `GetBackdropColor()` 便于诊断。
 - **修复 · `ListView`**：`SetItemHeight` 夹到 ≥1px；`Draw` / 命中测试补行高 >0 防御，避免 `SetItemHeight(0)` 的浮点除零与 `int` 转换 UB。
 - **文档/清理**：`HwndView` 注释补跨进程 `SetParent` 的输入队列/消息阻止/间歇不稳定风险；删除 `WM_ACTIVATE` 冗余判断；`ZDataViewer.h` 显式包含 `<cstring>`；移除 demo 空 `ScrollChanged` 回调。

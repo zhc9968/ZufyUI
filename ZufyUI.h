@@ -91,9 +91,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 28
+#define ZufyUI_VERSION_MINOR 29
 #define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.28.0"
+#define ZufyUI_VERSION_STRING L"1.29.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -575,17 +575,23 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
         }
 
-        inline bool PostToUIThread(std::function<void()> fn) {
-            if (std::this_thread::get_id() == g_uiThreadId) {
-                fn();
-                return true;
-            }
+        // Always queue, including calls from the UI thread. Use this when the
+        // current window/message handler must unwind before invoking user code.
+        inline bool QueueToUIThread(std::function<void()> fn) {
             if (g_uiDispatcherWindow) {
                 auto* task = new std::function<void()>(std::move(fn));
                 if (PostMessage(g_uiDispatcherWindow, WM_UI_TASK, 0, (LPARAM)task)) return true;
                 delete task;
             }
             return false;
+        }
+
+        inline bool PostToUIThread(std::function<void()> fn) {
+            if (std::this_thread::get_id() == g_uiThreadId) {
+                fn();
+                return true;
+            }
+            return QueueToUIThread(std::move(fn));
         }
 
         // UTF-16 代理对判定（emoji / 超 BMP 字符；文本控件用它把一对码元当“一个字符”处理）
@@ -2148,6 +2154,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         virtual void OnMouseEnter() {}
         virtual void OnMouseLeave() {}
+        virtual void OnPointerCancel() { OnMouseLeave(); }
         virtual void OnMouseMove(float x, float y) {}
         virtual void OnMouseDown(float x, float y) {}
         virtual void OnMouseUp(float x, float y) {}
@@ -2330,7 +2337,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         // ---------- 禁用态 ----------
         void SetEnabled(bool enabled) {
-            if (enabled_ != enabled) { enabled_ = enabled; cacheValid_ = false; RequestRepaint(); }
+            if (enabled_ != enabled) { enabled_ = enabled; cacheValid_ = false; RequestRepaint(); RefreshPointerCursor(); }
         }
         bool IsEnabled() const { return enabled_; }
         // 考虑父链的实际可用性
@@ -2349,6 +2356,22 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 由 Window::WM_SETCURSOR 按当前悬停元素回设 —— 避免 DefWindowProc 每次鼠标移动都重置成类箭头导致闪烁。
         void SetCursor(HCURSOR c) { desiredCursor_ = c; ::SetCursor(c); }
         HCURSOR GetDesiredCursor() const { return desiredCursor_; }
+        void SetPointerCursors(HCURSOR normal, HCURSOR pressed, HCURSOR disabled) {
+            normalPointer_ = normal; pressedPointer_ = pressed; disabledPointer_ = disabled;
+            RefreshPointerCursor();
+        }
+        HCURSOR GetPointerCursor(bool pressed) const {
+            if (!IsEffectivelyEnabled()) return disabledPointer_ ? disabledPointer_ : LoadCursor(nullptr, IDC_ARROW);
+            if (pressed && pressedPointer_) return pressedPointer_;
+            if (normalPointer_) return normalPointer_;
+            if (IsTextInput()) return LoadCursor(nullptr, IDC_IBEAM);
+            return desiredCursor_ ? desiredCursor_ : LoadCursor(nullptr, IDC_ARROW);
+        }
+        virtual HCURSOR GetPointerCursorAt(float x, float y, bool pressed) const {
+            (void)x; (void)y;
+            return GetPointerCursor(pressed);
+        }
+        void RefreshPointerCursor();
 
         // ---------- 无障碍（UIA，默认开启；映射见 ZufyUIWindowTool.h）----------
         void SetAccessibleName(const std::wstring& n) { accessibleName_ = n; AccessibilityNotifyPropertyChanged(); }
@@ -2449,6 +2472,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool enabled_ = true;
         std::wstring tooltip_;
         HCURSOR desiredCursor_ = nullptr;   // 控件最近一次请求的光标（见 SetCursor / WM_SETCURSOR）
+        HCURSOR normalPointer_ = nullptr, pressedPointer_ = nullptr, disabledPointer_ = nullptr;
         std::wstring accessibleName_, accessibleDesc_, automationId_;   // 无障碍属性
         AccessibleRole accessRole_ = AccessibleRole::None;
         mutable unsigned accessibleAutoId_ = 0;   // 自动区分的 AutomationId 编号
@@ -3781,14 +3805,32 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         void NavigateTo(int index) {
             auto _rg = GuardRender();
-            if (index < 0 || index >= (int)pages_.size() || index == currentIndex_) return;
+            if (index < 0 || index >= (int)pages_.size()) return;
+            if (animating_) {
+                if (index == toIndex_) return;
+                if (index == fromIndex_) {
+                    std::swap(fromIndex_, toIndex_);
+                    animProgress_ = easing_ == TransitionEasing::EaseOut
+                        ? 1.0f - cbrtf(1.0f - EasedProgress()) : 1.0f - animProgress_;
+                    switch (activeDirection_) {
+                    case TransitionDirection::Left: activeDirection_ = TransitionDirection::Right; break;
+                    case TransitionDirection::Right: activeDirection_ = TransitionDirection::Left; break;
+                    case TransitionDirection::Up: activeDirection_ = TransitionDirection::Down; break;
+                    case TransitionDirection::Down: activeDirection_ = TransitionDirection::Up; break;
+                    }
+                    MarkChildrenDirty();
+                    UIZSignals::ThemeReapply.Fire(GetWindow()); RequestRepaint();
+                    return;
+                }
+            } else if (index == currentIndex_) return;
             fromIndex_ = currentIndex_;
             toIndex_ = index;
+            activeDirection_ = direction_;
             animating_ = true;
             animProgress_ = 0.0f;
-            MarkChildrenDirty();   // 子元素列表随 animating_ 变化
-            UIZSignals::ThemeReapply.Fire(GetWindow());   // 切页后重新套用主题
-            RequestRepaint(); // 动画开始需要重绘
+            MarkChildrenDirty();
+            UIZSignals::ThemeReapply.Fire(GetWindow());
+            RequestRepaint();
         }
 
         void SetTransitionDirection(TransitionDirection dir) { direction_ = dir; }
@@ -3989,7 +4031,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             // 判断子元素是源页面还是目标页面，并计算对应偏移
             if (fromIndex_ >= 0 && fromIndex_ < (int)pages_.size() && child == pages_[fromIndex_].get()) {
                 // 源页面逐渐移出
-                switch (direction_) {
+                switch (activeDirection_) {
                 case TransitionDirection::Left:  offsetX = -w * t; break;
                 case TransitionDirection::Right: offsetX = w * t; break;
                 case TransitionDirection::Up:    offsetY = -h * t; break;
@@ -3998,7 +4040,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
             else if (toIndex_ >= 0 && toIndex_ < (int)pages_.size() && child == pages_[toIndex_].get()) {
                 // 目标页面逐渐移入
-                switch (direction_) {
+                switch (activeDirection_) {
                 case TransitionDirection::Left:  offsetX = w * (1.0f - t); break;
                 case TransitionDirection::Right: offsetX = -w * (1.0f - t); break;
                 case TransitionDirection::Up:    offsetY = h * (1.0f - t); break;
@@ -4028,6 +4070,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         int fromIndex_;
         int toIndex_;
         TransitionDirection direction_;
+        TransitionDirection activeDirection_ = TransitionDirection::Left;
         TransitionEasing easing_ = TransitionEasing::EaseInOut;
         float animDuration_;
     };
@@ -4489,6 +4532,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         enum class Placement { SystemDefault, CenterOwner, CenterScreen };
         enum class MoveBounds { Unrestricted, OwnerClient, MonitorWorkArea };
         enum class CloseReason { Programmatic, Caption, Escape, System, Forced };
+        enum class PresentationState { Hidden, Opening, Open, Closing, Closed };
+        inline static std::function<void(Window&)> DefaultWindowSetup;
         inline static Backdrop DefaultBackdrop = Backdrop::None;
         inline static DWORD DefaultBackdropColor = 0xFFFFFFFF;   // 默认纯白背景（Backdrop::None + 不透明白）
         inline static bool DefaultBackdropTintSet = false;      // 是否通过 SetDefaultBackdrop 显式设过 tint
@@ -4570,6 +4615,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         virtual ~Window() {
+            StopPresentationTimer();
             displayClock_.Stop();
             if (connectionGroup_) connectionGroup_->disconnectAll();
             // 析构必须在 UI 线程执行。
@@ -4981,6 +5027,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             UpdateTimerState();
             animationTimerActive_ = true; // 常驻定时器标志
 
+            if (WantDwmChrome() && DefaultWindowSetup) DefaultWindowSetup(*this);
             return true;
         }
 
@@ -5037,22 +5084,16 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         // 便捷：显示 / 隐藏 / 置顶（z 序最上）
         void Show() {
-            if (!hwnd_) return;
-            const bool becomingVisible = !IsWindowVisible(hwnd_);
-            if (becomingVisible) { Opening.Fire(); if (!hwnd_) return; }
+            if (!hwnd_ || presentationState_ == PresentationState::Closing) return;
             PrepareWindowShow();
             if (!hwnd_) return;
             ShowWindow(hwnd_, SW_SHOW);
-            if (becomingVisible && hwnd_) Opened.Fire();
         }
         void ShowNoActivate() {
-            if (!hwnd_) return;
-            const bool becomingVisible = !IsWindowVisible(hwnd_);
-            if (becomingVisible) { Opening.Fire(); if (!hwnd_) return; }
+            if (!hwnd_ || presentationState_ == PresentationState::Closing) return;
             PrepareWindowShow();
             if (!hwnd_) return;
             ShowWindow(hwnd_, SW_SHOWNOACTIVATE);
-            if (becomingVisible && hwnd_) Opened.Fire();
         }
         void Hide() { if (hwnd_) ShowWindow(hwnd_, SW_HIDE); }
         void Raise() { if (hwnd_) SetWindowPos(hwnd_, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE); }
@@ -5115,6 +5156,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             BehaviorChanged.Fire();
         }
         MoveBounds GetMoveBounds() const { return moveBounds_; }
+        void SetTransitionDurations(int enterMs, int exitMs) {
+            enterDuration_ = max(0, min(enterMs, 2000));
+            exitDuration_ = max(0, min(exitMs, 2000));
+        }
+        PresentationState GetPresentationState() const { return presentationState_; }
+        float GetPresentationProgress() const { return presentationOpacity_; }
+        bool IsTransitionActive() const { return transitionActive_; }
         void RequestClose(CloseReason reason = CloseReason::Programmatic) {
             if (hwnd_) PostMessageW(hwnd_, WM_CLOSE, kCloseRequestTag, static_cast<LPARAM>(reason));
         }
@@ -6246,6 +6294,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
 #endif
             case WM_TIMER:
+                if (wParam == kPresentationTimer) { TickPresentation(); return 0; }
                 if (wParam == kOverlaySyncTimer) { SyncOverlays(); return 0; }   // 浮窗兜底同步（16ms）
                 if (OnWindowTimer((int)wParam)) return 0;
                 if (frameworkTimers_.count((UINT_PTR)wParam)) { FireFrameworkTimer((UINT_PTR)wParam); return 0; }
@@ -6427,22 +6476,17 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 break;
             }
             case WM_SETCURSOR:
-                if (currentHovered_ && currentHovered_->IsTextInput()) {
-                    ::SetCursor(LoadCursor(nullptr, IDC_IBEAM));
-                    return TRUE;
-                }
-                // 按当前悬停元素回设它最近一次在 OnMouseMove 里请求的光标（否则让 DefWindowProc 用类箭头）
-                if (currentHovered_) {
-                    if (HCURSOR c = currentHovered_->GetDesiredCursor()) { ::SetCursor(c); return TRUE; }
-                }
+                // Never let a stale client hover override resize/titlebar cursors.
+                if (LOWORD(lParam) == HTCLIENT && RefreshPointerCursor()) return TRUE;
                 break;
             case WM_SHOWWINDOW:
+                OnPresentationShown(wParam != 0);
                 UpdateTimerState();
                 // 窗口显示后再应用一次背景（创建时 DWM 可能尚未就绪 → Mica/Acrylic 偶尔不生效）
                 if (wParam) ApplyBackdrop();
                 return 0;
             case WM_CAPTURECHANGED:
-                // 捕获被系统/其他窗口夺走时，清理拖拽按下状态，避免松手后残留
+                // ??/????????????????????? OLE ?????
                 pressedElement_ = nullptr;
                 return 0;
             case WM_SYSCOMMAND:
@@ -6467,6 +6511,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 return 0;
             }
             case WM_DESTROY:
+                StopPresentationTimer();
+                presentationState_ = PresentationState::Closed;
                 displayClock_.Stop();
                 if (taskbarList_) {   // 清理任务栏进度/覆盖徽章，避免窗口关闭后残留
                     taskbarList_->SetProgressState(hwnd_, TBPF_NOPROGRESS);
@@ -6756,6 +6802,20 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (elem->IsFocusable()) out.push_back(elem);
             for (auto* c : elem->GetChildren()) CollectFocusable(c, out);
         }
+    public:
+        bool RefreshPointerCursor() {
+            if (!hwnd_ || inputBlocked_ || detail::g_activeMenu) return false;
+            POINT pt{}; if (!GetCursorPos(&pt) || WindowFromPoint(pt) != hwnd_) return false;
+            if (SendMessageW(hwnd_, WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y)) != HTCLIENT) return false;
+            ScreenToClient(hwnd_, &pt);
+            UIElement* e = mouseCaptureElement_ ? mouseCaptureElement_ : pressedElement_;
+            if (!e) e = HitTestElement(PixelToDipX(pt.x), PixelToDipY(pt.y));
+            ::SetCursor(e ? e->GetPointerCursorAt(PixelToDipX(pt.x), PixelToDipY(pt.y), e == pressedElement_)
+                          : LoadCursor(nullptr, IDC_ARROW));
+            return true;
+        }
+    private:
+
         void SetFocusElement(UIElement* e, bool showRing = false) {
             showFocusRing_ = showRing;
             if (focusedElement_ == e) { focusDirty_ = true; return; }
@@ -6765,6 +6825,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             focusedElement_ = e;
             if (focusedElement_) { focusedElement_->OnFocus(); focusedElement_->AccessibilityNotifyFocus(); }
             UpdateIMEAssociation();
+            RefreshPointerCursor();
             focusDirty_ = true;
         }
         void MoveFocusByTab(bool backward) {
@@ -7307,6 +7368,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             UpdateHover(x, y);
             TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE, hwnd_, 0 };
             TrackMouseEvent(&tme);
+            RefreshPointerCursor();
         }
 
         void OnMouseLeave() {
@@ -7362,6 +7424,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             pressedElement_ = nullptr;
             if (GetCapture() == hwnd_) ReleaseCapture();
             UpdateHover(x, y);
+            RefreshPointerCursor();
         }
 
         // 在标题栏区域右键时弹系统菜单（与原生一致；显式 TrackPopupMenu 更可靠）
@@ -8011,6 +8074,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         float PixelToDipY(int pixelY) const { return pixelY * 96.0f / dpi_; }
 
         static constexpr WPARAM kCloseRequestTag = 0x5A554659;
+        static constexpr UINT_PTR kPresentationTimer = 0x7E02;
 
         HWND EffectiveOwnerHwnd() const {
             return hwnd_ ? GetWindow(hwnd_, GW_OWNER) : (owner_ ? owner_->hwnd_ : nullptr);
@@ -8092,8 +8156,53 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 child->ConstrainToMoveBounds();
             }
         }
+        void OnPresentationShown(bool visible) {
+            if (!WantDwmChrome()) return;
+            if (!visible) {
+                if (presentationState_ != PresentationState::Closing) {
+                    StopPresentationTimer(); presentationState_ = PresentationState::Hidden;
+                }
+                return;
+            }
+            if (presentationState_ == PresentationState::Closing) return;
+            presentationState_ = PresentationState::Opening; Opening.Fire();
+            if (hwnd_ && presentationState_ == PresentationState::Opening)
+                StartPresentation(1, enterDuration_);
+        }
+
+        void StopPresentationTimer() {
+            if (hwnd_) KillTimer(hwnd_, kPresentationTimer);
+            transitionActive_ = false;
+        }
+        void StartPresentation(float target, int duration) {
+            StopPresentationTimer();
+            transitionFrom_ = presentationOpacity_; transitionTo_ = target;
+            transitionDuration_ = duration; transitionStart_ = GetTickCount64();
+            if (duration <= 0 || !SetTimer(hwnd_, kPresentationTimer, 15, nullptr)) {
+                presentationOpacity_ = target; SetContentOpacity(target); FinishPresentation(); return;
+            }
+            transitionActive_ = true;
+        }
+        void FinishPresentation() {
+            StopPresentationTimer();
+            if (presentationState_ == PresentationState::Closing) {
+                // Keep opacity zero through destruction: no restored bright final frame.
+                if (hwnd_) DestroyWindow(hwnd_);
+            } else if (presentationState_ == PresentationState::Opening) {
+                presentationState_ = PresentationState::Open; Opened.Fire();
+            }
+        }
+        void TickPresentation() {
+            if (!transitionActive_) return;
+            float t = min(1.0f, float(GetTickCount64() - transitionStart_) / max(1, transitionDuration_));
+            float eased = 1 - (1 - t) * (1 - t) * (1 - t);
+            presentationOpacity_ = transitionFrom_ + (transitionTo_ - transitionFrom_) * eased;
+            SetContentOpacity(presentationOpacity_);
+            if (t >= 1) FinishPresentation();
+        }
+
         void PrepareWindowShow() {
-            if (!hwnd_ || IsWindowVisible(hwnd_)) return;
+            if (!hwnd_ || IsWindowVisible(hwnd_) || presentationState_ == PresentationState::Closing) return;
             if (!placementApplied_) {
                 placementApplied_ = true;
                 if (!explicitPosition_) {
@@ -8102,13 +8211,20 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 }
             }
             ConstrainToMoveBounds();
-            RenderNowSync();
+            if (WantDwmChrome()) {
+                RenderNowSync();
+                presentationOpacity_ = enterDuration_ > 0 ? 0.0f : 1.0f;
+                SetContentOpacity(presentationOpacity_);
+            } else {
+                RenderNowSync();
+            }
         }
         void HandleCloseRequest(CloseReason reason) {
             if (!hwnd_ || evaluatingClose_) return;
             const bool forced = reason == CloseReason::Forced;
-            if (!forced && !closeEnabled_) { CloseCancelled.Fire(reason); return; }
+            if (presentationState_ == PresentationState::Closing && !forced) return;
             if (!forced) {
+                if (!closeEnabled_) { CloseCancelled.Fire(reason); return; }
                 evaluatingClose_ = true;
                 bool cancel = OnWindowClosing();
                 if (!cancel) Closing.Fire(&cancel);
@@ -8116,9 +8232,14 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 evaluatingClose_ = false;
                 if (cancel || !hwnd_) { CloseCancelled.Fire(reason); return; }
             }
+            const bool wasClosing = presentationState_ == PresentationState::Closing;
             closeReason_ = reason;
-            CloseAccepted.Fire(reason);
-            if (hwnd_) DestroyWindow(hwnd_);
+            presentationState_ = PresentationState::Closing;
+            inputBlocked_ = true;
+            if (GetCapture() == hwnd_) ReleaseCapture();
+            if (!wasClosing) CloseAccepted.Fire(reason);
+            if (!hwnd_) return;
+            StartPresentation(0, forced || !IsWindowVisible(hwnd_) ? 0 : exitDuration_);
         }
 
         HWND hwnd_;
@@ -8232,6 +8353,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         Placement placement_ = Placement::SystemDefault;
         MoveBounds moveBounds_ = MoveBounds::Unrestricted;
         CloseReason closeReason_ = CloseReason::Programmatic;
+        PresentationState presentationState_ = PresentationState::Hidden;
+        bool transitionActive_ = false;
+        int enterDuration_ = 0, exitDuration_ = 0, transitionDuration_ = 0;
+        ULONGLONG transitionStart_ = 0;
+        float presentationOpacity_ = 1, transitionFrom_ = 1, transitionTo_ = 1;
         bool movable_ = true, closeEnabled_ = true, closeOnEscape_ = false, followOwner_ = false;
         bool placementApplied_ = false, explicitPosition_ = false, evaluatingClose_ = false;
         RECT lastBehaviorRect_{};
@@ -8302,6 +8428,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         else UIZSignals::RepaintRequest(nullptr, this);
     }
     inline bool UIElement::DebugFocused() const { Window* w = GetWindow(); return w && w->GetFocusedElement() == this; }
+    inline void UIElement::RefreshPointerCursor() { if (Window* w = GetWindow()) w->RefreshPointerCursor(); }
     inline bool UIElement::DebugHovered() const { Window* w = GetWindow(); return w && w->GetHoveredElement() == this; }
     inline bool UIElement::DebugPressed() const { Window* w = GetWindow(); return w && w->GetPressedElement() == this; }
     inline void UIElement::StoreFontOverride(const std::optional<FontSpec>& spec) {
@@ -8923,8 +9050,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 // 两条结果通道都排到本帧消息处理“之后”再触发：菜单项回调常会弹模态框（MessageBox 等），
                 // 会在嵌套消息循环触发 WM_KILLFOCUS → CloseAllOpenMenus → 析构菜单对象；若此时仍在
                 // WndProc/HandleMessage 栈上就会 use-after-free。延迟一拍（shared_ptr 保活）彻底避开。
-                detail::PostToUIThread([rootMenu, selId]() { if (rootMenu) rootMenu->ItemSelected.Fire(selId); });
-                detail::PostToUIThread([clicked]() { clicked->Clicked.Fire(); });
+                detail::QueueToUIThread([rootMenu, selId]() { if (rootMenu) rootMenu->ItemSelected.Fire(selId); });
+                detail::QueueToUIThread([clicked]() { clicked->Clicked.Fire(); });
             }
             else if (item->type == MenuItem::Type::Submenu) {
                 OpenSubmenu(idx);

@@ -6,7 +6,6 @@
 - **WinUI 3 / Fluent Design language.** Acrylic / Mica, rounded corners, layered shadows, accent colour and motion for a native Windows 11 look.
 - **Embed native content.** `HwndView` hosts WebView2, cameras, third-party controls and even out-of-process HWNDs inside the layout (cross-process, region-clipped, moves with the window).
 
-> Built for Windows-only tools, industrial HMI/SCADA, desktop clients that need WebView2 or a video window, and teams escaping MFC/Qt size and licensing.
 
 **👉 [Download the release demo](https://github.com/zhc9968/ZufyUI/releases)** · [Gitee Releases](https://gitee.com/zhc9968/ZufyUI/releases) · [Online API](https://zhc9968.github.io/ZufyUI/docs/API.en.html) · [简体中文](README.md) · MIT
 
@@ -336,9 +335,10 @@ ZufyUI/
 
 ## Version history
 
-> Current version: **1.28.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+> Current version: **1.29.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 > Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.29.0**: window transitions and pointer/focus feedback (cursor states, TextBox/ComboBox/Slider, data-view scrollbars), menu callback queueing and PageHost reverse navigation, font inheritance/layout fixes; API doc chapter 8 title and mojibake cleanup.
 - **1.28.0**: opt-in nonblocking Present / high-refresh frame pacing, private DirectWrite font collections, UIA provider lifecycle hardening (root disconnect + WM_DESTROY event-map cleanup), and menus using the same presentation policy by default.
 - **1.27.3**: popup window behavior (center on owner/screen, follow owner movement, move bounds, close reasons/veto, title-bar button sync, reliable first frame).
 - **1.27.2**: window raw-pointer/UIA crash fixes; TreeView last-column auto-stretch; SplitView button direction/disabled state and full-pane slide transition; TrayIcon click fallbacks; Drawer close refresh; Card margins; password eye button; MessageBox height fix.

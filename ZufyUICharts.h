@@ -423,7 +423,7 @@ namespace ZufyUI {
         std::shared_ptr<ScrollBar> vBar_, hBar_;
         ComPtr<ID2D1SolidColorBrush> bgBrush_, gridBrush_, axisBrush_, textBrush_, legendBrush_, refBrush_, vRefBrush_;
 
-        ChartBase() { width_ = 420.0f; height_ = 260.0f; labelFont_.size = 12.0f; valueFont_.size = 11.0f; }
+        ChartBase() { width_ = 420.0f; height_ = 260.0f; labelFont_ = valueFont_ = GetEffectiveFontSpec(); labelFont_.size = 12.0f; valueFont_.size = 11.0f; }
     };
 
     // =========================================================================
@@ -718,7 +718,7 @@ namespace ZufyUI {
         AccessibleRole DefaultAccessibleRole() const override { return AccessibleRole::Group; }
         ZSignal<int> SliceClicked;   // (slice index)
 
-        PieChart() : ChartBase() { width_ = 320.0f; height_ = 260.0f; labelFont_.size = 12.0f; valueFont_.size = 11.0f; InitScrollBars(); }
+        PieChart() : ChartBase() { width_ = 320.0f; height_ = 260.0f; labelFont_ = valueFont_ = GetEffectiveFontSpec(); labelFont_.size = 12.0f; valueFont_.size = 11.0f; InitScrollBars(); }
 
         void AddSlice(const std::wstring& label, double value, Color color = Color::FromArgb(0, 0, 0, 0)) {
             if (color.a <= 0.0f) color = palette_[slices_.size() % palette_.size()];

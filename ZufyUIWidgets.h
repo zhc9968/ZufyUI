@@ -1015,6 +1015,8 @@ namespace ZufyUI {
 
         Size MeasureOverride(const Size& availableSize) override {
             float w = width_, h = height_;
+            if (GetFillWidth() && availableSize.width != FLT_MAX && availableSize.width > 0)
+                w = availableSize.width;
             float reserve = dropMenu_ ? dropArrowWidth_ : 0.0f;
             UIElement* c = content_ ? content_.get() : label_.get();
             if (c) {
@@ -1319,6 +1321,14 @@ namespace ZufyUI {
             RequestRepaint();
         }
         bool IsPasswordMode() const { return passwordMode_; }
+        HCURSOR GetPointerCursorAt(float x, float y, bool pressed) const override {
+            if (!IsEffectivelyEnabled()) return GetPointerCursor(pressed);
+            // Keep the originating gesture: selecting text across the eye stays text.
+            if ((pressed && passwordTogglePressed_) || (!pressed && PasswordRevealButtonHit(x,y)))
+                return LoadCursor(nullptr, IDC_HAND);
+            if (normalPointer_ || (pressed && pressedPointer_)) return GetPointerCursor(pressed);
+            return LoadCursor(nullptr, IDC_IBEAM);
+        }
         void SetPasswordRevealButtonVisible(bool visible) {
             if (passwordRevealButtonVisible_ == visible) return;
             passwordRevealButtonVisible_ = visible;
@@ -1349,7 +1359,15 @@ namespace ZufyUI {
         bool IsFocused() const { return focused_; }
         void Focus() { focused_ = true; OnFocus(); }
         void Blur() { focused_ = false; OnBlur(); }
-        void SetCursorBlinkInterval(float interval) { cursorBlinkInterval_ = interval; }
+        // Zero disables blinking and keeps the focused caret visible.
+        void SetCursorBlinkInterval(float interval) { cursorBlinkInterval_ = max(0.0f, interval); ResetCursorBlink(); RequestRepaint(); }
+        void SetCursorColor(Color color) { MarkUserColor(); cursorColor_ = color.ToD2D(); RequestRepaint(); }
+        void SetCursorThickness(float width) { cursorThickness_ = max(1.0f, width); RequestRepaint(); }
+        void SetFocusedBackgroundColor(Color color) { MarkUserColor(); focusedBgColor_ = color.ToD2D(); RequestRepaint(); }
+        void ClearFocusedBackgroundColor() { focusedBgColor_.reset(); RequestRepaint(); }
+        void SetFocusedBorderColor(Color color) { MarkUserColor(); focusedBorderColor_ = color.ToD2D(); RequestRepaint(); }
+        void ClearFocusedBorderColor() { focusedBorderColor_.reset(); RequestRepaint(); }
+        void SetIndicatorAlwaysVisible(bool visible) { indicatorAlwaysVisible_ = visible; RequestRepaint(); }
         void SetHoverAnimationSpeed(float speed) { hoverAnimSpeed_ = speed; }
 
         // ---------- 只读 / 输入过滤 / 回车 / 占位色 / 密码显隐 / 选区编辑 ----------
@@ -1489,7 +1507,9 @@ namespace ZufyUI {
                 : D2D1::ColorF(
                     bgColor_.r + (hoverBgColor_.r - bgColor_.r) * hoverProgress_,
                     bgColor_.g + (hoverBgColor_.g - bgColor_.g) * hoverProgress_,
-                    bgColor_.b + (hoverBgColor_.b - bgColor_.b) * hoverProgress_, 1.0f);
+                    bgColor_.b + (hoverBgColor_.b - bgColor_.b) * hoverProgress_,
+                    bgColor_.a + (hoverBgColor_.a - bgColor_.a) * hoverProgress_);
+            if (!error_ && focused_ && focusedBgColor_) bgCol = *focusedBgColor_;
             if (!bgBrush_) rt->CreateSolidColorBrush(bgCol, bgBrush_.GetAddressOf());
             else bgBrush_->SetColor(bgCol);
             if (bgBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(arrangedRect_.ToD2D(), 4, 4), bgBrush_.Get());
@@ -1497,13 +1517,15 @@ namespace ZufyUI {
             D2D1_COLOR_F borderCol = error_ ? errorColor_ : D2D1::ColorF(
                 borderColor_.r + (hoverBorderColor_.r - borderColor_.r) * hoverProgress_,
                 borderColor_.g + (hoverBorderColor_.g - borderColor_.g) * hoverProgress_,
-                borderColor_.b + (hoverBorderColor_.b - borderColor_.b) * hoverProgress_, 1.0f);
+                borderColor_.b + (hoverBorderColor_.b - borderColor_.b) * hoverProgress_,
+                borderColor_.a + (hoverBorderColor_.a - borderColor_.a) * hoverProgress_);
+            if (!error_ && focused_ && focusedBorderColor_) borderCol = *focusedBorderColor_;
             if (!borderBrush_) rt->CreateSolidColorBrush(borderCol, borderBrush_.GetAddressOf());
             else borderBrush_->SetColor(borderCol);
             if (borderBrush_) rt->DrawRoundedRectangle(D2D1::RoundedRect(arrangedRect_.ToD2D(), 4, 4), borderBrush_.Get(), 1.0f);
 
             // 底部指示器：与边框同圆角的"加粗描边"，裁到框底部 → 替换下边框并与圆角融合
-            {
+            if (indicatorAlwaysVisible_ || focused_ || error_) {
                 D2D1_COLOR_F ind = error_ ? errorColor_ : accentColor_;
                 if (!indicatorBrush_) rt->CreateSolidColorBrush(ind, indicatorBrush_.GetAddressOf());
                 else indicatorBrush_->SetColor(ind);
@@ -1581,9 +1603,9 @@ namespace ZufyUI {
                 float cursorX = GetTextPositionX(globalCursorPos) - scrollX_;
                 D2D1_POINT_2F pt1 = D2D1::Point2F(arrangedRect_.x + 5 + cursorX, arrangedRect_.y + 4);
                 D2D1_POINT_2F pt2 = D2D1::Point2F(arrangedRect_.x + 5 + cursorX, arrangedRect_.y + arrangedRect_.height - 4);
-                if (!cursorBrush_) rt->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0, 1), cursorBrush_.GetAddressOf());
-                else cursorBrush_->SetColor(D2D1::ColorF(0, 0, 0, 1));
-                if (cursorBrush_) rt->DrawLine(pt1, pt2, cursorBrush_.Get(), 1.0f);
+                if (!cursorBrush_) rt->CreateSolidColorBrush(cursorColor_, cursorBrush_.GetAddressOf());
+                else cursorBrush_->SetColor(cursorColor_);
+                if (cursorBrush_) rt->DrawLine(pt1, pt2, cursorBrush_.Get(), cursorThickness_);
             }
 
             rt->PopAxisAlignedClip();
@@ -1842,20 +1864,22 @@ namespace ZufyUI {
             MouseLeave.Fire();
         }
         void UpdateAnimation(float deltaTime) override {
-            if (focused_) {
+            const bool previousCursor = showCursor_;
+            const float previousHover = hoverProgress_;
+            if (focused_ && cursorBlinkInterval_ > 0.0f) {
                 cursorBlinkTime_ += deltaTime;
                 if (cursorBlinkTime_ >= cursorBlinkInterval_) {
-                    cursorBlinkTime_ = 0.0f;
+                    cursorBlinkTime_ = fmodf(cursorBlinkTime_, cursorBlinkInterval_);
                     showCursor_ = !showCursor_;
                 }
             }
-            else { showCursor_ = false; cursorBlinkTime_ = 0.0f; }
+            else { showCursor_ = focused_; cursorBlinkTime_ = 0.0f; }
 
             float target = hovered_ ? 1.0f : 0.0f;
             if (hoverProgress_ < target) { hoverProgress_ += hoverAnimSpeed_ * deltaTime; if (hoverProgress_ > target) hoverProgress_ = target; }
             else if (hoverProgress_ > target) { hoverProgress_ -= hoverAnimSpeed_ * deltaTime; if (hoverProgress_ < target) hoverProgress_ = target; }
 
-            if (HasActiveAnimation()) RequestRepaint();
+            if (previousCursor != showCursor_ || previousHover != hoverProgress_) RequestRepaint();
         }
         bool HasActiveAnimation() const override {
             const float epsilon = 0.001f;
@@ -1869,6 +1893,7 @@ namespace ZufyUI {
             compositionBrush_.Reset();
             passwordToggleBrush_.Reset();
             passwordToggleHoverBrush_.Reset();
+            passwordEyeGeometry_.Reset();
             UIElement::ReleaseDeviceResources();
         }
 
@@ -1919,18 +1944,34 @@ namespace ZufyUI {
 
             const float cx = r.x + r.width * 0.5f;
             const float cy = r.y + r.height * 0.5f;
-            const float ew = min(r.width, r.height) * 0.72f;
-            const float eh = ew * 0.54f;
-            const D2D1_ELLIPSE eye = D2D1::Ellipse(D2D1::Point2F(cx, cy), ew * 0.5f, eh * 0.5f);
-            rt->DrawEllipse(eye, passwordToggleBrush_.Get(), 1.5f);
-            const float pr = max(1.5f, min(ew, eh) * 0.16f);
-            rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), pr, pr), passwordToggleBrush_.Get());
-            if (revealPassword_) {
-                const float sx = ew * 0.38f;
-                const float sy = eh * 0.55f;
-                rt->DrawLine(D2D1::Point2F(cx - sx, cy - sy), D2D1::Point2F(cx + sx, cy + sy),
-                    passwordToggleBrush_.Get(), 1.5f);
+            // A square design box preserves the eye's optical proportions at
+            // every input height. Cache the curved outline instead of squeezing
+            // an ellipse to the available rectangular button dimensions.
+            const float size = min(20.0f, max(0.0f, min(r.width, r.height) - 4.0f));
+            if (size <= 1.0f) return;
+            if (!passwordEyeGeometry_) {
+                ComPtr<ID2D1Factory> factory; rt->GetFactory(&factory);
+                if (!factory) return;
+                ComPtr<ID2D1PathGeometry> geometry; ComPtr<ID2D1GeometrySink> sink;
+                if (FAILED(factory->CreatePathGeometry(&geometry)) || FAILED(geometry->Open(&sink))) return;
+                sink->BeginFigure(D2D1::Point2F(1.5f,10), D2D1_FIGURE_BEGIN_HOLLOW);
+                sink->AddBezier(D2D1::BezierSegment(D2D1::Point2F(3.7f,5.2f),D2D1::Point2F(6.5f,3.5f),D2D1::Point2F(10,3.5f)));
+                sink->AddBezier(D2D1::BezierSegment(D2D1::Point2F(13.5f,3.5f),D2D1::Point2F(16.3f,5.2f),D2D1::Point2F(18.5f,10)));
+                sink->AddBezier(D2D1::BezierSegment(D2D1::Point2F(16.3f,14.8f),D2D1::Point2F(13.5f,16.5f),D2D1::Point2F(10,16.5f)));
+                sink->AddBezier(D2D1::BezierSegment(D2D1::Point2F(6.5f,16.5f),D2D1::Point2F(3.7f,14.8f),D2D1::Point2F(1.5f,10)));
+                sink->EndFigure(D2D1_FIGURE_END_CLOSED);
+                if (FAILED(sink->Close())) return;
+                passwordEyeGeometry_ = geometry;
             }
+            D2D1_MATRIX_3X2_F old; rt->GetTransform(&old);
+            rt->SetTransform(D2D1::Matrix3x2F::Scale(size/20,size/20) *
+                D2D1::Matrix3x2F::Translation(cx-size/2,cy-size/2) * old);
+            rt->DrawGeometry(passwordEyeGeometry_.Get(), passwordToggleBrush_.Get(), 1.5f);
+            if (revealPassword_) {
+                rt->DrawLine(D2D1::Point2F(3,3),D2D1::Point2F(17,17),passwordToggleBrush_.Get(),1.5f);
+            }
+            else rt->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(10,10),3,3),passwordToggleBrush_.Get(),1.5f);
+            rt->SetTransform(old);
         }
 
         float GetCompositionTextWidth() const {
@@ -2190,6 +2231,10 @@ namespace ZufyUI {
         ComPtr<IDWriteTextLayout> displayTextLayout_;
         ComPtr<IDWriteTextLayout> fullDisplayLayout_;
         D2D1_COLOR_F bgColor_, borderColor_, textColor_, selectionColor_;
+        std::optional<D2D1_COLOR_F> focusedBgColor_, focusedBorderColor_;
+        D2D1_COLOR_F cursorColor_ = D2D1::ColorF(0, 0, 0, 1);
+        float cursorThickness_ = 1.0f;
+        bool indicatorAlwaysVisible_ = true;
         bool error_ = false;
         bool imeEnabled_ = true;                                            // 关掉后不关联 IME（输入法）
         wchar_t pendingHighSurrogate_ = 0;                                  // 代理对高代理暂存（等低代理凑成完整 emoji）
@@ -2218,6 +2263,7 @@ namespace ZufyUI {
         ComPtr<ID2D1SolidColorBrush> compositionBrush_;
         ComPtr<ID2D1SolidColorBrush> passwordToggleBrush_;
         ComPtr<ID2D1SolidColorBrush> passwordToggleHoverBrush_;
+        ComPtr<ID2D1PathGeometry> passwordEyeGeometry_;
     };
 
     // ---------- 下拉框（最终增强版） ----------
@@ -2415,7 +2461,7 @@ namespace ZufyUI {
             if (filterEnabled_) ApplyFilter(); else { UpdateToolTip(); RequestRepaint(); }
         }
         std::wstring GetEditText() const { return editText_; }
-        bool IsFocusable() const override { return editable_; }
+        bool IsFocusable() const override { return true; }
         // 拖入文本：可编辑则填入编辑框；否则精确匹配并选中（阶段3）
         bool IsDropTargetEnabled() const override { return true; }
         void OnDragOver(DragEventArgs& e) override { if (e.data.HasText()) e.effect = DROPEFFECT_COPY; }
@@ -2909,6 +2955,21 @@ namespace ZufyUI {
 
         void OnKeyDown(WPARAM key, LPARAM lParam) override {
             auto _rg = RenderGuard();
+            if (!IsEffectivelyEnabled()) return;
+            if (key == VK_F4 || (!editable_ && (key == VK_SPACE || key == VK_RETURN))) {
+                if (expanded_) CollapseInternal();
+                else { ExpandInternal(); justExpanded_ = false; }
+                KeyDown.Fire(key, lParam);
+                return;
+            }
+            if (!editable_ && !expanded_ && (key == VK_UP || key == VK_DOWN)) {
+                int step = key == VK_UP ? -1 : 1;
+                int next = selectedIndex_ < 0 ? (step > 0 ? 0 : (int)items_.size()-1) : selectedIndex_ + step;
+                while (next >= 0 && next < (int)items_.size() && IsItemDisabled(next)) next += step;
+                if (next >= 0 && next < (int)items_.size()) SetSelectedIndex(next);
+                KeyDown.Fire(key, lParam);
+                return;
+            }
             if (editable_) {
                 switch (key) {
                 case VK_BACK:
@@ -3457,6 +3518,7 @@ namespace ZufyUI {
 
         explicit ScrollBar(bool vertical) : vertical_(vertical) {
             visible_ = false;
+            SetPointerCursors(LoadCursor(nullptr, IDC_HAND), LoadCursor(nullptr, vertical ? IDC_SIZENS : IDC_SIZEWE), nullptr);
             bleed_ = 4.0f;
             width_ = 0; height_ = 0;
             trackColor_ = DefaultTrackColor;
@@ -3466,6 +3528,9 @@ namespace ZufyUI {
         }
 
         bool UseCache() const override { return false; }
+        HCURSOR GetPointerCursorAt(float, float, bool pressed) const override {
+            return GetPointerCursor(pressed && dragging_);
+        }
 
         // ---- 宿主每帧推入范围 ----
         void SetRange(float value, float maxValue, float viewportSize) {
@@ -3529,6 +3594,7 @@ namespace ZufyUI {
             }
         }
         void OnMouseUp(float, float) override { if (dragging_) { dragging_ = false; RequestRepaint(); } }
+        void OnPointerCancel() override { dragging_ = false; OnMouseLeave(); }
 
         void UpdateAnimation(float dt) override {
             float ht = hovering_ ? 1.0f : 0.0f;
@@ -4395,6 +4461,7 @@ namespace ZufyUI {
             animSpeed_(DefaultAnimationSpeed) {
             width_ = DefaultWidth; height_ = DefaultHeight;
             bleed_ = 15.0f;
+            SetPointerCursors(LoadCursor(nullptr, IDC_HAND), LoadCursor(nullptr, IDC_SIZEWE), nullptr);
         }
 
         void SetRange(float min, float max) { if (max > min) { min_ = min; max_ = max; } value_ = clamp(value_, min_, max_); displayValue_ = clamp(displayValue_, min_, max_); RequestRepaint(); }
@@ -4528,6 +4595,9 @@ namespace ZufyUI {
         }
         void OnMouseUp(float x, float y) override {
             if (isDragging_) {
+                // WM_MOUSEMOVE may be coalesced behind WM_LBUTTONUP. Commit the
+                // release coordinate before notifying listeners of the final value.
+                UpdateValueFromMouse(x, !snapToStep_);
                 isDragging_ = false;
                 SliderReleased(value_);
                 RequestRepaint();
@@ -4535,6 +4605,7 @@ namespace ZufyUI {
             }
         }
         bool IsFocusable() const override { return true; }
+        void OnPointerCancel() override { isDragging_ = false; OnMouseLeave(); }
         void OnKeyDown(WPARAM key, LPARAM lParam) override {
             if (!IsEffectivelyEnabled()) return;
             float d = (step_ > 0.0f ? step_ : (max_ - min_) / 100.0f);
@@ -6071,6 +6142,7 @@ namespace ZufyUI {
 
         // 三个独立的小按钮（清除 / 上 / 下）：各自用框架的 OnMouseEnter/Leave 管悬停，最稳
         struct SpinButton : public UIElement {
+            SpinButton() { SetPointerCursors(LoadCursor(nullptr, IDC_HAND), LoadCursor(nullptr, IDC_HAND), nullptr); }
             enum class Kind { Clear, Up, Down };
             NumberBox* owner = nullptr;
             Kind kind = Kind::Up;
@@ -8586,6 +8658,10 @@ namespace ZufyUI {
         }
         void ClearRows() { rows_.clear(); hover_ = -1; InvalidateLayout(); RequestRepaint(); }
         int RowCount() const { return (int)rows_.size(); }
+        HCURSOR GetPointerCursorAt(float x, float y, bool pressed) const override {
+            if (!IsEffectivelyEnabled() || normalPointer_ || (pressed && pressedPointer_)) return GetPointerCursor(pressed);
+            return LoadCursor(nullptr, arrangedRect_.Contains(x,y) && IndexAt(y)>=0 ? IDC_HAND : IDC_ARROW);
+        }
         Size MeasureOverride(const Size& avail) override {
             float w = (width_ > 0.0f) ? width_
                     : ((avail.width != FLT_MAX && avail.width > 0.0f) ? avail.width : DefaultWidth);
@@ -8600,10 +8676,10 @@ namespace ZufyUI {
                 if (i > 0) { if (!dB_) rt->CreateSolidColorBrush(DivCol.ToD2D(), dB_.GetAddressOf()); else dB_->SetColor(DivCol.ToD2D()); if (dB_) rt->DrawLine(D2D1::Point2F(r.x + 52, y), D2D1::Point2F(r.x + r.width - 18, y), dB_.Get(), 1.0f); }
                 FontSpec fi; fi.familyName = IconFontFamily(); fi.size = 20.0f;
                 if (rows_[i].icon != Icon::None) { float iy = y + RowHeight * 0.5f - 12.0f; DrawTextWithEllipsis(rt, IconGlyph(rows_[i].icon), D2D1::RectF(r.x + 16, iy, r.x + 16 + 24, iy + 24), TextCol.ToD2D(), fi, iB_, nullptr, true, TextHAlign::Center); }
-                FontSpec ft; ft.size = 15.0f;
+                FontSpec ft = GetEffectiveFontSpec(); ft.size = 15.0f;
                 bool hasSub = !rows_[i].subtitle.empty();
                 { float ty = y + (hasSub ? 10.0f : RowHeight * 0.5f - 11.0f); DrawTextWithEllipsis(rt, rows_[i].text, D2D1::RectF(r.x + 52, ty, r.x + r.width - 18 - 24, ty + 22), TextCol.ToD2D(), ft, tB_, nullptr, false, TextHAlign::Left); }
-                if (hasSub) { FontSpec fs; fs.size = 12.0f; DrawTextWithEllipsis(rt, rows_[i].subtitle, D2D1::RectF(r.x + 52, y + 32, r.x + r.width - 18 - 24, y + 32 + 16), SubCol.ToD2D(), fs, sB_, nullptr, false, TextHAlign::Left); }
+                if (hasSub) { FontSpec fs = GetEffectiveFontSpec(); fs.size = 12.0f; DrawTextWithEllipsis(rt, rows_[i].subtitle, D2D1::RectF(r.x + 52, y + 32, r.x + r.width - 18 - 24, y + 32 + 16), SubCol.ToD2D(), fs, sB_, nullptr, false, TextHAlign::Left); }
                 FontSpec fc; fc.familyName = IconFontFamily(); fc.size = 12.0f;
                 { float cy = y + RowHeight * 0.5f - 9.0f; DrawTextWithEllipsis(rt, IconGlyph(Icon::ChevronRight), D2D1::RectF(r.x + r.width - 18 - 20, cy, r.x + r.width - 18, cy + 18), SubCol.ToD2D(), fc, sB_, nullptr, true, TextHAlign::Center); }
             }
@@ -8717,7 +8793,7 @@ namespace ZufyUI {
         }
         void UpdateEntryRects() {
             float cx = 0.0f;
-            for (auto& e : entries_) { e.x = cx; e.w = TextW(e.title) + 16.0f; cx += e.w; }
+            for (auto& e : entries_) { e.x = cx; e.w = ceilf(TextW(e.title)) + 18.0f; cx += e.w; }
         }
         void OpenIndex(int idx) {
             hoverIndex_ = idx;
@@ -8815,7 +8891,11 @@ namespace ZufyUI {
         std::wstring title, subtitle;
         bool expanded = true;
         std::function<void()> onToggle;
-        Color bg = Color::FromArgb(255, 252, 252, 252), titleCol = Color::FromArgb(255, 32, 32, 32), subCol = Color::FromArgb(255, 120, 120, 120);
+
+        HCURSOR GetPointerCursorAt(float, float, bool pressed) const override {
+            if (!IsEffectivelyEnabled() || !onToggle || normalPointer_ || (pressed && pressedPointer_)) return GetPointerCursor(pressed);
+            return LoadCursor(nullptr, IDC_HAND);
+        }        Color bg = Color::FromArgb(255, 252, 252, 252), titleCol = Color::FromArgb(255, 32, 32, 32), subCol = Color::FromArgb(255, 120, 120, 120);
         Color hoverBg = Color::FromArgb(255, 238, 238, 238);   // 悬停高亮（同列表头）
         float cornerRadius = 8.0f;
         float rotProg = 1.0f;   // 展开进度(缓动后) → 箭头旋转角
@@ -8841,9 +8921,9 @@ namespace ZufyUI {
                 DrawTextWithEllipsis(rt, IconGlyph(icon), D2D1::RectF(r.x + 18, iy, r.x + 18 + iconSize + 2.0f, iy + iconSize + 2.0f), titleCol.ToD2D(), gi, sB, nullptr, true, TextHAlign::Left);
                 textLeft = r.x + 18.0f + iconSize + 12.0f;
             }
-            FontSpec ft; ft.size = 20.0f; ft.weight = DWRITE_FONT_WEIGHT_SEMI_BOLD;
+            FontSpec ft = GetEffectiveFontSpec(); ft.size = 20.0f; ft.weight = DWRITE_FONT_WEIGHT_SEMI_BOLD;
             DrawTextWithEllipsis(rt, title, D2D1::RectF(textLeft, r.y + 12, r.x + r.width - 18 - 28, r.y + 12 + 26), titleCol.ToD2D(), ft, tB, nullptr, false, TextHAlign::Left);
-            if (!subtitle.empty()) { FontSpec fs; fs.size = 13.0f; DrawTextWithEllipsis(rt, subtitle, D2D1::RectF(textLeft, r.y + 40, r.x + r.width - 18 - 28, r.y + 40 + 16), subCol.ToD2D(), fs, sB, nullptr, false, TextHAlign::Left); }
+            if (!subtitle.empty()) { FontSpec fs = GetEffectiveFontSpec(); fs.size = 13.0f; DrawTextWithEllipsis(rt, subtitle, D2D1::RectF(textLeft, r.y + 40, r.x + r.width - 18 - 28, r.y + 40 + 16), subCol.ToD2D(), fs, sB, nullptr, false, TextHAlign::Left); }
             FontSpec fi; fi.familyName = IconFontFamily(); fi.size = 14.0f;
             float cx = r.x + r.width - 18 - 14.0f, cy = r.y + r.height * 0.5f;
             D2D1_MATRIX_3X2_F old; rt->GetTransform(&old);

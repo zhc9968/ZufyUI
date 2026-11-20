@@ -1,7 +1,7 @@
 ﻿# ZufyUI API 参考
 
 > 本文档覆盖 ZufyUI 框架的全部公开 API，**按“使用分类”组织**（不是按代码/头文件顺序）。
-> 配套阅读：[项目说明与构建](../../README.md)。
+> 配套阅读：[项目说明与构建](https://github.com/zhc9968/ZufyUI/blob/master/README.md)。
 
 > **阅读方式**：本文不是“签名清单”，而是按“它是什么 → 框架内部怎么处理 → 你需要注意什么”来写。
 > 每个类先讲整体行为，再逐函数讲副作用、默认值与易混点。**没有读过源码也能据此正确使用。**
@@ -328,7 +328,7 @@ template<class Result> class FetchFlow { void Start(AsyncOwner, Work, Ready, Err
     void Cancel();  bool Wait();  FetchState GetState() const; };
 ```
 
-- ViewCore ???????????????????????????ListView ??? `ScrollAxis` ?????????
+- ViewCore 只抽象滚动、元素回收和请求生命周期，不定义通用数据源；ListView 已经用 `ScrollAxis` 管理垂直滚动状态。
 
 ## 全局信号 UIZSignals
 
@@ -478,6 +478,9 @@ void SetVisible(bool);  void SetVisibleNoInvalidate(bool);  bool IsVisible() con
 void SetEnabled(bool);  bool IsEnabled() const;  bool IsEffectivelyEnabled() const;  // 沿父链
 void SetToolTip(const std::wstring&);   virtual std::wstring GetToolTip() const;
 void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;
+void SetPointerCursors(HCURSOR normal, HCURSOR pressed, HCURSOR disabled);
+HCURSOR GetPointerCursor(bool pressed) const;  virtual HCURSOR GetPointerCursorAt(float x, float y, bool pressed) const;
+virtual void OnPointerCancel();   // capture stolen/system cancel
 ```
 - 禁用元素不参与命中/悬停。提示会**向上解析**父级提示（如 Button → Label）。
 
@@ -681,7 +684,7 @@ int GetCurrentIndex() const;  std::shared_ptr<Page> GetCurrentPage() const;
 
 见「容器与滚动 / 页签」章。
 
-###chapter: ?? | Window??????????????????DPI????
+###chapter: 窗口 | Window（创建、显示、背景、标题栏、任务栏、DPI、帧率）
 
 ## 嵌套公开类型
 
@@ -738,6 +741,10 @@ std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
 void SetNonBlockingPresent(bool);   bool GetNonBlockingPresent() const;
 void SetDisplayFramePacing(bool);   bool GetDisplayFramePacing() const;
 double GetDisplayRefreshHz() const;
+enum class PresentationState { Hidden, Opening, Open, Closing, Closed };
+void SetTransitionDurations(int enterMs, int exitMs);
+PresentationState GetPresentationState() const;  float GetPresentationProgress() const;  bool IsTransitionActive() const;
+inline static std::function<void(Window&)> DefaultWindowSetup;
 ```
 - `SetNonBlockingPresent` / `SetDisplayFramePacing` 默认关，菜单默认开；`SetDisplayFramePacing` 仅在非阻塞 Present 下生效。`GetDisplayRefreshHz()` 返回当前显示器刷新率（未知时为 60）。
 
@@ -897,7 +904,7 @@ ZSignal<float> DpiChanged;           // DPI scale (96 = 1.0)
 ZSignal<> BackdropUnsupported, DeviceLost;   ZSignal<HRESULT> RenderingError;
 std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 ```
-- `SizeChanged` ??????????????DIP?????????????? `GetClientWidthDip/HeightDip()` ???`DpiChanged` ? DPI ??????????????????????DIP ?????????? `SizeChanged`?
+- `SizeChanged` 在客户端 DIP 尺寸实际变化时触发（最小化时不触发）；初始尺寸用 `GetClientWidthDip/HeightDip()` 读取。`DpiChanged` 在 DPI 变化时先触发，即使后续设备重建失败；DIP 客户端尺寸变化时会再触发 `SizeChanged`。
 
 ###block_orange_start
 
@@ -1004,6 +1011,9 @@ void SetRevealPassword(bool);  bool IsPasswordRevealed() const;  void TogglePass
 void SetPasswordRevealButtonVisible(bool);  bool IsPasswordRevealButtonVisible() const;
 void SetReadOnly(bool);    void SetInputFilter(std::function<bool(wchar_t)>);
 void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
+void SetCursorBlinkInterval(float);  void SetCursorColor(Color);  void SetCursorThickness(float);
+void SetFocusedBackgroundColor(Color);  void ClearFocusedBackgroundColor();
+void SetFocusedBorderColor(Color);  void ClearFocusedBorderColor();  void SetIndicatorAlwaysVisible(bool);
 void SelectAll/Copy/Cut/Paste/Undo/Redo();
 int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
 ```
@@ -1707,7 +1717,7 @@ static std::shared_ptr<Image> Image::FromHBITMAP(HBITMAP, bool premultipliedAlph
 class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };
 ```
 - 设备丢失时（`UIZSignals::DeviceReset`）应释放与渲染目标绑定的位图缓存。
-- `Image::FromHBITMAP(hbmp, premultipliedAlpha = true)`??????? **?? HBITMAP ? alpha ?????**?Shell ????????GDI+/?? alpha ??? `false`?32bpp ?? alpha?? 32bpp ???????
+- `Image::FromHBITMAP(hbmp, premultipliedAlpha = true)` 默认按 **HBITMAP 的 alpha 通道处理**；Shell 图标或 GDI+ 生成的 alpha 位图可传 `false`；32bpp 无 alpha 的位图按不透明处理。
 
 ###block_red_start
 **易错**
@@ -2158,7 +2168,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 ###block_red_end
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.28.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.29.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -2262,7 +2272,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **构建**：`ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` 的 **Debug|Win32** / **Debug|x64** 补 `/bigobj`（Release 已有）；全量 Release/Debug 构建通过。
 - **v1.23.3**：
   - **Button**：内部 `Label` 成为真正的子元素（富文本 `GetLabel()->AddChild` / `SetContent`）；新增右侧下拉区 `SplitClicked` / `SetSplitMenu` / `SetSplitButton`。
-  - **?? ? ??????**?`GetDpiScale()` ?? 96/144??? 1.0/1.5?????????????????????? `/96` ??????????demo ??? MessageBox?
+  - **修复（下拉菜单位置）**：`GetDpiScale()` 返回 96/144（不是 1.0/1.5）；旧乘法会把菜单送到屏幕右下角。除以 96 后菜单会落在按钮下方，demo 不再弹 MessageBox。
   - **修复**：`SetBackdrop(Acrylic/Mica)` 在未显式设 tint 时不再用不透明白盖住系统材质；`ListView::SetItemHeight` 夹到 ≥1px，Draw/命中不再除零。
   - **文档/清理**：`HwndView` 跨进程风险说明；`WM_ACTIVATE` 冗余判断、`<cstring>`、demo 空回调清理。
 - **v1.24.0**（**含破坏性变更**）：
@@ -2274,6 +2284,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
   - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
   - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。
+- **v1.29.0**：指针/焦点/输入反馈（光标状态、拖动取消、TextBox 焦点样式/光标/密码眼睛、ComboBox 键盘、Slider 松手、数据视图/滚动条/Expander 指针）；窗口过渡动画 `SetTransitionDurations`/`PresentationState`/`DefaultWindowSetup`；菜单回调 `QueueToUIThread`、PageHost 反向导航；Expander/SettingsList/图表字体继承、MenuBar/Button/EnsureVisible 修正；API 文档乱码与第 8 章标题修复。
 - **v1.28.0**：非阻塞 Present / 高刷新帧节拍（`SetNonBlockingPresent` / `SetDisplayFramePacing` / `GetDisplayRefreshHz`）；私有 `IDWriteFontCollection`；UIA 根/子 provider 统一断开、`WM_DESTROY` 清理 UIA 事件映射；菜单默认同步提示策略。
 - **v1.27.3**：窗口弹出行为。`Placement`（居中 owner/屏幕）、`FollowOwner`、`MoveBounds`（owner 客户区/显示器工作区）、`CloseReason`、`RequestClose/ForceClose` 与关闭拦截信号；`SetMovable/SetCloseEnabled/SetCloseOnEscape`；自定义标题栏按钮随窗口策略同步；弹窗首帧预推进。
 - **v1.27.2**：
