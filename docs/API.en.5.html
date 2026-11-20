@@ -244,7 +244,8 @@ struct FontSpec {
 ```cpp
 static FontManager&amp; Instance();
 IDWriteFactory* GetFactory();
-IDWriteTextFormat* GetFormat(const FontSpec&amp;);        // never evicted
+IDWriteTextFormat* GetFormat(const FontSpec&amp;);
+bool SetAppFontCollection(IDWriteFontCollection*);   // install once, before formats
 ComPtr&lt;IDWriteTextLayout&gt; GetRawLayout(text, fmt, maxW, maxH, noWrap);
 ComPtr&lt;IDWriteTextLayout&gt; GetDisplayLayout(origText, fmt, maxW, maxH, noWrap);   // ellipsized
 ComPtr&lt;IDWriteTextLayout&gt; GetStyledLayout(text, fmt, w, h, noWrap, hAlign, vAlign, lineSpacing, maxLines);
@@ -253,6 +254,7 @@ void CacheDisplayLayout(...);  void CacheStyledDisplayLayout(...);
 void SetGlobalFont(const FontSpec&amp;);
 ZSignal&lt;&gt; GlobalFontChanged;
 ```
+- `SetAppFontCollection` must be called before any format/layout is created; it returns `false` when a cache or collection already exists. The manager holds a reference; menu paths that call `CreateTextFormat` directly still use system fonts.
 - The layout cache is **bounded** (400 entries, FIFO evicts ¼) and returns strong refs (`ComPtr`), safe during use.
 
 ###block_red_start
@@ -285,7 +287,7 @@ inline std::wstring IconGlyph(Icon);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-09dcb7f2', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d92d87dd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">FontSpec</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">familyName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">"Segoe UI"</span><span class="p">;</span>
@@ -297,7 +299,7 @@ inline std::wstring IconGlyph(Icon);
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="k">operator</span><span class="o">==/!=</span><span class="p">(...)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-09dcb7f2" style="display: none;">struct FontSpec {
+<pre id="code-d92d87dd" style="display: none;">struct FontSpec {
     std::wstring familyName = L"Segoe UI";
     float size = 14.0f;
     DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
@@ -311,11 +313,12 @@ inline std::wstring IconGlyph(Icon);
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7fe6b622', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-d789ad35', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">static</span><span class="w"> </span><span class="n">FontManager</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">Instance</span><span class="p">();</span>
 <span class="n">IDWriteFactory</span><span class="o">*</span><span class="w"> </span><span class="nf">GetFactory</span><span class="p">();</span>
-<span class="n">IDWriteTextFormat</span><span class="o">*</span><span class="w"> </span><span class="nf">GetFormat</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span><span class="w">        </span><span class="c1">// never evicted</span>
+<span class="n">IDWriteTextFormat</span><span class="o">*</span><span class="w"> </span><span class="nf">GetFormat</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
+<span class="kt">bool</span><span class="w"> </span><span class="nf">SetAppFontCollection</span><span class="p">(</span><span class="n">IDWriteFontCollection</span><span class="o">*</span><span class="p">);</span><span class="w">   </span><span class="c1">// install once, before formats</span>
 <span class="n">ComPtr</span><span class="o">&lt;</span><span class="n">IDWriteTextLayout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetRawLayout</span><span class="p">(</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">fmt</span><span class="p">,</span><span class="w"> </span><span class="n">maxW</span><span class="p">,</span><span class="w"> </span><span class="n">maxH</span><span class="p">,</span><span class="w"> </span><span class="n">noWrap</span><span class="p">);</span>
 <span class="n">ComPtr</span><span class="o">&lt;</span><span class="n">IDWriteTextLayout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetDisplayLayout</span><span class="p">(</span><span class="n">origText</span><span class="p">,</span><span class="w"> </span><span class="n">fmt</span><span class="p">,</span><span class="w"> </span><span class="n">maxW</span><span class="p">,</span><span class="w"> </span><span class="n">maxH</span><span class="p">,</span><span class="w"> </span><span class="n">noWrap</span><span class="p">);</span><span class="w">   </span><span class="c1">// ellipsized</span>
 <span class="n">ComPtr</span><span class="o">&lt;</span><span class="n">IDWriteTextLayout</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetStyledLayout</span><span class="p">(</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">fmt</span><span class="p">,</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="n">noWrap</span><span class="p">,</span><span class="w"> </span><span class="n">hAlign</span><span class="p">,</span><span class="w"> </span><span class="n">vAlign</span><span class="p">,</span><span class="w"> </span><span class="n">lineSpacing</span><span class="p">,</span><span class="w"> </span><span class="n">maxLines</span><span class="p">);</span>
@@ -324,9 +327,10 @@ inline std::wstring IconGlyph(Icon);
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetGlobalFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span>
 <span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">GlobalFontChanged</span><span class="p">;</span>
 </pre></div>
-<pre id="code-7fe6b622" style="display: none;">static FontManager&amp; Instance();
+<pre id="code-d789ad35" style="display: none;">static FontManager&amp; Instance();
 IDWriteFactory* GetFactory();
-IDWriteTextFormat* GetFormat(const FontSpec&amp;);        // never evicted
+IDWriteTextFormat* GetFormat(const FontSpec&amp;);
+bool SetAppFontCollection(IDWriteFontCollection*);   // install once, before formats
 ComPtr&lt;IDWriteTextLayout&gt; GetRawLayout(text, fmt, maxW, maxH, noWrap);
 ComPtr&lt;IDWriteTextLayout&gt; GetDisplayLayout(origText, fmt, maxW, maxH, noWrap);   // ellipsized
 ComPtr&lt;IDWriteTextLayout&gt; GetStyledLayout(text, fmt, w, h, noWrap, hAlign, vAlign, lineSpacing, maxLines);
@@ -336,6 +340,7 @@ void SetGlobalFont(const FontSpec&amp;);
 ZSignal&lt;&gt; GlobalFontChanged;</pre>
 </div>
 <ul>
+<li><code>SetAppFontCollection</code> must be called before any format/layout is created; it returns <code>false</code> when a cache or collection already exists. The manager holds a reference; menu paths that call <code>CreateTextFormat</code> directly still use system fonts.</li>
 <li>The layout cache is <strong>bounded</strong> (400 entries, FIFO evicts ¼) and returns strong refs (<code>ComPtr</code>), safe during use.</li>
 </ul>
 <div class="red">
@@ -353,13 +358,13 @@ ZSignal&lt;&gt; GlobalFontChanged;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-eccb6c13', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
+<button class="copy-btn" onclick="copyCode('code-724079ee', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">Copy</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Icon</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">short</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="o">=</span><span class="mh">0x0000</span><span class="p">,</span><span class="w"> </span><span class="n">Add</span><span class="o">=</span><span class="mh">0xE710</span><span class="p">,</span><span class="w"> </span><span class="n">Remove</span><span class="o">=</span><span class="mh">0xE738</span><span class="p">,</span><span class="w"> </span><span class="p">...,</span><span class="w"> </span><span class="n">Pin</span><span class="o">=</span><span class="mh">0xE718</span><span class="p">,</span><span class="w"> </span><span class="n">View</span><span class="o">=</span><span class="mh">0xE890</span><span class="p">,</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="nf">IconFontFamily</span><span class="p">();</span><span class="w">   </span><span class="c1">// Segoe Fluent Icons → fallback Segoe MDL2 Assets</span>
 <span class="kr">inline</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">IconGlyph</span><span class="p">(</span><span class="n">Icon</span><span class="p">);</span>
 </pre></div>
-<pre id="code-eccb6c13" style="display: none;">enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., Pin=0xE718, View=0xE890, ... };
+<pre id="code-724079ee" style="display: none;">enum class Icon : unsigned short { None=0x0000, Add=0xE710, Remove=0xE738, ..., Pin=0xE718, View=0xE890, ... };
 inline const std::wstring&amp; IconFontFamily();   // Segoe Fluent Icons → fallback Segoe MDL2 Assets
 inline std::wstring IconGlyph(Icon);</pre>
 </div>

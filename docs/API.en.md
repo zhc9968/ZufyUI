@@ -1,13 +1,13 @@
 ﻿# ZufyUI API Reference
 
 > This document covers the entire public API of the ZufyUI framework, **organized by usage category** (not by code/header order).
-> Companion reading: [Project README & build](../../README.en.md).
+> Companion reading: [Project README & build](https://github.com/zhc9968/ZufyUI/blob/master/README.en.md).
 
 > **How to read**: this is not just a signature list — each class first explains overall behavior, then each method's side effects, defaults and pitfalls. **You can use it correctly without reading the source.**
 
 > **Two markers used throughout**:
 > - **`Pitfall`**: real traps / counter-intuitive behavior — read these first.
-> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.27.1**.
+> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.29.0**.
 
 ###chapter: Conventions | Namespaces, units, lifetime, version & pitfall notation
 
@@ -153,10 +153,6 @@ struct Color {
 ```
 
 ###block_orange_start
-**Note**
-
-- `Color::Lerp(a, b, t)` does **not** clamp `t`; keep it in 0..1 (out of range extrapolates).
-###block_orange_end
 
 ###block_red_start
 **Pitfall**
@@ -297,16 +293,41 @@ ConnectWeak(panel, btn->Clicked, &Panel::OnClick);
 ```
 
 ###block_orange_start
-**Note**
-
-- `Menu` / `MenuItem` / `Timer` still use `signal.connect` and do **not** auto-disconnect.
-###block_orange_end
 
 ###block_red_start
 **Pitfall**
 
 - do not capture `self`'s `shared_ptr` by value inside a `ConnectWeak` slot — that creates a signal → slot → self → signal strong cycle.
 ###block_red_end
+
+## Async tasks / RunAsync
+
+```cpp
+enum class AsyncTaskStatus { Pending, Running, Completed, Canceled, Failed };
+class AsyncOwner { /* weak owner: callbacks are dropped after it dies */ };
+class AsyncCancelToken { bool IsCancellationRequested() const; void ThrowIfCancellationRequested() const; };
+class AsyncProgress { void Report(float value, const std::wstring& message = {}); };
+template<class T> class AsyncTask { bool Cancel(); bool Wait(); AsyncTaskStatus GetStatus() const; AsyncCancelToken GetCancelToken() const; };
+template<class T, class Work> std::shared_ptr<AsyncTask<T>> RunAsync(AsyncOwner, Work&&,
+    std::function<void(T)> onCompleted, std::function<void(std::exception_ptr)> onFailed = {},
+    std::function<void(float, const std::wstring&)> onProgress = {}, std::function<void()> onCanceled = {});
+```
+
+- **v1.27.2 async:** `RunAsync<T>` runs on a worker, `AsyncCancelToken` cancels cooperatively, `AsyncProgress::Report` coalesces to the UI thread; completion/failure/cancel callbacks are delivered on the UI thread and dropped once `AsyncOwner` expires.
+
+## ViewCore / virtual view scaffolding
+
+```cpp
+struct ScrollAxis { float offset, target, viewport, content, maxOffset;
+    void SetMetrics(float viewport, float content);  void ScrollTo(float);  void EnsureVisible(float start, float size);
+    Range VisibleRange(float itemExtent, float overscan = 0, int itemCount = -1) const; };
+template<class T> class RecyclePool { std::shared_ptr<T> Acquire();  void Release(std::shared_ptr<T>);
+    void Trim(size_t maxIdle);  void Clear(); };
+template<class Result> class FetchFlow { void Start(AsyncOwner, Work, Ready, Error = {}, Progress = {}, Canceled = {});
+    void Cancel();  bool Wait();  FetchState GetState() const; };
+```
+
+- ViewCore only abstracts scrolling, element recycling and request lifecycle; it does not define a universal data source. ListView already uses `ScrollAxis` for vertical scroll state.
 
 ## Global signals UIZSignals
 
@@ -351,7 +372,8 @@ struct FontSpec {
 ```cpp
 static FontManager& Instance();
 IDWriteFactory* GetFactory();
-IDWriteTextFormat* GetFormat(const FontSpec&);        // never evicted
+IDWriteTextFormat* GetFormat(const FontSpec&);
+bool SetAppFontCollection(IDWriteFontCollection*);   // install once, before formats
 ComPtr<IDWriteTextLayout> GetRawLayout(text, fmt, maxW, maxH, noWrap);
 ComPtr<IDWriteTextLayout> GetDisplayLayout(origText, fmt, maxW, maxH, noWrap);   // ellipsized
 ComPtr<IDWriteTextLayout> GetStyledLayout(text, fmt, w, h, noWrap, hAlign, vAlign, lineSpacing, maxLines);
@@ -360,6 +382,7 @@ void CacheDisplayLayout(...);  void CacheStyledDisplayLayout(...);
 void SetGlobalFont(const FontSpec&);
 ZSignal<> GlobalFontChanged;
 ```
+- `SetAppFontCollection` must be called before any format/layout is created; it returns `false` when a cache or collection already exists. The manager holds a reference; menu paths that call `CreateTextFormat` directly still use system fonts.
 - The layout cache is **bounded** (400 entries, FIFO evicts ¼) and returns strong refs (`ComPtr`), safe during use.
 
 ###block_red_start
@@ -452,6 +475,9 @@ void SetVisible(bool);  void SetVisibleNoInvalidate(bool);  bool IsVisible() con
 void SetEnabled(bool);  bool IsEnabled() const;  bool IsEffectivelyEnabled() const;
 void SetToolTip(const std::wstring&);   virtual std::wstring GetToolTip() const;
 void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;
+void SetPointerCursors(HCURSOR normal, HCURSOR pressed, HCURSOR disabled);
+HCURSOR GetPointerCursor(bool pressed) const;  virtual HCURSOR GetPointerCursorAt(float x, float y, bool pressed) const;
+virtual void OnPointerCancel();   // capture stolen/system cancel
 ```
 - Disabled elements are excluded from hit-test/hover. Tooltips **walk up** to parents.
 
@@ -576,8 +602,8 @@ class Layout : public UIElement { bool UseCache() const override { return false;
 enum class LayoutAlignment { Start, Center, End, Stretch };
 enum class Justify { Start, Center, End, SpaceBetween, SpaceAround };
 ColumnBox(); RowBox();
-void AddChild(std::shared_ptr<UIElement>);
-void ClearChildren();
+void AddChild(std::shared_ptr<UIElement>);  void ClearChildren();
+void RemoveChild(std::shared_ptr<UIElement>);  void RemoveChildAt(int);  void InsertChild(int, std::shared_ptr<UIElement>);
 void SetSpacing(float);
 void SetJustify(Justify);              // main axis: Start/Center/End/SpaceBetween/SpaceAround
 void SetCrossAlign(LayoutAlignment);   // cross axis; Stretch is the compatibility default
@@ -620,6 +646,7 @@ class LayoutHost : public UIElement {
     void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // default Stretch
 };
 class Card : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
+void SetContent(const std::wstring& title, const std::wstring& description, std::shared_ptr<UIElement> action=nullptr);
 class Page : public LayoutHost { DefaultPadding=10; ... };
 void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // one line: wrap in ScrollViewer(fill)+8px
 ```
@@ -707,7 +734,15 @@ void Show(); void ShowNoActivate(); void Hide(); void Raise(); void Close();
 void Run();  int RunModal(Window* owner = nullptr);
 void SetInputBlocked(bool);  bool IsInputBlocked() const;
 std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
+void SetNonBlockingPresent(bool);   bool GetNonBlockingPresent() const;
+void SetDisplayFramePacing(bool);   bool GetDisplayFramePacing() const;
+double GetDisplayRefreshHz() const;
+enum class PresentationState { Hidden, Opening, Open, Closing, Closed };
+void SetTransitionDurations(int enterMs, int exitMs);
+PresentationState GetPresentationState() const;  float GetPresentationProgress() const;  bool IsTransitionActive() const;
+inline static std::function<void(Window&)> DefaultWindowSetup;
 ```
+- `SetNonBlockingPresent` / `SetDisplayFramePacing` are off by default and on for menus by default; pacing is effective only with nonblocking Present. `GetDisplayRefreshHz()` returns the current monitor refresh rate (60 when unknown).
 
 ###block_red_start
 **Pitfall**
@@ -797,6 +832,7 @@ void SetBackgroundColor(Color);
 void SetContentOpacity(float opacity);
 void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
 void SetResizable(bool);   void SetTitle(const std::wstring&);
+void SetSuspendAnimationsWhileResizing(bool);   bool GetSuspendAnimationsWhileResizing() const;
 ```
 - Backdrop is **hand-rolled** (Acrylic = host backdrop + effect chain; Mica = cached wallpaper layer). Change params via `SetBackgroundParams` or `UIZSignals::ReloadAcrylic`.
 - Window corners are no longer a public API: Windows 10 keeps square corners to preserve DWM border/shadow, Windows 11 follows system rounding. Call Win32 DWM APIs yourself if you need custom corners, and handle Win10/Snap border/shadow risks yourself.
@@ -837,10 +873,6 @@ void SetJumpList(...);  void Flash(int times=5, bool alsoTaskbar=true);  void Fl
 void SetAppUserModelID(const std::wstring&);
 ```
 ###block_orange_start
-**Note**
-
-These are COM calls; failures are **silent no-ops**. `FLASHW_CAPTION` does nothing for a custom title bar; use `FLASHW_ALL` to flash the taskbar too.
-###block_orange_end
 
 - **`Version`**: all `v1.9.6`.
 
@@ -862,21 +894,43 @@ void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // 
 UIElement* GetFocusedElement/HoveredElement/PressedElement() const;
 void FocusElement(UIElement*);
 ZSignal<> Activated, Deactivated;   ZSignal<bool*> Closing;   ZSignal<> Closed;
+ZSignal<float, float> SizeChanged;   // client size in DIP
+ZSignal<float> DpiChanged;           // DPI scale (96 = 1.0)
 ZSignal<> BackdropUnsupported, DeviceLost;   ZSignal<HRESULT> RenderingError;
 std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 ```
+- `SizeChanged` fires on actual client-size changes in DIP (not when minimized); read the initial size with `GetClientWidthDip/HeightDip()`. `DpiChanged` fires first on a DPI change even if device rebuilding later fails; when the DIP client size changes, `SizeChanged` follows.
 
 ###block_orange_start
-**Limitation**
-
-`Window` currently has **no size/DPI-change signal**. Status bars/panels that mirror the live client size can only refresh on `Activated`, theme change or page change; dragging the window border does not update them automatically. Add a window signal first if you need live updates.
-###block_orange_end
 
 ###block_red_start
 **Pitfall**
 
 - in `Closing`, set `*cancel = true` to veto the close. The parameter is `bool*` (not a reference).
 ###block_red_end
+
+## Popup window behavior (v1.27.3)
+
+```cpp
+enum class Placement { SystemDefault, CenterOwner, CenterScreen };
+enum class MoveBounds { Unrestricted, OwnerClient, MonitorWorkArea };
+enum class CloseReason { Programmatic, Caption, Escape, System, Forced };
+void SetPlacement(Placement);   Placement GetPlacement() const;
+void CenterOnOwner();   void CenterOnScreen();
+void SetMovable(bool);   bool IsMovable() const;
+void SetCloseEnabled(bool);   bool IsCloseEnabled() const;
+void SetCloseOnEscape(bool);   bool GetCloseOnEscape() const;
+void SetFollowOwner(bool);   bool GetFollowOwner() const;
+void SetMoveBounds(MoveBounds);   MoveBounds GetMoveBounds() const;
+void RequestClose(CloseReason = CloseReason::Programmatic);   void ForceClose();
+ZSignal<> Opening, Opened, BehaviorChanged;
+ZSignal<CloseReason, bool*> CloseRequested;   ZSignal<CloseReason> CloseAccepted, CloseCancelled;
+```
+
+- Center placement applies only when no explicit initial position was set; `SetPosition` marks it explicit.
+- `FollowOwner` moves owned child windows with the owner; `MoveBounds` constrains drag and monitor/owner-client bounds.
+- `CloseRequested` can veto; `ForceClose` bypasses veto but still performs normal HWND cleanup.
+- The first `Show` advances a frame before showing, reducing blank first popup frames.
 
 ###chapter: Basic controls | Label, Button, TextBox, TextEdit, ComboBox
 
@@ -890,6 +944,9 @@ enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bo
 Label(const std::wstring& text = L"");   // default empty; no automatic "Label" text
 void SetText(const std::wstring&);   std::wstring GetText() const;
 void SetTextFast(const std::wstring&);   // pool rebind only: self-dirty, no bubble, no repaint
+struct LabelRun { std::wstring text; std::optional<FontSpec> font; Color color = Color(0,0,0,0); bool underline = false; };
+void SetRichText(const std::vector<LabelRun>&);  void ClearRichText();  bool HasRichText() const;
+enum class RichTextClip { None, Clip, Ellipsis };  void SetRichTextClip(RichTextClip);  RichTextClip GetRichTextClip() const;
 void SetTextColor(Color);   void SetTextOverflow(TextOverflow);
 void SetAlignment(HAlign, VAlign);   void SetPadding(const Thickness&);
 void SetBackgroundColor(Color);  void SetBackgroundCornerRadius(float);
@@ -906,6 +963,7 @@ std::wstring GetToolTip() const override;   // auto full-text tooltip when ellip
 - when both image and glyph are set, **image wins**.
 - `GetDesiredSize()` is only the last `Measure` result; measuring with `FLT_MAX` gives the ideal size, not the parent-constrained size.
 ###block_red_end
+- Ellipsis decisions use the same 0.5 DIP tolerance as Arrange, preventing valid text from being elided at fractional font sizes.
 
 - **`Version`**: `SetIcon` family `v1.13.0`; auto tooltip `v1.17.0`.
 
@@ -944,8 +1002,13 @@ void SetDropItems(const std::vector<std::wstring>&, int selected=-1);  void SetD
 ZSignal<const std::wstring&> TextChanged;   ZSignal<> ReturnPressed;
 void SetText(const std::wstring&);   // strips \r\n, truncates to maxLength, clears undo
 void SetPlaceholder(...);  void SetPasswordMode(bool);  void SetMaxLength(int);   // -1 = unlimited
+void SetRevealPassword(bool);  bool IsPasswordRevealed() const;  void TogglePasswordReveal();
+void SetPasswordRevealButtonVisible(bool);  bool IsPasswordRevealButtonVisible() const;
 void SetReadOnly(bool);    void SetInputFilter(std::function<bool(wchar_t)>);
 void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
+void SetCursorBlinkInterval(float);  void SetCursorColor(Color);  void SetCursorThickness(float);
+void SetFocusedBackgroundColor(Color);  void ClearFocusedBackgroundColor();
+void SetFocusedBorderColor(Color);  void ClearFocusedBorderColor();  void SetIndicatorAlwaysVisible(bool);
 void SelectAll/Copy/Cut/Paste/Undo/Redo();
 int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
 ```
@@ -958,6 +1021,8 @@ int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
 ###block_red_end
 
 - **`Version`**: error/indicator/IME `v1.12.0`; `v1.18.0` fixes shift+click semantics.
+
+Password mode is hidden by default; the eye button on the right toggles masked/plain text. Use `SetRevealPassword` / `TogglePasswordReveal` from code, and `SetPasswordRevealButtonVisible(false)` to hide the button.
 
 ## TextEdit (multi-line editor / viewer) — v1.18.0
 
@@ -1171,13 +1236,21 @@ enum class Orientation { Vertical, Horizontal };   // Vertical = left/right pane
 ZSignal<float> SplitChanged;
 void SetFirst/SetSecond(std::shared_ptr<UIElement>);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
+void SetInsufficientSpaceDefaultSide(int);  int GetInsufficientSpaceDefaultSide() const;
+void SetAutoCollapseOnInsufficientSpace(bool);  bool GetAutoCollapseOnInsufficientSpace() const;
 ZSignal<int> CollapsedChanged;   // 0=expanded 1=first pane 2=second pane
 void SetCollapseEnabled(bool);   bool IsCollapseEnabled() const;   void SetCollapseThreshold(float);
 void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/IsSecondCollapsed() const;
 void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
+void SwitchToFirst/SwitchToSecond(bool animate = true);  void SwitchToPane(int side, bool animate = true);
+void SetSwitchAnimationDuration(float);  void SetSwitchAnimationEasing(Easing);
+bool IsSwitching() const;  float GetSwitchProgress() const;  int GetActivePane() const;
+ZSignal<int> ActivePaneChanged;   // 1=first, 2=second
 bool UseCache() const override { return false; }
 ```
 - **Collapse (`v1.21.0`)**: drag the splitter to within `CollapseThreshold` (default 28px) of one side's edge → a translucent accent **overlay plus an arrow pointing in the collapse direction fades in ON TOP OF that pane's content** (the content is *not* changed yet); the pane actually collapses **on mouse release** (its size eases from the current value to 0). Once collapsed, a small button appears at that edge (rounded light grey + arrow pointing in the expand direction + hover easing); clicking it eases that side from 0 to its **minimum limit** (`SetMinFirst/MinSecond`, or back to the pre-collapse ratio if no minimum is set). The whole feature can be turned off with `SetCollapseEnabled(false)`.
+- **Full-pane switch (v1.28.0)**: `SwitchToFirst/Second` slides from one fully expanded pane to the other (PageHost-style) even when both panes cannot fit at once; duration/easing are configurable, and the collapse state is committed with `ActivePaneChanged` when the transition finishes.
+- When the available space cannot fit `minFirst + minSecond`, the expand button stays visible but is greyed out and non-interactive; it becomes enabled again when enough space returns.
 
 ###block_red_start
 **Pitfall**
@@ -1231,10 +1304,6 @@ Use `Drawer` as the root layout or a `GridLayout` cell; Overlay for temporary co
 ###block_green_end
 
 ###block_orange_start
-**Paint order**
-
-`SetPanelShadow` is painted before the panel background, so the opaque background covers its inner layers and only the outer shadow remains visible; the border is painted last.
-###block_orange_end
 
 ###block_red_start
 **Pitfall**
@@ -1257,8 +1326,8 @@ Use `Drawer` as the root layout or a `GridLayout` cell; Overlay for temporary co
 ```cpp
 struct Tab { std::shared_ptr<Label> label; std::shared_ptr<Page> page; bool closable; ... };
 ZSignal<int> SelectionChanged;   ZSignal<int> TabCloseRequested;
-int  AddTab(const std::wstring&, std::shared_ptr<UIElement> content=nullptr, bool closable=false);
-int  AddTab(std::shared_ptr<Label>, ...);
+int  AddTab(const std::wstring&, std::shared_ptr<UIElement> content=nullptr, bool closable=false, int id=-1);
+int  AddTab(std::shared_ptr<Label>, ...);  int FindTabById(int) const;  int GetTabId(int) const;  bool RemoveTabById(int);
 void InsertTab(int, ...);  void RemoveTab(int);  void ClearTabs();
 void SetTabTitle(int, const std::wstring&);  void SetTabLabel(int, std::shared_ptr<Label>);  void SetTabContent(int, ...);
 void SetSelectedIndex(int);  int GetSelectedIndex() const;
@@ -1347,10 +1416,6 @@ class StatusBar : public UIElement {
 - Attach to a window with `Window::SetMenuBar` / `SetStatusBar` (see "Custom title bar").
 
 ###block_orange_start
-**Limitation**
-
-`StatusBar::AddPanel` has text/icon only and **no click callback**; a status bar reports state. For clickable segments use normal buttons/custom rows instead.
-###block_orange_end
 
 ## MessageBox / FastButton
 
@@ -1376,6 +1441,14 @@ class MessageBox : public Window {
 ###block_red_end
 
 ###chapter: Data views | ListView, TableView, TreeView, TreeNode (virtualization, hide/filter/visible order)
+```cpp
+struct ViewLabelData { std::wstring text; std::vector<LabelRun> runs; Icon icon = Icon::None; float iconSize = 0; Color iconColor, textColor; };
+struct AsyncLabelBatch { int first = 0; std::vector<ViewLabelData> rows; };
+struct AsyncCellBatch { int first = 0; int cols = 0; std::vector<std::vector<ViewLabelData>> rows; };
+using AsyncLabelFetcher = std::function<AsyncLabelBatch(int, int, AsyncCancelToken, AsyncProgress)>;
+using AsyncCellFetcher = std::function<AsyncCellBatch(int, int, AsyncCancelToken, AsyncProgress)>;
+```
+
 
 ###block_red_start
 **Pitfall-heavy chapter**
@@ -1398,6 +1471,12 @@ void SortItems(std::function<bool(const std::wstring&,const std::wstring&)>);   
 void BeginUpdate();   void EndUpdate();
 // virtualization (v1.15.0)
 void SetItemCount(int n);
+void SetItemProvider(int n, std::function<std::wstring(int)>);
+using AsyncRowFetcher = std::function<AsyncRowBatch(int first, int count, AsyncCancelToken, AsyncProgress)>;
+void SetAsyncItemProvider(int n, AsyncRowFetcher);  void NotifyReset(int n = -1);  void NotifyChanged(int first, int count);
+using ItemLabelProvider = std::function<void(int, Label&)>;   void SetItemLabelProvider(int n, ItemLabelProvider);
+void SetAsyncLabelProvider(int n, AsyncLabelFetcher);
+void SetRichTextClip(Label::RichTextClip);
 void SetItemHidden(int src, bool=true);   bool IsItemHidden(int src) const;   void ClearHidden();
 void SetFilter(std::function<bool(int)>);  void ClearFilter();
 void SetViewComparator(std::function<bool(int,int)>);  void SortView(bool ascending=true);  void ClearViewSort();
@@ -1406,6 +1485,8 @@ std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   i
 // check / per-item metadata
 void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector<int> GetCheckedIndices() const;
 void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&);
+void SelectAll();  void ClearSelection();  void ClearMultiSelection();
+std::vector<int> GetSelectedIndices() const;  std::vector<bool> GetSelectionStates() const;  bool IsIndexSelected(int) const;
 ```
 
 ###block_red_start
@@ -1426,14 +1507,18 @@ enum class SelectionMode { Cell, Row, Column, None };
 static long long CellKey(int r,int c); static int CellKeyRow(long long); static int CellKeyCol(long long);
 ZSignal<int,int> CellClicked, CellDoubleClicked, CurrentCellChanged, CellRightClicked;
 ZSignal<int> HeaderClicked;  ZSignal<std::vector<std::pair<int,int>>> SelectionChangedCells;
-void SetRowCount(int);  void SetColumnCount(int);  void AppendRow/Column(); InsertRow/Column(int); RemoveRow/Column(int);
+void SetRowCount(int);  void SetColumnCount(int);  void BeginUpdate();  void EndUpdate();  void AppendRow/Column(); InsertRow/Column(int); RemoveRow/Column(int);
 void SetItem(int row,int col,const std::wstring&);  std::wstring GetItemText(int r,int c) const;
+using CellLabelProvider = std::function<void(int,int, Label&)>;   void SetCellLabelProvider(int rows,int cols,CellLabelProvider);
+void SetAsyncCellLabelProvider(int rows, int cols, AsyncCellFetcher);
+void SetRichTextClip(Label::RichTextClip);
 void SetHeaderLabel(int,const std::wstring&);  void SetColumnWidth(int,float);   // min 40
 void SetColumnAlignment(int, TextHAlign);   void SetRowHeight(float);  void SetRowHeightAt(int,float);
 void SetColumnVisible(int,bool);
 // virtualization (v1.15.0; all by source row): SetItemHidden/SetFilter/SetViewComparator/SortView/VisibleCount/SourceOfVisible/VisibleOfSource
 // selection / check / metadata
-void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow(int);  void GetSelectedCells();
+void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow/Column(int);
+void SelectAll();  void ClearSelection();  std::vector<std::pair<int,int>> GetSelectedCells() const;  std::vector<int> GetSelectedRows() const;
 void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int,bool);
 void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&);
 void SetColumnComparator(int, std::function<bool(const std::wstring&,const std::wstring&)>);  void SortByColumn(int,bool=true);
@@ -1454,6 +1539,7 @@ std::vector<std::shared_ptr<Label>> columns;   // one real Label per column; col
 std::weak_ptr<TreeNode> parent;                // weak! use .lock()
 std::vector<std::shared_ptr<TreeNode>> children;
 bool expanded;  int depth;  void* userData;
+bool hasChildren;  bool hasChildrenHinted;
 std::wstring icon;  bool checkable;  CheckState checkState;  bool selected;  bool enabled;
 std::wstring tooltip;   Color bgColor = Color(0,0,0,0);   // row background, v1.17.0
 ```
@@ -1474,10 +1560,16 @@ ZSignal<std::shared_ptr<TreeNode>> SelectionChanged, NodeClicked, ItemDoubleClic
 ZSignal<std::shared_ptr<TreeNode>,bool> ExpandChanged;   ZSignal<int> HeaderClicked;
 ZSignal<std::shared_ptr<TreeNode>, TreeNode::CheckState> ItemCheckStateChanged;
 void SetColumnCount(int);  void SetHeaderLabels(const std::vector<std::wstring>&);  void SetColumnWidth(int,float);
+using NodeLabelProvider = std::function<void(const std::shared_ptr<TreeNode>&, int, Label&)>;
+void SetNodeLabelProvider(NodeLabelProvider);   void RefreshNodeLabels();
+void SetAsyncNodeLabelProvider(AsyncCellFetcher);
+void SetRichTextClip(Label::RichTextClip);
+void SetStretchLastColumn(bool);  bool GetStretchLastColumn() const;   // v1.27.2
 std::shared_ptr<TreeNode> AddRoot(const std::wstring&);   std::shared_ptr<TreeNode> AddChild(parent, const std::wstring&);
 void RemoveNode(node);  void RemoveChildren(node);  void MoveNode(node, newParent, int index);  void Clear();
 void BeginUpdate();  void EndUpdate();                       // v1.15.0: defer BuildVisibleList (avoids O(N^2))
-void SetNodeText(node,int col,const std::wstring&);   void SetNodeTooltip(node, ...);   void SetNodeIcon(node, ...);
+void SetLazyLoader(std::function<void(std::shared_ptr<TreeNode>)>);   // called before expanding a node
+void SetNodeText(node,int col,const std::wstring&);   void SetNodeTooltip(node, ...);   void SetNodeIcon(node, ...);   void SetNodeHasChildren(node, bool);
 void ExpandNode(node,bool);  void ExpandAll();  void CollapseAll();  void ExpandToDepth(int);
 void SetDefaultExpandDepth(int);                             // affects only future inserts
 void SetFilter(std::function<bool(const std::shared_ptr<TreeNode>&)>);   void Search(const std::wstring&);
@@ -1498,7 +1590,8 @@ float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToN
 - `MoveNode` refuses to move a node into its own descendant (returns `false` and leaves the tree unchanged); ignoring the return value makes the move look successful.
 ###block_red_end
 
-- **`Version`**: `BeginUpdate`/`SetNodeText`/tooltip + concurrency `v1.15.0`; first-column ellipsis fix `v1.16.0`; `Get/SetScrollOffsetY` + `ScrollToNode` + `bgColor` `v1.17.0`.
+- **`Version`**: `BeginUpdate`/`SetNodeText`/tooltip + concurrency `v1.15.0`; first-column ellipsis fix `v1.16.0`; `Get/SetScrollOffsetY` + `ScrollToNode` + `bgColor` `v1.17.0`; `SetStretchLastColumn` last-column fill `v1.27.2`.
+- **v1.27.2 column fill**: `SetStretchLastColumn(true)` (default) gives the remaining width to the last column when total content is narrower than the viewport, preventing single-column Chinese labels from being truncated to `...` by the 40px minimum width; `SetStretchLastColumn(false)` restores fixed widths.
 
 ###chapter: Charts | ChartBase, BarChart, LineChart, PieChart (v1.18.0)
 
@@ -1612,6 +1705,7 @@ void SetAnimationEnabled(bool);
 
 ```cpp
 class Image { int Width() const; int Height() const; bool IsNull() const; ... };
+static std::shared_ptr<Image> Image::FromHBITMAP(HBITMAP, bool premultipliedAlpha = true);
 class ImageDeviceCache { /* device bitmaps keyed by render target */ };
 ```
 
@@ -1625,6 +1719,7 @@ class ImageDeviceCache { /* device bitmaps keyed by render target */ };
 ```cpp
 bool Add(HICON icon, const std::wstring& tooltip, UINT id=1);
 void SetIcon(HICON);  void SetToolTip(const std::wstring&);  void SetMenu(std::shared_ptr<Menu>);
+void SetClickImmediate(bool);   bool IsClickImmediate() const;
 void SetBadge(Color = ...);   void ClearBadge();
 enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
 void ShowBalloon(const std::wstring& title, const std::wstring& text, BalloonIcon = BalloonIcon::Custom, HICON = nullptr, ...);
@@ -2062,7 +2157,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 ###block_red_end
 
-###chapter: Version digest | v1.15.0 → v1.27.1
+###chapter: Version digest | v1.15.0 → v1.29.0
 
 > Only the changes that affect your code are listed.
 
@@ -2108,7 +2203,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.6**:
   - Fix: `ListView` button mode checkbox **hit test was 4px off** (now aligned with the draw / child left edge).
   - Fix: `Label::MeasureOverride` wrap branch **ignored inline children width** (wrapping Labels with `AddChild` squeezed/overflowed text).
-  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `1.27.1`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
+  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `1.29.0`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
 - **v1.19.7**:
   - Fixes: `ChartBase` swapped horizontal/vertical scrollbar allowance (`viewW` uses the vertical bar, `viewH` the horizontal) → rightmost/bottom content unreachable; `NumberBox` wheel focus check (focus is on the inner `TextBox`); `lastActiveAnimElements_` dangling (erased from the anim sets on destruction, prevents random crashes); `Menu::ShowAt` throwing `bad_weak_ptr` when not shared-owned; `ChildrenSig` missing `EnsureView`; `TreeView::SetDefaultExpandDepth` not applied by `AddRoot`/`AddChild`.
   - Fixes: `ColumnBox`/`RowBox` spacing counts only layout-participating children; `GridLayout` row/col count skips invisible; `Label` wrap ignored/duplicated spacing; `ListView`/`TableView` clear `childrenView_` before releasing labels and release pooled/rich/cell labels; `Window::defaultIMC_` via `ImmAssociateContext`; `DragData::GetFiles` buffer `len+1`; `TextEdit` fires `SelectionChanged` when clearing a selection; `MessageBox` default title localized.
@@ -2177,6 +2272,12 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
   - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
   - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
+- **v1.29.0**: pointer/focus/input feedback (cursor states, pointer cancel, TextBox focus styling/caret/password eye, ComboBox keyboard, Slider release, data-view/scrollbar/Expander cursors); window transitions (`SetTransitionDurations` / `PresentationState` / `DefaultWindowSetup`); menu `QueueToUIThread` and PageHost reverse navigation; Expander/SettingsList/chart font inheritance, MenuBar/Button/EnsureVisible fixes; API doc mojibake and chapter 8 title fixes.
+- **v1.28.0**: nonblocking Present / high-refresh pacing (`SetNonBlockingPresent` / `SetDisplayFramePacing` / `GetDisplayRefreshHz`); private `IDWriteFontCollection`; UIA root/child provider teardown and `WM_DESTROY` event-map cleanup; menus opt into the same presentation policy by default.
+- **v1.27.3**: popup window behavior. `Placement` (center owner/screen), `FollowOwner`, `MoveBounds` (owner client / monitor work area), `CloseReason`, `RequestClose/ForceClose` and close-veto signals; `SetMovable/SetCloseEnabled/SetCloseOnEscape`; custom title-bar buttons follow window policy; reliable popup first frame.
+- **v1.27.2**:
+  - Window raw-pointer/UIA lifetime: `Window::ForgetElement` centralizes focus/pressed/capture/hover/tooltip/pending-repaint/UIA provider cleanup; `SetParent` detaches before release and `UiaDisconnectProvider` prevents the CFG crash.
+  - `TreeView::SetStretchLastColumn` (default on) fills the last column; SplitView button direction/disabled state, full-pane slide transition and collapse clamping; TrayIcon v3/v4 click fallbacks; Drawer close refresh; Card margins; password eye button; MessageBox sizing fix.
 - **v1.27.1**: disabled the experimental independent render thread while preserving VBLANK frame sync; adapted context menus to non-DWM chrome; fixed stale menu-bar hover and menu placement after hiding the title bar or switching to the native frame; resize now submits a new frame immediately instead of leaving a transparent/stale picture.
 - **v1.27.0**:
   - **Windows 10 Acrylic**: enable `ACCENT_ENABLE_HOSTBACKDROP` before creating the HostBackdropBrush on Win10, preserving the custom blur/tint/noise chain; stop writing Win11-only DWM attributes on Win10.

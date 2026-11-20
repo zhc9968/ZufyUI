@@ -1,14 +1,14 @@
 ﻿# ZufyUI API 参考
 
 > 本文档覆盖 ZufyUI 框架的全部公开 API，**按“使用分类”组织**（不是按代码/头文件顺序）。
-> 配套阅读：[项目说明与构建](../../README.md)。
+> 配套阅读：[项目说明与构建](https://github.com/zhc9968/ZufyUI/blob/master/README.md)。
 
 > **阅读方式**：本文不是“签名清单”，而是按“它是什么 → 框架内部怎么处理 → 你需要注意什么”来写。
 > 每个类先讲整体行为，再逐函数讲副作用、默认值与易混点。**没有读过源码也能据此正确使用。**
 
 > **两个贯穿全文的标记**：
 > - **`易错`**：真实踩过的坑 / 反直觉行为，优先看这些。
-> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v1.27.1**。
+> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v1.29.0**。
 
 ###chapter: 约定 | 命名空间、单位、生命周期、版本与易错标注约定
 
@@ -154,10 +154,6 @@ struct Color {
 ```
 
 ###block_orange_start
-**注意**
-
-- `Color::Lerp(a, b, t)` 的 `t` **不做 clamp**，请自行保证在 0..1（超出会外插）。
-###block_orange_end
 
 ###block_red_start
 **易错**
@@ -298,16 +294,41 @@ ConnectWeak(panel, btn->Clicked, &Panel::OnClick);
 ```
 
 ###block_orange_start
-**注意**
-
-- `Menu` / `MenuItem` / `Timer` 仍用 `signal.connect`，**不自动断开**。
-###block_orange_end
 
 ###block_red_start
 **易错**
 
 - `ConnectWeak` 的槽里不要再按值捕获 `self` 的 `shared_ptr`，否则会形成“信号→槽→self→信号”的强引用环。
 ###block_red_end
+
+## 异步任务 / RunAsync
+
+```cpp
+enum class AsyncTaskStatus { Pending, Running, Completed, Canceled, Failed };
+class AsyncOwner { /* weak owner: callbacks are dropped after it dies */ };
+class AsyncCancelToken { bool IsCancellationRequested() const; void ThrowIfCancellationRequested() const; };
+class AsyncProgress { void Report(float value, const std::wstring& message = {}); };
+template<class T> class AsyncTask { bool Cancel(); bool Wait(); AsyncTaskStatus GetStatus() const; AsyncCancelToken GetCancelToken() const; };
+template<class T, class Work> std::shared_ptr<AsyncTask<T>> RunAsync(AsyncOwner, Work&&,
+    std::function<void(T)> onCompleted, std::function<void(std::exception_ptr)> onFailed = {},
+    std::function<void(float, const std::wstring&)> onProgress = {}, std::function<void()> onCanceled = {});
+```
+
+- **v1.27.2 异步：** `RunAsync<T>` 在后台执行，`AsyncCancelToken` 取消，`AsyncProgress::Report` 合并到 UI 线程；完成/失败/取消回调都在 UI 线程发送，`AsyncOwner` 弱引用失效后丢弃回调。
+
+## ViewCore / virtual view scaffolding
+
+```cpp
+struct ScrollAxis { float offset, target, viewport, content, maxOffset;
+    void SetMetrics(float viewport, float content);  void ScrollTo(float);  void EnsureVisible(float start, float size);
+    Range VisibleRange(float itemExtent, float overscan = 0, int itemCount = -1) const; };
+template<class T> class RecyclePool { std::shared_ptr<T> Acquire();  void Release(std::shared_ptr<T>);
+    void Trim(size_t maxIdle);  void Clear(); };
+template<class Result> class FetchFlow { void Start(AsyncOwner, Work, Ready, Error = {}, Progress = {}, Canceled = {});
+    void Cancel();  bool Wait();  FetchState GetState() const; };
+```
+
+- ViewCore 只抽象滚动、元素回收和请求生命周期，不定义通用数据源；ListView 已经用 `ScrollAxis` 管理垂直滚动状态。
 
 ## 全局信号 UIZSignals
 
@@ -354,7 +375,8 @@ struct FontSpec {
 ```cpp
 static FontManager& Instance();
 IDWriteFactory* GetFactory();
-IDWriteTextFormat* GetFormat(const FontSpec&);        // 格式缓存，永不淘汰
+IDWriteTextFormat* GetFormat(const FontSpec&);
+bool SetAppFontCollection(IDWriteFontCollection*);   // install once, before formats
 ComPtr<IDWriteTextLayout> GetRawLayout(text, fmt, maxW, maxH, noWrap);
 ComPtr<IDWriteTextLayout> GetDisplayLayout(origText, fmt, maxW, maxH, noWrap);   // 带省略号
 ComPtr<IDWriteTextLayout> GetStyledLayout(text, fmt, w, h, noWrap, hAlign, vAlign, lineSpacing, maxLines);
@@ -363,6 +385,7 @@ void CacheDisplayLayout(...); void CacheStyledDisplayLayout(...);
 void SetGlobalFont(const FontSpec&);
 ZSignal<> GlobalFontChanged;
 ```
+- `SetAppFontCollection` 必须在任何 format/layout 创建之前调用；已有缓存或已安装时返回 `false`。内部持有集合引用；菜单直接 `CreateTextFormat` 的路径仍用系统字体。
 - 布局缓存**有上限**（400 条，FIFO 淘汰 ¼）；返回强引用（`ComPtr`），调用期间不会被淘汰。
 
 ###block_red_start
@@ -455,6 +478,9 @@ void SetVisible(bool);  void SetVisibleNoInvalidate(bool);  bool IsVisible() con
 void SetEnabled(bool);  bool IsEnabled() const;  bool IsEffectivelyEnabled() const;  // 沿父链
 void SetToolTip(const std::wstring&);   virtual std::wstring GetToolTip() const;
 void SetCursor(HCURSOR);   HCURSOR GetDesiredCursor() const;
+void SetPointerCursors(HCURSOR normal, HCURSOR pressed, HCURSOR disabled);
+HCURSOR GetPointerCursor(bool pressed) const;  virtual HCURSOR GetPointerCursorAt(float x, float y, bool pressed) const;
+virtual void OnPointerCancel();   // capture stolen/system cancel
 ```
 - 禁用元素不参与命中/悬停。提示会**向上解析**父级提示（如 Button → Label）。
 
@@ -580,8 +606,8 @@ class Layout : public UIElement { bool UseCache() const override { return false;
 enum class LayoutAlignment { Start, Center, End, Stretch };
 enum class Justify { Start, Center, End, SpaceBetween, SpaceAround };
 ColumnBox(); RowBox();
-void AddChild(std::shared_ptr<UIElement>);
-void ClearChildren();
+void AddChild(std::shared_ptr<UIElement>);  void ClearChildren();
+void RemoveChild(std::shared_ptr<UIElement>);  void RemoveChildAt(int);  void InsertChild(int, std::shared_ptr<UIElement>);
 void SetSpacing(float);
 void SetJustify(Justify);              // 主轴：Start/Center/End/SpaceBetween/SpaceAround
 void SetCrossAlign(LayoutAlignment);   // 交叉轴，默认 Stretch（兼容旧行为）
@@ -624,6 +650,7 @@ class LayoutHost : public UIElement {
     void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // 默认 Stretch
 };
 class Card  : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
+void SetContent(const std::wstring& title, const std::wstring& description, std::shared_ptr<UIElement> action=nullptr);
 class Page  : public LayoutHost { DefaultPadding=10; ... };
 void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // 一行套 ScrollViewer(fill)+8px 边距
 ```
@@ -657,7 +684,7 @@ int GetCurrentIndex() const;  std::shared_ptr<Page> GetCurrentPage() const;
 
 见「容器与滚动 / 页签」章。
 
-###chapter: ?? | Window??????????????????DPI????
+###chapter: 窗口 | Window（创建、显示、背景、标题栏、任务栏、DPI、帧率）
 
 ## 嵌套公开类型
 
@@ -711,7 +738,15 @@ void Show(); void ShowNoActivate(); void Hide(); void Raise(); void Close();
 void Run();  int RunModal(Window* owner = nullptr);
 void SetInputBlocked(bool);  bool IsInputBlocked() const;
 std::unique_lock<std::recursive_mutex> LockRender();  void RenderNowSync();
+void SetNonBlockingPresent(bool);   bool GetNonBlockingPresent() const;
+void SetDisplayFramePacing(bool);   bool GetDisplayFramePacing() const;
+double GetDisplayRefreshHz() const;
+enum class PresentationState { Hidden, Opening, Open, Closing, Closed };
+void SetTransitionDurations(int enterMs, int exitMs);
+PresentationState GetPresentationState() const;  float GetPresentationProgress() const;  bool IsTransitionActive() const;
+inline static std::function<void(Window&)> DefaultWindowSetup;
 ```
+- `SetNonBlockingPresent` / `SetDisplayFramePacing` 默认关，菜单默认开；`SetDisplayFramePacing` 仅在非阻塞 Present 下生效。`GetDisplayRefreshHz()` 返回当前显示器刷新率（未知时为 60）。
 
 ###block_red_start
 **易错**
@@ -801,6 +836,7 @@ void SetBackgroundColor(Color);            // 叠加在背景（空/亚克力/�
 void SetContentOpacity(float opacity);     // 弹窗淡入
 void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
 void SetResizable(bool);   void SetTitle(const std::wstring&);
+void SetSuspendAnimationsWhileResizing(bool);   bool GetSuspendAnimationsWhileResizing() const;
 ```
 - 背景是**自绘**：Acrylic = 宿主背景 + 自带效果链；Mica = 缓存壁纸层。改参数用 `SetBackgroundParams` 或 `UIZSignals::ReloadAcrylic`。
 - 窗口圆角不再提供公开 API：Win10 保持系统直角以保留 DWM 边框/阴影，Win11 跟随系统圆角。需要自定义圆角时请自行调用 Win32 DWM API，并自行处理 Win10/Snap 的边框阴影风险。
@@ -842,10 +878,6 @@ void SetJumpList(...);  void Flash(int times=5, bool alsoTaskbar=true);  void Fl
 void SetAppUserModelID(const std::wstring&);
 ```
 ###block_orange_start
-**注意**
-
-这些是 COM 调用，失败**静默 no-op**。`FLASHW_CAPTION` 对自绘标题栏无效；要连任务栏一起闪用 `FLASHW_ALL`。
-###block_orange_end
 
 - **`版本`**：均 `v1.9.6`。
 
@@ -867,21 +899,43 @@ void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // 
 UIElement* GetFocusedElement/HoveredElement/PressedElement() const;
 void FocusElement(UIElement*);
 ZSignal<> Activated, Deactivated;   ZSignal<bool*> Closing;   ZSignal<> Closed;
+ZSignal<float, float> SizeChanged;   // client size in DIP
+ZSignal<float> DpiChanged;           // DPI scale (96 = 1.0)
 ZSignal<> BackdropUnsupported, DeviceLost;   ZSignal<HRESULT> RenderingError;
 std::shared_ptr<Timer> CreateTimer(int intervalMs = 1000);
 ```
+- `SizeChanged` 在客户端 DIP 尺寸实际变化时触发（最小化时不触发）；初始尺寸用 `GetClientWidthDip/HeightDip()` 读取。`DpiChanged` 在 DPI 变化时先触发，即使后续设备重建失败；DIP 客户端尺寸变化时会再触发 `SizeChanged`。
 
 ###block_orange_start
-**限制**
-
-`Window` 目前**没有尺寸/DPI 变化信号**。依赖实时客户区尺寸的 StatusBar/面板只能在 `Activated`、主题切换或切页时刷新；拖动边框时不会自动更新。需要实时更新只能先给窗口加信号。
-###block_orange_end
 
 ###block_red_start
 **易错**
 
 - `Closing` 里把 `*cancel = true` 可取消关闭。`Closing` 的参数是 `bool*`（不是引用）。
 ###block_red_end
+
+## 弹窗窗口行为（v1.27.3）
+
+```cpp
+enum class Placement { SystemDefault, CenterOwner, CenterScreen };
+enum class MoveBounds { Unrestricted, OwnerClient, MonitorWorkArea };
+enum class CloseReason { Programmatic, Caption, Escape, System, Forced };
+void SetPlacement(Placement);   Placement GetPlacement() const;
+void CenterOnOwner();   void CenterOnScreen();
+void SetMovable(bool);   bool IsMovable() const;
+void SetCloseEnabled(bool);   bool IsCloseEnabled() const;
+void SetCloseOnEscape(bool);   bool GetCloseOnEscape() const;
+void SetFollowOwner(bool);   bool GetFollowOwner() const;
+void SetMoveBounds(MoveBounds);   MoveBounds GetMoveBounds() const;
+void RequestClose(CloseReason = CloseReason::Programmatic);   void ForceClose();
+ZSignal<> Opening, Opened, BehaviorChanged;
+ZSignal<CloseReason, bool*> CloseRequested;   ZSignal<CloseReason> CloseAccepted, CloseCancelled;
+```
+
+- `CenterOwner` 仅在未显式设置初始位置时生效；`SetPosition` 会标记为显式位置。
+- `FollowOwner` 让 owned 子窗口在 owner 移动时跟随；`MoveBounds` 同时用于拖动和屏幕/工作区裁剪。
+- 关闭优先级：`CloseRequested` 可拦截；`ForceClose` 跳过拦截但仍走正常 HWND 清理。
+- 首次 `Show` 前会推进一帧，减少弹窗首帧空白。
 
 ###chapter: 基础控件 | Label、Button、TextBox、TextEdit、ComboBox
 
@@ -895,6 +949,9 @@ enum class HAlign { Left, Center, Right };   enum class VAlign { Top, Center, Bo
 Label(const std::wstring& text = L"");   // 默认空文本；不再自动显示 "Label"
 void SetText(const std::wstring&);   std::wstring GetText() const;      // 失效布局 + 重绘
 void SetTextFast(const std::wstring&);   // 仅池化 rebind：自身脏、不冒泡、不重绘
+struct LabelRun { std::wstring text; std::optional<FontSpec> font; Color color = Color(0,0,0,0); bool underline = false; };
+void SetRichText(const std::vector<LabelRun>&);  void ClearRichText();  bool HasRichText() const;
+enum class RichTextClip { None, Clip, Ellipsis };  void SetRichTextClip(RichTextClip);  RichTextClip GetRichTextClip() const;
 void SetTextColor(Color);   void SetTextOverflow(TextOverflow);
 void SetAlignment(HAlign, VAlign);   void SetPadding(const Thickness&);
 void SetBackgroundColor(Color);  void SetBackgroundCornerRadius(float);
@@ -911,6 +968,7 @@ std::wstring GetToolTip() const override;   // 省略时自动全量 tooltip（v
 - 同时设了 image 与 glyph 时 **image 优先**。
 - `GetDesiredSize()` 只是上一次 `Measure` 的结果；用 `FLT_MAX` 直接测量得到的是理想尺寸，不代表父容器夹取后的尺寸。
 ###block_red_end
+- 省略号判断与 Arrange 统一使用 0.5 DIP 容差，避免小数字号下可容纳文本被误截断。
 
 - **`版本`**：`SetIcon` 家族 `v1.13.0`；省略自动 tooltip `v1.17.0`。
 
@@ -949,8 +1007,13 @@ void SetDropItems(const std::vector<std::wstring>&, int selected=-1);  void SetD
 ZSignal<const std::wstring&> TextChanged;   ZSignal<> ReturnPressed;
 void SetText(const std::wstring&);   // 会去掉 \r\n、截断到 maxLength、清撤销
 void SetPlaceholder(...);  void SetPasswordMode(bool);  void SetMaxLength(int);   // -1 不限
+void SetRevealPassword(bool);  bool IsPasswordRevealed() const;  void TogglePasswordReveal();
+void SetPasswordRevealButtonVisible(bool);  bool IsPasswordRevealButtonVisible() const;
 void SetReadOnly(bool);    void SetInputFilter(std::function<bool(wchar_t)>);
 void SetError(bool);   void SetImeEnabled(bool);        // v1.12.0
+void SetCursorBlinkInterval(float);  void SetCursorColor(Color);  void SetCursorThickness(float);
+void SetFocusedBackgroundColor(Color);  void ClearFocusedBackgroundColor();
+void SetFocusedBorderColor(Color);  void ClearFocusedBorderColor();  void SetIndicatorAlwaysVisible(bool);
 void SelectAll/Copy/Cut/Paste/Undo/Redo();
 int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
 ```
@@ -963,6 +1026,8 @@ int GetSelectionStart/End/CursorPosition() const;  void SetSelection(int,int);
 ###block_red_end
 
 - **`版本`**：error/indicator/IME `v1.12.0`；`v1.18.0` 修 shift+点击语义（无选区时也自锚点扩展）。
+
+密码模式默认隐藏；右侧眼睛按钮可切换明文/密文。代码用 `SetRevealPassword` / `TogglePasswordReveal` 控制显示状态，`SetPasswordRevealButtonVisible(false)` 可隐藏按钮。
 
 ## TextEdit（多行编辑器 / 只读查看器）— v1.18.0
 
@@ -1179,13 +1244,21 @@ enum class Orientation { Vertical, Horizontal };   // Vertical = 左右两栏 + 
 ZSignal<float> SplitChanged;   // 新比例 0..1
 void SetFirst/SetSecond(std::shared_ptr<UIElement>);
 void SetSplitRatio(float);  void SetSplitterWidth(float);  void SetMinFirst/MinSecond(float);
+void SetInsufficientSpaceDefaultSide(int);  int GetInsufficientSpaceDefaultSide() const;
+void SetAutoCollapseOnInsufficientSpace(bool);  bool GetAutoCollapseOnInsufficientSpace() const;
 ZSignal<int> CollapsedChanged;   // 0=未折叠 1=第一栏 2=第二栏
 void SetCollapseEnabled(bool);   bool IsCollapseEnabled() const;   void SetCollapseThreshold(float);
 void CollapseFirst/CollapseSecond();   void Expand();   bool IsFirstCollapsed/IsSecondCollapsed() const;
 void SetExpandButtonColors(Color,Color,Color);   void SetExpandButtonSize(float w,float h);
+void SwitchToFirst/SwitchToSecond(bool animate = true);  void SwitchToPane(int side, bool animate = true);
+void SetSwitchAnimationDuration(float);  void SetSwitchAnimationEasing(Easing);
+bool IsSwitching() const;  float GetSwitchProgress() const;  int GetActivePane() const;
+ZSignal<int> ActivePaneChanged;   // 1=first, 2=second
 bool UseCache() const override { return false; }
 ```
 - **折叠（`v1.21.0`）**：把分隔条拖到**距某侧边缘 `CollapseThreshold`（默认 28px）内** → 该侧内容**上方**浮出半透明强调色覆盖层 + 指向折叠方向的箭头（alpha 渐入渐出）；**此时不改内容**，**松手**才真正折叠（该侧尺寸带缓动从当前值变为 0）。折叠后该侧边缘出现小按钮（圆角浅灰 + 指向展开方向的箭头 + 悬停缓动），点击后该侧尺寸带缓动从 0 变为**最小极限值**（`SetMinFirst/MinSecond`；未设则回到折叠前比例）。整个功能可 `SetCollapseEnabled(false)` 关闭。
+- **全屏面板切换（v1.28.0）**：`SwitchToFirst/Second` 从一个完整面板滑动过渡到另一个完整面板（类似 PageHost），不依赖两面板同时容得下；方向/时长/缓动可配置，结束后更新折叠状态并发出 `ActivePaneChanged`。
+- 当剩余空间连 `minFirst + minSecond` 都放不下时，展开按钮仍然显示，但会变灰、不可悬停也不可点击；空间恢复后自动重新启用。
 
 ###block_red_start
 **易错**
@@ -1239,10 +1312,6 @@ void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgre
 ###block_green_end
 
 ###block_orange_start
-**绘制顺序**
-
-`SetPanelShadow` 画在面板背景之前，内层会被不透明背景盖住，只有外侧阴影可见；边框最后绘制。
-###block_orange_end
 
 ###block_red_start
 **易错**
@@ -1265,8 +1334,8 @@ void Open/Close/Toggle();  bool IsOpen/IsAnimating() const;  float GetOpenProgre
 ```cpp
 struct Tab { std::shared_ptr<Label> label; std::shared_ptr<Page> page; bool closable; ... };
 ZSignal<int> SelectionChanged;   ZSignal<int> TabCloseRequested;
-int  AddTab(const std::wstring&, std::shared_ptr<UIElement> content=nullptr, bool closable=false);
-int  AddTab(std::shared_ptr<Label>, ...);
+int  AddTab(const std::wstring&, std::shared_ptr<UIElement> content=nullptr, bool closable=false, int id=-1);
+int  AddTab(std::shared_ptr<Label>, ...);  int FindTabById(int) const;  int GetTabId(int) const;  bool RemoveTabById(int);
 void InsertTab(int, ...);  void RemoveTab(int);  void ClearTabs();
 void SetTabTitle(int, ...);  void SetTabLabel(int, std::shared_ptr<Label>);  void SetTabContent(int, ...);
 void SetSelectedIndex(int);  int GetSelectedIndex() const;
@@ -1355,10 +1424,6 @@ class StatusBar : public UIElement {
 - 用 `Window::SetMenuBar` / `SetStatusBar` 挂到窗口（见「自定义标题栏」）。
 
 ###block_orange_start
-**限制**
-
-`StatusBar::AddPanel` 只有文本/图标，**没有点击回调**；状态栏只能“显示状态”。需要点击某一段触发动作时，用普通按钮/自定义行，不要指望 StatusBar。
-###block_orange_end
 
 ## MessageBox / FastButton
 
@@ -1384,6 +1449,14 @@ class MessageBox : public Window {
 ###block_red_end
 
 ###chapter: 数据视图 | ListView、TableView、TreeView、TreeNode（虚拟化、隐藏/筛选/可见序）
+```cpp
+struct ViewLabelData { std::wstring text; std::vector<LabelRun> runs; Icon icon = Icon::None; float iconSize = 0; Color iconColor, textColor; };
+struct AsyncLabelBatch { int first = 0; std::vector<ViewLabelData> rows; };
+struct AsyncCellBatch { int first = 0; int cols = 0; std::vector<std::vector<ViewLabelData>> rows; };
+using AsyncLabelFetcher = std::function<AsyncLabelBatch(int, int, AsyncCancelToken, AsyncProgress)>;
+using AsyncCellFetcher = std::function<AsyncCellBatch(int, int, AsyncCancelToken, AsyncProgress)>;
+```
+
 
 ###block_red_start
 **易错重灾区**
@@ -1406,6 +1479,12 @@ void SortItems(std::function<bool(const std::wstring&,const std::wstring&)>);   
 void BeginUpdate();   void EndUpdate();
 // 虚拟化（v1.15.0）
 void SetItemCount(int n);
+void SetItemProvider(int n, std::function<std::wstring(int)>);
+using AsyncRowFetcher = std::function<AsyncRowBatch(int first, int count, AsyncCancelToken, AsyncProgress)>;
+void SetAsyncItemProvider(int n, AsyncRowFetcher);  void NotifyReset(int n = -1);  void NotifyChanged(int first, int count);
+using ItemLabelProvider = std::function<void(int, Label&)>;   void SetItemLabelProvider(int n, ItemLabelProvider);
+void SetAsyncLabelProvider(int n, AsyncLabelFetcher);
+void SetRichTextClip(Label::RichTextClip);
 void SetItemHidden(int src, bool=true);   bool IsItemHidden(int src) const;   void ClearHidden();
 void SetFilter(std::function<bool(int)>);  void ClearFilter();
 void SetViewComparator(std::function<bool(int,int)>);  void SortView(bool ascending=true);  void ClearViewSort();
@@ -1414,6 +1493,8 @@ std::wstring TextAtVisible(int vi) const;   void SetSelectedVisible(int vi);   i
 // 勾选 / 每项元数据
 void SetCheckable(bool);  void SetItemChecked(int src,bool);  std::vector<int> GetCheckedIndices() const;
 void SetItemDisabled(int src,bool=true);  void SetItemTextColor(int src,Color);  void SetItemToolTip(int src,const std::wstring&);
+void SelectAll();  void ClearSelection();  void ClearMultiSelection();
+std::vector<int> GetSelectedIndices() const;  std::vector<bool> GetSelectionStates() const;  bool IsIndexSelected(int) const;
 ```
 
 ###block_red_start
@@ -1434,14 +1515,18 @@ enum class SelectionMode { Cell, Row, Column, None };
 static long long CellKey(int r,int c); static int CellKeyRow(long long); static int CellKeyCol(long long);
 ZSignal<int,int> CellClicked, CellDoubleClicked, CurrentCellChanged, CellRightClicked;
 ZSignal<int> HeaderClicked;  ZSignal<std::vector<std::pair<int,int>>> SelectionChangedCells;
-void SetRowCount(int);  void SetColumnCount(int);  void AppendRow/Column(); InsertRow/Column(int); RemoveRow/Column(int);
+void SetRowCount(int);  void SetColumnCount(int);  void BeginUpdate();  void EndUpdate();  void AppendRow/Column(); InsertRow/Column(int); RemoveRow/Column(int);
 void SetItem(int row,int col,const std::wstring&);  std::wstring GetItemText(int r,int c) const;
+using CellLabelProvider = std::function<void(int,int, Label&)>;   void SetCellLabelProvider(int rows,int cols,CellLabelProvider);
+void SetAsyncCellLabelProvider(int rows, int cols, AsyncCellFetcher);
+void SetRichTextClip(Label::RichTextClip);
 void SetHeaderLabel(int,const std::wstring&);  void SetColumnWidth(int,float);   // 最小 40
 void SetColumnAlignment(int, TextHAlign);   void SetRowHeight(float);  void SetRowHeightAt(int,float);
 void SetColumnVisible(int,bool);
 // 虚拟化（v1.15.0，全部按“源行”）：SetItemHidden/SetFilter/SetViewComparator/SortView/VisibleCount/SourceOfVisible/VisibleOfSource
 // 选中 / 勾选 / 元数据
-void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow(int);  void GetSelectedCells();
+void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow/Column(int);
+void SelectAll();  void ClearSelection();  std::vector<std::pair<int,int>> GetSelectedCells() const;  std::vector<int> GetSelectedRows() const;
 void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int,bool);
 void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&);
 void SetColumnComparator(int, std::function<bool(const std::wstring&,const std::wstring&)>);  void SortByColumn(int,bool=true);
@@ -1462,6 +1547,7 @@ std::vector<std::shared_ptr<Label>> columns;   // 每列一个真实 Label；col
 std::weak_ptr<TreeNode> parent;                // 弱引用！用 .lock()
 std::vector<std::shared_ptr<TreeNode>> children;
 bool expanded;  int depth;  void* userData;
+bool hasChildren;  bool hasChildrenHinted;
 std::wstring icon;  bool checkable;  CheckState checkState;  bool selected;  bool enabled;
 std::wstring tooltip;   Color bgColor = Color(0,0,0,0);   // 行背景，v1.17.0
 ```
@@ -1482,10 +1568,16 @@ ZSignal<std::shared_ptr<TreeNode>> SelectionChanged, NodeClicked, ItemDoubleClic
 ZSignal<std::shared_ptr<TreeNode>,bool> ExpandChanged;   ZSignal<int> HeaderClicked;
 ZSignal<std::shared_ptr<TreeNode>, TreeNode::CheckState> ItemCheckStateChanged;
 void SetColumnCount(int);  void SetHeaderLabels(const std::vector<std::wstring>&);  void SetColumnWidth(int,float);
+using NodeLabelProvider = std::function<void(const std::shared_ptr<TreeNode>&, int, Label&)>;
+void SetNodeLabelProvider(NodeLabelProvider);   void RefreshNodeLabels();
+void SetAsyncNodeLabelProvider(AsyncCellFetcher);
+void SetRichTextClip(Label::RichTextClip);
+void SetStretchLastColumn(bool);  bool GetStretchLastColumn() const;   // v1.27.2
 std::shared_ptr<TreeNode> AddRoot(const std::wstring&);   std::shared_ptr<TreeNode> AddChild(parent, const std::wstring&);
 void RemoveNode(node);  void RemoveChildren(node);  void MoveNode(node, newParent, int index);  void Clear();
 void BeginUpdate();  void EndUpdate();                       // v1.15.0：延后 BuildVisibleList（避免 O(N^2)）
-void SetNodeText(node,int col,const std::wstring&);   void SetNodeTooltip(node, ...);   void SetNodeIcon(node, ...);
+void SetLazyLoader(std::function<void(std::shared_ptr<TreeNode>)>);   // called before expanding a node
+void SetNodeText(node,int col,const std::wstring&);   void SetNodeTooltip(node, ...);   void SetNodeIcon(node, ...);   void SetNodeHasChildren(node, bool);
 void ExpandNode(node,bool);  void ExpandAll();  void CollapseAll();  void ExpandToDepth(int);
 void SetDefaultExpandDepth(int);                             // 只影响之后插入的节点
 void SetFilter(std::function<bool(const std::shared_ptr<TreeNode>&)>);   void Search(const std::wstring&);
@@ -1506,7 +1598,8 @@ float GetScrollOffsetY() const;   void SetScrollOffsetY(float);   void ScrollToN
 - `MoveNode` 不能把节点移到自己的后代（返回 `false`，树不变）；忽略返回值会误以为移动成功。
 ###block_red_end
 
-- **`版本`**：`BeginUpdate`/`SetNodeText`/tooltip + 并发 `v1.15.0`；首列省略号修 `v1.16.0`；`Get/SetScrollOffsetY` + `ScrollToNode` + 节点 `bgColor` `v1.17.0`。
+- **`版本`**：`BeginUpdate`/`SetNodeText`/tooltip + 并发 `v1.15.0`；首列省略号修 `v1.16.0`；`Get/SetScrollOffsetY` + `ScrollToNode` + 节点 `bgColor` `v1.17.0`；`SetStretchLastColumn` 末列补宽 `v1.27.2`。
+- **v1.27.2 列宽补充**：`SetStretchLastColumn(true)`（默认）在内容总宽小于视口时把剩余宽度补给最后一列，避免单列树中文标签被 40px 最小列宽截成 `...`；`SetStretchLastColumn(false)` 恢复固定列宽行为。
 
 ###chapter: 图表 | ChartBase、BarChart、LineChart、PieChart（v1.18.0）
 
@@ -1619,10 +1712,12 @@ void SetAnimationEnabled(bool);
 ## Image / ImageManager / ImageDeviceCache
 
 ```cpp
-class Image { int Width() const; int Height() const; bool IsNull() const; ... };   // 从文件/资源/HICON/流加载
+class Image { int Width() const; int Height() const; bool IsNull() const; ... };
+static std::shared_ptr<Image> Image::FromHBITMAP(HBITMAP, bool premultipliedAlpha = true);   // 从文件/资源/HICON/流加载
 class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };
 ```
 - 设备丢失时（`UIZSignals::DeviceReset`）应释放与渲染目标绑定的位图缓存。
+- `Image::FromHBITMAP(hbmp, premultipliedAlpha = true)` 默认按 **HBITMAP 的 alpha 通道处理**；Shell 图标或 GDI+ 生成的 alpha 位图可传 `false`；32bpp 无 alpha 的位图按不透明处理。
 
 ###block_red_start
 **易错**
@@ -1634,6 +1729,7 @@ class ImageDeviceCache { /* 按渲染目标缓存的设备位图 */ };
 ```cpp
 bool Add(HICON icon, const std::wstring& tooltip, UINT id=1);
 void SetIcon(HICON);  void SetToolTip(const std::wstring&);  void SetMenu(std::shared_ptr<Menu>);
+void SetClickImmediate(bool);   bool IsClickImmediate() const;
 void SetBadge(Color = ...);   void ClearBadge();
 enum class BalloonIcon : DWORD { None, Info, Warning, Error, Custom };
 void ShowBalloon(const std::wstring& title, const std::wstring& text, BalloonIcon = BalloonIcon::Custom, HICON = nullptr, ...);
@@ -2072,7 +2168,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 ###block_red_end
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.27.1
+###chapter: 版本变化摘录 | v1.15.0 → v1.29.0
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -2118,7 +2214,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.27.1`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.29.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。
@@ -2176,7 +2272,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **构建**：`ZufyUI.vcxproj` / `ZufyUIDebugger.vcxproj` 的 **Debug|Win32** / **Debug|x64** 补 `/bigobj`（Release 已有）；全量 Release/Debug 构建通过。
 - **v1.23.3**：
   - **Button**：内部 `Label` 成为真正的子元素（富文本 `GetLabel()->AddChild` / `SetContent`）；新增右侧下拉区 `SplitClicked` / `SetSplitMenu` / `SetSplitButton`。
-  - **?? ? ??????**?`GetDpiScale()` ?? 96/144??? 1.0/1.5?????????????????????? `/96` ??????????demo ??? MessageBox?
+  - **修复（下拉菜单位置）**：`GetDpiScale()` 返回 96/144（不是 1.0/1.5）；旧乘法会把菜单送到屏幕右下角。除以 96 后菜单会落在按钮下方，demo 不再弹 MessageBox。
   - **修复**：`SetBackdrop(Acrylic/Mica)` 在未显式设 tint 时不再用不透明白盖住系统材质；`ListView::SetItemHeight` 夹到 ≥1px，Draw/命中不再除零。
   - **文档/清理**：`HwndView` 跨进程风险说明；`WM_ACTIVATE` 冗余判断、`<cstring>`、demo 空回调清理。
 - **v1.24.0**（**含破坏性变更**）：
@@ -2188,6 +2284,12 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
   - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
   - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。
+- **v1.29.0**：指针/焦点/输入反馈（光标状态、拖动取消、TextBox 焦点样式/光标/密码眼睛、ComboBox 键盘、Slider 松手、数据视图/滚动条/Expander 指针）；窗口过渡动画 `SetTransitionDurations`/`PresentationState`/`DefaultWindowSetup`；菜单回调 `QueueToUIThread`、PageHost 反向导航；Expander/SettingsList/图表字体继承、MenuBar/Button/EnsureVisible 修正；API 文档乱码与第 8 章标题修复。
+- **v1.28.0**：非阻塞 Present / 高刷新帧节拍（`SetNonBlockingPresent` / `SetDisplayFramePacing` / `GetDisplayRefreshHz`）；私有 `IDWriteFontCollection`；UIA 根/子 provider 统一断开、`WM_DESTROY` 清理 UIA 事件映射；菜单默认同步提示策略。
+- **v1.27.3**：窗口弹出行为。`Placement`（居中 owner/屏幕）、`FollowOwner`、`MoveBounds`（owner 客户区/显示器工作区）、`CloseReason`、`RequestClose/ForceClose` 与关闭拦截信号；`SetMovable/SetCloseEnabled/SetCloseOnEscape`；自定义标题栏按钮随窗口策略同步；弹窗首帧预推进。
+- **v1.27.2**：
+  - 窗口裸指针/UIA 生命周期：`Window::ForgetElement` 统一注销焦点/按下/捕获/悬停/tooltip/待重绘/UIA provider；`SetParent` 脱离时提前注销，`UiaDisconnectProvider` 修复 CFG 崩溃。
+  - `TreeView::SetStretchLastColumn`（默认开）末列补宽；SplitView 按钮方向/禁用态、全页面滑动切换与折叠钳制；TrayIcon v3/v4 点击回退；Drawer 关闭刷新；Card margin；密码框眼睛按钮；MessageBox 尺寸修复。
 - **v1.27.1**：停用实验性独立渲染线程，保留 VBLANK 帧同步；右键菜单适配非 DWM chrome；修复菜单栏残留 hover、标题栏隐藏/切回原生标题栏后的菜单位置；resize 时同步提交新帧，避免布局更新但画面透明。
 - **v1.27.0**：
   - **Windows 10 Acrylic**：Win10 在创建 HostBackdropBrush 前启用 `ACCENT_ENABLE_HOSTBACKDROP`，保留自定义模糊/色调/噪点链；不再把 Win11 专属 DWM 属性写到 Win10。
