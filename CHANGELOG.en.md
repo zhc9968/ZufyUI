@@ -2,7 +2,16 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.29.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.29.1** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-11-20 — PageHost animation and pointer-cancel fixes (v1.29.1)
+- **PageHost reverse transition**: restored the EaseOut inverse to `1 - cbrt(EasedProgress())`, removing the reverse jump.
+- **PageHost hit testing**: during animation, points are inverse-translated with each page's `GetChildRenderTransform` before hit testing; hover/click/right-click no longer hit an element at its unshifted position.
+- **PageHost page removal**: `RemovePage` adjusts or cancels `fromIndex_` / `toIndex_` during animation and leaves no stale indices.
+- **OnPointerCancel wiring**: `WM_CANCELMODE` / `WM_CAPTURECHANGED` now cancel `pressedElement_` / `mouseCaptureElement_` and clear capture; OLE drag-out is exempt so file drag-out keeps working.
+- **Show events**: `Opening` / `Opened` now fire for menus and other `WantDwmChrome()==false` windows, and `PresentationState` reaches `Open`.
+- **Regression tests**: added headless PageHost checks for reverse animation, transformed hit testing and page removal; updated the `TODO.md` baseline to `1.29.1`.
+- **Verification**: x64 / x86 Release + ZufyUIDebugger builds and full self-tests pass.
 
 ### 2026-11-20 — Pointer/focus feedback, window transitions and docs (v1.29.0)
 - **Pointer / focus / input feedback**: added `SetPointerCursors` / `GetPointerCursorAt` / `OnPointerCancel`; TextBox gained focus background/border, caret colour/thickness, indicator and password-eye fixes; ComboBox supports keyboard expand and up/down selection; Slider commits the final release coordinate; ListView/TableView/TreeView, ScrollBar, Expander, SettingsList and NumberBox gained cursor/cancel handling.

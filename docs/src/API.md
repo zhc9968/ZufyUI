@@ -2168,7 +2168,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - 调试器侧发命令要带超时（`SendMessageTimeout`，不加 `SMTO_BLOCK`），否则目标忙时会卡死调试器。`ZUFYUI_DEBUG` 是**编译期**开关（日志），`SetDebugEnabled` 是**运行期**开关（通道/统计）——两套语义别混。
 ###block_red_end
 
-###chapter: 版本变化摘录 | v1.15.0 → v1.29.0
+###chapter: 版本变化摘录 | v1.15.0 → v1.29.1
 
 > 只列**对你写代码有影响**的显著变化。
 
@@ -2284,6 +2284,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **新增 · `Drawer`**：左/右/上/下 × Overlay / Push / Permanent；圆角遮罩、面板圆角/边框/外侧阴影、Esc/点外部关闭。
   - **新增 · `Window::AddKeyHandler / RemoveKeyHandler`**：临时窗口级键处理器。
   - **改进**：`ScrollViewer` 裁剪出血跟随内容 `GetBleed()`；测试改名 `zufyui_tests`，新增信号专项与 Drawer 测试（213 项）。
+- **v1.29.1**：修复 PageHost EaseOut 反向进度、动画期间命中变换和动画中删页索引；`OnPointerCancel` 已接入 `WM_CANCELMODE/WM_CAPTURECHANGED`（OLE 拖出豁免）；菜单等非标准窗口恢复 `Opening/Opened`。
 - **v1.29.0**：指针/焦点/输入反馈（光标状态、拖动取消、TextBox 焦点样式/光标/密码眼睛、ComboBox 键盘、Slider 松手、数据视图/滚动条/Expander 指针）；窗口过渡动画 `SetTransitionDurations`/`PresentationState`/`DefaultWindowSetup`；菜单回调 `QueueToUIThread`、PageHost 反向导航；Expander/SettingsList/图表字体继承、MenuBar/Button/EnsureVisible 修正；API 文档乱码与第 8 章标题修复。
 - **v1.28.0**：非阻塞 Present / 高刷新帧节拍（`SetNonBlockingPresent` / `SetDisplayFramePacing` / `GetDisplayRefreshHz`）；私有 `IDWriteFontCollection`；UIA 根/子 provider 统一断开、`WM_DESTROY` 清理 UIA 事件映射；菜单默认同步提示策略。
 - **v1.27.3**：窗口弹出行为。`Placement`（居中 owner/屏幕）、`FollowOwner`、`MoveBounds`（owner 客户区/显示器工作区）、`CloseReason`、`RequestClose/ForceClose` 与关闭拦截信号；`SetMovable/SetCloseEnabled/SetCloseOnEscape`；自定义标题栏按钮随窗口策略同步；弹窗首帧预推进。

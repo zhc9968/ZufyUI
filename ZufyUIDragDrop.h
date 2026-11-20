@@ -354,7 +354,9 @@ inline DWORD Window::BeginDrag(DragDataBuilder& data, DWORD allowed, UIElement*)
     }
     ComPtr<IDropSource> src; src.Attach(new detail::DropSourceImpl());
     DWORD effect = DROPEFFECT_NONE;
+    oleDragActive_ = true;
     HRESULT hr = DoDragDrop(obj.Get(), src.Get(), allowed, &effect);
+    oleDragActive_ = false;
     if (!SUCCEEDED(hr)) return DROPEFFECT_NONE;
     DWORD performed = data.PerformedEffect();   // 目标标记的“已执行效果”（优化移动）
     return performed ? performed : effect;

@@ -277,6 +277,7 @@ namespace ZufyUI {
             }
         }
         void OnMouseUp(float, float) override { dragArm_ = false; }
+        void OnPointerCancel() override { dragArm_ = false; dragMoved_ = false; OnMouseLeave(); }
         std::function<void(DragDataBuilder&)> dragSource_;
         DWORD dragAllowed_ = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK;
         bool dragArm_ = false, dragMoved_ = false;
@@ -1141,6 +1142,7 @@ namespace ZufyUI {
             RequestRepaint();
             MouseUp.Fire(x, y);
         }
+        void OnPointerCancel() override { isPressed_ = false; dropPressed_ = false; dragArm_ = false; dragMoved_ = false; OnMouseLeave(); }
         // 拖源模式：按住并拖动 → 用 builder 组装数据发起 OLE 拖出（替代点击）
         void SetDragSource(std::function<void(DragDataBuilder&)> fn, DWORD allowed = DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK) { dragSource_ = std::move(fn); dragAllowed_ = allowed; }
         std::function<void(DragDataBuilder&)> dragSource_;
@@ -1712,6 +1714,7 @@ namespace ZufyUI {
             }
             dragArm_ = false;
         }
+        void OnPointerCancel() override { passwordTogglePressed_ = false; dragArm_ = false; dragMoved_ = false; OnMouseLeave(); }
         bool dragArm_ = false, dragMoved_ = false;
         float dragStartX_ = 0, dragStartY_ = 0;
         int dragClickPos_ = 0;

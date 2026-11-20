@@ -2,7 +2,16 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.29.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.29.1**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-11-20 — PageHost 动画与指针取消修复（v1.29.1）
+- **PageHost 反向过渡**：EaseOut 反向进度改回 `1 - cbrt(EasedProgress())`，修复反向瞬间跳动。
+- **PageHost 命中测试**：动画期间先按页面的 `GetChildRenderTransform` 反向平移坐标再命中，悬停/点击/右键不再落到未移动的旧位置。
+- **PageHost 删除页**：`RemovePage` 在动画中会调整/取消 `fromIndex_`、`toIndex_`，不留下旧索引。
+- **OnPointerCancel 接线**：`WM_CANCELMODE` / `WM_CAPTURECHANGED` 现在会取消 `pressedElement_`/`mouseCaptureElement_` 并清理捕获；OLE 拖出期间跳过，避免再次破坏文件拖出。
+- **显示事件**：`Opening` / `Opened` 对菜单等 `WantDwmChrome()==false` 的窗口也会触发，`PresentationState` 正确进入 `Open`。
+- **回归测试**：新增 PageHost 动画反向、动画中命中、动画中删除页的 headless 自检；`TODO.md` 基线更新到 `1.29.1`。
+- **验证**：x64 / x86 Release + ZufyUIDebugger 构建与全量自检通过。
 
 ### 2026-11-20 — 指针/焦点反馈、窗口过渡与文档修复（v1.29.0）
 - **指针 / 焦点 / 输入反馈**：新增 `SetPointerCursors` / `GetPointerCursorAt` / `OnPointerCancel`；完善 TextBox 焦点背景/边框、光标颜色/粗细、指示条和密码眼睛；ComboBox 支持键盘展开与上下选择；Slider 松手补齐最终坐标；ListView/TableView/TreeView、ScrollBar、Expander、SettingsList、NumberBox 补光标与取消状态。

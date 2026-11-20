@@ -2755,6 +2755,33 @@ static void test_quick_patches() {
 
 
 
+static void test_pagehost_animation() {
+    PageHost host;
+    auto a = std::make_shared<Page>();
+    auto b = std::make_shared<Page>();
+    host.AddPage(a);
+    host.AddPage(b);
+    host.SetAnimationDuration(1.0f);
+    host.SetTransitionDirection(PageHost::TransitionDirection::Left);
+    host.SetTransitionEasing(PageHost::TransitionEasing::EaseOut);
+    host.Measure(Size(400.0f, 300.0f));
+    host.Arrange(Rect(0.0f, 0.0f, 400.0f, 300.0f));
+    host.SetCurrentIndexInstant(0);
+    host.NavigateTo(1);
+    host.UpdateAnimation(0.5f);
+    // At EaseOut 0.5s the incoming page is visually at x=50; x=10 must
+    // still hit the outgoing page, not the incoming page's original rect.
+    CHECK(host.HitTest(10.0f, 10.0f) == a.get());
+    host.NavigateTo(0);
+    host.UpdateAnimation(0.1f);
+    CHECK(host.GetPageCount() == 2);
+    host.RemovePage(0);
+    CHECK(host.GetPageCount() == 1);
+    CHECK(host.GetCurrentIndex() == 0);
+    host.UpdateAnimation(0.2f);
+    CHECK(host.GetCurrentIndex() == 0);
+}
+
 int main() {
     SetConsoleOutputCP(CP_UTF8);   // 源码是 UTF-8：不改代码页的话中文断言输出在 cmd 里是乱码
     std::printf("=== ZufyUI 自检 ===\n");
@@ -2780,6 +2807,7 @@ int main() {
     test_drawer();
     test_api_feedback();
     test_layout_rfc();
+    test_pagehost_animation();
     test_backdrop_defaults();
     test_signal_lifetime();
     test_signal_reentrancy_and_exception();

@@ -92,8 +92,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 29
-#define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.29.0"
+#define ZufyUI_VERSION_PATCH 1
+#define ZufyUI_VERSION_STRING L"1.29.1"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -3772,11 +3772,26 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void RemovePage(int index) {
             auto _rg = GuardRender();
             if (index < 0 || index >= (int)pages_.size()) return;
+            const bool wasAnimating = animating_;
+            int oldFrom = fromIndex_, oldTo = toIndex_;
             pages_.erase(pages_.begin() + index);
             if (index < (int)hiddenAt_.size()) hiddenAt_.erase(hiddenAt_.begin() + index);
-            if (pages_.empty()) currentIndex_ = -1;
-            else if (currentIndex_ > index) currentIndex_--;
-            else if (currentIndex_ == index) currentIndex_ = min(index, (int)pages_.size() - 1);
+            if (pages_.empty()) {
+                currentIndex_ = -1;
+                animating_ = false; fromIndex_ = toIndex_ = -1; animProgress_ = 0.0f;
+            } else {
+                if (currentIndex_ > index) currentIndex_--;
+                else if (currentIndex_ == index) currentIndex_ = min(index, (int)pages_.size() - 1);
+                if (wasAnimating) {
+                    auto adjust = [index](int& i) { if (i > index) --i; else if (i == index) i = -1; };
+                    adjust(oldFrom); adjust(oldTo);
+                    if (oldFrom < 0 || oldTo < 0 || oldFrom == oldTo || oldFrom >= (int)pages_.size() || oldTo >= (int)pages_.size()) {
+                        animating_ = false; fromIndex_ = toIndex_ = -1; animProgress_ = 0.0f;
+                    } else {
+                        fromIndex_ = oldFrom; toIndex_ = oldTo;
+                    }
+                }
+            }
             MarkChildrenDirty();
             InvalidateLayout();
             RequestRepaint();
@@ -3811,7 +3826,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 if (index == fromIndex_) {
                     std::swap(fromIndex_, toIndex_);
                     animProgress_ = easing_ == TransitionEasing::EaseOut
-                        ? 1.0f - cbrtf(1.0f - EasedProgress()) : 1.0f - animProgress_;
+                        ? 1.0f - cbrtf(EasedProgress()) : 1.0f - animProgress_;
                     switch (activeDirection_) {
                     case TransitionDirection::Left: activeDirection_ = TransitionDirection::Right; break;
                     case TransitionDirection::Right: activeDirection_ = TransitionDirection::Left; break;
@@ -3912,14 +3927,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (!visible_ || !arrangedRect_.Contains(x, y)) return nullptr;
 
             if (animating_) {
-                if (toIndex_ >= 0 && toIndex_ < (int)pages_.size()) {
-                    UIElement* hit = pages_[toIndex_]->HitTest(x, y);
-                    if (hit) return hit;
-                }
-                if (fromIndex_ >= 0 && fromIndex_ < (int)pages_.size()) {
-                    UIElement* hit = pages_[fromIndex_]->HitTest(x, y);
-                    if (hit) return hit;
-                }
+                auto hitTransformed = [&](int index) -> UIElement* {
+                    if (index < 0 || index >= (int)pages_.size() || !pages_[index]) return nullptr;
+                    const D2D1::Matrix3x2F transform = GetChildRenderTransform(pages_[index].get());
+                    return pages_[index]->HitTest(x - transform._31, y - transform._32);
+                };
+                if (UIElement* hit = hitTransformed(toIndex_)) return hit;
+                if (UIElement* hit = hitTransformed(fromIndex_)) return hit;
                 return this;
             }
 
@@ -6485,10 +6499,23 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 // 窗口显示后再应用一次背景（创建时 DWM 可能尚未就绪 → Mica/Acrylic 偶尔不生效）
                 if (wParam) ApplyBackdrop();
                 return 0;
-            case WM_CAPTURECHANGED:
-                // ??/????????????????????? OLE ?????
+            case WM_CANCELMODE:
+            case WM_CAPTURECHANGED: {
+                std::lock_guard<std::recursive_mutex> lk(renderLock_);
+                UIElement* pressed = pressedElement_;
+                UIElement* captured = mouseCaptureElement_;
                 pressedElement_ = nullptr;
+                // OLE drag-out temporarily takes capture from the source HWND.
+                // That is not a pointer cancellation and must not disturb DoDragDrop.
+                if (!oleDragActive_) {
+                    mouseCaptureElement_ = nullptr;
+                    if (pressed) pressed->OnPointerCancel();
+                    if (captured && captured != pressed) captured->OnPointerCancel();
+                    if (message == WM_CANCELMODE && GetCapture() == hwnd_) ReleaseCapture();
+                    RefreshPointerCursor();
+                }
                 return 0;
+            }
             case WM_SYSCOMMAND:
                 if ((wParam & 0xFFF0) == SC_MAXIMIZE && moveBounds_ == MoveBounds::OwnerClient) return 0;
                 if ((wParam & 0xFFF0) == SC_MOVE && !movable_) return 0;
@@ -8157,16 +8184,21 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             }
         }
         void OnPresentationShown(bool visible) {
-            if (!WantDwmChrome()) return;
             if (!visible) {
                 if (presentationState_ != PresentationState::Closing) {
                     StopPresentationTimer(); presentationState_ = PresentationState::Hidden;
                 }
                 return;
             }
-            if (presentationState_ == PresentationState::Closing) return;
+            if (presentationState_ == PresentationState::Closing || presentationState_ == PresentationState::Open) return;
             presentationState_ = PresentationState::Opening; Opening.Fire();
-            if (hwnd_ && presentationState_ == PresentationState::Opening)
+            if (!hwnd_) return;
+            if (!WantDwmChrome()) {
+                presentationState_ = PresentationState::Open;
+                Opened.Fire();
+                return;
+            }
+            if (presentationState_ == PresentationState::Opening)
                 StartPresentation(1, enterDuration_);
         }
 
@@ -8363,6 +8395,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         RECT lastBehaviorRect_{};
         bool haveBehaviorRect_ = false;
         bool inputBlocked_ = false;   // 模态弹窗（子窗口形态）时屏蔽本窗口输入
+        bool oleDragActive_ = false;
         bool accessibilityEnabled_ = true;   // 无障碍（UIA）：默认开启
         bool nonBlockingPresent_ = false;
         bool displayFramePacing_ = false;

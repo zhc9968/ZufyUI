@@ -335,9 +335,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.29.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.29.1**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.29.1**：修复 PageHost EaseOut 反向跳动、动画中命中错位、动画中删页旧索引；接线 `OnPointerCancel`（OLE 拖出豁免）；菜单等非标准窗口恢复 `Opening/Opened`。
 - **1.29.0**：窗口过渡与指针/焦点反馈（光标状态、TextBox/ComboBox/Slider、数据视图滚动条）、菜单回调排队与 PageHost 反向导航、字体继承与布局修正；API 文档清理第 8 章标题和乱码。
 - **1.28.0**：非阻塞 Present / 高刷新帧节拍（opt-in）、私有 DirectWrite 字体集合、UIA provider 生命周期收口（根 provider 断开、WM_DESTROY 清理事件映射）、菜单默认同步非阻塞与帧节拍。
 - **1.27.3**：窗口弹出行为（居中 owner/屏幕、owner 跟随移动、移动边界、关闭原因/拦截、标题栏按钮同步、首帧稳定）。

@@ -335,9 +335,10 @@ ZufyUI/
 
 ## Version history
 
-> Current version: **1.29.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+> Current version: **1.29.1** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 > Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.29.1**: fixed PageHost EaseOut reverse jump, animated hit-test offsets and stale indices after page removal; wired `OnPointerCancel` with an OLE drag-out exemption; restored `Opening/Opened` for menus and other non-DWM windows.
 - **1.29.0**: window transitions and pointer/focus feedback (cursor states, TextBox/ComboBox/Slider, data-view scrollbars), menu callback queueing and PageHost reverse navigation, font inheritance/layout fixes; API doc chapter 8 title and mojibake cleanup.
 - **1.28.0**: opt-in nonblocking Present / high-refresh frame pacing, private DirectWrite font collections, UIA provider lifecycle hardening (root disconnect + WM_DESTROY event-map cleanup), and menus using the same presentation policy by default.
 - **1.27.3**: popup window behavior (center on owner/screen, follow owner movement, move bounds, close reasons/veto, title-bar button sync, reliable first frame).

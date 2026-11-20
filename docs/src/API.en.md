@@ -2157,7 +2157,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 ###block_red_end
 
-###chapter: Version digest | v1.15.0 → v1.29.0
+###chapter: Version digest | v1.15.0 → v1.29.1
 
 > Only the changes that affect your code are listed.
 
@@ -2272,6 +2272,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
   - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
   - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
+- **v1.29.1**: fixed PageHost EaseOut reverse progress, animated hit-test transforms and page-removal indices; `OnPointerCancel` is wired to `WM_CANCELMODE/WM_CAPTURECHANGED` with an OLE drag-out exemption; `Opening`/`Opened` work again for menus and non-DWM windows.
 - **v1.29.0**: pointer/focus/input feedback (cursor states, pointer cancel, TextBox focus styling/caret/password eye, ComboBox keyboard, Slider release, data-view/scrollbar/Expander cursors); window transitions (`SetTransitionDurations` / `PresentationState` / `DefaultWindowSetup`); menu `QueueToUIThread` and PageHost reverse navigation; Expander/SettingsList/chart font inheritance, MenuBar/Button/EnsureVisible fixes; API doc mojibake and chapter 8 title fixes.
 - **v1.28.0**: nonblocking Present / high-refresh pacing (`SetNonBlockingPresent` / `SetDisplayFramePacing` / `GetDisplayRefreshHz`); private `IDWriteFontCollection`; UIA root/child provider teardown and `WM_DESTROY` event-map cleanup; menus opt into the same presentation policy by default.
 - **v1.27.3**: popup window behavior. `Placement` (center owner/screen), `FollowOwner`, `MoveBounds` (owner client / monitor work area), `CloseReason`, `RequestClose/ForceClose` and close-veto signals; `SetMovable/SetCloseEnabled/SetCloseOnEscape`; custom title-bar buttons follow window policy; reliable popup first frame.
