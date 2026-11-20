@@ -7,7 +7,7 @@
 
 > **Two markers used throughout**:
 > - **`Pitfall`**: real traps / counter-intuitive behavior — read these first.
-> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.29.0**.
+> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.29.1**.
 
 ###chapter: Conventions | Namespaces, units, lifetime, version & pitfall notation
 
@@ -2157,7 +2157,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - send commands with a timeout (`SendMessageTimeout` without `SMTO_BLOCK`), or the debugger hangs when the target is busy. `ZUFYUI_DEBUG` is a **compile-time** switch (logging); `SetDebugEnabled` is a **runtime** switch (channel/stats) — do not conflate.
 ###block_red_end
 
-###chapter: Version digest | v1.15.0 → v1.29.0
+###chapter: Version digest | v1.15.0 → v1.29.1
 
 > Only the changes that affect your code are listed.
 
@@ -2203,7 +2203,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.6**:
   - Fix: `ListView` button mode checkbox **hit test was 4px off** (now aligned with the draw / child left edge).
   - Fix: `Label::MeasureOverride` wrap branch **ignored inline children width** (wrapping Labels with `AddChild` squeezed/overflowed text).
-  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `1.29.0`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
+  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `1.29.1`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
 - **v1.19.7**:
   - Fixes: `ChartBase` swapped horizontal/vertical scrollbar allowance (`viewW` uses the vertical bar, `viewH` the horizontal) → rightmost/bottom content unreachable; `NumberBox` wheel focus check (focus is on the inner `TextBox`); `lastActiveAnimElements_` dangling (erased from the anim sets on destruction, prevents random crashes); `Menu::ShowAt` throwing `bad_weak_ptr` when not shared-owned; `ChildrenSig` missing `EnsureView`; `TreeView::SetDefaultExpandDepth` not applied by `AddRoot`/`AddChild`.
   - Fixes: `ColumnBox`/`RowBox` spacing counts only layout-participating children; `GridLayout` row/col count skips invisible; `Label` wrap ignored/duplicated spacing; `ListView`/`TableView` clear `childrenView_` before releasing labels and release pooled/rich/cell labels; `Window::defaultIMC_` via `ImmAssociateContext`; `DragData::GetFiles` buffer `len+1`; `TextEdit` fires `SelectionChanged` when clearing a selection; `MessageBox` default title localized.
@@ -2272,6 +2272,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
   - **New · `Drawer`**: left/right/top/bottom × Overlay / Push / Permanent; rounded scrim, rounded panel/border/outer shadow, Esc and outside-click dismiss.
   - **New · `Window::AddKeyHandler / RemoveKeyHandler`**: temporary window-level key handlers.
   - **Improvement**: `ScrollViewer` clip bleed follows the content `GetBleed()`; tests renamed to `zufyui_tests`, signal-focused and Drawer tests added (213 assertions).
+- **v1.29.1**: fixed PageHost EaseOut reverse progress, animated hit-test transforms and page-removal indices; `OnPointerCancel` is wired to `WM_CANCELMODE/WM_CAPTURECHANGED` with an OLE drag-out exemption; `Opening`/`Opened` work again for menus and non-DWM windows.
 - **v1.29.0**: pointer/focus/input feedback (cursor states, pointer cancel, TextBox focus styling/caret/password eye, ComboBox keyboard, Slider release, data-view/scrollbar/Expander cursors); window transitions (`SetTransitionDurations` / `PresentationState` / `DefaultWindowSetup`); menu `QueueToUIThread` and PageHost reverse navigation; Expander/SettingsList/chart font inheritance, MenuBar/Button/EnsureVisible fixes; API doc mojibake and chapter 8 title fixes.
 - **v1.28.0**: nonblocking Present / high-refresh pacing (`SetNonBlockingPresent` / `SetDisplayFramePacing` / `GetDisplayRefreshHz`); private `IDWriteFontCollection`; UIA root/child provider teardown and `WM_DESTROY` event-map cleanup; menus opt into the same presentation policy by default.
 - **v1.27.3**: popup window behavior. `Placement` (center owner/screen), `FollowOwner`, `MoveBounds` (owner client / monitor work area), `CloseReason`, `RequestClose/ForceClose` and close-veto signals; `SetMovable/SetCloseEnabled/SetCloseOnEscape`; custom title-bar buttons follow window policy; reliable popup first frame.

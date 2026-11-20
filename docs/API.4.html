@@ -401,11 +401,11 @@ namespace UIZSignals {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-9525721e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-1293d3ab', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ConnectionThread</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">CurrentThread</span><span class="p">,</span><span class="w"> </span><span class="n">NewThread</span><span class="p">,</span><span class="w"> </span><span class="n">UIThread</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-9525721e" style="display: none;">enum class ConnectionThread { CurrentThread, NewThread, UIThread };</pre>
+<pre id="code-1293d3ab" style="display: none;">enum class ConnectionThread { CurrentThread, NewThread, UIThread };</pre>
 </div>
 <ul>
 <li><code>CurrentThread</code>（默认）：槽在 Fire 的线程同步执行。</li>
@@ -426,7 +426,7 @@ namespace UIZSignals {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ec4b10b8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-a4c5bd46', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Connection</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">();</span>
@@ -434,7 +434,7 @@ namespace UIZSignals {
 <span class="w">    </span><span class="k">explicit</span><span class="w"> </span><span class="k">operator</span><span class="w"> </span><span class="kt">bool</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 析构不自动断开</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-ec4b10b8" style="display: none;">class Connection {
+<pre id="code-a4c5bd46" style="display: none;">class Connection {
     void disconnect();
     bool isConnected() const;
     explicit operator bool() const;   // 析构不自动断开
@@ -458,13 +458,13 @@ namespace UIZSignals {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-a862619e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b1fc6cac', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ConnectionGroup</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">enable_shared_from_this</span><span class="o">&lt;</span><span class="n">ConnectionGroup</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">disconnectAll</span><span class="p">();</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">size</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-a862619e" style="display: none;">class ConnectionGroup : public std::enable_shared_from_this&lt;ConnectionGroup&gt; {
+<pre id="code-b1fc6cac" style="display: none;">class ConnectionGroup : public std::enable_shared_from_this&lt;ConnectionGroup&gt; {
     void disconnectAll(); size_t size() const;
 };</pre>
 </div>
@@ -482,7 +482,7 @@ namespace UIZSignals {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-33e6aadb', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-ad0fcfbd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span><span class="w"> </span><span class="n">TArgs</span><span class="o">&gt;</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ZSignal</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">SlotType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">TArgs</span><span class="p">...)</span><span class="o">&gt;</span><span class="p">;</span>
@@ -496,7 +496,7 @@ namespace UIZSignals {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">TArgs</span><span class="p">...</span><span class="w"> </span><span class="n">targs</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-33e6aadb" style="display: none;">template&lt;typename... TArgs&gt; class ZSignal {
+<pre id="code-ad0fcfbd" style="display: none;">template&lt;typename... TArgs&gt; class ZSignal {
     using SlotType = std::function&lt;void(TArgs...)&gt;;
     Connection connect(SlotType slot,
                        ConnectionThread thread = ConnectionThread::CurrentThread,
@@ -533,7 +533,7 @@ namespace UIZSignals {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ec5fd4e8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-6ba97acd', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">panel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">Panel</span><span class="o">&gt;</span><span class="p">();</span>
 
@@ -544,7 +544,7 @@ namespace UIZSignals {
 <span class="n">ConnectWeak</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span><span class="w"> </span><span class="n">btn</span><span class="o">-&gt;</span><span class="n">Clicked</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="n">Panel</span><span class="o">*</span><span class="w"> </span><span class="n">self</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">self</span><span class="o">-&gt;</span><span class="n">Refresh</span><span class="p">();</span><span class="w"> </span><span class="p">});</span>
 <span class="n">ConnectWeak</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span><span class="w"> </span><span class="n">btn</span><span class="o">-&gt;</span><span class="n">Clicked</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">Panel</span><span class="o">::</span><span class="n">OnClick</span><span class="p">);</span>
 </pre></div>
-<pre id="code-ec5fd4e8" style="display: none;">auto panel = std::make_shared&lt;Panel&gt;();
+<pre id="code-6ba97acd" style="display: none;">auto panel = std::make_shared&lt;Panel&gt;();
 
 panel-&gt;Connect(btn-&gt;Clicked, [this] { Refresh(); });
 Connect(panel, btn-&gt;Clicked, &amp;Panel::OnClick);
@@ -564,7 +564,7 @@ ConnectWeak(panel, btn-&gt;Clicked, &amp;Panel::OnClick);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f3bdfc36', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-8b894c76', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AsyncTaskStatus</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Pending</span><span class="p">,</span><span class="w"> </span><span class="n">Running</span><span class="p">,</span><span class="w"> </span><span class="n">Completed</span><span class="p">,</span><span class="w"> </span><span class="n">Canceled</span><span class="p">,</span><span class="w"> </span><span class="n">Failed</span><span class="w"> </span><span class="p">};</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AsyncOwner</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* weak owner: callbacks are dropped after it dies */</span><span class="w"> </span><span class="p">};</span>
@@ -575,7 +575,7 @@ ConnectWeak(panel, btn-&gt;Clicked, &amp;Panel::OnClick);</pre>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onCompleted</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">exception_ptr</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onFailed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onProgress</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onCanceled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
 </pre></div>
-<pre id="code-f3bdfc36" style="display: none;">enum class AsyncTaskStatus { Pending, Running, Completed, Canceled, Failed };
+<pre id="code-8b894c76" style="display: none;">enum class AsyncTaskStatus { Pending, Running, Completed, Canceled, Failed };
 class AsyncOwner { /* weak owner: callbacks are dropped after it dies */ };
 class AsyncCancelToken { bool IsCancellationRequested() const; void ThrowIfCancellationRequested() const; };
 class AsyncProgress { void Report(float value, const std::wstring&amp; message = {}); };
@@ -591,7 +591,7 @@ template&lt;class T, class Work&gt; std::shared_ptr&lt;AsyncTask&lt;T&gt;&gt; Ru
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-68e88424', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b0259118', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">ScrollAxis</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">offset</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">viewport</span><span class="p">,</span><span class="w"> </span><span class="n">content</span><span class="p">,</span><span class="w"> </span><span class="n">maxOffset</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetMetrics</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">viewport</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">content</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ScrollTo</span><span class="p">(</span><span class="kt">float</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">EnsureVisible</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">start</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">size</span><span class="p">);</span>
@@ -601,7 +601,7 @@ template&lt;class T, class Work&gt; std::shared_ptr&lt;AsyncTask&lt;T&gt;&gt; Ru
 <span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">Result</span><span class="o">&gt;</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">FetchFlow</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">Start</span><span class="p">(</span><span class="n">AsyncOwner</span><span class="p">,</span><span class="w"> </span><span class="n">Work</span><span class="p">,</span><span class="w"> </span><span class="n">Ready</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span><span class="w"> </span><span class="n">Progress</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span><span class="w"> </span><span class="n">Canceled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">Cancel</span><span class="p">();</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">Wait</span><span class="p">();</span><span class="w">  </span><span class="n">FetchState</span><span class="w"> </span><span class="nf">GetState</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-68e88424" style="display: none;">struct ScrollAxis { float offset, target, viewport, content, maxOffset;
+<pre id="code-b0259118" style="display: none;">struct ScrollAxis { float offset, target, viewport, content, maxOffset;
     void SetMetrics(float viewport, float content);  void ScrollTo(float);  void EnsureVisible(float start, float size);
     Range VisibleRange(float itemExtent, float overscan = 0, int itemCount = -1) const; };
 template&lt;class T&gt; class RecyclePool { std::shared_ptr&lt;T&gt; Acquire();  void Release(std::shared_ptr&lt;T&gt;);
@@ -616,7 +616,7 @@ template&lt;class Result&gt; class FetchFlow { void Start(AsyncOwner, Work, Read
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-7527718a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-495815f9', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">UIZSignals</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="n">ID2D1RenderTarget</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">DrawOverlay</span><span class="p">;</span>
@@ -628,7 +628,7 @@ template&lt;class Result&gt; class FetchFlow { void Start(AsyncOwner, Work, Read
 <span class="w">    </span><span class="kr">inline</span><span class="w"> </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;&gt;</span><span class="w"> </span><span class="n">Error</span><span class="p">;</span><span class="w">         </span><span class="c1">// v1.16.0</span>
 <span class="p">}</span>
 </pre></div>
-<pre id="code-7527718a" style="display: none;">namespace UIZSignals {
+<pre id="code-495815f9" style="display: none;">namespace UIZSignals {
     inline ZSignal&lt;Window*, ID2D1RenderTarget*&gt; DrawOverlay;
     inline ZSignal&lt;Window*, float, float&gt; GlobalMouseDown;
     inline ZSignal&lt;Window*&gt; WindowActivated, WindowDeactivated;
