@@ -1849,6 +1849,11 @@ static void test_api_feedback() {
         CHECK(w.GetCloseOnEscape());
         CHECK(w.GetFollowOwner());
         CHECK(!w.IsCloseEnabled());
+        CHECK(w.IsShowTitleText());
+        w.SetShowTitleText(false);
+        CHECK(!w.IsShowTitleText());
+        w.SetShowTitleText(true);
+        CHECK(w.IsShowTitleText());
         CHECK(!w.GetNonBlockingPresent());
         CHECK(!w.GetDisplayFramePacing());
         w.SetNonBlockingPresent(true);
@@ -2755,6 +2760,102 @@ static void test_quick_patches() {
 
 
 
+static void test_overlay_and_card_hover() {
+    {
+        Window w;
+        auto combo = std::make_shared<ComboBox>();
+        combo->SetItems({ L"one", L"two", L"three" });
+        auto card = std::make_shared<Card>();
+        card->SetHeight(100.0f);
+        auto col = std::make_shared<ColumnBox>();
+        col->AddChild(combo);
+        col->AddChild(card);
+        w.SetRootLayout(col);
+        col->Measure(Size(240.0f, 240.0f));
+        col->Arrange(Rect(0.0f, 0.0f, 240.0f, 240.0f));
+        col->RefreshChildren();
+        combo->Expand();
+        combo->UpdateAnimation(1.0f);
+        CHECK(combo->IsExpanded());
+        CHECK(combo->HitTestOverlay(10.0f, 40.0f) == combo.get());
+        CHECK(w.HitTestElementDIP(10.0f, 40.0f) == combo.get());
+    }
+    {
+        Card card;
+        card.OnMouseEnter();
+        card.UpdateAnimation(0.1f);
+        CHECK(!card.HasActiveAnimation());
+        ApplyThemeToWidgetTree(&card, Theme::Dark());
+        CHECK(!card.IsHoverAnimationEnabled());
+        card.OnMouseEnter();
+        card.UpdateAnimation(0.1f);
+        CHECK(!card.HasActiveAnimation());
+        card.SetHoverAnimationEnabled(true);
+        card.UpdateAnimation(0.1f);
+        CHECK(card.HasActiveAnimation());
+    }
+}
+
+static void test_tableview_column_resize() {
+    TableView tv;
+    tv.SetColumnCount(3);
+    tv.SetRowCount(2);
+    tv.SetColumnWidth(0, 100.0f);
+    tv.SetColumnWidth(1, 80.0f);
+    tv.SetColumnWidth(2, 120.0f);
+    tv.Measure(Size(400.0f, 200.0f));
+    tv.Arrange(Rect(0.0f, 0.0f, 400.0f, 200.0f));
+    tv.OnMouseDown(100.0f, 10.0f);
+    tv.OnMouseMove(160.0f, 10.0f);
+    CHECK(tv.GetColumnWidth(0) == 160.0f);
+    tv.OnMouseUp(160.0f, 10.0f);
+    tv.Measure(Size(400.0f, 200.0f));
+    tv.Arrange(Rect(0.0f, 0.0f, 400.0f, 200.0f));
+    CHECK(tv.GetColumnWidth(0) == 160.0f);
+}
+
+static void test_file_lock_dialog_layout() {
+    auto makeRoot = [] {
+        auto root = std::make_shared<ColumnBox>();
+        root->SetMargin(Thickness(18, 16, 18, 16));
+        root->SetSpacing(10.0f);
+        auto path = std::make_shared<Label>(L"C:\\temp\\locked.bin");
+        path->SetTextOverflow(Label::TextOverflow::Ellipsis);
+        root->AddChild(path);
+        auto status = std::make_shared<Label>(L"full-system handle scan: 2 processes / 3 handles / Restart Manager checked / delete probe: sharing violation");
+        status->SetTextOverflow(Label::TextOverflow::Wrap);
+        status->SetMaxLines(3);
+        root->AddChild(status);
+        auto list = std::make_shared<ListView>();
+        list->SetFillHeight(true);
+        list->SetItemHeight(28.0f);
+        root->AddChild(list);
+        auto selection = std::make_shared<Label>(L"selected: explorer.exe PID 1234, 2 handles");
+        root->AddChild(selection);
+        auto actions = std::make_shared<RowBox>();
+        actions->SetHeight(30.0f);
+        root->AddChild(actions);
+        return root;
+    };
+    for (float height : { 300.0f, 400.0f, 520.0f, 1000.0f }) {
+        auto root = makeRoot();
+        root->Measure(Size(760.0f, height));
+        root->Arrange(Rect(18.0f, 16.0f, 760.0f, height - 32.0f));
+        root->RefreshChildren();
+        const auto& kids = root->GetChildren();
+        std::printf("lock dialog h=%g path=%g..%g status=%g..%g list=%g..%g sel=%g..%g act=%g..%g\n",
+            height,
+            kids[0]->GetArrangedRect().y, kids[0]->GetArrangedRect().y + kids[0]->GetArrangedRect().height,
+            kids[1]->GetArrangedRect().y, kids[1]->GetArrangedRect().y + kids[1]->GetArrangedRect().height,
+            kids[2]->GetArrangedRect().y, kids[2]->GetArrangedRect().y + kids[2]->GetArrangedRect().height,
+            kids[3]->GetArrangedRect().y, kids[3]->GetArrangedRect().y + kids[3]->GetArrangedRect().height,
+            kids[4]->GetArrangedRect().y, kids[4]->GetArrangedRect().y + kids[4]->GetArrangedRect().height);
+        CHECK(kids[1]->GetArrangedRect().height > 0.0f);
+        CHECK(kids[3]->GetArrangedRect().y >=
+              kids[2]->GetArrangedRect().y + kids[2]->GetArrangedRect().height);
+    }
+}
+
 static void test_pagehost_animation() {
     PageHost host;
     auto a = std::make_shared<Page>();
@@ -2807,6 +2908,9 @@ int main() {
     test_drawer();
     test_api_feedback();
     test_layout_rfc();
+    test_overlay_and_card_hover();
+    test_tableview_column_resize();
+    test_file_lock_dialog_layout();
     test_pagehost_animation();
     test_backdrop_defaults();
     test_signal_lifetime();

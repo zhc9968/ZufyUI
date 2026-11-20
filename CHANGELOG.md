@@ -2,7 +2,17 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.29.1**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.29.2**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-11-20 — Card 悬停与 ComboBox 展开层命中修复（v1.29.2）
+- **Card 默认静态**：`Card` 不再默认播放悬停动画；主题只更新背景/边框，不再强制注入悬停背景。需要悬停效果的卡片可显式调用 `SetHoverAnimationEnabled(true)`、`SetHoverBackgroundColor`、`SetHoverBorderColor` 或 `SetHoverAnimationSpeed`。
+- **ComboBox 展开层命中**：新增 `UIElement::HitTestOverlay`；窗口命中测试先检查展开的下拉列表覆盖层，再走普通布局树。下拉列表覆盖在后续兄弟控件（如 Card）之上时，鼠标点击/悬停归属于 ComboBox，不再落到下面的卡片。
+- **捕获丢失修复**：正常 `ReleaseCapture` 不再被当作指针取消；新增 `ReleaseMouseCapture()` 抑制自身释放触发的 `WM_CAPTURECHANGED`。ComboBox 展开后保留元素捕获，避免第一次点击后下拉列表失联。
+- **标题栏默认显示**：`Window::showTitleText_` 默认改为 true；`SetIcon` 现在同时同步原生窗口和当前自定义标题栏，`SetCustomTitleBar` 会继承创建时已有的窗口图标；`SetAppIcon` 复用 `SetIcon` 后再补窗口类图标。自定义图标/标题不再需要应用额外调用可见性开关。
+- **菜单栏默认位置**：`menuBarInTitleBar_` 默认改为 false；标题默认可见时菜单栏默认在标题栏下方，只有显式请求且隐藏标题文字时才叠加到标题栏。
+- **数据视图列宽缓存**：`TableView`/`TreeView` 的 `SetColumnWidth` 现在同时 `InvalidateCache()`，避免列宽变化后重画旧表头缓存。
+- **ColumnBox 弹性高度**：`FillHeight`/权重子元素在 Arrange 阶段改用 Measure 分配后的高度，而不是控件默认 `height_`（如 `ListView` 默认 200）。这样缩小文件占用/流管理对话框时，列表不会用默认高度压住上方的状态标签和下方的选择信息，放大时也不会抢掉固定标签的空间。
+- **回归测试**：新增 headless 覆盖层命中、Card 默认无悬停动画、TableView 列宽调整和标题文字默认值检查；x64 / x86 Release + ZufyUIDebugger 构建与全量自检通过。
 
 ### 2026-11-20 — PageHost 动画与指针取消修复（v1.29.1）
 - **PageHost 反向过渡**：EaseOut 反向进度改回 `1 - cbrt(EasedProgress())`，修复反向瞬间跳动。

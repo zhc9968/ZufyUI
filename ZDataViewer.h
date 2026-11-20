@@ -2175,6 +2175,7 @@ namespace ZufyUI {
             if (col < 0 || col >= colCount_) return;
             columnWidths_[col] = max(DefaultMinColumnWidth, width);
             UpdateScrollInfo();
+            InvalidateCache();
             InvalidateLayout();
             RequestRepaint();
         }
@@ -3956,7 +3957,8 @@ namespace ZufyUI {
         void SetColumnWidth(int col, float width) {
             if (col < 0 || col >= columnCount_) return;
             columnWidths_[col] = max(DefaultMinColumnWidth, width);
-            ++columnLayoutVersion_;   // 列布局变了（RefreshChildren 靠它判断是否需重排，免每帧算列签名）
+            ++columnLayoutVersion_;
+            InvalidateCache();   // 列布局变了（RefreshChildren 靠它判断是否需重排，免每帧算列签名）
             UpdateScrollInfo();
             InvalidateLayout();
             RequestRepaint();

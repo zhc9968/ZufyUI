@@ -395,7 +395,7 @@ namespace dsl {
         bool dropTarget_ = true, dropTargetSet_ = false;
         bool titleBarVisible_ = true, titleBarVisibleSet_ = false;
         bool showTitleText_ = true, showTitleTextSet_ = false;
-        bool menuBarInTitleBar_ = true, menuBarInTitleBarSet_ = false;
+        bool menuBarInTitleBar_ = false, menuBarInTitleBarSet_ = false;
         HICON bigIcon_ = nullptr, smallIcon_ = nullptr; bool iconSet_ = false;
         ZufyUI::Theme theme_; bool themeSet_ = false;
         ZufyUI::Backdrop backdrop_ = ZufyUI::Backdrop::None; DWORD tint_ = 0; bool backdropSet_ = false; bool backdropTintSet_ = false;

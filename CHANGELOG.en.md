@@ -2,7 +2,17 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.29.1** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.29.2** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-11-20 — Card hover and ComboBox overlay hit-test fixes (v1.29.2)
+- **Static Card by default**: `Card` no longer runs a hover animation unless explicitly enabled; the theme now updates only its background/border and no longer injects a hover background. Opt in with `SetHoverAnimationEnabled(true)`, `SetHoverBackgroundColor`, `SetHoverBorderColor` or `SetHoverAnimationSpeed`.
+- **ComboBox overlay hit testing**: added `UIElement::HitTestOverlay`; window hit testing checks expanded dropdown lists before the normal layout tree. A list covering a later sibling such as a Card now belongs to the ComboBox, so clicks/hover do not fall through to the card.
+- **Capture-loss fix**: a normal `ReleaseCapture` is no longer treated as a pointer cancel; `ReleaseMouseCapture()` suppresses the resulting `WM_CAPTURECHANGED`. The expanded ComboBox keeps its element capture, so the dropdown remains clickable after the first click.
+- **Title bar visible by default**: `Window::showTitleText_` is now true by default; `SetIcon` syncs both the native window and the current custom title bar, `SetCustomTitleBar` inherits an icon that existed before it was attached, and `SetAppIcon` reuses `SetIcon` before updating the window-class icon. Custom title/icon visibility no longer needs an extra application call.
+- **Menu bar default position**: `menuBarInTitleBar_` now defaults to false; with the title visible by default, the menu bar starts below the title bar and only overlays it when explicitly requested with the title text hidden.
+- **Data-view column cache**: `TableView`/`TreeView::SetColumnWidth` now also calls `InvalidateCache()` so a width change cannot redraw a stale header cache.
+- **ColumnBox flex height**: `FillHeight`/weighted children now use their height from the Measure allocation instead of the control's default `height_` (e.g. `ListView` default 200). Shrinking the file-lock/stream dialog no longer lets the list overlap the status or selection labels, and growing it no longer steals the fixed labels' space.
+- **Regression tests**: added headless overlay-hit, default-static-Card, TableView column-resize and title-text-default checks; x64 / x86 Release + ZufyUIDebugger builds and full self-tests pass.
 
 ### 2026-11-20 — PageHost animation and pointer-cancel fixes (v1.29.1)
 - **PageHost reverse transition**: restored the EaseOut inverse to `1 - cbrt(EasedProgress())`, removing the reverse jump.

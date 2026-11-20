@@ -650,11 +650,12 @@ class LayoutHost : public UIElement {
     void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // 默认 Stretch
 };
 class Card  : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
+void SetHoverAnimationEnabled(bool);   bool IsHoverAnimationEnabled() const;   // 默认 false
 void SetContent(const std::wstring& title, const std::wstring& description, std::shared_ptr<UIElement> action=nullptr);
 class Page  : public LayoutHost { DefaultPadding=10; ... };
 void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // 一行套 ScrollViewer(fill)+8px 边距
 ```
-- `LayoutHost` 是“单内容宿主”；`Card` 是带圆角/描边/悬停的卡片；`Page` 是 `TabView`/`PageHost` 的页面容器。
+- `LayoutHost` 是“单内容宿主”；`Card` 是带圆角/描边的静态卡片，默认不播放悬停动画；需要悬停效果时显式调用 `SetHoverAnimationEnabled(true)` 或设置悬停颜色/速度。`Page` 是 `TabView`/`PageHost` 的页面容器。
 - `SetContentAlignment(Center, Center)` 可让 Page/Card 的内容整体居中；默认 `Stretch` 保持旧行为。
 - 空内容时，`Card/Page` 的显式 `SetWidth/SetHeight` 仍然生效；`ScrollViewer` 无内容时也返回显式/有限视口尺寸。
 - `Card::UseCache()` = `HasShadow()`；`Page::UseCache()` = false。
@@ -836,8 +837,10 @@ void SetBackgroundColor(Color);            // 叠加在背景（空/亚克力/�
 void SetContentOpacity(float opacity);     // 弹窗淡入
 void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
 void SetResizable(bool);   void SetTitle(const std::wstring&);
+void SetIcon(HICON big, HICON small);   void SetAppIcon(HICON big, HICON small);
 void SetSuspendAnimationsWhileResizing(bool);   bool GetSuspendAnimationsWhileResizing() const;
 ```
+- `SetIcon` 设置本窗口原生图标并同步当前自定义标题栏；`SetAppIcon` 额外更新窗口类图标，供任务栏/原生标题栏使用。两者都只在 `Create` 之后有效。
 - 背景是**自绘**：Acrylic = 宿主背景 + 自带效果链；Mica = 缓存壁纸层。改参数用 `SetBackgroundParams` 或 `UIZSignals::ReloadAcrylic`。
 - 窗口圆角不再提供公开 API：Win10 保持系统直角以保留 DWM 边框/阴影，Win11 跟随系统圆角。需要自定义圆角时请自行调用 Win32 DWM API，并自行处理 Win10/Snap 的边框阴影风险。
 - `DefaultBackdropColor` 默认纯白（v1.17.0）。`SetContentOpacity` 需合成后端就绪。
@@ -857,7 +860,7 @@ void SetStatusBar(std::shared_ptr<UIElement>);  std::shared_ptr<UIElement> GetSt
 void SetMenuBarInTitleBar(bool on = true);      bool IsMenuBarInTitleBar() const;
 void SetShowTitleText(bool on);                 bool IsShowTitleText() const;
 ```
-- 菜单栏默认**叠在自定义标题栏上**（让开左侧图标、右侧系统按钮）；此时标题文字**默认隐藏**（与菜单互斥，避免重叠）。`SetShowTitleText(true)` → 显示标题、菜单栏**自动移到标题栏下方的客户区顶部**；`SetMenuBarInTitleBar(false)` 强制放到客户区顶部。状态栏固定贴底，根内容高度相应收缩。
+- 自定义标题栏默认显示图标和标题文字；菜单栏随后默认位于标题栏下方的客户区顶部。`SetShowTitleText(false)` 隐藏标题，菜单栏可叠在标题栏上；`SetMenuBarInTitleBar(false)` 强制菜单放到客户区顶部。状态栏固定贴底，根内容高度相应收缩。
 
 ###block_red_start
 **易错**

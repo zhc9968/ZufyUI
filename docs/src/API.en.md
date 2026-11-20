@@ -646,11 +646,12 @@ class LayoutHost : public UIElement {
     void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // default Stretch
 };
 class Card : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
+void SetHoverAnimationEnabled(bool);   bool IsHoverAnimationEnabled() const;   // default false
 void SetContent(const std::wstring& title, const std::wstring& description, std::shared_ptr<UIElement> action=nullptr);
 class Page : public LayoutHost { DefaultPadding=10; ... };
 void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // one line: wrap in ScrollViewer(fill)+8px
 ```
-- `LayoutHost` is a single-content host; `Card` is a rounded/bordered/hover card; `Page` is the page container for `TabView`/`PageHost`.
+- `LayoutHost` is a single-content host; `Card` is a rounded/bordered static card with no hover animation by default; opt in with `SetHoverAnimationEnabled(true)` or by setting hover colors/speed. `Page` is the page container for `TabView`/`PageHost`.
 - `SetContentAlignment(Center, Center)` centers Page/Card content; default `Stretch` keeps old behaviour.
 - With no content, explicit `SetWidth/SetHeight` on `Card/Page` still applies; a `ScrollViewer` without content also returns its explicit/finite viewport size.
 - `Card::UseCache()` = `HasShadow()`; `Page::UseCache()` = false.
@@ -832,8 +833,10 @@ void SetBackgroundColor(Color);
 void SetContentOpacity(float opacity);
 void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
 void SetResizable(bool);   void SetTitle(const std::wstring&);
+void SetIcon(HICON big, HICON small);   void SetAppIcon(HICON big, HICON small);
 void SetSuspendAnimationsWhileResizing(bool);   bool GetSuspendAnimationsWhileResizing() const;
 ```
+- `SetIcon` sets this window's native icon and syncs the current custom title bar; `SetAppIcon` additionally updates the window-class icon for the taskbar/native frame. Both require `Create` first.
 - Backdrop is **hand-rolled** (Acrylic = host backdrop + effect chain; Mica = cached wallpaper layer). Change params via `SetBackgroundParams` or `UIZSignals::ReloadAcrylic`.
 - Window corners are no longer a public API: Windows 10 keeps square corners to preserve DWM border/shadow, Windows 11 follows system rounding. Call Win32 DWM APIs yourself if you need custom corners, and handle Win10/Snap border/shadow risks yourself.
 - **`Version`**: four-layer params `v1.8.1`; `SetContentOpacity` `v1.9.6`.
@@ -852,7 +855,7 @@ void SetStatusBar(std::shared_ptr<UIElement>);  std::shared_ptr<UIElement> GetSt
 void SetMenuBarInTitleBar(bool on = true);      bool IsMenuBarInTitleBar() const;
 void SetShowTitleText(bool on);                 bool IsShowTitleText() const;
 ```
-- The menu bar is **overlaid on the custom title bar by default** (leaving room for the left icon and the right caption buttons); the title text is then **hidden by default** (they are mutually exclusive, to avoid overlap). `SetShowTitleText(true)` shows the title and moves the menu bar to the **top of the client area below the bar**; `SetMenuBarInTitleBar(false)` forces it to the client-area top. The status bar is pinned to the bottom and shrinks the root content height.
+- The custom title bar shows its icon and title text by default; a menu bar then sits at the top of the client area below the title bar. `SetShowTitleText(false)` hides the title and allows the menu bar to overlay the title bar; `SetMenuBarInTitleBar(false)` forces the menu bar to the client-area top. The status bar is pinned to the bottom and shrinks the root content height.
 
 ###block_red_start
 **Pitfall**

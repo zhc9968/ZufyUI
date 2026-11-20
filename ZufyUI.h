@@ -92,8 +92,8 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
 #define ZufyUI_VERSION_MINOR 29
-#define ZufyUI_VERSION_PATCH 1
-#define ZufyUI_VERSION_STRING L"1.29.1"
+#define ZufyUI_VERSION_PATCH 2
+#define ZufyUI_VERSION_STRING L"1.29.2"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -2151,6 +2151,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (visible_ && arrangedRect_.Contains(x, y)) return this;
             return nullptr;
         }
+        virtual UIElement* HitTestOverlay(float, float) { return nullptr; }
 
         virtual void OnMouseEnter() {}
         virtual void OnMouseLeave() {}
@@ -2741,9 +2742,14 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 float xoff = 0.0f;
                 if (crossAlign_ == LayoutAlignment::Center) xoff = max(0.0f, (availW - childW) * 0.5f);
                 else if (crossAlign_ == LayoutAlignment::End) xoff = max(0.0f, availW - childW);
-                float base = child->GetHeight() > 0 ? child->GetHeight() : child->GetDesiredSize().height;
-                base = clamp(base, child->GetMinHeight(), child->GetMaxHeight());   // 先夹到 min/max 再算 leftover（否则 minHeight+拉伸子元素会溢出）
                 float raw = child->GetVerticalStretchWeightRaw();
+                // FillHeight/weight children already measured at their allocated height. Using
+                // GetHeight() here would re-apply the control's default height (e.g. ListView 200)
+                // and let a shrunken dialog push the list over its sibling labels.
+                float base = (child->GetFillHeight() || raw > 0.0f)
+                    ? child->GetDesiredSize().height
+                    : (child->GetHeight() > 0 ? child->GetHeight() : child->GetDesiredSize().height);
+                base = clamp(base, child->GetMinHeight(), child->GetMaxHeight());   // 先夹到 min/max，剩余空间再按权重分配 minHeight+设置高度的元素不会抢走整行
                 float weight = (child->GetFillHeight() || raw > 0.0f) ? (raw > 0.0f ? raw : 1.0f) : 0.0f;
                 its.push_back({ child.get(), base, weight, m.top, m.bottom, m.left, xoff, childW });
                 totalBase += m.top + base + m.bottom;
@@ -3523,9 +3529,15 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void SetCornerRadius(float radius) { cornerRadius_ = radius; RequestRepaint(); }
         void SetBackgroundColor(Color color) { bgColor_ = color; bgBrush_.Reset(); RequestRepaint(); }
         void SetBorderColor(Color color) { borderColor_ = color; borderBrush_.Reset(); RequestRepaint(); }
-        void SetHoverBackgroundColor(Color color) { hoverBgColor_ = color; RequestRepaint(); }
-        void SetHoverBorderColor(Color color) { hoverBorderColor_ = color; RequestRepaint(); }
-        void SetHoverAnimationSpeed(float speed) { hoverSpeed_ = speed; }
+        void SetHoverBackgroundColor(Color color) { hoverBgColor_ = color; hoverAnimationEnabled_ = true; RequestRepaint(); }
+        void SetHoverBorderColor(Color color) { hoverBorderColor_ = color; hoverAnimationEnabled_ = true; RequestRepaint(); }
+        void SetHoverAnimationSpeed(float speed) { hoverSpeed_ = speed; hoverAnimationEnabled_ = true; }
+        void SetHoverAnimationEnabled(bool enable) {
+            hoverAnimationEnabled_ = enable;
+            if (!enable) hoverProgress_ = 0.0f;
+            RequestRepaint();
+        }
+        bool IsHoverAnimationEnabled() const { return hoverAnimationEnabled_; }
 
         static void SetDefaultPadding(float padding) { DefaultPadding = padding; }
         static void SetDefaultCornerRadius(float radius) { DefaultCornerRadius = radius; }
@@ -3603,8 +3615,16 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             // 不再绘制 layout_，子元素由 Window 合成
         }
 
-        void OnMouseEnter() override { hovered_ = true; RequestRepaint(); MouseEnter.Fire(); }
-        void OnMouseLeave() override { hovered_ = false; RequestRepaint(); MouseLeave.Fire(); }
+        void OnMouseEnter() override {
+            hovered_ = true;
+            if (hoverAnimationEnabled_) RequestRepaint();
+            MouseEnter.Fire();
+        }
+        void OnMouseLeave() override {
+            hovered_ = false;
+            if (hoverAnimationEnabled_) RequestRepaint();
+            MouseLeave.Fire();
+        }
 
         UIElement* HitTest(float x, float y) override {
             if (visible_ && arrangedRect_.Contains(x, y)) {
@@ -3615,14 +3635,20 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
 
         void UpdateAnimation(float deltaTime) override {
-            float target = hovered_ ? 1.0f : 0.0f;
-            if (hoverProgress_ < target) { hoverProgress_ += hoverSpeed_ * deltaTime; if (hoverProgress_ > target) hoverProgress_ = target; RequestRepaint(); }
-            else if (hoverProgress_ > target) { hoverProgress_ -= hoverSpeed_ * deltaTime; if (hoverProgress_ < target) hoverProgress_ = target; RequestRepaint(); }
+            if (hoverAnimationEnabled_) {
+                float target = hovered_ ? 1.0f : 0.0f;
+                if (hoverProgress_ < target) { hoverProgress_ += hoverSpeed_ * deltaTime; if (hoverProgress_ > target) hoverProgress_ = target; RequestRepaint(); }
+                else if (hoverProgress_ > target) { hoverProgress_ -= hoverSpeed_ * deltaTime; if (hoverProgress_ < target) hoverProgress_ = target; RequestRepaint(); }
+            }
+            else {
+                hoverProgress_ = 0.0f;
+            }
             if (layout_) layout_->UpdateAnimation(deltaTime);
         }
 
         bool HasActiveAnimation() const override {
-            bool hoverAnim = (hovered_ ? (hoverProgress_ < 0.999f) : (hoverProgress_ > 0.001f));
+            bool hoverAnim = hoverAnimationEnabled_ &&
+                (hovered_ ? (hoverProgress_ < 0.999f) : (hoverProgress_ > 0.001f));
             return hoverAnim || (layout_ ? layout_->HasActiveAnimation() : false);
         }
 
@@ -3644,6 +3670,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         Color hoverBorderColor_;
         float hoverProgress_ = 0.0f;
         bool hovered_ = false;
+        bool hoverAnimationEnabled_ = false;
         float hoverSpeed_ = 8.0f;
         ComPtr<ID2D1SolidColorBrush> bgBrush_;
         ComPtr<ID2D1SolidColorBrush> borderBrush_;
@@ -5202,7 +5229,15 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 // 套用当前标题栏可见性，避免“先 SetTitleBarVisible(false) 再装栏”时状态不一致
                 customTitleBar_->SetVisible(titleBarVisible_);
                 // 把当前窗口标题灌进标题栏（否则自定义标题栏标题为空）
-                { wchar_t buf[512] = {}; if (hwnd_) GetWindowTextW(hwnd_, buf, 512); lastWindowTitle_ = buf; customTitleBar_->SetWindowTitle(lastWindowTitle_); }
+                {
+                    wchar_t buf[512] = {};
+                    if (hwnd_) GetWindowTextW(hwnd_, buf, 512);
+                    lastWindowTitle_ = buf;
+                    customTitleBar_->SetWindowTitle(lastWindowTitle_);
+                    HICON icon = hwnd_ ? (HICON)SendMessageW(hwnd_, WM_GETICON, ICON_BIG, 0) : nullptr;
+                    if (!icon && hwnd_) icon = (HICON)GetClassLongPtrW(hwnd_, GCLP_HICON);
+                    if (icon) customTitleBar_->SetWindowIconFromHICON(icon);
+                }
             }
             bool wasCustom = customFrame_;
             customFrame_ = (customTitleBar_ != nullptr);
@@ -5240,11 +5275,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE);
         }
         std::shared_ptr<UIElement> GetMenuBar() const { return menuBar_; }
-        // 有自定义标题栏时，菜单栏默认直接叠在标题栏上（可关掉，改为放在客户区顶部、根内容下移）
+        // 有自定义标题栏时，菜单栏是否叠在标题栏上。默认 false：标题文字可见，菜单栏在下方；
+        // 仅当 SetShowTitleText(false) 隐藏标题后，叠放才有意义。
         void SetMenuBarInTitleBar(bool on) { if (menuBarInTitleBar_ != on) { menuBarInTitleBar_ = on; layoutNeeded_ = true; layoutInvalidated_ = true; if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE); } }
         bool IsMenuBarInTitleBar() const { return menuBarInTitleBar_; }
-        // 自定义标题栏是否显示标题文字。默认关：菜单栏叠在标题栏上（两者互斥，避免重叠）。
-        // 打开它 → 标题文字显示，菜单栏自动改为放到客户区顶部（标题栏下方）。
+        // 自定义标题栏是否显示标题文字。默认开：标题栏显示图标和标题，菜单栏位于下方。
+        // 关闭后标题隐藏，菜单栏可选择叠在标题栏上（与标题文字互斥，避免重叠）。
         void SetShowTitleText(bool on) { if (showTitleText_ != on) { showTitleText_ = on; layoutNeeded_ = true; layoutInvalidated_ = true; if (hwnd_) InvalidateRect(hwnd_, nullptr, FALSE); } }
         bool IsShowTitleText() const { return showTitleText_; }
 
@@ -5331,10 +5367,15 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 原生标题栏文字 / 图标（装了自定义标题栏时，标题请用 TitleBar::SetTitle）
         void SetTitle(const std::wstring& title) { if (hwnd_) SetWindowTextW(hwnd_, title.c_str()); }
         std::wstring GetTitle() const { wchar_t b[512] = {}; if (hwnd_) GetWindowTextW(hwnd_, b, 512); return b; }
+        // Set this window's icon: native window + current custom title bar.
+        // Does not touch the window-class icon; use SetAppIcon for app/class-wide icons.
         void SetIcon(HICON bigIcon, HICON smallIcon) {
             if (!hwnd_) return;
-            if (bigIcon) SendMessageW(hwnd_, WM_SETICON, ICON_BIG, (LPARAM)bigIcon);
-            if (smallIcon) SendMessageW(hwnd_, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
+            HICON big = bigIcon ? bigIcon : smallIcon;
+            HICON smallIconUse = smallIcon ? smallIcon : bigIcon;
+            if (big) SendMessageW(hwnd_, WM_SETICON, ICON_BIG, (LPARAM)big);
+            if (smallIconUse) SendMessageW(hwnd_, WM_SETICON, ICON_SMALL, (LPARAM)smallIconUse);
+            if (customTitleBar_ && big) customTitleBar_->SetWindowIconFromHICON(big);
         }
 
         // 统一设置应用图标：一次同时设「原生标题栏 / 任务栏 / Alt-Tab」+「自定义标题栏上的图标」
@@ -5342,13 +5383,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (!hwnd_) return;
             HICON big = bigIcon ? bigIcon : smallIcon;
             HICON smallIconUse = smallIcon ? smallIcon : bigIcon;
-            if (big) SendMessageW(hwnd_, WM_SETICON, ICON_BIG, (LPARAM)big);
-            if (smallIconUse) SendMessageW(hwnd_, WM_SETICON, ICON_SMALL, (LPARAM)smallIconUse);
-            if (customTitleBar_) customTitleBar_->SetWindowIconFromHICON(big);
-            // 同时更新窗口类图标：没有自定义标题栏（原生标题栏/新窗口）时也能取到图标
+            SetIcon(big, smallIconUse);
+            // Also update the window-class icon so native title bars / taskbar get it too.
             if (big) SetClassLongPtrW(hwnd_, GCLP_HICON, (LONG_PTR)big);
             if (smallIconUse) SetClassLongPtrW(hwnd_, GCLP_HICONSM, (LONG_PTR)smallIconUse);
-            // 强制刷新非客户区（部分系统要这个才会立刻换掉标题栏图标）
+            // Force a non-client refresh so the system re-lays out taskbar/title buttons.
             SetWindowPos(hwnd_, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
         }
 
@@ -5532,7 +5571,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         void MaximizeRestore() { if (hwnd_) { if (IsZoomed(hwnd_)) Restore(); else Maximize(); } }
         bool IsMaximizedWindow() const { return hwnd_ && IsZoomed(hwnd_) != FALSE; }
         // 发起系统级拖动：拖动 / Aero Snap / 双击最大化全部交给系统
-        void BeginSystemDrag() { if (hwnd_ && movable_) { ReleaseCapture(); SendMessageW(hwnd_, WM_NCLBUTTONDOWN, HTCAPTION, 0); } }
+        void BeginSystemDrag() { if (hwnd_ && movable_) { ReleaseMouseCapture(); SendMessageW(hwnd_, WM_NCLBUTTONDOWN, HTCAPTION, 0); } }
 
         // ---- 闪烁提示 ----
         // 注意：FLASHW_CAPTION 对“自定义标题栏”无效；要任务栏也闪必须用 FLASHW_ALL。
@@ -5674,7 +5713,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             //   主窗口仍持有捕获 → 系统把鼠标消息优先路由给捕获窗口，表现为“弹窗第一次点击**穿透**到
             //   后面的主窗口”，且那次点击让主窗口自己释放捕获，所以只有第一次坏。
             //   先释放即可根治；Capture 属于本线程时才有效，跨线程不会乱动。
-            if (GetCapture()) ReleaseCapture();
+            ReleaseMouseCapture();
             Window* ow = owner ? owner : owner_;
             HWND ownerHwnd = ow ? ow->hwnd_ : nullptr;
             if (!ownerHwnd) ownerHwnd = GetActiveWindow();
@@ -5788,11 +5827,21 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
         // 统一的命中测试：先自定义标题栏，再根布局树（标题栏不参与布局、不在根树下，
         // 必须单独纳入，否则它收不到任何鼠标事件）。
+        UIElement* HitTestOverlayElement(UIElement* elem, float x, float y) {
+            if (!elem) return nullptr;
+            UIElement* hit = elem->HitTestOverlay(x, y);
+            for (UIElement* child : elem->GetChildren()) {
+                if (UIElement* childHit = HitTestOverlayElement(child, x, y)) hit = childHit;
+            }
+            return hit;
+        }
         UIElement* HitTestElement(float x, float y) {
             if (menuBar_) { if (UIElement* h = menuBar_->HitTest(x, y)) return h; }
             if (statusBar_) { if (UIElement* h = statusBar_->HitTest(x, y)) return h; }
             if (customTitleBar_) { if (UIElement* h = customTitleBar_->HitTest(x, y)) return h; }
-            return rootElement_ ? rootElement_->HitTest(x, y) : nullptr;
+            if (!rootElement_) return nullptr;
+            if (UIElement* overlay = HitTestOverlayElement(rootElement_.get(), x, y)) return overlay;
+            return rootElement_->HitTest(x, y);
         }
         // 自定义边框下的非客户区命中测试（缩放边 + 拖动区）
         LRESULT HitTestNonClient(POINT clientPtPx) {
@@ -5876,6 +5925,12 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 控件鼠标捕获（按窗口路由）
         void RequestElementCapture(UIElement* elem) { if (elem) mouseCaptureElement_ = elem; }
         void ReleaseElementCapture(UIElement* elem) { if (mouseCaptureElement_ == elem) mouseCaptureElement_ = nullptr; }
+        void ReleaseMouseCapture() {
+            if (!hwnd_ || GetCapture() != hwnd_) return;
+            suppressCaptureCancel_ = true;
+            ReleaseCapture();
+            suppressCaptureCancel_ = false;
+        }
 
     public:
         // 窗口实例信号：按窗口区分激活/失活/关闭
@@ -6507,7 +6562,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 pressedElement_ = nullptr;
                 // OLE drag-out temporarily takes capture from the source HWND.
                 // That is not a pointer cancellation and must not disturb DoDragDrop.
-                if (!oleDragActive_) {
+                if (!oleDragActive_ && !suppressCaptureCancel_) {
                     mouseCaptureElement_ = nullptr;
                     if (pressed) pressed->OnPointerCancel();
                     if (captured && captured != pressed) captured->OnPointerCancel();
@@ -7409,7 +7464,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (mouseCaptureElement_) {
                 if (pressedElement_) {
                     pressedElement_ = nullptr;
-                    ReleaseCapture();
+                    ReleaseMouseCapture();
                 }
                 mouseCaptureElement_->OnMouseDown(x, y);
                 return;
@@ -7449,7 +7504,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (a) a->OnMouseUp(x, y);
             if (b && b != a) b->OnMouseUp(x, y);
             pressedElement_ = nullptr;
-            if (GetCapture() == hwnd_) ReleaseCapture();
+            ReleaseMouseCapture();
             UpdateHover(x, y);
             RefreshPointerCursor();
         }
@@ -8268,7 +8323,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             closeReason_ = reason;
             presentationState_ = PresentationState::Closing;
             inputBlocked_ = true;
-            if (GetCapture() == hwnd_) ReleaseCapture();
+            ReleaseMouseCapture();
             if (!wasClosing) CloseAccepted.Fire(reason);
             if (!hwnd_) return;
             StartPresentation(0, forced || !IsWindowVisible(hwnd_) ? 0 : exitDuration_);
@@ -8363,8 +8418,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 自定义标题栏 / 窗口外观
         std::shared_ptr<UIElement> customTitleBar_;
         std::shared_ptr<UIElement> menuBar_, statusBar_;
-        bool  menuBarInTitleBar_ = true;
-        bool  showTitleText_ = false;   // 默认隐藏标题文字（菜单栏叠在标题栏上）；true → 显示标题、菜单栏下移
+        bool  menuBarInTitleBar_ = false;   // title text is visible by default, so the menu bar starts below it
+        bool  showTitleText_ = true;   // 默认显示标题文字；菜单栏默认位于标题栏下方
         float menuBarHeight_ = 0.0f, statusBarHeight_ = 0.0f;
         Theme theme_;                   // 窗口级主题（useAppTheme_ == false 时生效）
         bool  useAppTheme_ = true;
@@ -8396,6 +8451,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool haveBehaviorRect_ = false;
         bool inputBlocked_ = false;   // 模态弹窗（子窗口形态）时屏蔽本窗口输入
         bool oleDragActive_ = false;
+        bool suppressCaptureCancel_ = false;
         bool accessibilityEnabled_ = true;   // 无障碍（UIA）：默认开启
         bool nonBlockingPresent_ = false;
         bool displayFramePacing_ = false;

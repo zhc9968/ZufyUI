@@ -1,7 +1,7 @@
 ﻿# ZufyUI 交接文档（HANDOFF）
 
 > 给**下一位接手者 / AI 智能体**：读这一份即可上手。配套：`AGENTS.md`（硬规则）、`TODO.md`（本地待办，不发布）、`docs/src/API.md`（API 参考）、`docs/src/API.en.md`（英文）、`README.md`（构建/快速开始）。
-> 版本基线：`1.29.1`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
+> 版本基线：`1.29.2`。**先读「§1 硬规则」和「§6 坑与经验」，再看代码。**（易错点总表另见 `docs/pitfalls.md`。）
 > v1.27.0 已包含 Win10 Acrylic host backdrop、Win10/Win11 自定义边框与 Snap 阴影、渲染驱动切换、公开圆角 API 移除；布局/UIA/动画修复的历史记录见 CHANGELOG。
 > v1.27.1：停用实验性独立渲染线程，右键菜单适配非 DWM chrome，修复菜单栏残留 hover、标题栏隐藏/原生切换后的菜单位置，以及 resize 新帧滞后。
 > v1.27.2：窗口裸指针/UIA 崩溃修复、TreeView 末列补宽、SplitView 按钮/全页面切换、托盘点击回退、Drawer 关闭刷新、Card margin、密码框眼睛按钮与 MessageBox 高度修复。
@@ -9,6 +9,7 @@
 > v1.28.0：非阻塞 Present / 高刷新帧节拍（opt-in）、菜单默认同步、私有 DirectWrite 字体集合、UIA provider 根/子统一断开与 WM_DESTROY 事件映射清理。
 > v1.29.0：指针/焦点反馈、窗口过渡动画、菜单回调队列与 PageHost 反向导航；同步修复 API 文档第 8 章标题和乱码。
 > v1.29.1：修复 PageHost EaseOut 反向跳动、动画中命中错位与删页索引；接线 `OnPointerCancel`（OLE 拖出豁免）；非标准窗口恢复 Opening/Opened。
+> v1.29.2：自定义标题栏默认显示标题文字和图标（`SetIcon` 同步自定义栏，`SetAppIcon` 补窗口类图标）；Card 默认无悬停动画（需显式启用）；ComboBox 展开列表按覆盖层优先命中，避免落到下面的 Card；正常释放捕获不再误判为指针取消；数据视图列宽变化使缓存失效。
 
 ---
 

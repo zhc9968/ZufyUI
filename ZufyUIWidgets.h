@@ -2629,6 +2629,12 @@ namespace ZufyUI {
             return nullptr;
         }
 
+        UIElement* HitTestOverlay(float x, float y) override {
+            if (visible_ && (expanded_ || expandProgress_ > 0.01f) && IsPointInExpandedList(x, y))
+                return this;
+            return nullptr;
+        }
+
         void Draw(ID2D1RenderTarget* rt) override {
             if (!visible_) return;
             IDWriteTextFormat* fmt = GetFontFormat();
@@ -2865,6 +2871,7 @@ namespace ZufyUI {
 
         void OnMouseEnter() override { hovered_ = true; RequestRepaint(); MouseEnter.Fire(); }
         void OnMouseLeave() override { hovered_ = false; hoveredItemIndex_ = -1; RequestRepaint(); MouseLeave.Fire(); }
+        void OnPointerCancel() override { CollapseInternal(); hovered_ = false; hoveredItemIndex_ = -1; pressedItemIndex_ = -1; }
 
         void OnMouseMove(float x, float y) override {
             auto _rg = RenderGuard();
@@ -9124,7 +9131,7 @@ namespace ZufyUI {
         else if (auto* rb = dynamic_cast<RadioButton*>(e)) { rb->SetAccentColor(t.Get(ThemeRole::Accent)); rb->SetBorderColor(t.Get(ThemeRole::Border)); rb->SetLabelColor(t.Get(ThemeRole::Text)); rb->SetRowHighlightColor(t.Get(ThemeRole::Selection)); }
         else if (auto* nb = dynamic_cast<NumberBox*>(e)) { nb->SetColors(t.Get(ThemeRole::SurfaceAlt), t.Get(ThemeRole::TextSecondary), t.Get(ThemeRole::Accent)); { Color hv = t.Get(ThemeRole::Text); hv.a = 0.12f; nb->SetHoverColors(hv, t.Get(ThemeRole::Danger)); } }
         else if (auto* tv = dynamic_cast<TabView*>(e)) { tv->SetBackgroundColor(t.Get(ThemeRole::Surface)); tv->SetContentColor(t.Get(ThemeRole::Surface)); tv->SetIndicatorColor(t.Get(ThemeRole::Accent)); tv->SetTextColor(t.Get(ThemeRole::TextSecondary), t.Get(ThemeRole::Text)); tv->SetSelectedTabColor(t.Get(ThemeRole::Control)); { Color hv = t.Get(ThemeRole::Text); hv.a = 0.08f; tv->SetHoverColor(hv); } }
-        else if (auto* card = dynamic_cast<Card*>(e)) { card->SetBackgroundColor(t.Get(ThemeRole::SurfaceRaised)); card->SetHoverBackgroundColor(t.Get(ThemeRole::SurfaceAlt)); card->SetBorderColor(t.Get(ThemeRole::Border)); /* 悬停不改边框色：原设 Accent → 卡片一悬停就闪蓝框 */ }
+        else if (auto* card = dynamic_cast<Card*>(e)) { card->SetBackgroundColor(t.Get(ThemeRole::SurfaceRaised)); card->SetBorderColor(t.Get(ThemeRole::Border)); }
         else if (auto* dr = dynamic_cast<Drawer*>(e)) { dr->ApplyTheme(t); }
         else if (auto* sv = dynamic_cast<SplitView*>(e)) { Color hv = t.Get(ThemeRole::Accent); hv.a = 0.35f; sv->SetSplitterColor(t.Get(ThemeRole::Divider)); sv->SetHoverColor(hv); sv->SetExpandButtonColors(t.Get(ThemeRole::Control), t.Get(ThemeRole::ControlHover), t.Get(ThemeRole::Text)); }
         else if (auto* mb = dynamic_cast<MenuBar*>(e)) { mb->SetTextColor(t.Get(ThemeRole::Text)); mb->SetHoverColor(t.Get(ThemeRole::ControlHover)); mb->SetOpenColor(t.Get(ThemeRole::ControlPressed)); }
