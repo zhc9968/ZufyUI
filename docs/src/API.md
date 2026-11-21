@@ -1359,12 +1359,23 @@ void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransit
 ## MenuItem
 
 ```cpp
-enum class Type { Normal, Separator, Submenu };
+enum class Type { Normal, Separator, Submenu, Row };
+enum class MenuRowLayout { Inline, IconTop };
+enum class MenuRowWidth { Equal, ContentFit };
+struct MenuRowOptions {
+    int columns = 0;   float gap = 4.0f;   float minItemWidth = 72.0f;   float maxItemWidth = 180.0f;
+    float inlineHeight = 32.0f;   float iconTopHeight = 64.0f;
+    float iconSize = 18.0f;   float iconTopSize = 24.0f;
+    MenuRowLayout layout = MenuRowLayout::Inline;   MenuRowWidth width = MenuRowWidth::Equal;
+    bool showShortcuts = false;
+};
 std::wstring text;   ZSignal<> Clicked;   std::shared_ptr<Menu> submenu;
 Type type = Normal;   bool enabled = true;   int id = 0;
 bool checkable = false, checked = false, radio = false, isDefault = false, danger = false;
 std::wstring shortcut;   std::optional<Color> bgColor, textColor;   std::optional<FontSpec> font;
-std::shared_ptr<Label> icon;
+std::shared_ptr<UIElement> icon;
+std::vector<std::shared_ptr<MenuItem>> children;   MenuRowOptions rowOptions;
+void SetGlyphIcon(Icon, float size = 0.0f);   void SetImageIcon(std::shared_ptr<Image>, float w = 0, float h = 0);
 ```
 
 ## Menu
@@ -1375,11 +1386,17 @@ void AddCheckItem(const std::wstring& text, bool checked);
 void AddCheckItemCb(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
 void AddCheckItemRadio(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
 void AddSeparator();   void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id=0);
+static std::shared_ptr<MenuItem> MakeItem(const std::wstring& text, std::function<void()> cb = nullptr, int id = 0);
+void AddRow(std::vector<std::shared_ptr<MenuItem>> children, MenuRowOptions options = {});
 std::vector<std::shared_ptr<MenuItem>> items;
 std::function<void(Menu&)> onOpening;   ZSignal<int> ItemSelected;
 std::function<void()> onClosed;   // 弹出层关闭后回调
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // 独立弹出（托盘/右键）
 ```
+- `AddRow` 创建一个横向行（`Type::Row`）；子项使用独立图标/文字/禁用/danger/快捷键/子菜单。行内每项拥有独立 hover 区域，Row 本身不是可点击命令。
+- `MenuRowLayout::IconTop` 使用图标在上、文字在下；`ContentFit` 按内容测宽后分配，`Equal` 均分。
+- `MenuItem::icon` 是独立 `UIElement`；`SetGlyphIcon` / `SetImageIcon` 会创建自己的 `Label`，不要跨菜单项复用同一可视元素。
+- 菜单回调仍然推迟到 UI 帧执行；Row 子项回调只触发一次。
 
 ###block_red_start
 **易错**

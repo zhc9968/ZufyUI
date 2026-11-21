@@ -15,7 +15,7 @@ namespace {
         L"首页", L"基础控件", L"输入与滚动", L"嵌套与联动", L"列表视图", L"表格视图",
         L"树形视图", L"树形增强", L"图像", L"多窗口", L"窗口属性", L"新控件A", L"新控件B",
         L"多行文本", L"条形图", L"折线图", L"饼图", L"拖放", L"设置卡片", L"主题", L"DSL", L"环境组合", L"原生HWND", L"抽屉",
-        L"布局压力测试", L"弹窗行为", L"全控件总览"
+        L"布局压力测试", L"弹窗行为", L"右键菜单行", L"全控件总览"
     };
     inline constexpr int kPageCount = (int)(sizeof(kPageNames) / sizeof(kPageNames[0]));
     inline const wchar_t* CloseReasonName(Window::CloseReason reason) {
@@ -388,6 +388,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     navList->AddItem(L"抽屉");
     navList->AddItem(L"布局压力测试");
     navList->AddItem(L"弹窗行为");
+    navList->AddItem(L"右键菜单行");
     navList->AddItem(L"全控件总览");
     navList->SetSelectedIndex(0);
     mainRow->AddChild(navList);
@@ -4312,6 +4313,190 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         allOuter->AddChild(allScroll, 0, 0);
         pageAll->SetLayout(allOuter);
     }
+    // ---------- 右键菜单横向行压力测试页 ----------
+    auto pageMenuRows = std::make_shared<Page>();
+    {
+        using namespace ::ZufyUI::dsl;
+        auto col = ZCol().spacing(8.0f).margin(Thickness(16, 16, 16, 16));
+        auto info = ZLbl(L"点按钮打开不同构造方式的右键菜单；卡片空白处可直接右键。").shared();
+        AddSection(col, L"右键菜单横向行：Inline / IconTop / Equal / ContentFit / 禁用 / danger / 快捷键 / 子菜单");
+        col->AddChild(info);
+
+        auto makeItem = [&](const std::wstring& text, Icon icon, bool danger = false,
+                            bool disabled = false, const std::wstring& shortcut = L"") {
+            auto item = Menu::MakeItem(text, [info, text]() { info->SetText(L"触发：" + text); });
+            item->SetGlyphIcon(icon, 18.0f);
+            item->danger = danger;
+            item->enabled = !disabled;
+            item->shortcut = shortcut;
+            return item;
+        };
+        auto makeSubmenu = [&](const std::wstring& text, Icon icon) {
+            auto sub = std::make_shared<Menu>();
+            sub->AddItem(L"子命令 A", [info, text]() { info->SetText(L"子菜单：" + text + L" / A"); });
+            sub->AddItem(L"子命令 B", [info, text]() { info->SetText(L"子菜单：" + text + L" / B"); });
+            auto item = Menu::MakeItem(text);
+            item->type = MenuItem::Type::Submenu;
+            item->submenu = sub;
+            item->SetGlyphIcon(icon, 18.0f);
+            return item;
+        };
+        auto makeBaseMenu = [&](const std::wstring& title) {
+            auto menu = std::make_shared<Menu>();
+            menu->AddItem(L"普通纵向命令", [info, title]() { info->SetText(title + L" / 普通命令"); });
+            menu->items.back()->SetGlyphIcon(Icon::Edit, 18.0f);
+            return menu;
+        };
+        auto addMenuButton = [&](const std::shared_ptr<GridLayout>& grid, int row, int column,
+                                 const std::wstring& text, const std::shared_ptr<Menu>& menu,
+                                 const std::wstring& note) {
+            auto button = std::make_shared<Button>(text);
+            button->SetHeight(30.0f);
+            button->SetFillWidth(true);
+            button->Clicked.connect([menu, info, note]() { info->SetText(note); menu->ShowAtCursor(); });
+            grid->AddChild(button, row, column);
+        };
+
+        auto grid = std::make_shared<GridLayout>();
+        grid->SetSpacing(6.0f, 6.0f);
+        for (int c = 0; c < 3; ++c) grid->SetColumnStretch(c, 1.0f);
+
+        {
+            MenuRowOptions o; o.showShortcuts = true;
+            auto m = makeBaseMenu(L"2 列 Inline");
+            m->AddSeparator();
+            m->AddRow({ makeItem(L"打开", Icon::Open), makeItem(L"打开位置", Icon::Folder, false, false, L"Ctrl+O") }, o);
+            addMenuButton(grid, 0, 0, L"2 列 Inline", m, L"2 列 Inline：打开 / 打开位置");
+        }
+        {
+            MenuRowOptions o; o.layout = MenuRowLayout::Inline;
+            auto m = makeBaseMenu(L"3 列 Inline");
+            m->AddSeparator();
+            m->AddRow({ makeItem(L"复制", Icon::Copy), makeItem(L"剪切", Icon::Cut),
+                        makeItem(L"删除", Icon::Delete, true) }, o);
+            addMenuButton(grid, 0, 1, L"3 列 Inline", m, L"3 列 Inline：复制 / 剪切 / danger 删除");
+        }
+        {
+            MenuRowOptions o;
+            auto m = makeBaseMenu(L"4 列 Inline");
+            m->AddSeparator();
+            m->AddRow({ makeItem(L"复制", Icon::Copy), makeItem(L"剪切", Icon::Cut),
+                        makeItem(L"粘贴", Icon::Paste), makeItem(L"删除", Icon::Delete, true) }, o);
+            addMenuButton(grid, 3, 0, L"4 列 Inline", m, L"4 列 Inline：复制 / 剪切 / 粘贴 / 删除");
+        }
+        {
+            MenuRowOptions o; o.columns = 5; o.gap = 3.0f; o.minItemWidth = 62.0f; o.maxItemWidth = 120.0f;
+            auto m = makeBaseMenu(L"5 列压缩");
+            m->AddSeparator();
+            m->AddRow({ makeItem(L"新建", Icon::Add), makeItem(L"保存", Icon::Save),
+                        makeItem(L"刷新", Icon::Refresh), makeItem(L"固定", Icon::Pin),
+                        makeItem(L"禁用", Icon::Settings, false, true) }, o);
+            addMenuButton(grid, 0, 2, L"5 列压缩", m, L"5 列压缩：含禁用项");
+        }
+        {
+            MenuRowOptions o; o.layout = MenuRowLayout::IconTop; o.iconTopHeight = 56.0f; o.iconTopSize = 22.0f;
+            auto m = makeBaseMenu(L"图标在上");
+            m->AddSeparator();
+            m->AddRow({ makeItem(L"设置", Icon::Settings), makeItem(L"共享", Icon::Share),
+                        makeItem(L"下载", Icon::Download) }, o);
+            addMenuButton(grid, 1, 0, L"图标在上", m, L"IconTop：图标在上、文字在下");
+        }
+        {
+            MenuRowOptions o; o.width = MenuRowWidth::ContentFit; o.gap = 8.0f;
+            auto m = makeBaseMenu(L"ContentFit");
+            m->AddSeparator();
+            m->AddRow({ makeItem(L"短", Icon::Check), makeItem(L"更长的命令名称", Icon::Search),
+                        makeItem(L"中", Icon::More) }, o);
+            addMenuButton(grid, 1, 1, L"ContentFit", m, L"ContentFit：按内容测宽再分配");
+        }
+        {
+            MenuRowOptions o;
+            auto m = makeBaseMenu(L"Row 子菜单");
+            m->AddSeparator();
+            m->AddRow({ makeSubmenu(L"打开方式", Icon::Open), makeItem(L"属性", Icon::Settings),
+                        makeItem(L"快捷键", Icon::Link, false, false, L"Ctrl+K") }, o);
+            addMenuButton(grid, 1, 2, L"Row 子菜单", m, L"Row 子项带子菜单与快捷键");
+        }
+        {
+            MenuRowOptions o;
+            auto m = makeBaseMenu(L"混合分组");
+            m->AddSeparator();
+            m->AddRow({ makeItem(L"第一组 A", Icon::Add), makeItem(L"第一组 B", Icon::Remove) }, o);
+            m->AddSeparator();
+            m->AddRow({ makeItem(L"危险一", Icon::Delete, true), makeItem(L"危险二", Icon::Delete, true),
+                        makeItem(L"普通", Icon::Edit) }, o);
+            addMenuButton(grid, 2, 0, L"混合分组", m, L"分隔线不会破坏横向行");
+        }
+        {
+            auto m = makeBaseMenu(L"空行 / 单列");
+            MenuRowOptions o;
+            m->AddRow({ makeItem(L"单列行", Icon::View) }, o);
+            m->AddRow({}, o);
+            m->AddItem(L"普通尾部", [info]() { info->SetText(L"空行后的普通项"); });
+            addMenuButton(grid, 2, 1, L"空行 / 单列", m, L"空 Row 与单列 Row 边界");
+        }
+        {
+            auto m = makeBaseMenu(L"极端行");
+            MenuRowOptions o; o.columns = 6; o.gap = 0.0f; o.minItemWidth = 40.0f; o.maxItemWidth = 240.0f;
+            m->AddRow({ makeItem(L"1", Icon::Add), makeItem(L"2", Icon::Remove),
+                        makeItem(L"3", Icon::Save), makeItem(L"4", Icon::Copy),
+                        makeItem(L"5", Icon::Cut), makeItem(L"6", Icon::Delete, true) }, o);
+            addMenuButton(grid, 2, 2, L"极端行", m, L"6 列 / gap 0 / 极窄与极宽");
+        }
+        col->AddChild(grid);
+
+        auto stress = std::make_shared<Menu>();
+        stress->AddItem(L"压力菜单：30 行混合构造", [info]() { info->SetText(L"压力菜单已触发"); });
+        for (int i = 0; i < 30; ++i) {
+            MenuRowOptions o;
+            o.gap = (i % 3 == 0) ? 0.0f : 5.0f;
+            o.layout = (i % 4 == 0) ? MenuRowLayout::IconTop : MenuRowLayout::Inline;
+            o.width = (i % 2 == 0) ? MenuRowWidth::Equal : MenuRowWidth::ContentFit;
+            o.minItemWidth = (i % 5 == 0) ? 42.0f : 68.0f;
+            o.maxItemWidth = (i % 7 == 0) ? 220.0f : 150.0f;
+            std::vector<std::shared_ptr<MenuItem>> row;
+            const int count = 1 + (i % 5);
+            for (int c = 0; c < count; ++c) {
+                static const Icon icons[] = { Icon::Add, Icon::Copy, Icon::Delete, Icon::Save, Icon::Settings, Icon::Open };
+                auto it = makeItem(L"项 " + std::to_wstring(i) + L"-" + std::to_wstring(c), icons[c % 6],
+                                   (c + i) % 11 == 0, (c + i) % 13 == 0,
+                                   (c == 0 && i % 3 == 0) ? L"Ctrl+" + std::to_wstring(c + 1) : L"");
+                row.push_back(it);
+            }
+            stress->AddRow(std::move(row), o);
+            if (i % 7 == 6) stress->AddSeparator();
+        }
+        auto stressBtn = std::make_shared<Button>(L"30 行压力菜单");
+        stressBtn->SetHeight(30.0f);
+        stressBtn->Clicked.connect([stress, info]() { info->SetText(L"30 行混合菜单"); stress->ShowAtCursor(); });
+        col->AddChild(stressBtn);
+
+        auto rightCard = std::make_shared<Card>();
+        rightCard->SetHeight(72.0f);
+        rightCard->SetContent(std::make_shared<Label>(L"在这里右键：动态构造菜单（随机列数 / 图标 / 禁用 / danger / 子菜单）"));
+        auto dynamicMenu = [info]() {
+            auto m = std::make_shared<Menu>();
+            m->AddItem(L"动态菜单命中", [info]() { info->SetText(L"动态菜单命中"); });
+            MenuRowOptions o;
+            o.width = MenuRowWidth::ContentFit;
+            o.layout = (rand() & 1) ? MenuRowLayout::IconTop : MenuRowLayout::Inline;
+            std::vector<std::shared_ptr<MenuItem>> row;
+            for (int c = 0; c < 2 + (rand() % 4); ++c) {
+                auto it = Menu::MakeItem(L"动态 " + std::to_wstring(c),
+                                         [info, c]() { info->SetText(L"动态项 " + std::to_wstring(c)); });
+                it->SetGlyphIcon((c & 1) ? Icon::Folder : Icon::Edit, 18.0f);
+                it->danger = (c % 4 == 3);
+                it->enabled = !(c % 5 == 4);
+                row.push_back(it);
+            }
+            m->AddRow(std::move(row), o);
+            return m;
+        };
+        rightCard->SetContextMenuFactory(dynamicMenu);
+        col->AddChild(rightCard);
+        SetScrollablePage(pageMenuRows, col.shared());
+    }
+    mainHost->AddPage(pageMenuRows);
     mainHost->AddPage(pageAll);
 
     // 主页面导航：记录当前索引，根据相对位置设置上下方向

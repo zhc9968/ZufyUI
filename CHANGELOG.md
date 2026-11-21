@@ -2,7 +2,11 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.29.2**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.30.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-11-20 — 右键菜单横向行（v1.30.0）
+- **横向菜单行**：`MenuItem::Type::Row` + `MenuRowLayout/MenuRowWidth/MenuRowOptions`；`Menu::AddRow` / `MakeItem`，`SetGlyphIcon` / `SetImageIcon`。支持 2–6 列、Inline/IconTop、Equal/ContentFit、独立 hover/pressed/disabled/danger/快捷键/子菜单；MenuWindow 的测量、命中、键盘、子菜单锚点同步升级。IconTop 文字居中，单元格文本/快捷键/箭头按单元格裁剪并省略，禁用项的图标/图片使用禁用色或透明度。
+- **演示与验证**：新增“右键菜单行”页面，覆盖 2/3/4/5/6 列、图标在上、ContentFit、混合分组、空行、禁用/danger、动态右键菜单与 30 行压力菜单；新增 API 回归检查。
 
 ### 2026-11-20 — Card 悬停与 ComboBox 展开层命中修复（v1.29.2）
 - **Card 默认静态**：`Card` 不再默认播放悬停动画；主题只更新背景/边框，不再强制注入悬停背景。需要悬停效果的卡片可显式调用 `SetHoverAnimationEnabled(true)`、`SetHoverBackgroundColor`、`SetHoverBorderColor` 或 `SetHoverAnimationSpeed`。
@@ -11,7 +15,7 @@
 - **标题栏默认显示**：`Window::showTitleText_` 默认改为 true；`SetIcon` 现在同时同步原生窗口和当前自定义标题栏，`SetCustomTitleBar` 会继承创建时已有的窗口图标；`SetAppIcon` 复用 `SetIcon` 后再补窗口类图标。自定义图标/标题不再需要应用额外调用可见性开关。
 - **菜单栏默认位置**：`menuBarInTitleBar_` 默认改为 false；标题默认可见时菜单栏默认在标题栏下方，只有显式请求且隐藏标题文字时才叠加到标题栏。
 - **数据视图列宽缓存**：`TableView`/`TreeView` 的 `SetColumnWidth` 现在同时 `InvalidateCache()`，避免列宽变化后重画旧表头缓存。
-- **ColumnBox 弹性高度**：`FillHeight`/权重子元素在 Arrange 阶段改用 Measure 分配后的高度，而不是控件默认 `height_`（如 `ListView` 默认 200）。这样缩小文件占用/流管理对话框时，列表不会用默认高度压住上方的状态标签和下方的选择信息，放大时也不会抢掉固定标签的空间。
+- **ColumnBox 弹性高度 / 换行标签**：`FillHeight`/权重子元素在 Arrange 阶段改用 Measure 分配后的高度，而不是控件默认 `height_`（如 `ListView` 默认 200）；固定宽度的换行 `Label` 在 Arrange 时按最终宽度计算高度（新增 `UIElement::MeasureHeightForWidth`，`Label` 覆盖），避免窗口改变宽度后状态行按旧行数分配、被下方列表裁掉。缩小文件占用/流管理对话框时，列表也不会用默认高度压住上方的状态标签和下方的选择信息。
 - **回归测试**：新增 headless 覆盖层命中、Card 默认无悬停动画、TableView 列宽调整和标题文字默认值检查；x64 / x86 Release + ZufyUIDebugger 构建与全量自检通过。
 
 ### 2026-11-20 — PageHost 动画与指针取消修复（v1.29.1）

@@ -2837,6 +2837,26 @@ static void test_file_lock_dialog_layout() {
         root->AddChild(actions);
         return root;
     };
+    for (float width : { 620.0f, 760.0f, 1200.0f, 1400.0f, 2000.0f }) {
+        auto root = makeRoot();
+        root->Measure(Size(width, 520.0f));
+        root->Arrange(Rect(18.0f, 16.0f, width, 488.0f));
+        root->RefreshChildren();
+        const auto& kids = root->GetChildren();
+        std::printf("lock status width=%g h=%g\n", width, kids[1]->GetArrangedRect().height);
+    }
+    {
+        // Wrapped labels must get the height for the final Arrange width, not a stale
+        // Measure width from the previous window size.
+        auto root = makeRoot();
+        root->Measure(Size(1200.0f, 520.0f));
+        root->Arrange(Rect(18.0f, 16.0f, 620.0f, 488.0f));
+        root->RefreshChildren();
+        const auto& kids = root->GetChildren();
+        CHECK(kids[1]->GetArrangedRect().height > 30.0f);
+        CHECK(kids[3]->GetArrangedRect().y >=
+              kids[2]->GetArrangedRect().y + kids[2]->GetArrangedRect().height);
+    }
     for (float height : { 300.0f, 400.0f, 520.0f, 1000.0f }) {
         auto root = makeRoot();
         root->Measure(Size(760.0f, height));
@@ -2854,6 +2874,31 @@ static void test_file_lock_dialog_layout() {
         CHECK(kids[3]->GetArrangedRect().y >=
               kids[2]->GetArrangedRect().y + kids[2]->GetArrangedRect().height);
     }
+}
+
+static void test_menu_rows_api() {
+    Menu menu;
+    auto a = Menu::MakeItem(L"A", []() {});
+    a->SetGlyphIcon(Icon::Add, 18.0f);
+    auto b = Menu::MakeItem(L"B", []() {});
+    b->danger = true;
+    b->enabled = false;
+    MenuRowOptions options;
+    options.columns = 2;
+    options.layout = MenuRowLayout::IconTop;
+    options.width = MenuRowWidth::ContentFit;
+    menu.AddRow({ a, b }, options);
+    menu.AddRow({}, options);
+    CHECK(menu.items.size() == 1);
+    CHECK(menu.items[0]->type == MenuItem::Type::Row);
+    CHECK(menu.items[0]->children.size() == 2);
+    CHECK(menu.items[0]->children[0] == a);
+    CHECK(menu.items[0]->children[0]->icon != nullptr);
+    CHECK(menu.items[0]->rowOptions.columns == 2);
+    CHECK(menu.items[0]->rowOptions.layout == MenuRowLayout::IconTop);
+    CHECK(menu.items[0]->rowOptions.width == MenuRowWidth::ContentFit);
+    CHECK(menu.items[0]->children[1]->danger);
+    CHECK(!menu.items[0]->children[1]->enabled);
 }
 
 static void test_pagehost_animation() {
@@ -2911,6 +2956,7 @@ int main() {
     test_overlay_and_card_hover();
     test_tableview_column_resize();
     test_file_lock_dialog_layout();
+    test_menu_rows_api();
     test_pagehost_animation();
     test_backdrop_defaults();
     test_signal_lifetime();

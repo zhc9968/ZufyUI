@@ -91,9 +91,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 29
-#define ZufyUI_VERSION_PATCH 2
-#define ZufyUI_VERSION_STRING L"1.29.2"
+#define ZufyUI_VERSION_MINOR 30
+#define ZufyUI_VERSION_PATCH 0
+#define ZufyUI_VERSION_STRING L"1.30.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -516,6 +516,8 @@ namespace ZufyUI {
 
     // 前向声明
     class Label;
+    class Image;
+    enum class Icon : unsigned short;
     class Menu;
     class MenuWindow;
 class MenuWindowBase;
@@ -2084,6 +2086,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         }
         virtual Size MeasureOverride(const Size& availableSize) = 0;
         Size GetDesiredSize() const { return desiredSize_; }
+        // Non-mutating height lookup for parents that already know the final cross width.
+        // Labels override this so wrapped text can be allocated correctly during Arrange
+        // without clearing the child's layout-dirty state.
+        virtual float MeasureHeightForWidth(float /*width*/) { return desiredSize_.height; }
 
         // Arrange：基类包装。
         //   selfArrangeDirty_ : 我自己要重跑 ArrangeOverride
@@ -2117,6 +2123,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         // ---------- 绘图 ----------
         virtual void Draw(ID2D1RenderTarget* rt) = 0;
+        // Draw this element as a small standalone icon (used by MenuItem::icon).
+        virtual void DrawAsIcon(ID2D1RenderTarget*, const Rect&) {}
+        virtual void SetIconTint(Color) {}
+        virtual void SetIconOpacity(float) {}
 
         // ---------- 子元素列表（新增） ----------
         // 更新阶段（UI 线程）预先重建"可见子元素列表"；GetChildren 在渲染阶段只做纯读取（不改树）。
@@ -2746,11 +2756,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 // FillHeight/weight children already measured at their allocated height. Using
                 // GetHeight() here would re-apply the control's default height (e.g. ListView 200)
                 // and let a shrunken dialog push the list over its sibling labels.
-                float base = (child->GetFillHeight() || raw > 0.0f)
-                    ? child->GetDesiredSize().height
-                    : (child->GetHeight() > 0 ? child->GetHeight() : child->GetDesiredSize().height);
-                base = clamp(base, child->GetMinHeight(), child->GetMaxHeight());   // 先夹到 min/max，剩余空间再按权重分配 minHeight+设置高度的元素不会抢走整行
                 float weight = (child->GetFillHeight() || raw > 0.0f) ? (raw > 0.0f ? raw : 1.0f) : 0.0f;
+                float base = (weight > 0.0f)
+                    ? child->GetDesiredSize().height
+                    : (child->GetHeight() > 0.0f ? child->GetHeight() : child->MeasureHeightForWidth(childW));
+                base = clamp(base, child->GetMinHeight(), child->GetMaxHeight());   // 先夹到 min/max；剩余空间再按权重分配 minHeight+设置高度的元素不会抢走整行
                 its.push_back({ child.get(), base, weight, m.top, m.bottom, m.left, xoff, childW });
                 totalBase += m.top + base + m.bottom;
             }
@@ -4117,15 +4127,31 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
     };
 
     // ========== 右键菜单 ==========
+    enum class MenuRowLayout { Inline, IconTop };
+    enum class MenuRowWidth { Equal, ContentFit };
+    struct MenuRowOptions {
+        int columns = 0;
+        float gap = 4.0f;
+        float minItemWidth = 72.0f;
+        float maxItemWidth = 180.0f;
+        float inlineHeight = 34.0f;
+        float iconTopHeight = 56.0f;
+        float iconSize = 18.0f;
+        float iconTopSize = 22.0f;
+        MenuRowLayout layout = MenuRowLayout::Inline;
+        MenuRowWidth width = MenuRowWidth::Equal;
+        bool showShortcuts = false;
+    };
+
     class MenuItem {
     public:
-        enum class Type { Normal, Separator, Submenu };
+        enum class Type { Normal, Separator, Submenu, Row };
         std::wstring text;
         ZSignal<> Clicked;        // 菜单项被点击（可用 Connect 连接）
         std::shared_ptr<Menu> submenu;
         Type type = Type::Normal;
         bool enabled = true;
-        std::shared_ptr<Label> icon; // 前向声明即可
+        std::shared_ptr<UIElement> icon; // 前向声明即可
 
         // ---- 增强字段 ----
         int id = 0;                   // 命令 id（配合 Menu::ItemSelected）
@@ -4138,6 +4164,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         std::optional<Color> bgColor;   // 该项自定义背景色（带圆角）
         std::optional<Color> textColor; // 该项自定义文字色
         std::optional<FontSpec> font;   // 该项自定义字体（缺省用 Menu::font）
+
+        // 横向菜单行：Type::Row 时使用，子项只能是 Normal / Submenu。
+        std::vector<std::shared_ptr<MenuItem>> children;
+        MenuRowOptions rowOptions;
+
+        void SetGlyphIcon(Icon icon, float size = 0.0f);
+        void SetImageIcon(std::shared_ptr<Image> image, float width = 0.0f, float height = 0.0f);
     };
 
     class Menu : public std::enable_shared_from_this<Menu> {
@@ -4181,6 +4214,25 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             item->submenu = submenu;
             item->id = id;
             items.push_back(item);
+        }
+        static std::shared_ptr<MenuItem> MakeItem(const std::wstring& text,
+                                                  std::function<void()> callback = nullptr,
+                                                  int id = 0) {
+            auto item = std::make_shared<MenuItem>();
+            item->type = MenuItem::Type::Normal;
+            item->text = text;
+            item->id = id;
+            if (callback) item->Clicked.connect(std::move(callback));
+            return item;
+        }
+        void AddRow(std::vector<std::shared_ptr<MenuItem>> children,
+                    MenuRowOptions options = {}) {
+            if (children.empty()) return;
+            auto row = std::make_shared<MenuItem>();
+            row->type = MenuItem::Type::Row;
+            row->children = std::move(children);
+            row->rowOptions = options;
+            items.push_back(std::move(row));
         }
         std::vector<std::shared_ptr<MenuItem>> items;
         std::function<void(Menu&)> onOpening;   // 弹出前回调：可现场改勾选/启用/文字
@@ -8866,45 +8918,85 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
 
         bool OnMenuKeyDown(int vk) override {
             if (!GetHwnd() || !menu_) return false;
-            // Esc：关闭整棵菜单树
             if (vk == VK_ESCAPE) { MenuWindow* r = this; while (r->parentMenu_) r = r->parentMenu_; r->CloseAll(); return true; }
-            // 回车：激活悬停项；没有则触发默认项
+            auto firstChildOf = [&](int top) {
+                if (top < 0 || top >= (int)menu_->items.size()) return -1;
+                auto& it = menu_->items[(size_t)top];
+                if (it->type != MenuItem::Type::Row) return -1;
+                for (int c = 0; c < (int)it->children.size(); ++c)
+                    if (it->children[(size_t)c] && it->children[(size_t)c]->enabled) return c;
+                return -1;
+            };
+            auto activateDefault = [&]() {
+                for (int i = 0; i < (int)menu_->items.size(); ++i) {
+                    auto& it = menu_->items[(size_t)i];
+                    if (!it || it->type == MenuItem::Type::Separator) continue;
+                    if (it->type == MenuItem::Type::Row) {
+                        for (int c = 0; c < (int)it->children.size(); ++c)
+                            if (it->children[(size_t)c] && it->children[(size_t)c]->isDefault && it->children[(size_t)c]->enabled) {
+                                ActivateItem(i, c); return true;
+                            }
+                    }
+                    else if (it->isDefault && it->enabled) { ActivateItem(i); return true; }
+                }
+                return false;
+            };
             if (vk == VK_RETURN) {
-                int idx = hoveredIndex_;
-                if (idx < 0)
-                    for (int i = 0; i < (int)menu_->items.size(); ++i)
-                        if (menu_->items[i]->isDefault && menu_->items[i]->enabled) { idx = i; break; }
-                if (idx >= 0 && idx < (int)menu_->items.size()) { ActivateItem(idx); return true; }
+                if (hoveredIndex_ >= 0) ActivateItem(hoveredIndex_, hoveredChild_);
+                else activateDefault();
                 return true;
             }
-            // 上/下/Home/End：移动悬停（跳过分隔符与禁用项）
             if (vk == VK_UP || vk == VK_DOWN || vk == VK_HOME || vk == VK_END) {
-                int n = (int)menu_->items.size();
+                const int n = (int)menu_->items.size();
                 if (n == 0) return true;
                 int i = hoveredIndex_;
                 if (vk == VK_HOME) i = -1;
                 else if (vk == VK_END) i = n;
-                int step = (vk == VK_UP || vk == VK_HOME) ? -1 : 1;
+                const int step = (vk == VK_UP || vk == VK_HOME) ? -1 : 1;
                 for (int k = 0; k < n; ++k) {
                     i += step;
                     if (i < 0) i = n - 1; else if (i >= n) i = 0;
-                    auto& it = menu_->items[i];
-                    if (it->type != MenuItem::Type::Separator && it->enabled) { hoveredIndex_ = i; break; }
+                    auto& it = menu_->items[(size_t)i];
+                    if (!it || it->type == MenuItem::Type::Separator) continue;
+                    if (it->type == MenuItem::Type::Row) {
+                        int c = firstChildOf(i);
+                        if (c < 0) continue;
+                        hoveredIndex_ = i;
+                        hoveredChild_ = (hoveredChild_ >= 0 && hoveredChild_ < (int)it->children.size()
+                            && it->children[(size_t)hoveredChild_] && it->children[(size_t)hoveredChild_]->enabled)
+                            ? hoveredChild_ : c;
+                    }
+                    else if (it->enabled) { hoveredIndex_ = i; hoveredChild_ = -1; }
+                    else continue;
+                    break;
                 }
                 InvalidateRect(GetHwnd(), nullptr, FALSE);
                 return true;
             }
-            if (vk == VK_RIGHT) {
-                if (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()
-                    && menu_->items[hoveredIndex_]->type == MenuItem::Type::Submenu) { OpenSubmenu(hoveredIndex_); return true; }
+            if (vk == VK_LEFT || vk == VK_RIGHT) {
+                const bool right = (vk == VK_RIGHT);
+                if (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()) {
+                    auto& top = menu_->items[(size_t)hoveredIndex_];
+                    if (top->type == MenuItem::Type::Row && hoveredChild_ >= 0) {
+                        int next = hoveredChild_ + (right ? 1 : -1);
+                        if (next >= 0 && next < (int)top->children.size()) {
+                            hoveredChild_ = next;
+                            InvalidateRect(GetHwnd(), nullptr, FALSE);
+                            return true;
+                        }
+                        if (right) { OpenSubmenu(hoveredIndex_, hoveredChild_); return true; }
+                    }
+                    else if (right && top->type == MenuItem::Type::Submenu) {
+                        OpenSubmenu(hoveredIndex_);
+                        return true;
+                    }
+                }
+                if (!right) { if (MenuWindow* p = ParentMenu()) { p->CloseChildMenu(); return true; } }
                 return false;
             }
-            if (vk == VK_LEFT) {
-                if (MenuWindow* p = ParentMenu()) { p->CloseChildMenu(); return true; }
-                return false;
-            }
-            int idx = MatchShortcut(vk);
-            if (idx >= 0) { ActivateItem(idx); return true; }
+            int child = -1;
+            int idx = MatchShortcut(vk, &child);
+            if (idx >= 0) { ActivateItem(idx, child); return true; }
             return false;
         }
 
@@ -8918,7 +9010,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             case WM_MOUSELEAVE:  OnMenuMouseLeave(); return true;
             case WM_LBUTTONDOWN: OnMenuMouseDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)); return true;
             case WM_LBUTTONUP:   OnMenuMouseUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)); return true;
-            case WM_CAPTURECHANGED: pressedIndex_ = -1; return true;
+            case WM_CAPTURECHANGED: pressedIndex_ = pressedChild_ = -1; return true;
             default: break;
             }
             return false;
@@ -8926,7 +9018,10 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         bool OnPopupTimer(int id) override {
             if (id == (int)kSubmenuTimerId) {
                 KillTimer(GetHwnd(), kSubmenuTimerId);
-                if (submenuPendingIndex_ >= 0) { OpenSubmenu(submenuPendingIndex_); submenuPendingIndex_ = -1; }
+                if (submenuPendingIndex_ >= 0) {
+                    OpenSubmenu(submenuPendingIndex_, submenuPendingChild_);
+                    submenuPendingIndex_ = submenuPendingChild_ = -1;
+                }
                 return true;
             }
             if (id == (int)kSubmenuHideTimerId) {   // 鼠标离开子菜单项后：不在弹出层树内则收起子菜单
@@ -8954,33 +9049,122 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         int  ShadowPx() const { return MulDiv(ShadowDip(), Dpi(), 96); }
         HWND H() const { return GetHwnd(); }
 
-        void CalculateWindowSizeDip() {
-            int maxTextWidth = 0, maxShortcutWidth = 0;
-            bool hasCheck = false;
-            windowHeightDip_ = paddingDip_ * 2;
-            for (auto& item : menu_->items) {
-                if (item->type == MenuItem::Type::Separator) { windowHeightDip_ += separatorHeightDip_; continue; }
-                if (item->checkable) hasCheck = true;
-                if (auto f = sharedDWriteFactory_) {
-                    if (textFormat_) {
-                        ComPtr<IDWriteTextLayout> layout;
-                        f->CreateTextLayout(item->text.c_str(), (UINT32)item->text.length(), textFormat_, 10000.0f, 10000.0f, &layout);
-                        if (layout) { DWRITE_TEXT_METRICS m; layout->GetMetrics(&m); int w = (int)(m.width + 0.5f); if (item->type == MenuItem::Type::Submenu) w += arrowWidthDip_; maxTextWidth = max(maxTextWidth, w); }
+        struct CellLayout { int top = -1; int child = -1; D2D1_RECT_F rect{}; };
+        struct RowLayout { int top = -1; float y = 0.0f, h = 0.0f; std::vector<D2D1_RECT_F> cells; };
+        std::vector<RowLayout> rows_;
+
+        float TextWidthFor(const std::wstring& text, IDWriteTextFormat* fmt) const {
+            if (!fmt || text.empty() || !sharedDWriteFactory_) return text.empty() ? 0.0f : 8.0f;
+            ComPtr<IDWriteTextLayout> layout;
+            if (FAILED(sharedDWriteFactory_->CreateTextLayout(text.c_str(), (UINT32)text.length(),
+                    fmt, 10000.0f, 10000.0f, &layout)) || !layout) return 8.0f;
+            DWRITE_TEXT_METRICS m{};
+            layout->GetMetrics(&m);
+            return m.width;
+        }
+
+        float RowHeightFor(const MenuItem& row) const {
+            const auto& o = row.rowOptions;
+            float h = (o.layout == MenuRowLayout::IconTop ? o.iconTopHeight : o.inlineHeight);
+            return max(24.0f, h);
+        }
+
+        float CellContentWidth(const MenuItem& child) const {
+            float tw = TextWidthFor(child.text, textFormat_);
+            return tw + (child.icon ? 26.0f : 0.0f)
+                + (child.type == MenuItem::Type::Submenu ? arrowWidthDip_ : 0.0f);
+        }
+
+        float RowDesiredWidth(const MenuItem& row) const {
+            if (row.children.empty()) return 0.0f;
+            const auto& o = row.rowOptions;
+            float total = 0.0f;
+            for (const auto& c : row.children) {
+                if (!c) continue;
+                total += clamp(CellContentWidth(*c), o.minItemWidth, o.maxItemWidth);
+            }
+            total += max(0.0f, o.gap) * max(0.0f, (float)row.children.size() - 1.0f);
+            return total;
+        }
+
+        void BuildLayout() {
+            rows_.clear();
+            float y = (float)paddingDip_;
+            const float itemLeft = (float)paddingDip_ + 2.0f;
+            const float itemWidth = max(1.0f, (float)windowWidthDip_ - itemLeft - (float)paddingDip_ - 2.0f);
+            const float rowInner = max(1.0f, (float)windowWidthDip_ - itemLeft - (float)paddingDip_ - 2.0f);
+            for (int i = 0; i < (int)menu_->items.size(); ++i) {
+                auto& item = menu_->items[i];
+                if (!item) continue;
+                if (item->type == MenuItem::Type::Separator) { y += separatorHeightDip_; continue; }
+                RowLayout row;
+                row.top = i;
+                row.y = y;
+                if (item->type == MenuItem::Type::Row && !item->children.empty()) {
+                    row.h = RowHeightFor(*item);
+                    const int n = (int)item->children.size();
+                    const float gap = max(0.0f, item->rowOptions.gap);
+                    std::vector<float> widths((size_t)n, 0.0f);
+                    float sum = 0.0f;
+                    for (int c = 0; c < n; ++c) {
+                        widths[(size_t)c] = clamp(CellContentWidth(*item->children[(size_t)c]),
+                                                  item->rowOptions.minItemWidth, item->rowOptions.maxItemWidth);
+                        sum += widths[(size_t)c];
                     }
-                    if (!item->shortcut.empty() && shortcutFormat_) {
-                        ComPtr<IDWriteTextLayout> sl;
-                        if (SUCCEEDED(f->CreateTextLayout(item->shortcut.c_str(), (UINT32)item->shortcut.length(), shortcutFormat_, 10000.0f, 10000.0f, &sl)) && sl) {
-                            DWRITE_TEXT_METRICS m; sl->GetMetrics(&m); maxShortcutWidth = max(maxShortcutWidth, (int)(m.width + 0.5f));
-                        }
+                    const float gaps = gap * (float)max(0, n - 1);
+                    if (item->rowOptions.width == MenuRowWidth::Equal) {
+                        float each = max(0.0f, (rowInner - gaps) / (float)n);
+                        for (float& w : widths) w = each;
+                        sum = each * (float)n;
+                    }
+                    else if (sum + gaps < rowInner) {
+                        float extra = (rowInner - sum - gaps) / (float)n;
+                        for (float& w : widths) w += extra;
+                        sum = rowInner - gaps;
+                    }
+                    float x = itemLeft;
+                    row.cells.resize((size_t)n);
+                    for (int c = 0; c < n; ++c) {
+                        float w = widths[(size_t)c];
+                        if (sum + gaps > rowInner && sum > 0.0f)
+                            w *= rowInner / sum;   // keep the row inside the menu on extreme widths
+                        row.cells[(size_t)c] = D2D1::RectF(x, y, x + w, y + row.h);
+                        x += w + gap;
                     }
                 }
-                windowHeightDip_ += itemHeightDip_;
+                else {
+                    row.h = (float)itemHeightDip_;
+                    row.cells.push_back(D2D1::RectF(itemLeft, y, itemLeft + itemWidth, y + row.h));
+                }
+                rows_.push_back(std::move(row));
+                y += rows_.back().h;
+            }
+            windowHeightDip_ = max(34, (int)ceil(y + paddingDip_));
+        }
+
+        void CalculateWindowSizeDip() {
+            EnsureTextFormats();
+            float maxTextWidth = 0.0f, maxShortcutWidth = 0.0f, maxRowWidth = 0.0f;
+            bool hasCheck = false;
+            for (auto& item : menu_->items) {
+                if (!item || item->type == MenuItem::Type::Separator) continue;
+                if (item->type == MenuItem::Type::Row) {
+                    maxRowWidth = max(maxRowWidth, RowDesiredWidth(*item));
+                    continue;
+                }
+                if (item->checkable) hasCheck = true;
+                float w = TextWidthFor(item->text, textFormat_);
+                if (item->icon) w += 26.0f;
+                if (item->type == MenuItem::Type::Submenu) w += arrowWidthDip_;
+                maxTextWidth = max(maxTextWidth, w);
+                if (!item->shortcut.empty())
+                    maxShortcutWidth = max(maxShortcutWidth, TextWidthFor(item->shortcut, shortcutFormat_));
             }
             checkWidthDip_ = hasCheck ? 33 : 0;
-            windowWidthDip_ = paddingDip_ * 2 + checkWidthDip_ + maxTextWidth
+            float normalWidth = (float)paddingDip_ * 2 + checkWidthDip_ + maxTextWidth
                 + (maxShortcutWidth > 0 ? maxShortcutWidth + 28 : 0) + 24;
-            windowWidthDip_ = max(windowWidthDip_, 60);
-            windowHeightDip_ = max(windowHeightDip_, 34);
+            windowWidthDip_ = max(60, (int)ceil(max(normalWidth, maxRowWidth + paddingDip_ * 2 + 4)));
+            BuildLayout();
         }
 
         void EnsureBrushes(ID2D1RenderTarget* rt) {
@@ -9024,73 +9208,179 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             rt->SetTransform(old);
         }
 
+        void DrawCellIcon(ID2D1RenderTarget* rt, MenuItem& item, const D2D1_RECT_F& slot) {
+            if (!item.icon) return;
+            float w = max(1.0f, slot.right - slot.left);
+            float h = max(1.0f, slot.bottom - slot.top);
+            item.icon->DrawAsIcon(rt, Rect(slot.left, slot.top, w, h));
+        }
+
+        void DrawMenuText(ID2D1RenderTarget* rt, const std::wstring& text, IDWriteTextFormat* fmt,
+                          const D2D1_RECT_F& rect, Color color, bool center, bool trim) {
+            if (!rt || text.empty() || !fmt || rect.right <= rect.left || rect.bottom <= rect.top) return;
+            if (!textBrush_) rt->CreateSolidColorBrush(color.ToD2D(), &textBrush_);
+            else textBrush_->SetColor(color.ToD2D());
+            if (!textBrush_) return;
+            if (!sharedDWriteFactory_) { rt->DrawText(text.c_str(), (UINT32)text.length(), fmt, rect, textBrush_); return; }
+            ComPtr<IDWriteTextLayout> layout;
+            if (FAILED(sharedDWriteFactory_->CreateTextLayout(text.c_str(), (UINT32)text.length(), fmt,
+                    max(1.0f, rect.right - rect.left), max(1.0f, rect.bottom - rect.top), &layout)) || !layout) {
+                rt->DrawText(text.c_str(), (UINT32)text.length(), fmt, rect, textBrush_);
+                return;
+            }
+            layout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+            layout->SetTextAlignment(center ? DWRITE_TEXT_ALIGNMENT_CENTER : DWRITE_TEXT_ALIGNMENT_LEADING);
+            layout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            if (trim) {
+                ComPtr<IDWriteInlineObject> ellipsis;
+                if (SUCCEEDED(sharedDWriteFactory_->CreateEllipsisTrimmingSign(fmt, &ellipsis))) {
+                    DWRITE_TRIMMING tm = { DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
+                    layout->SetTrimming(&tm, ellipsis.Get());
+                }
+            }
+            rt->DrawTextLayout(D2D1::Point2F(Snap(rect.left), Snap(rect.top)), layout.Get(), textBrush_);
+        }
+
+        void DrawCell(ID2D1RenderTarget* rt, MenuItem& item, int top, int child,
+                      const D2D1_RECT_F& cell, bool rowCell, bool iconTop, bool showShortcut = true) {
+            if (!item.enabled) {
+                // keep layout; colors below use disabled role
+            }
+            rt->PushAxisAlignedClip(cell, D2D1_ANTIALIAS_MODE_ALIASED);
+            if (item.bgColor && item.bgColor->a > 0.0f) {
+                if (!itemBgBrush_) rt->CreateSolidColorBrush(item.bgColor->ToD2D(), &itemBgBrush_);
+                else itemBgBrush_->SetColor(item.bgColor->ToD2D());
+                if (itemBgBrush_) rt->FillRoundedRectangle(
+                    D2D1::RoundedRect(cell, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f), itemBgBrush_);
+            }
+            const bool hover = item.enabled && (top == hoveredIndex_ && child == hoveredChild_);
+            const bool pressed = item.enabled && (top == pressedIndex_ && child == pressedChild_);
+            if (hover || pressed)
+                rt->FillRoundedRectangle(D2D1::RoundedRect(cell, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f), hoverBrush_);
+
+            float textRight = cell.right - 4.0f;
+            float iconSize = rowCell ? rowIconSize_ : 18.0f;
+            const bool check = !rowCell && item.checkable;
+            if (item.icon) {
+                Color tint = ThemeManager::AppTheme().Get(ThemeRole::Text);
+                if (item.textColor) tint = *item.textColor;
+                else if (!item.enabled) tint = ThemeManager::AppTheme().Get(ThemeRole::TextDisabled);
+                else if (item.danger) tint = ThemeManager::AppTheme().Get(ThemeRole::Danger);
+                item.icon->SetIconTint(tint);
+                item.icon->SetIconOpacity(item.enabled ? 1.0f : 0.45f);
+            }
+            if (check) {
+                float cb = 15.0f, bx = (float)paddingDip_ + 10.0f;
+                float by = (cell.top + cell.bottom - cb) * 0.5f;
+                if (item.radio) {
+                    textBrush_->SetColor(ThemeManager::AppTheme().Get(ThemeRole::Accent).ToD2D());
+                    rt->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(bx + cb * 0.5f, by + cb * 0.5f), cb * 0.46f, cb * 0.46f), textBrush_, 1.6f);
+                    if (item.checked) rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(bx + cb * 0.5f, by + cb * 0.5f), cb * 0.22f, cb * 0.22f), textBrush_);
+                }
+                else if (item.checked) {
+                    textBrush_->SetColor(ThemeManager::AppTheme().Get(ThemeRole::Accent).ToD2D());
+                    rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(bx, by, bx + cb, by + cb), cb * 0.28f, cb * 0.28f), textBrush_);
+                    textBrush_->SetColor(ThemeManager::AppTheme().Get(ThemeRole::TextOnAccent).ToD2D());
+                    if (roundStroke_) {
+                        float lw = max(1.6f, cb * 0.16f);
+                        rt->DrawLine(D2D1::Point2F(bx + cb * 0.24f, by + cb * 0.52f), D2D1::Point2F(bx + cb * 0.43f, by + cb * 0.70f), textBrush_, lw, roundStroke_);
+                        rt->DrawLine(D2D1::Point2F(bx + cb * 0.43f, by + cb * 0.70f), D2D1::Point2F(bx + cb * 0.76f, by + cb * 0.30f), textBrush_, lw, roundStroke_);
+                    }
+                }
+            }
+            float textX = cell.left + (rowCell ? 8.0f : (checkWidthDip_ > 0 ? (float)checkWidthDip_ : 14.0f));
+            float textY = cell.top;
+            float textH = cell.bottom - cell.top;
+            if (item.icon) {
+                float iw = iconSize, ih = iconSize;
+                float ix = textX, iy = (cell.top + cell.bottom - ih) * 0.5f;
+                if (rowCell && iconTop) {
+                    iy = cell.top + 4.0f;
+                    ix = (cell.left + cell.right - iw) * 0.5f;
+                    textX = cell.left + 4.0f;
+                    textY = iy + ih + 1.0f;
+                    textH = max(8.0f, cell.bottom - textY - 2.0f);
+                    textRight = cell.right - 4.0f;
+                }
+                else {
+                    textX += iw + 6.0f;
+                }
+                DrawCellIcon(rt, item, D2D1::RectF(ix, iy, ix + iw, iy + ih));
+            }
+            else if (!rowCell) {
+                textX += 4.0f;
+            }
+            if (item.type == MenuItem::Type::Submenu) textRight -= (rowCell ? 24.0f : arrowWidthDip_);
+            if (!rowCell && showShortcut && !item.shortcut.empty()) textRight -= 104.0f;
+            if (rowCell && showShortcut && !item.shortcut.empty()) textH = max(8.0f, textH - 12.0f);
+            Color tcol = ThemeManager::AppTheme().Get(ThemeRole::Text);
+            if (item.textColor) tcol = *item.textColor;
+            else if (!item.enabled) tcol = ThemeManager::AppTheme().Get(ThemeRole::TextDisabled);
+            else if (item.danger) tcol = ThemeManager::AppTheme().Get(ThemeRole::Danger);
+            if (!item.text.empty()) {
+                IDWriteTextFormat* tf = (item.isDefault && boldFormat_) ? boldFormat_ : textFormat_;
+                DrawMenuText(rt, item.text, tf, D2D1::RectF(textX, textY, textRight, textY + textH),
+                             tcol, rowCell && iconTop, true);
+            }
+            if (showShortcut && !item.shortcut.empty() && shortcutFormat_) {
+                textBrush_->SetColor(ThemeManager::AppTheme().Get(ThemeRole::TextSecondary).ToD2D());
+                if (rowCell) {
+                    rt->DrawText(item.shortcut.c_str(), (UINT32)item.shortcut.length(), shortcutFormat_,
+                                 D2D1::RectF(cell.left + 8.0f, cell.bottom - 12.0f, cell.right - 4.0f, cell.bottom - 1.0f),
+                                 textBrush_);
+                }
+                else {
+                    rt->DrawText(item.shortcut.c_str(), (UINT32)item.shortcut.length(), shortcutFormat_,
+                                 D2D1::RectF(cell.right - 108.0f, cell.top, cell.right - 8.0f, cell.bottom), textBrush_);
+                }
+            }
+            if (!rowCell && item.type == MenuItem::Type::Submenu) {
+                float ar = cell.right - 8;
+                float acx = ar - arrowWidthDip_ / 2 + 2, acy = (cell.top + cell.bottom) * 0.5f;
+                rt->DrawLine(D2D1::Point2F(acx - 3, acy - 5), D2D1::Point2F(acx - 3, acy + 5), textBrush_, 1.0f);
+                rt->DrawLine(D2D1::Point2F(acx - 3, acy + 5), D2D1::Point2F(acx + 2, acy), textBrush_, 1.0f);
+                rt->DrawLine(D2D1::Point2F(acx + 2, acy), D2D1::Point2F(acx - 3, acy - 5), textBrush_, 1.0f);
+            }
+            if (rowCell && item.type == MenuItem::Type::Submenu) {
+                float ax = cell.right - 8.0f, ay = (cell.top + cell.bottom) * 0.5f;
+                rt->DrawLine(D2D1::Point2F(ax - 5, ay), D2D1::Point2F(ax, ay - 4), textBrush_, 1.0f);
+                rt->DrawLine(D2D1::Point2F(ax, ay - 4), D2D1::Point2F(ax, ay + 4), textBrush_, 1.0f);
+                rt->DrawLine(D2D1::Point2F(ax, ay + 4), D2D1::Point2F(ax - 5, ay), textBrush_, 1.0f);
+            }
+            rt->PopAxisAlignedClip();
+        }
+
         void DrawMenu(ID2D1RenderTarget* rt) {
             if (!rt || !bgBrush_ || !textFormat_) return;
+            BuildLayout();
             rt->FillRoundedRectangle(D2D1::RoundedRect(
                 D2D1::RectF(0, 0, (FLOAT)windowWidthDip_, (FLOAT)windowHeightDip_), cornerRadiusDip_, cornerRadiusDip_), bgBrush_);
             float y = (float)paddingDip_;
             for (int i = 0; i < (int)menu_->items.size(); ++i) {
                 auto& item = menu_->items[i];
+                if (!item) continue;
                 if (item->type == MenuItem::Type::Separator) {
                     rt->DrawLine(D2D1::Point2F((float)(paddingDip_ + 10), y + separatorHeightDip_ * 0.5f),
                                  D2D1::Point2F((float)(windowWidthDip_ - paddingDip_ - 10), y + separatorHeightDip_ * 0.5f),
                                  separatorBrush_, 1.0f);
                     y += separatorHeightDip_; continue;
                 }
-                D2D1_RECT_F itemRect = D2D1::RectF((float)(paddingDip_ + 2), y, (float)(windowWidthDip_ - paddingDip_ - 2), y + (float)itemHeightDip_);
-                if (item->bgColor && item->bgColor->a > 0.0f) {
-                    if (!itemBgBrush_) rt->CreateSolidColorBrush(item->bgColor->ToD2D(), &itemBgBrush_);
-                    else itemBgBrush_->SetColor(item->bgColor->ToD2D());
-                    if (itemBgBrush_) rt->FillRoundedRectangle(D2D1::RoundedRect(itemRect, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f), itemBgBrush_);
-                }
-                if (item->enabled && (i == hoveredIndex_ || i == pressedIndex_))
-                    rt->FillRoundedRectangle(D2D1::RoundedRect(itemRect, cornerRadiusDip_ * 0.6f, cornerRadiusDip_ * 0.6f), hoverBrush_);
-                if (item->checkable) {
-                    float cb = 15.0f, bx = (float)paddingDip_ + 10.0f, by = y + (itemHeightDip_ - cb) * 0.5f, lw = max(1.6f, cb * 0.16f);
-                    if (item->radio) {
-                        float rx = bx + cb * 0.5f, ry = by + cb * 0.5f;
-                        textBrush_->SetColor(D2D1::ColorF(0.0f, 0.47f, 0.84f));
-                        rt->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.46f, cb * 0.46f), textBrush_, 1.6f);
-                        if (item->checked) rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(rx, ry), cb * 0.22f, cb * 0.22f), textBrush_);
-                    }
-                    else if (item->checked) {
-                        textBrush_->SetColor(ThemeManager::AppTheme().Get(ThemeRole::Accent).ToD2D());
-                        rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(bx, by, bx + cb, by + cb), cb * 0.28f, cb * 0.28f), textBrush_);
-                        textBrush_->SetColor(ThemeManager::AppTheme().Get(ThemeRole::TextOnAccent).ToD2D());
-                        if (roundStroke_) {
-                            rt->DrawLine(D2D1::Point2F(bx + cb * 0.24f, by + cb * 0.52f), D2D1::Point2F(bx + cb * 0.43f, by + cb * 0.70f), textBrush_, lw, roundStroke_);
-                            rt->DrawLine(D2D1::Point2F(bx + cb * 0.43f, by + cb * 0.70f), D2D1::Point2F(bx + cb * 0.76f, by + cb * 0.30f), textBrush_, lw, roundStroke_);
-                        }
+                auto rowIt = std::find_if(rows_.begin(), rows_.end(), [i](const RowLayout& r) { return r.top == i; });
+                if (rowIt == rows_.end()) continue;
+                if (item->type == MenuItem::Type::Row && !item->children.empty()) {
+                    rowIconSize_ = (item->rowOptions.layout == MenuRowLayout::IconTop)
+                        ? item->rowOptions.iconTopSize : item->rowOptions.iconSize;
+                    for (int c = 0; c < (int)rowIt->cells.size() && c < (int)item->children.size(); ++c) {
+                        if (item->children[(size_t)c])
+                            DrawCell(rt, *item->children[(size_t)c], i, c, rowIt->cells[(size_t)c], true,
+                                     item->rowOptions.layout == MenuRowLayout::IconTop,
+                                     item->rowOptions.showShortcuts);
                     }
                 }
-                float textX = (float)paddingDip_ + (checkWidthDip_ > 0 ? (float)checkWidthDip_ : 14.0f);
-                if (item->icon) textX += 20;
-                float textRight = itemRect.right - 4;
-                if (item->type == MenuItem::Type::Submenu) textRight = itemRect.right - arrowWidthDip_ - 2;
-                if (!item->shortcut.empty()) textRight -= 104.0f;
-                D2D1_RECT_F textRect = D2D1::RectF(textX, y, textRight, y + itemHeightDip_);
-                D2D1_COLOR_F tcol = ThemeManager::AppTheme().Get(ThemeRole::Text).ToD2D();
-                if (item->textColor) tcol = item->textColor->ToD2D();
-                else if (!item->enabled) tcol = ThemeManager::AppTheme().Get(ThemeRole::TextDisabled).ToD2D();
-                else if (item->danger) tcol = ThemeManager::AppTheme().Get(ThemeRole::Danger).ToD2D();
-                textBrush_->SetColor(tcol);
-                if (!item->text.empty()) {
-                    IDWriteTextFormat* tf = (item->isDefault && boldFormat_) ? boldFormat_ : textFormat_;
-                    rt->DrawText(item->text.c_str(), (UINT32)item->text.length(), tf, textRect, textBrush_);
+                else if (!rowIt->cells.empty()) {
+                    DrawCell(rt, *item, i, -1, rowIt->cells[0], false, false, true);
                 }
-                if (!item->shortcut.empty() && shortcutFormat_) {
-                    textBrush_->SetColor(ThemeManager::AppTheme().Get(ThemeRole::TextSecondary).ToD2D());
-                    rt->DrawText(item->shortcut.c_str(), (UINT32)item->shortcut.length(), shortcutFormat_,
-                                 D2D1::RectF(itemRect.right - 108.0f, y, itemRect.right - 8.0f, y + itemHeightDip_), textBrush_);
-                }
-                if (item->type == MenuItem::Type::Submenu) {
-                    float ar = itemRect.right - 8;
-                    float acx = ar - arrowWidthDip_ / 2 + 2, acy = y + itemHeightDip_ / 2;
-                    rt->DrawLine(D2D1::Point2F(acx - 3, acy - 5), D2D1::Point2F(acx - 3, acy + 5), textBrush_, 1.0f);
-                    rt->DrawLine(D2D1::Point2F(acx - 3, acy + 5), D2D1::Point2F(acx + 2, acy), textBrush_, 1.0f);
-                    rt->DrawLine(D2D1::Point2F(acx + 2, acy), D2D1::Point2F(acx - 3, acy - 5), textBrush_, 1.0f);
-                }
-                y += itemHeightDip_;
+                y += rowIt->h;
             }
         }
 
@@ -9109,26 +9399,117 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (shortcutFormat_) { shortcutFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING); shortcutFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER); shortcutFormat_->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP); }
         }
 
-        int HitTestDip(int x, int y) {
-            if (x < 0 || x >= windowWidthDip_ || y < 0 || y >= windowHeightDip_) return -1;
-            float fy = (float)y, curY = (float)paddingDip_;
-            for (int i = 0; i < (int)menu_->items.size(); ++i) {
-                auto& item = menu_->items[i];
-                if (item->type == MenuItem::Type::Separator) { curY += separatorHeightDip_; continue; }
-                if (fy >= curY && fy < curY + itemHeightDip_) return i;
-                curY += itemHeightDip_;
+        struct HitPos {
+            int top = -1;
+            int child = -1;
+            bool valid() const { return top >= 0; }
+        };
+        HitPos HitTestCell(int x, int y) {
+            if (x < 0 || x >= windowWidthDip_ || y < 0 || y >= windowHeightDip_) return {};
+            BuildLayout();
+            for (const auto& row : rows_) {
+                for (int c = 0; c < (int)row.cells.size(); ++c) {
+                    const auto& r = row.cells[(size_t)c];
+                    if ((float)x >= r.left && (float)x < r.right && (float)y >= r.top && (float)y < r.bottom) {
+                        return { row.top, (row.cells.size() == 1 && menu_->items[(size_t)row.top]->type != MenuItem::Type::Row) ? -1 : c };
+                    }
+                }
             }
-            return -1;
+            return {};
+        }
+        int HitTestDip(int x, int y) { return HitTestCell(x, y).top; }
+        bool IsSubmenuAt(const HitPos& p) const {
+            if (!p.valid()) return false;
+            auto& top = menu_->items[(size_t)p.top];
+            auto* target = (top->type == MenuItem::Type::Row && p.child >= 0 && p.child < (int)top->children.size())
+                ? top->children[(size_t)p.child].get() : top.get();
+            return target && target->type == MenuItem::Type::Submenu && target->submenu;
+        }
+        D2D1_RECT_F CellRect(int top, int child) const {
+            if (top < 0 || top >= (int)menu_->items.size()) return D2D1::RectF();
+            for (const auto& row : rows_) {
+                if (row.top != top) continue;
+                int idx = (child >= 0) ? child : 0;
+                if (idx >= 0 && idx < (int)row.cells.size()) return row.cells[(size_t)idx];
+            }
+            return D2D1::RectF();
         }
 
-        void ActivateItem(int idx) {
+        void EnsureMenuTooltip() {
+            if (tooltipHwnd_) return;
+            INITCOMMONCONTROLSEX icc{ sizeof(icc), ICC_WIN95_CLASSES };
+            InitCommonControlsEx(&icc);
+            tooltipHwnd_ = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW, TOOLTIPS_CLASSW, nullptr,
+                WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP, 0, 0, 0, 0, GetHwnd(), nullptr,
+                GetModuleHandleW(nullptr), nullptr);
+            if (!tooltipHwnd_) return;
+            TOOLINFOW ti{};
+            ti.cbSize = sizeof(ti);
+            ti.uFlags = TTF_TRACK | TTF_ABSOLUTE | TTF_TRANSPARENT;
+            ti.hwnd = GetHwnd();
+            ti.uId = 1;
+            ti.lpszText = const_cast<wchar_t*>(L"");
+            SendMessageW(tooltipHwnd_, TTM_ADDTOOLW, 0, (LPARAM)&ti);
+        }
+        void HideMenuTooltip() {
+            if (!tooltipHwnd_) return;
+            TOOLINFOW ti{};
+            ti.cbSize = sizeof(ti);
+            ti.hwnd = GetHwnd();
+            ti.uId = 1;
+            SendMessageW(tooltipHwnd_, TTM_TRACKACTIVATE, FALSE, (LPARAM)&ti);
+        }
+        void UpdateMenuTooltip(const HitPos& p, int clientX, int clientY) {
+            if (!p.valid()) { HideMenuTooltip(); return; }
+            auto& top = menu_->items[(size_t)p.top];
+            MenuItem* item = (top->type == MenuItem::Type::Row && p.child >= 0 && p.child < (int)top->children.size())
+                ? top->children[(size_t)p.child].get() : top.get();
+            if (!item || item->text.empty()) { HideMenuTooltip(); return; }
+            const D2D1_RECT_F cell = CellRect(p.top, p.child);
+            const bool rowCell = top->type == MenuItem::Type::Row;
+            const bool iconTop = rowCell && top->rowOptions.layout == MenuRowLayout::IconTop;
+            float iconW = item->icon ? (rowCell ? top->rowOptions.iconSize : 18.0f) + 6.0f : 0.0f;
+            float reserved = 16.0f + iconW;
+            if (item->type == MenuItem::Type::Submenu) reserved += (rowCell ? 24.0f : arrowWidthDip_);
+            if (!rowCell && !item->shortcut.empty()) reserved += 104.0f;
+            float avail = (cell.right - cell.left) - reserved;
+            if (iconTop) avail = (cell.right - cell.left) - 8.0f;
+            if (avail < 1.0f || TextWidthFor(item->text, textFormat_) <= avail) { HideMenuTooltip(); return; }
+            EnsureMenuTooltip();
+            if (!tooltipHwnd_) return;
+            TOOLINFOW ti{};
+            ti.cbSize = sizeof(ti);
+            ti.uFlags = TTF_TRACK | TTF_ABSOLUTE | TTF_TRANSPARENT;
+            ti.hwnd = GetHwnd();
+            ti.uId = 1;
+            ti.lpszText = const_cast<wchar_t*>(item->text.c_str());
+            SendMessageW(tooltipHwnd_, TTM_UPDATETIPTEXTW, 0, (LPARAM)&ti);
+            POINT pt{ clientX, clientY };
+            ClientToScreen(GetHwnd(), &pt);
+            SendMessageW(tooltipHwnd_, TTM_TRACKPOSITION, 0, MAKELPARAM(pt.x + 16, pt.y + 20));
+            SendMessageW(tooltipHwnd_, TTM_TRACKACTIVATE, TRUE, (LPARAM)&ti);
+        }
+
+        void ActivateItem(int idx, int child = -1) {
             if (idx < 0 || idx >= (int)menu_->items.size()) return;
-            auto& item = menu_->items[idx];
+            auto& top = menu_->items[(size_t)idx];
+            std::shared_ptr<MenuItem> item = top;
+            if (top->type == MenuItem::Type::Row) {
+                if (child < 0 || child >= (int)top->children.size()) return;
+                item = top->children[(size_t)child];
+            }
+            if (!item || !item->enabled) return;
             if (item->type == MenuItem::Type::Normal) {
-                if (!item->enabled) return;
                 if (item->checkable) {
                     bool ns = !item->checked;
-                    if (item->radio && ns) for (auto& o : menu_->items) if (o.get() != item.get() && o->radio) o->checked = false;
+                    if (item->radio && ns) {
+                        if (top->type == MenuItem::Type::Row) {
+                            for (auto& o : top->children) if (o.get() != item.get() && o->radio) o->checked = false;
+                        }
+                        else {
+                            for (auto& o : menu_->items) if (o.get() != item.get() && o->radio) o->checked = false;
+                        }
+                    }
                     item->checked = ns;
                 }
                 int selId = item->id;
@@ -9143,7 +9524,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 detail::QueueToUIThread([clicked]() { clicked->Clicked.Fire(); });
             }
             else if (item->type == MenuItem::Type::Submenu) {
-                OpenSubmenu(idx);
+                OpenSubmenu(idx, child);
             }
         }
 
@@ -9189,12 +9570,26 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (!wv) return false;
             return wv == vk && wc == ctrl && wa == alt && ws == shift;
         }
-        int MatchShortcut(int vk) {
+        int MatchShortcut(int vk, int* childOut = nullptr) {
+            if (childOut) *childOut = -1;
             bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0, alt = (GetKeyState(VK_MENU) & 0x8000) != 0, shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
             for (int i = 0; i < (int)menu_->items.size(); ++i) {
-                auto& it = menu_->items[i];
-                if (it->type != MenuItem::Type::Normal || !it->enabled || it->shortcut.empty()) continue;
-                if (ShortcutMatches(it->shortcut, vk, ctrl, alt, shift)) return i;
+                auto& it = menu_->items[(size_t)i];
+                if (!it || it->type == MenuItem::Type::Separator) continue;
+                if (it->type == MenuItem::Type::Row) {
+                    for (int c = 0; c < (int)it->children.size(); ++c) {
+                        auto& ch = it->children[(size_t)c];
+                        if (ch && ch->type == MenuItem::Type::Normal && ch->enabled && !ch->shortcut.empty()
+                            && ShortcutMatches(ch->shortcut, vk, ctrl, alt, shift)) {
+                            if (childOut) *childOut = c;
+                            return i;
+                        }
+                    }
+                }
+                else if (it->type == MenuItem::Type::Normal && it->enabled && !it->shortcut.empty()
+                    && ShortcutMatches(it->shortcut, vk, ctrl, alt, shift)) {
+                    return i;
+                }
             }
             return -1;
         }
@@ -9203,40 +9598,46 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (!GetHwnd()) return;
             int dipX = MulDiv(x, 96, Dpi()) - ShadowDip();
             int dipY = MulDiv(y, 96, Dpi()) - ShadowDip();
-            int oldHover = hoveredIndex_;
-            hoveredIndex_ = HitTestDip(dipX, dipY);
-            if (hoveredIndex_ != oldHover) {
-                if (submenuPendingIndex_ >= 0) { KillTimer(GetHwnd(), kSubmenuTimerId); submenuPendingIndex_ = -1; }
-                // 有子菜单时：悬停到非“子菜单项”上 → 延时收起子菜单
-                if (ChildPopup()) {
-                    bool onSub = (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()
-                        && menu_->items[hoveredIndex_]->type == MenuItem::Type::Submenu);
-                    if (GetHwnd()) KillTimer(GetHwnd(), kSubmenuHideTimerId);
-                    if (!onSub && GetHwnd()) SetTimer(GetHwnd(), kSubmenuHideTimerId, kSubmenuHideDelayMs, nullptr);
-                }
-                if (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()) {
-                    auto& it = menu_->items[hoveredIndex_];
-                    if (it->type == MenuItem::Type::Submenu && it->submenu) {
-                        submenuPendingIndex_ = hoveredIndex_;
-                        SetTimer(GetHwnd(), kSubmenuTimerId, kSubmenuDelayMs, nullptr);
-                    }
-                }
-                InvalidateRect(GetHwnd(), nullptr, FALSE);
+            HitPos p = HitTestCell(dipX, dipY);
+            UpdateMenuTooltip(p, x, y);
+            if (p.top == hoveredIndex_ && p.child == hoveredChild_) return;
+            hoveredIndex_ = p.top;
+            hoveredChild_ = p.child;
+            if (submenuPendingIndex_ >= 0) {
+                KillTimer(GetHwnd(), kSubmenuTimerId);
+                submenuPendingIndex_ = -1;
+                submenuPendingChild_ = -1;
             }
+            if (ChildPopup()) {
+                bool onSub = IsSubmenuAt(p);
+                KillTimer(GetHwnd(), kSubmenuHideTimerId);
+                if (!onSub) SetTimer(GetHwnd(), kSubmenuHideTimerId, kSubmenuHideDelayMs, nullptr);
+            }
+            if (IsSubmenuAt(p)) {
+                submenuPendingIndex_ = p.top;
+                submenuPendingChild_ = p.child;
+                SetTimer(GetHwnd(), kSubmenuTimerId, kSubmenuDelayMs, nullptr);
+            }
+            InvalidateRect(GetHwnd(), nullptr, FALSE);
             TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE, GetHwnd(), 0 };
             TrackMouseEvent(&tme);
         }
         void OnMenuMouseLeave() {
             if (!GetHwnd()) return;
-            hoveredIndex_ = -1; pressedIndex_ = -1;
+            hoveredIndex_ = hoveredChild_ = -1;
+            pressedIndex_ = pressedChild_ = -1;
+            submenuPendingIndex_ = submenuPendingChild_ = -1;
+            HideMenuTooltip();
             InvalidateRect(GetHwnd(), nullptr, FALSE);
         }
         void OnMenuMouseDown(int x, int y) {
             if (!GetHwnd()) return;
+            HideMenuTooltip();
             int dipX = MulDiv(x, 96, Dpi()) - ShadowDip();
             int dipY = MulDiv(y, 96, Dpi()) - ShadowDip();
-            pressedIndex_ = HitTestDip(dipX, dipY);
-            // 只要落在内容区内就捕获（哪怕没命中小项/点在空白），避免消息漏给主窗口
+            HitPos p = HitTestCell(dipX, dipY);
+            pressedIndex_ = p.top;
+            pressedChild_ = p.child;
             if (dipX >= 0 && dipX < windowWidthDip_ && dipY >= 0 && dipY < windowHeightDip_)
                 SetCapture(GetHwnd());
             InvalidateRect(GetHwnd(), nullptr, FALSE);
@@ -9245,28 +9646,31 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (!GetHwnd()) return;
             int dipX = MulDiv(x, 96, Dpi()) - ShadowDip();
             int dipY = MulDiv(y, 96, Dpi()) - ShadowDip();
-            int idx = HitTestDip(dipX, dipY);
-            int pressed = pressedIndex_;
-            pressedIndex_ = -1;
+            HitPos p = HitTestCell(dipX, dipY);
+            int top = pressedIndex_, child = pressedChild_;
+            pressedIndex_ = pressedChild_ = -1;
             ReleaseCapture();
-            if (idx >= 0 && idx == pressed) { ActivateItem(idx); return; }
+            if (p.top >= 0 && p.top == top && p.child == child) { ActivateItem(top, child); return; }
             InvalidateRect(GetHwnd(), nullptr, FALSE);
         }
 
-        void OpenSubmenu(int index) {
+        void OpenSubmenu(int index, int childIndex = -1) {
             if (index < 0 || index >= (int)menu_->items.size()) return;
-            auto& item = menu_->items[index];
-            if (item->type != MenuItem::Type::Submenu || !item->submenu) return;
+            auto& top = menu_->items[(size_t)index];
+            std::shared_ptr<MenuItem> item = top;
+            if (top->type == MenuItem::Type::Row) {
+                if (childIndex < 0 || childIndex >= (int)top->children.size()) return;
+                item = top->children[(size_t)childIndex];
+            }
+            if (!item || item->type != MenuItem::Type::Submenu || !item->submenu) return;
             HWND h = GetHwnd();
             if (!h) return;
             RECT rc; GetWindowRect(h, &rc);
-            float curY = (float)paddingDip_;
-            for (int i = 0; i < index; ++i) curY += (menu_->items[i]->type == MenuItem::Type::Separator) ? separatorHeightDip_ : itemHeightDip_;
-            int px = rc.right - ShadowPx();
-            int py = rc.top + ShadowPx() + MulDiv((int)curY, Dpi(), 96);
+            D2D1_RECT_F cell = CellRect(index, childIndex);
+            if (cell.right <= cell.left) return;
+            int px = rc.left + ShadowPx() + MulDiv((int)ceil(cell.right + 2.0f), Dpi(), 96);
+            int py = rc.top + ShadowPx() + MulDiv((int)floor(cell.top), Dpi(), 96);
             if (MenuWindow* c = static_cast<MenuWindow*>(ChildPopup())) {
-                // 对应子菜单"已经展开" → 不再重复展开（避免闪一下/重开）；
-                // 注意：只对"这一个"生效，点另外的子项仍会切换过去（走下面的替换逻辑）
                 if (c->menu_ == item->submenu) return;
             }
             auto child = std::make_unique<MenuWindow>(item->submenu, ownerHwnd_, px, py);
@@ -9280,6 +9684,7 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         // 本类的画笔/文本格式是裸指针成员，不挂在 rootElement_ 链上，
         // 必须在析构里显式 Release，否则每打开一次菜单就泄漏一套 D2D/DWrite 资源。
         ~MenuWindow() override {
+            if (tooltipHwnd_) { DestroyWindow(tooltipHwnd_); tooltipHwnd_ = nullptr; }
             auto rel = [](auto*& p) { if (p) { p->Release(); p = nullptr; } };
             rel(shadowBrush_); rel(bgBrush_); rel(itemBgBrush_); rel(hoverBrush_);
             rel(textBrush_); rel(separatorBrush_);
@@ -9293,7 +9698,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
         int windowWidthDip_ = 0, windowHeightDip_ = 0;
         int itemHeightDip_ = 30, separatorHeightDip_ = 9, paddingDip_ = 6, arrowWidthDip_ = 20, checkWidthDip_ = 0;
         float cornerRadiusDip_ = 12.0f;
-        int hoveredIndex_ = -1, pressedIndex_ = -1, submenuPendingIndex_ = -1;
+        int hoveredIndex_ = -1, hoveredChild_ = -1;
+        int pressedIndex_ = -1, pressedChild_ = -1;
+        int submenuPendingIndex_ = -1, submenuPendingChild_ = -1;
+        float rowIconSize_ = 18.0f;
+        HWND tooltipHwnd_ = nullptr;
         ID2D1SolidColorBrush* shadowBrush_ = nullptr;
         ID2D1SolidColorBrush* bgBrush_ = nullptr;
         ID2D1SolidColorBrush* itemBgBrush_ = nullptr;

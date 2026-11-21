@@ -343,7 +343,11 @@ namespace ZufyUI {
             }
         }
         Icon GetIcon() const { return glyphIcon_; }
-        void SetIconColor(Color c) { glyphIconColor_ = c; RequestRepaint(); }
+        void SetIconColor(Color c) {
+            if (glyphIconColor_.r == c.r && glyphIconColor_.g == c.g &&
+                glyphIconColor_.b == c.b && glyphIconColor_.a == c.a) return;
+            glyphIconColor_ = c; RequestRepaint();
+        }
         Color GetIconColor() const { return glyphIconColor_; }
 
         // ---------------- 嵌套子控件（内联横排：图标 + 文本 + 子控件） ----------------
@@ -498,6 +502,51 @@ namespace ZufyUI {
             return out;
         }
 
+        float MeasureHeightForWidth(float width) override {
+            if (text_.empty() || !richRuns_.empty() || overflow_ != TextOverflow::Wrap)
+                return UIElement::MeasureHeightForWidth(width);
+            const float layoutW = width_ > 0.0f ? width_ : width;
+            const float padW = padding_.left + padding_.right;
+            const float padH = padding_.top + padding_.bottom;
+            float childrenW = 0.0f, childrenH = 0.0f;
+            for (const auto& c : children_) {
+                if (!c) continue;
+                childrenW += c->GetDesiredSize().width;
+                childrenH = max(childrenH, c->GetDesiredSize().height);
+            }
+            if (!children_.empty()) childrenW += iconSpacing_ * (float)children_.size();
+            const float iconW = measuredIconW_;
+            const float iconH = measuredIconH_;
+            const float otherW = iconW + ((iconW > 0.0f) ? iconSpacing_ : 0.0f) + childrenW;
+            const float availW = max(0.0f, layoutW - padW - otherW);
+            IDWriteFactory* factory = FontManager::Instance().GetFactory();
+            IDWriteTextFormat* fmt = GetFontFormat();
+            if (!factory || !fmt || availW <= 0.0f) return padH + max(iconH, childrenH);
+            auto layout = FontManager::Instance().GetStyledLayout(
+                text_, fmt, availW, 10000.0f, false, (int)hAlign_, (int)vAlign_, 0.0f, maxLines_);
+            if (!layout) return UIElement::MeasureHeightForWidth(width);
+            DWRITE_TEXT_METRICS metrics{};
+            layout->GetMetrics(&metrics);
+            return padH + max(max(iconH, metrics.height), childrenH);
+        }
+
+        void DrawAsIcon(ID2D1RenderTarget* rt, const Rect& r) override {
+            if (!rt || !visible_) return;
+            Measure(Size(max(1.0f, r.width), max(1.0f, r.height)));
+            Arrange(r);
+            Draw(rt);
+        }
+        void SetIconTint(Color c) override {
+            SetTextColor(c);
+            SetIconColor(c);
+        }
+        void SetIconOpacity(float opacity) override {
+            float v = clamp(opacity, 0.0f, 1.0f);
+            if (iconOpacity_ == v) return;
+            iconOpacity_ = v;
+            RequestRepaint();
+        }
+
         void ArrangeOverride(const Rect& finalRect) override {
             UIElement::ArrangeOverride(finalRect);
             const float padW = padding_.left + padding_.right;
@@ -577,6 +626,7 @@ namespace ZufyUI {
             // 图标（可与文字/子控件共存；即使没有文字也绘制）
             if (image_ && !image_->IsNull() && iconRect_.right > iconRect_.left) {
                 Image::DrawOptions o;
+                o.opacity = iconOpacity_;
                 if (imageFit_) {
                     // 等比缩放到完整可见、居中（contain）
                     float cw = iconRect_.right - iconRect_.left, ch = iconRect_.bottom - iconRect_.top;
@@ -601,6 +651,7 @@ namespace ZufyUI {
                     auto gl = FontManager::Instance().GetStyledLayout(glyph, ifmt, gw, gh, true, 1, 1, 0.0f, 0);
                     if (gl) {
                         Color ic = (glyphIconColor_.a > 0.0f) ? glyphIconColor_ : textColor_;
+                        ic.a *= iconOpacity_;
                         if (!glyphBrush_) rt->CreateSolidColorBrush(ic.ToD2D(), glyphBrush_.GetAddressOf());
                         else glyphBrush_->SetColor(ic.ToD2D());
                         if (!IsEffectivelyEnabled() && glyphBrush_) glyphBrush_->SetColor(DefaultDisabledColor.ToD2D());
@@ -781,6 +832,7 @@ namespace ZufyUI {
         // 图标 / 子控件
         std::shared_ptr<Image> image_;
         bool imageFit_ = false;                        // 图片等比缩放至标签可见区
+        float iconOpacity_ = 1.0f;
         Icon  glyphIcon_ = Icon::None;                 // 字体字形图标（图片优先）
         float glyphIconSize_ = 0.0f;                   // <=0 跟随字号
         Color glyphIconColor_ = Color(0.0f, 0.0f, 0.0f, 0.0f);   // a==0 用文字色
@@ -814,6 +866,23 @@ namespace ZufyUI {
         }
         if (action) col->AddChild(action);
         SetLayout(col);
+    }
+
+    inline void MenuItem::SetGlyphIcon(Icon icon, float size) {
+        auto label = std::make_shared<Label>();
+        label->SetPadding(0.0f);
+        label->SetIcon(icon, size > 0.0f ? size : 18.0f);
+        this->icon = std::move(label);
+    }
+
+    inline void MenuItem::SetImageIcon(std::shared_ptr<Image> image, float width, float height) {
+        auto label = std::make_shared<Label>();
+        label->SetPadding(0.0f);
+        label->SetImage(std::move(image));
+        label->SetImageFit(true);
+        if (width > 0.0f || height > 0.0f)
+            label->SetIconSize(width > 0.0f ? width : height, height > 0.0f ? height : width);
+        this->icon = std::move(label);
     }
 
     class Button : public UIElement {

@@ -1351,12 +1351,23 @@ void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransit
 ## MenuItem
 
 ```cpp
-enum class Type { Normal, Separator, Submenu };
+enum class Type { Normal, Separator, Submenu, Row };
+enum class MenuRowLayout { Inline, IconTop };
+enum class MenuRowWidth { Equal, ContentFit };
+struct MenuRowOptions {
+    int columns = 0;   float gap = 4.0f;   float minItemWidth = 72.0f;   float maxItemWidth = 180.0f;
+    float inlineHeight = 32.0f;   float iconTopHeight = 64.0f;
+    float iconSize = 18.0f;   float iconTopSize = 24.0f;
+    MenuRowLayout layout = MenuRowLayout::Inline;   MenuRowWidth width = MenuRowWidth::Equal;
+    bool showShortcuts = false;
+};
 std::wstring text;   ZSignal<> Clicked;   std::shared_ptr<Menu> submenu;
 Type type = Normal;   bool enabled = true;   int id = 0;
 bool checkable = false, checked = false, radio = false, isDefault = false, danger = false;
 std::wstring shortcut;   std::optional<Color> bgColor, textColor;   std::optional<FontSpec> font;
-std::shared_ptr<Label> icon;
+std::shared_ptr<UIElement> icon;
+std::vector<std::shared_ptr<MenuItem>> children;   MenuRowOptions rowOptions;
+void SetGlyphIcon(Icon, float size = 0.0f);   void SetImageIcon(std::shared_ptr<Image>, float w = 0, float h = 0);
 ```
 
 ## Menu
@@ -1367,11 +1378,17 @@ void AddCheckItem(const std::wstring& text, bool checked);
 void AddCheckItemCb(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
 void AddCheckItemRadio(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
 void AddSeparator();   void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id=0);
+static std::shared_ptr<MenuItem> MakeItem(const std::wstring& text, std::function<void()> cb = nullptr, int id = 0);
+void AddRow(std::vector<std::shared_ptr<MenuItem>> children, MenuRowOptions options = {});
 std::vector<std::shared_ptr<MenuItem>> items;
 std::function<void(Menu&)> onOpening;   ZSignal<int> ItemSelected;
 std::function<void()> onClosed;   // fired after the popup closes
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // standalone popup (tray / right-click)
 ```
+- `AddRow` creates a horizontal row (`Type::Row`); children keep independent icon/text/enabled/danger/shortcut/submenu state. Each cell has its own hover area; the Row itself is not a clickable command.
+- `MenuRowLayout::IconTop` puts the icon above centered text; `ContentFit` measures content before distributing width, while `Equal` divides the row evenly.
+- `MenuItem::icon` is an independent `UIElement`; `SetGlyphIcon` / `SetImageIcon` create their own `Label`. Do not reuse one visual element across menu items.
+- Menu callbacks are still deferred to the UI frame; a Row child callback fires exactly once.
 
 ###block_red_start
 **Pitfall**
