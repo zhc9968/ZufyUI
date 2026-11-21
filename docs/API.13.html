@@ -228,12 +228,23 @@ pre { line-height: 125%; }
 <div class="reading-aid"><button class="reading-aid-toggle" id="readingAidToggle"><span class="ra-icon">&#9656;</span> 阅读辅助 · 查看本页原始 Markdown</button><div class="reading-aid-body"><pre>## MenuItem
 
 ```cpp
-enum class Type { Normal, Separator, Submenu };
+enum class Type { Normal, Separator, Submenu, Row };
+enum class MenuRowLayout { Inline, IconTop };
+enum class MenuRowWidth { Equal, ContentFit };
+struct MenuRowOptions {
+    int columns = 0;   float gap = 4.0f;   float minItemWidth = 72.0f;   float maxItemWidth = 180.0f;
+    float inlineHeight = 32.0f;   float iconTopHeight = 64.0f;
+    float iconSize = 18.0f;   float iconTopSize = 24.0f;
+    MenuRowLayout layout = MenuRowLayout::Inline;   MenuRowWidth width = MenuRowWidth::Equal;
+    bool showShortcuts = false;
+};
 std::wstring text;   ZSignal&lt;&gt; Clicked;   std::shared_ptr&lt;Menu&gt; submenu;
 Type type = Normal;   bool enabled = true;   int id = 0;
 bool checkable = false, checked = false, radio = false, isDefault = false, danger = false;
 std::wstring shortcut;   std::optional&lt;Color&gt; bgColor, textColor;   std::optional&lt;FontSpec&gt; font;
-std::shared_ptr&lt;Label&gt; icon;
+std::shared_ptr&lt;UIElement&gt; icon;
+std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; children;   MenuRowOptions rowOptions;
+void SetGlyphIcon(Icon, float size = 0.0f);   void SetImageIcon(std::shared_ptr&lt;Image&gt;, float w = 0, float h = 0);
 ```
 
 ## Menu
@@ -244,11 +255,18 @@ void AddCheckItem(const std::wstring&amp; text, bool checked);
 void AddCheckItemCb(const std::wstring&amp; text, bool checked, std::function&lt;void(bool)&gt; onToggle);
 void AddCheckItemRadio(const std::wstring&amp; text, bool checked, std::function&lt;void(bool)&gt; onToggle);
 void AddSeparator();   void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu, int id=0);
+static std::shared_ptr&lt;MenuItem&gt; MakeItem(const std::wstring&amp; text, std::function&lt;void()&gt; cb = nullptr, int id = 0);
+static std::shared_ptr&lt;MenuItem&gt; MakeSeparator();
+void AddRow(std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; children, MenuRowOptions options = {});
 std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; items;
 std::function&lt;void(Menu&amp;)&gt; onOpening;   ZSignal&lt;int&gt; ItemSelected;
 std::function&lt;void()&gt; onClosed;   // 弹出层关闭后回调
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // 独立弹出（托盘/右键）
 ```
+- `AddRow` 创建一个横向行（`Type::Row`）；子项使用独立图标/文字/禁用/danger/快捷键/子菜单。行内每项拥有独立 hover 区域，Row 本身不是可点击命令。
+- `MenuRowLayout::IconTop` 使用图标在上、文字在下；`ContentFit` 按内容测宽后分配，`Equal` 均分；Row 内可用 `Menu::MakeSeparator()` 插入竖向分割线。
+- `MenuItem::icon` 是独立 `UIElement`；`SetGlyphIcon` / `SetImageIcon` 会创建自己的 `Label`，不要跨菜单项复用同一可视元素。
+- 菜单回调仍然推迟到 UI 帧执行；Row 子项回调只触发一次。
 
 ###block_red_start
 **易错**
@@ -324,48 +342,82 @@ class MessageBox : public Window {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-69757140', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-8d29c59a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
-<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="w"> </span><span class="p">};</span>
+<div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Type</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Normal</span><span class="p">,</span><span class="w"> </span><span class="n">Separator</span><span class="p">,</span><span class="w"> </span><span class="n">Submenu</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="w"> </span><span class="p">};</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">MenuRowLayout</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Inline</span><span class="p">,</span><span class="w"> </span><span class="n">IconTop</span><span class="w"> </span><span class="p">};</span>
+<span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">MenuRowWidth</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Equal</span><span class="p">,</span><span class="w"> </span><span class="n">ContentFit</span><span class="w"> </span><span class="p">};</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">MenuRowOptions</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">columns</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">   </span><span class="kt">float</span><span class="w"> </span><span class="n">gap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">;</span><span class="w">   </span><span class="kt">float</span><span class="w"> </span><span class="n">minItemWidth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">72.0f</span><span class="p">;</span><span class="w">   </span><span class="kt">float</span><span class="w"> </span><span class="n">maxItemWidth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">180.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">inlineHeight</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">32.0f</span><span class="p">;</span><span class="w">   </span><span class="kt">float</span><span class="w"> </span><span class="n">iconTopHeight</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">64.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">iconSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">18.0f</span><span class="p">;</span><span class="w">   </span><span class="kt">float</span><span class="w"> </span><span class="n">iconTopSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">24.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="n">MenuRowLayout</span><span class="w"> </span><span class="n">layout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MenuRowLayout</span><span class="o">::</span><span class="n">Inline</span><span class="p">;</span><span class="w">   </span><span class="n">MenuRowWidth</span><span class="w"> </span><span class="n">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MenuRowWidth</span><span class="o">::</span><span class="n">Equal</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">showShortcuts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="p">};</span>
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">text</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Clicked</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">submenu</span><span class="p">;</span>
 <span class="n">Type</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Normal</span><span class="p">;</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="kt">bool</span><span class="w"> </span><span class="n">checkable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">checked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">radio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">isDefault</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">danger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="n">shortcut</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">Color</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bgColor</span><span class="p">,</span><span class="w"> </span><span class="n">textColor</span><span class="p">;</span><span class="w">   </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">FontSpec</span><span class="o">&gt;</span><span class="w"> </span><span class="n">font</span><span class="p">;</span>
-<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Label</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">icon</span><span class="p">;</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuItem</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">children</span><span class="p">;</span><span class="w">   </span><span class="n">MenuRowOptions</span><span class="w"> </span><span class="n">rowOptions</span><span class="p">;</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">SetGlyphIcon</span><span class="p">(</span><span class="n">Icon</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetImageIcon</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Image</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
 </pre></div>
-<pre id="code-69757140" style="display: none;">enum class Type { Normal, Separator, Submenu };
+<pre id="code-8d29c59a" style="display: none;">enum class Type { Normal, Separator, Submenu, Row };
+enum class MenuRowLayout { Inline, IconTop };
+enum class MenuRowWidth { Equal, ContentFit };
+struct MenuRowOptions {
+    int columns = 0;   float gap = 4.0f;   float minItemWidth = 72.0f;   float maxItemWidth = 180.0f;
+    float inlineHeight = 32.0f;   float iconTopHeight = 64.0f;
+    float iconSize = 18.0f;   float iconTopSize = 24.0f;
+    MenuRowLayout layout = MenuRowLayout::Inline;   MenuRowWidth width = MenuRowWidth::Equal;
+    bool showShortcuts = false;
+};
 std::wstring text;   ZSignal&lt;&gt; Clicked;   std::shared_ptr&lt;Menu&gt; submenu;
 Type type = Normal;   bool enabled = true;   int id = 0;
 bool checkable = false, checked = false, radio = false, isDefault = false, danger = false;
 std::wstring shortcut;   std::optional&lt;Color&gt; bgColor, textColor;   std::optional&lt;FontSpec&gt; font;
-std::shared_ptr&lt;Label&gt; icon;</pre>
+std::shared_ptr&lt;UIElement&gt; icon;
+std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; children;   MenuRowOptions rowOptions;
+void SetGlyphIcon(Icon, float size = 0.0f);   void SetImageIcon(std::shared_ptr&lt;Image&gt;, float w = 0, float h = 0);</pre>
 </div>
 <h2 id="menu">Menu</h2>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-06907052', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-2dcd37c3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">AddItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddCheckItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">checked</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddCheckItemCb</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">checked</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onToggle</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddCheckItemRadio</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">checked</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onToggle</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">AddSeparator</span><span class="p">();</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddSubmenu</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">submenu</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span>
+<span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuItem</span><span class="o">&gt;</span><span class="w"> </span><span class="n">MakeItem</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuItem</span><span class="o">&gt;</span><span class="w"> </span><span class="n">MakeSeparator</span><span class="p">();</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">AddRow</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuItem</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">children</span><span class="p">,</span><span class="w"> </span><span class="n">MenuRowOptions</span><span class="w"> </span><span class="n">options</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{});</span>
 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">MenuItem</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">items</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">Menu</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onOpening</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ItemSelected</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">()</span><span class="o">&gt;</span><span class="w"> </span><span class="n">onClosed</span><span class="p">;</span><span class="w">   </span><span class="c1">// 弹出层关闭后回调</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">ShowAt</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">ShowAtCursor</span><span class="p">();</span><span class="w">   </span><span class="c1">// 独立弹出（托盘/右键）</span>
 </pre></div>
-<pre id="code-06907052" style="display: none;">void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; cb = nullptr, int id = 0);
+<pre id="code-2dcd37c3" style="display: none;">void AddItem(const std::wstring&amp; text, std::function&lt;void()&gt; cb = nullptr, int id = 0);
 void AddCheckItem(const std::wstring&amp; text, bool checked);
 void AddCheckItemCb(const std::wstring&amp; text, bool checked, std::function&lt;void(bool)&gt; onToggle);
 void AddCheckItemRadio(const std::wstring&amp; text, bool checked, std::function&lt;void(bool)&gt; onToggle);
 void AddSeparator();   void AddSubmenu(const std::wstring&amp; text, std::shared_ptr&lt;Menu&gt; submenu, int id=0);
+static std::shared_ptr&lt;MenuItem&gt; MakeItem(const std::wstring&amp; text, std::function&lt;void()&gt; cb = nullptr, int id = 0);
+static std::shared_ptr&lt;MenuItem&gt; MakeSeparator();
+void AddRow(std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; children, MenuRowOptions options = {});
 std::vector&lt;std::shared_ptr&lt;MenuItem&gt;&gt; items;
 std::function&lt;void(Menu&amp;)&gt; onOpening;   ZSignal&lt;int&gt; ItemSelected;
 std::function&lt;void()&gt; onClosed;   // 弹出层关闭后回调
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // 独立弹出（托盘/右键）</pre>
 </div>
+<ul>
+<li><code>AddRow</code> 创建一个横向行（<code>Type::Row</code>）；子项使用独立图标/文字/禁用/danger/快捷键/子菜单。行内每项拥有独立 hover 区域，Row 本身不是可点击命令。</li>
+<li><code>MenuRowLayout::IconTop</code> 使用图标在上、文字在下；<code>ContentFit</code> 按内容测宽后分配，<code>Equal</code> 均分；Row 内可用 <code>Menu::MakeSeparator()</code> 插入竖向分割线。</li>
+<li><code>MenuItem::icon</code> 是独立 <code>UIElement</code>；<code>SetGlyphIcon</code> / <code>SetImageIcon</code> 会创建自己的 <code>Label</code>，不要跨菜单项复用同一可视元素。</li>
+<li>菜单回调仍然推迟到 UI 帧执行；Row 子项回调只触发一次。</li>
+</ul>
 <div class="red">
 <p><strong>易错</strong></p>
 <ul>
@@ -376,7 +428,7 @@ void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // 独立弹出�
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-49239f76', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-c32a76cf', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuWindowBase</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Window</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">CreatePopup</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">widthDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">heightDip</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenX</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">screenY</span><span class="p">);</span>
@@ -388,7 +440,7 @@ void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // 独立弹出�
 <span class="w">    </span><span class="n">MenuWindow</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="p">,</span><span class="w"> </span><span class="n">HWND</span><span class="w"> </span><span class="n">ownerHwnd</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-49239f76" style="display: none;">class MenuWindowBase : public Window {
+<pre id="code-c32a76cf" style="display: none;">class MenuWindowBase : public Window {
     bool CreatePopup(int widthDip, int heightDip, int screenX, int screenY);
     void ShowAtPoint(int x, int y);  void Hide();  void CloseAll();
     void SetStandalone(bool);  bool IsPointInPopupTree(POINT ptScreen);
@@ -411,7 +463,7 @@ class MenuWindow : public MenuWindowBase {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-913c841f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-315a0a93', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MenuBar</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">UIElement</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="nf">AddMenu</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Menu</span><span class="o">&gt;</span><span class="w"> </span><span class="n">menu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span><span class="w">   </span><span class="c1">// menu 省略自动建</span>
@@ -425,7 +477,7 @@ class MenuWindow : public MenuWindowBase {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetFont</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FontSpec</span><span class="o">&amp;</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetColors</span><span class="p">(</span><span class="n">Color</span><span class="w"> </span><span class="n">bg</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">border</span><span class="p">,</span><span class="w"> </span><span class="n">Color</span><span class="w"> </span><span class="n">text</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-913c841f" style="display: none;">class MenuBar : public UIElement {
+<pre id="code-315a0a93" style="display: none;">class MenuBar : public UIElement {
     int AddMenu(const std::wstring&amp; title, std::shared_ptr&lt;Menu&gt; menu = nullptr);   // menu 省略自动建
     std::shared_ptr&lt;Menu&gt; GetMenu(int i) const;   int MenuCount() const;   void CloseMenu();
     void SetFont(const FontSpec&amp;);   void SetTextColor(Color);   void SetHoverColor(Color);   void SetOpenColor(Color);
@@ -446,7 +498,7 @@ class StatusBar : public UIElement {
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-29248a9c', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-56a08e3d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">FastButton</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">OK</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Cancel</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Apply</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">Close</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">Yes</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">No</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">Help</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">6</span><span class="w"> </span><span class="p">};</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">HasFlag</span><span class="p">(</span><span class="n">FastButton</span><span class="w"> </span><span class="n">set</span><span class="p">,</span><span class="w"> </span><span class="n">FastButton</span><span class="w"> </span><span class="n">flag</span><span class="p">);</span>
@@ -459,7 +511,7 @@ class StatusBar : public UIElement {
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetUserContent</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="p">};</span>
 </pre></div>
-<pre id="code-29248a9c" style="display: none;">enum class FastButton : unsigned { None=0, OK=1&lt;&lt;0, Cancel=1&lt;&lt;1, Apply=1&lt;&lt;2, Close=1&lt;&lt;3, Yes=1&lt;&lt;4, No=1&lt;&lt;5, Help=1&lt;&lt;6 };
+<pre id="code-56a08e3d" style="display: none;">enum class FastButton : unsigned { None=0, OK=1&lt;&lt;0, Cancel=1&lt;&lt;1, Apply=1&lt;&lt;2, Close=1&lt;&lt;3, Yes=1&lt;&lt;4, No=1&lt;&lt;5, Help=1&lt;&lt;6 };
 bool HasFlag(FastButton set, FastButton flag);
 class MessageBox : public Window {
     enum class Icon { None, Info, Warning, Error, Question };

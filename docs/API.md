@@ -8,7 +8,7 @@
 
 > **两个贯穿全文的标记**：
 > - **`易错`**：真实踩过的坑 / 反直觉行为，优先看这些。
-> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v1.29.1**。
+> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v1.30.0**。
 
 ###chapter: 约定 | 命名空间、单位、生命周期、版本与易错标注约定
 
@@ -650,11 +650,12 @@ class LayoutHost : public UIElement {
     void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // 默认 Stretch
 };
 class Card  : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
+void SetHoverAnimationEnabled(bool);   bool IsHoverAnimationEnabled() const;   // 默认 false
 void SetContent(const std::wstring& title, const std::wstring& description, std::shared_ptr<UIElement> action=nullptr);
 class Page  : public LayoutHost { DefaultPadding=10; ... };
 void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // 一行套 ScrollViewer(fill)+8px 边距
 ```
-- `LayoutHost` 是“单内容宿主”；`Card` 是带圆角/描边/悬停的卡片；`Page` 是 `TabView`/`PageHost` 的页面容器。
+- `LayoutHost` 是“单内容宿主”；`Card` 是带圆角/描边的静态卡片，默认不播放悬停动画；需要悬停效果时显式调用 `SetHoverAnimationEnabled(true)` 或设置悬停颜色/速度。`Page` 是 `TabView`/`PageHost` 的页面容器。
 - `SetContentAlignment(Center, Center)` 可让 Page/Card 的内容整体居中；默认 `Stretch` 保持旧行为。
 - 空内容时，`Card/Page` 的显式 `SetWidth/SetHeight` 仍然生效；`ScrollViewer` 无内容时也返回显式/有限视口尺寸。
 - `Card::UseCache()` = `HasShadow()`；`Page::UseCache()` = false。
@@ -836,8 +837,10 @@ void SetBackgroundColor(Color);            // 叠加在背景（空/亚克力/�
 void SetContentOpacity(float opacity);     // 弹窗淡入
 void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
 void SetResizable(bool);   void SetTitle(const std::wstring&);
+void SetIcon(HICON big, HICON small);   void SetAppIcon(HICON big, HICON small);
 void SetSuspendAnimationsWhileResizing(bool);   bool GetSuspendAnimationsWhileResizing() const;
 ```
+- `SetIcon` 设置本窗口原生图标并同步当前自定义标题栏；`SetAppIcon` 额外更新窗口类图标，供任务栏/原生标题栏使用。两者都只在 `Create` 之后有效。
 - 背景是**自绘**：Acrylic = 宿主背景 + 自带效果链；Mica = 缓存壁纸层。改参数用 `SetBackgroundParams` 或 `UIZSignals::ReloadAcrylic`。
 - 窗口圆角不再提供公开 API：Win10 保持系统直角以保留 DWM 边框/阴影，Win11 跟随系统圆角。需要自定义圆角时请自行调用 Win32 DWM API，并自行处理 Win10/Snap 的边框阴影风险。
 - `DefaultBackdropColor` 默认纯白（v1.17.0）。`SetContentOpacity` 需合成后端就绪。
@@ -857,7 +860,7 @@ void SetStatusBar(std::shared_ptr<UIElement>);  std::shared_ptr<UIElement> GetSt
 void SetMenuBarInTitleBar(bool on = true);      bool IsMenuBarInTitleBar() const;
 void SetShowTitleText(bool on);                 bool IsShowTitleText() const;
 ```
-- 菜单栏默认**叠在自定义标题栏上**（让开左侧图标、右侧系统按钮）；此时标题文字**默认隐藏**（与菜单互斥，避免重叠）。`SetShowTitleText(true)` → 显示标题、菜单栏**自动移到标题栏下方的客户区顶部**；`SetMenuBarInTitleBar(false)` 强制放到客户区顶部。状态栏固定贴底，根内容高度相应收缩。
+- 自定义标题栏默认显示图标和标题文字；菜单栏随后默认位于标题栏下方的客户区顶部。`SetShowTitleText(false)` 隐藏标题，菜单栏可叠在标题栏上；`SetMenuBarInTitleBar(false)` 强制菜单放到客户区顶部。状态栏固定贴底，根内容高度相应收缩。
 
 ###block_red_start
 **易错**
@@ -1356,12 +1359,23 @@ void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransit
 ## MenuItem
 
 ```cpp
-enum class Type { Normal, Separator, Submenu };
+enum class Type { Normal, Separator, Submenu, Row };
+enum class MenuRowLayout { Inline, IconTop };
+enum class MenuRowWidth { Equal, ContentFit };
+struct MenuRowOptions {
+    int columns = 0;   float gap = 4.0f;   float minItemWidth = 72.0f;   float maxItemWidth = 180.0f;
+    float inlineHeight = 32.0f;   float iconTopHeight = 64.0f;
+    float iconSize = 18.0f;   float iconTopSize = 24.0f;
+    MenuRowLayout layout = MenuRowLayout::Inline;   MenuRowWidth width = MenuRowWidth::Equal;
+    bool showShortcuts = false;
+};
 std::wstring text;   ZSignal<> Clicked;   std::shared_ptr<Menu> submenu;
 Type type = Normal;   bool enabled = true;   int id = 0;
 bool checkable = false, checked = false, radio = false, isDefault = false, danger = false;
 std::wstring shortcut;   std::optional<Color> bgColor, textColor;   std::optional<FontSpec> font;
-std::shared_ptr<Label> icon;
+std::shared_ptr<UIElement> icon;
+std::vector<std::shared_ptr<MenuItem>> children;   MenuRowOptions rowOptions;
+void SetGlyphIcon(Icon, float size = 0.0f);   void SetImageIcon(std::shared_ptr<Image>, float w = 0, float h = 0);
 ```
 
 ## Menu
@@ -1372,11 +1386,18 @@ void AddCheckItem(const std::wstring& text, bool checked);
 void AddCheckItemCb(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
 void AddCheckItemRadio(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
 void AddSeparator();   void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id=0);
+static std::shared_ptr<MenuItem> MakeItem(const std::wstring& text, std::function<void()> cb = nullptr, int id = 0);
+static std::shared_ptr<MenuItem> MakeSeparator();
+void AddRow(std::vector<std::shared_ptr<MenuItem>> children, MenuRowOptions options = {});
 std::vector<std::shared_ptr<MenuItem>> items;
 std::function<void(Menu&)> onOpening;   ZSignal<int> ItemSelected;
 std::function<void()> onClosed;   // 弹出层关闭后回调
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // 独立弹出（托盘/右键）
 ```
+- `AddRow` 创建一个横向行（`Type::Row`）；子项使用独立图标/文字/禁用/danger/快捷键/子菜单。行内每项拥有独立 hover 区域，Row 本身不是可点击命令。
+- `MenuRowLayout::IconTop` 使用图标在上、文字在下；`ContentFit` 按内容测宽后分配，`Equal` 均分；Row 内可用 `Menu::MakeSeparator()` 插入竖向分割线。
+- `MenuItem::icon` 是独立 `UIElement`；`SetGlyphIcon` / `SetImageIcon` 会创建自己的 `Label`，不要跨菜单项复用同一可视元素。
+- 菜单回调仍然推迟到 UI 帧执行；Row 子项回调只触发一次。
 
 ###block_red_start
 **易错**
@@ -2214,7 +2235,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.29.1`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.30.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。

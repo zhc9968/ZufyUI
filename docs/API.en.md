@@ -7,7 +7,7 @@
 
 > **Two markers used throughout**:
 > - **`Pitfall`**: real traps / counter-intuitive behavior — read these first.
-> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.29.1**.
+> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.30.0**.
 
 ###chapter: Conventions | Namespaces, units, lifetime, version & pitfall notation
 
@@ -646,11 +646,12 @@ class LayoutHost : public UIElement {
     void SetContentAlignment(LayoutAlignment h, LayoutAlignment v);        // default Stretch
 };
 class Card : public LayoutHost { DefaultPadding=12; DefaultCornerRadius=8; ... };
+void SetHoverAnimationEnabled(bool);   bool IsHoverAnimationEnabled() const;   // default false
 void SetContent(const std::wstring& title, const std::wstring& description, std::shared_ptr<UIElement> action=nullptr);
 class Page : public LayoutHost { DefaultPadding=10; ... };
 void Page::SetScrollableContent(std::shared_ptr<UIElement> content);   // one line: wrap in ScrollViewer(fill)+8px
 ```
-- `LayoutHost` is a single-content host; `Card` is a rounded/bordered/hover card; `Page` is the page container for `TabView`/`PageHost`.
+- `LayoutHost` is a single-content host; `Card` is a rounded/bordered static card with no hover animation by default; opt in with `SetHoverAnimationEnabled(true)` or by setting hover colors/speed. `Page` is the page container for `TabView`/`PageHost`.
 - `SetContentAlignment(Center, Center)` centers Page/Card content; default `Stretch` keeps old behaviour.
 - With no content, explicit `SetWidth/SetHeight` on `Card/Page` still applies; a `ScrollViewer` without content also returns its explicit/finite viewport size.
 - `Card::UseCache()` = `HasShadow()`; `Page::UseCache()` = false.
@@ -832,8 +833,10 @@ void SetBackgroundColor(Color);
 void SetContentOpacity(float opacity);
 void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
 void SetResizable(bool);   void SetTitle(const std::wstring&);
+void SetIcon(HICON big, HICON small);   void SetAppIcon(HICON big, HICON small);
 void SetSuspendAnimationsWhileResizing(bool);   bool GetSuspendAnimationsWhileResizing() const;
 ```
+- `SetIcon` sets this window's native icon and syncs the current custom title bar; `SetAppIcon` additionally updates the window-class icon for the taskbar/native frame. Both require `Create` first.
 - Backdrop is **hand-rolled** (Acrylic = host backdrop + effect chain; Mica = cached wallpaper layer). Change params via `SetBackgroundParams` or `UIZSignals::ReloadAcrylic`.
 - Window corners are no longer a public API: Windows 10 keeps square corners to preserve DWM border/shadow, Windows 11 follows system rounding. Call Win32 DWM APIs yourself if you need custom corners, and handle Win10/Snap border/shadow risks yourself.
 - **`Version`**: four-layer params `v1.8.1`; `SetContentOpacity` `v1.9.6`.
@@ -852,7 +855,7 @@ void SetStatusBar(std::shared_ptr<UIElement>);  std::shared_ptr<UIElement> GetSt
 void SetMenuBarInTitleBar(bool on = true);      bool IsMenuBarInTitleBar() const;
 void SetShowTitleText(bool on);                 bool IsShowTitleText() const;
 ```
-- The menu bar is **overlaid on the custom title bar by default** (leaving room for the left icon and the right caption buttons); the title text is then **hidden by default** (they are mutually exclusive, to avoid overlap). `SetShowTitleText(true)` shows the title and moves the menu bar to the **top of the client area below the bar**; `SetMenuBarInTitleBar(false)` forces it to the client-area top. The status bar is pinned to the bottom and shrinks the root content height.
+- The custom title bar shows its icon and title text by default; a menu bar then sits at the top of the client area below the title bar. `SetShowTitleText(false)` hides the title and allows the menu bar to overlay the title bar; `SetMenuBarInTitleBar(false)` forces the menu bar to the client-area top. The status bar is pinned to the bottom and shrinks the root content height.
 
 ###block_red_start
 **Pitfall**
@@ -1348,12 +1351,23 @@ void SetTransitionDirection(PageHost::TransitionDirection);  void SetAutoTransit
 ## MenuItem
 
 ```cpp
-enum class Type { Normal, Separator, Submenu };
+enum class Type { Normal, Separator, Submenu, Row };
+enum class MenuRowLayout { Inline, IconTop };
+enum class MenuRowWidth { Equal, ContentFit };
+struct MenuRowOptions {
+    int columns = 0;   float gap = 4.0f;   float minItemWidth = 72.0f;   float maxItemWidth = 180.0f;
+    float inlineHeight = 32.0f;   float iconTopHeight = 64.0f;
+    float iconSize = 18.0f;   float iconTopSize = 24.0f;
+    MenuRowLayout layout = MenuRowLayout::Inline;   MenuRowWidth width = MenuRowWidth::Equal;
+    bool showShortcuts = false;
+};
 std::wstring text;   ZSignal<> Clicked;   std::shared_ptr<Menu> submenu;
 Type type = Normal;   bool enabled = true;   int id = 0;
 bool checkable = false, checked = false, radio = false, isDefault = false, danger = false;
 std::wstring shortcut;   std::optional<Color> bgColor, textColor;   std::optional<FontSpec> font;
-std::shared_ptr<Label> icon;
+std::shared_ptr<UIElement> icon;
+std::vector<std::shared_ptr<MenuItem>> children;   MenuRowOptions rowOptions;
+void SetGlyphIcon(Icon, float size = 0.0f);   void SetImageIcon(std::shared_ptr<Image>, float w = 0, float h = 0);
 ```
 
 ## Menu
@@ -1364,11 +1378,18 @@ void AddCheckItem(const std::wstring& text, bool checked);
 void AddCheckItemCb(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
 void AddCheckItemRadio(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
 void AddSeparator();   void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id=0);
+static std::shared_ptr<MenuItem> MakeItem(const std::wstring& text, std::function<void()> cb = nullptr, int id = 0);
+static std::shared_ptr<MenuItem> MakeSeparator();
+void AddRow(std::vector<std::shared_ptr<MenuItem>> children, MenuRowOptions options = {});
 std::vector<std::shared_ptr<MenuItem>> items;
 std::function<void(Menu&)> onOpening;   ZSignal<int> ItemSelected;
 std::function<void()> onClosed;   // fired after the popup closes
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // standalone popup (tray / right-click)
 ```
+- `AddRow` creates a horizontal row (`Type::Row`); children keep independent icon/text/enabled/danger/shortcut/submenu state. Each cell has its own hover area; the Row itself is not a clickable command.
+- `MenuRowLayout::IconTop` puts the icon above centered text; `ContentFit` measures content before distributing width, while `Equal` divides the row evenly. Insert a vertical divider inside a Row with `Menu::MakeSeparator()`.
+- `MenuItem::icon` is an independent `UIElement`; `SetGlyphIcon` / `SetImageIcon` create their own `Label`. Do not reuse one visual element across menu items.
+- Menu callbacks are still deferred to the UI frame; a Row child callback fires exactly once.
 
 ###block_red_start
 **Pitfall**
@@ -2203,7 +2224,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.6**:
   - Fix: `ListView` button mode checkbox **hit test was 4px off** (now aligned with the draw / child left edge).
   - Fix: `Label::MeasureOverride` wrap branch **ignored inline children width** (wrapping Labels with `AddChild` squeezed/overflowed text).
-  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `1.29.1`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
+  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `1.30.0`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
 - **v1.19.7**:
   - Fixes: `ChartBase` swapped horizontal/vertical scrollbar allowance (`viewW` uses the vertical bar, `viewH` the horizontal) → rightmost/bottom content unreachable; `NumberBox` wheel focus check (focus is on the inner `TextBox`); `lastActiveAnimElements_` dangling (erased from the anim sets on destruction, prevents random crashes); `Menu::ShowAt` throwing `bad_weak_ptr` when not shared-owned; `ChildrenSig` missing `EnsureView`; `TreeView::SetDefaultExpandDepth` not applied by `AddRoot`/`AddChild`.
   - Fixes: `ColumnBox`/`RowBox` spacing counts only layout-participating children; `GridLayout` row/col count skips invisible; `Label` wrap ignored/duplicated spacing; `ListView`/`TableView` clear `childrenView_` before releasing labels and release pooled/rich/cell labels; `Window::defaultIMC_` via `ImmAssociateContext`; `DragData::GetFiles` buffer `len+1`; `TextEdit` fires `SelectionChanged` when clearing a selection; `MessageBox` default title localized.
