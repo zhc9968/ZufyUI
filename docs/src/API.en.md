@@ -1379,6 +1379,7 @@ void AddCheckItemCb(const std::wstring& text, bool checked, std::function<void(b
 void AddCheckItemRadio(const std::wstring& text, bool checked, std::function<void(bool)> onToggle);
 void AddSeparator();   void AddSubmenu(const std::wstring& text, std::shared_ptr<Menu> submenu, int id=0);
 static std::shared_ptr<MenuItem> MakeItem(const std::wstring& text, std::function<void()> cb = nullptr, int id = 0);
+static std::shared_ptr<MenuItem> MakeSeparator();
 void AddRow(std::vector<std::shared_ptr<MenuItem>> children, MenuRowOptions options = {});
 std::vector<std::shared_ptr<MenuItem>> items;
 std::function<void(Menu&)> onOpening;   ZSignal<int> ItemSelected;
@@ -1386,7 +1387,7 @@ std::function<void()> onClosed;   // fired after the popup closes
 void ShowAt(int screenX, int screenY);   void ShowAtCursor();   // standalone popup (tray / right-click)
 ```
 - `AddRow` creates a horizontal row (`Type::Row`); children keep independent icon/text/enabled/danger/shortcut/submenu state. Each cell has its own hover area; the Row itself is not a clickable command.
-- `MenuRowLayout::IconTop` puts the icon above centered text; `ContentFit` measures content before distributing width, while `Equal` divides the row evenly.
+- `MenuRowLayout::IconTop` puts the icon above centered text; `ContentFit` measures content before distributing width, while `Equal` divides the row evenly. Insert a vertical divider inside a Row with `Menu::MakeSeparator()`.
 - `MenuItem::icon` is an independent `UIElement`; `SetGlyphIcon` / `SetImageIcon` create their own `Label`. Do not reuse one visual element across menu items.
 - Menu callbacks are still deferred to the UI frame; a Row child callback fires exactly once.
 

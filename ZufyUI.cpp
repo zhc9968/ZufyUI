@@ -4443,6 +4443,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                         makeItem(L"5", Icon::Cut), makeItem(L"6", Icon::Delete, true) }, o);
             addMenuButton(grid, 2, 2, L"极端行", m, L"6 列 / gap 0 / 极窄与极宽");
         }
+        {
+            auto m = makeBaseMenu(L"行内竖向分割");
+            MenuRowOptions o;
+            m->AddSeparator();
+            m->AddRow({ makeItem(L"打开", Icon::Open), Menu::MakeSeparator(),
+                        makeItem(L"编辑", Icon::Edit), Menu::MakeSeparator(),
+                        makeItem(L"属性", Icon::Settings) }, o);
+            addMenuButton(grid, 3, 1, L"行内竖向分割", m, L"横向行中间的竖向分割");
+        }
         col->AddChild(grid);
 
         auto stress = std::make_shared<Menu>();

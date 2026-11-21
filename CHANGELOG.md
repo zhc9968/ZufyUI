@@ -5,7 +5,8 @@
 > 当前版本：**1.30.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
 
 ### 2026-11-20 — 右键菜单横向行（v1.30.0）
-- **横向菜单行**：`MenuItem::Type::Row` + `MenuRowLayout/MenuRowWidth/MenuRowOptions`；`Menu::AddRow` / `MakeItem`，`SetGlyphIcon` / `SetImageIcon`。支持 2–6 列、Inline/IconTop、Equal/ContentFit、独立 hover/pressed/disabled/danger/快捷键/子菜单；MenuWindow 的测量、命中、键盘、子菜单锚点同步升级。IconTop 文字居中，单元格文本/快捷键/箭头按单元格裁剪并省略，禁用项的图标/图片使用禁用色或透明度。
+- **横向菜单行**：`MenuItem::Type::Row` + `MenuRowLayout/MenuRowWidth/MenuRowOptions`；`Menu::AddRow` / `MakeItem` / `MakeSeparator`，`SetGlyphIcon` / `SetImageIcon`。支持 2–6 列、Inline/IconTop、Equal/ContentFit、行内竖向分割线、独立 hover/pressed/disabled/danger/快捷键/子菜单；MenuWindow 的测量、命中、键盘、子菜单锚点同步升级。IconTop 文字居中，单元格文本/快捷键/箭头按单元格裁剪并省略，禁用项的图标/图片使用禁用色或透明度，省略项悬停显示完整 tooltip。
+- **菜单栏位置**：菜单栏改为贴客户区左右边缘、紧接标题栏，不再被根布局 margin 向内缩。
 - **演示与验证**：新增“右键菜单行”页面，覆盖 2/3/4/5/6 列、图标在上、ContentFit、混合分组、空行、禁用/danger、动态右键菜单与 30 行压力菜单；新增 API 回归检查。
 
 ### 2026-11-20 — Card 悬停与 ComboBox 展开层命中修复（v1.29.2）

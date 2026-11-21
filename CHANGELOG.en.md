@@ -5,7 +5,8 @@
 > Current version: **1.30.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
 
 ### 2026-11-20 — Horizontal context-menu rows (v1.30.0)
-- **Horizontal menu rows**: added `MenuItem::Type::Row`, `MenuRowLayout/MenuRowWidth/MenuRowOptions`, `Menu::AddRow` / `MakeItem`, and `SetGlyphIcon` / `SetImageIcon`. Supports 2–6 columns, Inline/IconTop, Equal/ContentFit, independent hover/pressed/disabled/danger/shortcut/submenu; MenuWindow measurement, hit testing, keyboard navigation and submenu anchors were upgraded. IconTop text is centered; cell text/shortcuts/arrows are clipped and ellipsized; disabled icons/images use the disabled color or opacity.
+- **Horizontal menu rows**: added `MenuItem::Type::Row`, `MenuRowLayout/MenuRowWidth/MenuRowOptions`, `Menu::AddRow` / `MakeItem` / `MakeSeparator`, and `SetGlyphIcon` / `SetImageIcon`. Supports 2–6 columns, Inline/IconTop, Equal/ContentFit, in-row vertical dividers, independent hover/pressed/disabled/danger/shortcut/submenu; MenuWindow measurement, hit testing, keyboard navigation and submenu anchors were upgraded. IconTop text is centered; cell text/shortcuts/arrows are clipped and ellipsized; disabled icons/images use the disabled color or opacity; truncated items show a full-text tooltip on hover.
+- **Menu-bar placement**: the menu bar is flush to the client edges directly below the title bar instead of being inset by the content root margin.
 - **Demo and verification**: added the "Menu Rows" page with 2/3/4/5/6 columns, IconTop, ContentFit, mixed groups, empty rows, disabled/danger, dynamic right-click menu and a 30-row stress menu; added API regression checks.
 
 ### 2026-11-20 — Card hover and ComboBox overlay hit-test fixes (v1.29.2)

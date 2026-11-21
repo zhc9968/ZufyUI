@@ -4225,6 +4225,11 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (callback) item->Clicked.connect(std::move(callback));
             return item;
         }
+        static std::shared_ptr<MenuItem> MakeSeparator() {
+            auto item = std::make_shared<MenuItem>();
+            item->type = MenuItem::Type::Separator;
+            return item;
+        }
         void AddRow(std::vector<std::shared_ptr<MenuItem>> children,
                     MenuRowOptions options = {}) {
             if (children.empty()) return;
@@ -7286,7 +7291,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     float mh = (customTitleBarHeight_ > 0.0f) ? min(menuBarHeight_, customTitleBarHeight_) : menuBarHeight_;
                     menuBar_->Arrange(Rect(36.0f, max(0.0f, (customTitleBarHeight_ - mh) * 0.5f), max(1.0f, clientWidthDip - 36.0f - 150.0f), mh));   // 让开图标 + 右侧系统按钮
                 } else {
-                    menuBar_->Arrange(Rect(left, top, availWidth, menuBarHeight_));
+                    // The menu bar belongs to window chrome: keep it flush to the client
+                    // edges below the title bar, not inset by the content root margin.
+                    menuBar_->Arrange(Rect(left, top - rootMargin.top, availWidth, menuBarHeight_));
                     top += menuBarHeight_;
                     availHeight -= menuBarHeight_;
                     if (availHeight < 0.0f) availHeight = 0.0f;
@@ -9069,7 +9076,9 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             return max(24.0f, h);
         }
 
+        static float RowDividerWidth() { return 10.0f; }
         float CellContentWidth(const MenuItem& child) const {
+            if (child.type == MenuItem::Type::Separator) return RowDividerWidth();
             float tw = TextWidthFor(child.text, textFormat_);
             return tw + (child.icon ? 26.0f : 0.0f)
                 + (child.type == MenuItem::Type::Submenu ? arrowWidthDip_ : 0.0f);
@@ -9081,7 +9090,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             float total = 0.0f;
             for (const auto& c : row.children) {
                 if (!c) continue;
-                total += clamp(CellContentWidth(*c), o.minItemWidth, o.maxItemWidth);
+                if (c->type == MenuItem::Type::Separator) total += RowDividerWidth();
+                else total += clamp(CellContentWidth(*c), o.minItemWidth, o.maxItemWidth);
             }
             total += max(0.0f, o.gap) * max(0.0f, (float)row.children.size() - 1.0f);
             return total;
@@ -9104,30 +9114,51 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     row.h = RowHeightFor(*item);
                     const int n = (int)item->children.size();
                     const float gap = max(0.0f, item->rowOptions.gap);
+                    const float dividerWidth = RowDividerWidth();
                     std::vector<float> widths((size_t)n, 0.0f);
-                    float sum = 0.0f;
+                    int sepCount = 0, normalCount = 0;
+                    float normalSum = 0.0f;
                     for (int c = 0; c < n; ++c) {
-                        widths[(size_t)c] = clamp(CellContentWidth(*item->children[(size_t)c]),
-                                                  item->rowOptions.minItemWidth, item->rowOptions.maxItemWidth);
-                        sum += widths[(size_t)c];
+                        auto& child = item->children[(size_t)c];
+                        if (!child) continue;
+                        if (child->type == MenuItem::Type::Separator) {
+                            widths[(size_t)c] = dividerWidth;
+                            ++sepCount;
+                        }
+                        else {
+                            widths[(size_t)c] = clamp(CellContentWidth(*child),
+                                                      item->rowOptions.minItemWidth, item->rowOptions.maxItemWidth);
+                            normalSum += widths[(size_t)c];
+                            ++normalCount;
+                        }
                     }
                     const float gaps = gap * (float)max(0, n - 1);
-                    if (item->rowOptions.width == MenuRowWidth::Equal) {
-                        float each = max(0.0f, (rowInner - gaps) / (float)n);
-                        for (float& w : widths) w = each;
-                        sum = each * (float)n;
+                    const float sepTotal = dividerWidth * (float)sepCount;
+                    const float normalRoom = max(0.0f, rowInner - gaps - sepTotal);
+                    if (item->rowOptions.width == MenuRowWidth::Equal && normalCount > 0) {
+                        float each = normalRoom / (float)normalCount;
+                        for (int c = 0; c < n; ++c)
+                            if (item->children[(size_t)c] && item->children[(size_t)c]->type != MenuItem::Type::Separator)
+                                widths[(size_t)c] = each;
+                        normalSum = each * (float)normalCount;
                     }
-                    else if (sum + gaps < rowInner) {
-                        float extra = (rowInner - sum - gaps) / (float)n;
-                        for (float& w : widths) w += extra;
-                        sum = rowInner - gaps;
+                    else if (normalCount > 0 && normalSum < normalRoom) {
+                        float extra = (normalRoom - normalSum) / (float)normalCount;
+                        for (int c = 0; c < n; ++c)
+                            if (item->children[(size_t)c] && item->children[(size_t)c]->type != MenuItem::Type::Separator)
+                                widths[(size_t)c] += extra;
+                        normalSum = normalRoom;
+                    }
+                    else if (normalCount > 0 && normalSum > normalRoom && normalSum > 0.0f) {
+                        float scale = normalRoom / normalSum;
+                        for (int c = 0; c < n; ++c)
+                            if (item->children[(size_t)c] && item->children[(size_t)c]->type != MenuItem::Type::Separator)
+                                widths[(size_t)c] *= scale;
                     }
                     float x = itemLeft;
                     row.cells.resize((size_t)n);
                     for (int c = 0; c < n; ++c) {
                         float w = widths[(size_t)c];
-                        if (sum + gaps > rowInner && sum > 0.0f)
-                            w *= rowInner / sum;   // keep the row inside the menu on extreme widths
                         row.cells[(size_t)c] = D2D1::RectF(x, y, x + w, y + row.h);
                         x += w + gap;
                     }
@@ -9371,10 +9402,18 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                     rowIconSize_ = (item->rowOptions.layout == MenuRowLayout::IconTop)
                         ? item->rowOptions.iconTopSize : item->rowOptions.iconSize;
                     for (int c = 0; c < (int)rowIt->cells.size() && c < (int)item->children.size(); ++c) {
-                        if (item->children[(size_t)c])
-                            DrawCell(rt, *item->children[(size_t)c], i, c, rowIt->cells[(size_t)c], true,
-                                     item->rowOptions.layout == MenuRowLayout::IconTop,
-                                     item->rowOptions.showShortcuts);
+                        auto& child = item->children[(size_t)c];
+                        if (!child) continue;
+                        if (child->type == MenuItem::Type::Separator) {
+                            const auto& r = rowIt->cells[(size_t)c];
+                            float cx = (r.left + r.right) * 0.5f;
+                            rt->DrawLine(D2D1::Point2F(cx, r.top + 6.0f), D2D1::Point2F(cx, r.bottom - 6.0f),
+                                         separatorBrush_, 1.0f);
+                            continue;
+                        }
+                        DrawCell(rt, *child, i, c, rowIt->cells[(size_t)c], true,
+                                 item->rowOptions.layout == MenuRowLayout::IconTop,
+                                 item->rowOptions.showShortcuts);
                     }
                 }
                 else if (!rowIt->cells.empty()) {
