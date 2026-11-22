@@ -482,7 +482,7 @@ ZSignal&lt;CloseReason, bool*&gt; CloseRequested;   ZSignal&lt;CloseReason&gt; C
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-97f770e3', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-94377e8f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">BackgroundParams</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">blurAmount</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span><span class="w"> </span><span class="n">saturation</span><span class="o">=</span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">D2D1_COLOR_F</span><span class="w"> </span><span class="n">tint</span><span class="p">,</span><span class="w"> </span><span class="n">luminosity</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">noiseOpacity</span><span class="o">=</span><span class="mf">0.02f</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">AcrylicPreset</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Legacy</span><span class="p">,</span><span class="w"> </span><span class="n">Luminosity</span><span class="p">,</span><span class="w"> </span><span class="n">Base</span><span class="p">,</span><span class="w"> </span><span class="n">Thin</span><span class="w"> </span><span class="p">};</span>
@@ -493,7 +493,7 @@ ZSignal&lt;CloseReason, bool*&gt; CloseRequested;   ZSignal&lt;CloseReason&gt; C
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">ActivateMode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Raise</span><span class="p">,</span><span class="w"> </span><span class="n">Activate</span><span class="p">,</span><span class="w"> </span><span class="n">Foreground</span><span class="p">,</span><span class="w"> </span><span class="n">All</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">OwnedMinimizePolicy</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">None</span><span class="p">,</span><span class="w"> </span><span class="n">Hide</span><span class="p">,</span><span class="w"> </span><span class="n">DisableMinimize</span><span class="w"> </span><span class="p">};</span>
 </pre></div>
-<pre id="code-97f770e3" style="display: none;">struct BackgroundParams { float blurAmount=30, saturation=1; D2D1_COLOR_F tint, luminosity; float noiseOpacity=0.02f; };
+<pre id="code-94377e8f" style="display: none;">struct BackgroundParams { float blurAmount=30, saturation=1; D2D1_COLOR_F tint, luminosity; float noiseOpacity=0.02f; };
 enum class AcrylicPreset { Legacy, Luminosity, Base, Thin };
 struct CaptionMetrics { bool valid; float rightMargin, top, height, width; };
 enum class TaskbarProgress { None=0, Indeterminate=1, Normal=2, Error=4, Paused=8 };
@@ -506,7 +506,7 @@ enum class OwnedMinimizePolicy { None, Hide, DisableMinimize };</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-6c3ab18e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-2f7d5a41', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">Backdrop</span><span class="w"> </span><span class="n">DefaultBackdrop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Backdrop</span><span class="o">::</span><span class="n">None</span><span class="p">;</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">DWORD</span><span class="w">     </span><span class="n">DefaultBackdropColor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xFFFFFFFF</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认纯白，v1.17.0</span>
@@ -517,7 +517,7 @@ enum class OwnedMinimizePolicy { None, Hide, DisableMinimize };</pre>
 <span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetDefaultAppIcon</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">big</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="n">small</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span>
 <span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetProcessAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
 </pre></div>
-<pre id="code-6c3ab18e" style="display: none;">inline static Backdrop DefaultBackdrop = Backdrop::None;
+<pre id="code-2f7d5a41" style="display: none;">inline static Backdrop DefaultBackdrop = Backdrop::None;
 inline static DWORD     DefaultBackdropColor = 0xFFFFFFFF;   // 默认纯白，v1.17.0
 static void SetDefaultBackdrop(Backdrop, DWORD tint = 0);
 static void SetBackgroundParams(Backdrop which, const BackgroundParams&amp;);
@@ -530,7 +530,7 @@ static void SetProcessAppUserModelID(const std::wstring&amp; id);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f42934c8', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-dc6537a0', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">RenderDriver</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Auto</span><span class="p">,</span><span class="w"> </span><span class="n">Hardware</span><span class="p">,</span><span class="w"> </span><span class="n">WARP</span><span class="p">,</span><span class="w"> </span><span class="n">Unknown</span><span class="w"> </span><span class="p">};</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetRenderDriver</span><span class="p">(</span><span class="n">RenderDriver</span><span class="p">);</span>
@@ -539,7 +539,7 @@ static void SetProcessAppUserModelID(const std::wstring&amp; id);</pre>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">IsRenderDriverReady</span><span class="p">();</span>
 <span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="w"> </span><span class="nf">GetRenderDeviceName</span><span class="p">();</span>
 </pre></div>
-<pre id="code-f42934c8" style="display: none;">enum class RenderDriver { Auto, Hardware, WARP, Unknown };
+<pre id="code-dc6537a0" style="display: none;">enum class RenderDriver { Auto, Hardware, WARP, Unknown };
 void SetRenderDriver(RenderDriver);
 RenderDriver GetRequestedRenderDriver();
 RenderDriver GetActiveRenderDriver();
@@ -558,7 +558,7 @@ std::wstring GetRenderDeviceName();</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-c67b7258', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e2a37c5e', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">Create</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="n">title</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="o">=</span><span class="n">CW_USEDEFAULT</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="o">=</span><span class="n">CW_USEDEFAULT</span><span class="p">);</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">IsValid</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="n">HWND</span><span class="w"> </span><span class="nf">GetHwnd</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">int</span><span class="w"> </span><span class="nf">GetId</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -574,7 +574,7 @@ std::wstring GetRenderDeviceName();</pre>
 <span class="n">PresentationState</span><span class="w"> </span><span class="nf">GetPresentationState</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="nf">GetPresentationProgress</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsTransitionActive</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kr">inline</span><span class="w"> </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">Window</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="n">DefaultWindowSetup</span><span class="p">;</span>
 </pre></div>
-<pre id="code-c67b7258" style="display: none;">bool Create(int w, int h, const std::wstring&amp; title, int x=CW_USEDEFAULT, int y=CW_USEDEFAULT);
+<pre id="code-e2a37c5e" style="display: none;">bool Create(int w, int h, const std::wstring&amp; title, int x=CW_USEDEFAULT, int y=CW_USEDEFAULT);
 bool IsValid() const;   HWND GetHwnd() const;   int GetId() const;
 void Show(); void ShowNoActivate(); void Hide(); void Raise(); void Close();
 void Run();  int RunModal(Window* owner = nullptr);
@@ -601,13 +601,13 @@ inline static std::function&lt;void(Window&amp;)&gt; DefaultWindowSetup;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-44cab539', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-e7dee819', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">using</span><span class="w"> </span><span class="n">KeyHandler</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span>
 <span class="kt">int</span><span class="w">  </span><span class="nf">AddKeyHandler</span><span class="p">(</span><span class="n">KeyHandler</span><span class="w"> </span><span class="n">handler</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">RemoveKeyHandler</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">id</span><span class="p">);</span>
 </pre></div>
-<pre id="code-44cab539" style="display: none;">using KeyHandler = std::function&lt;bool(int)&gt;;
+<pre id="code-e7dee819" style="display: none;">using KeyHandler = std::function&lt;bool(int)&gt;;
 int  AddKeyHandler(KeyHandler handler);
 void RemoveKeyHandler(int id);</pre>
 </div>
@@ -672,7 +672,7 @@ void RemoveKeyHandler(int id);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-4e024199', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-5e3e8045', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetOwner</span><span class="p">(</span><span class="n">Window</span><span class="o">*</span><span class="p">);</span><span class="w">  </span><span class="n">Window</span><span class="o">*</span><span class="w"> </span><span class="nf">GetOwner</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Window</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">GetOwnedWindows</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -681,7 +681,7 @@ void RemoveKeyHandler(int id);</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetMinSize</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">h</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetOwnedMinimizePolicy</span><span class="p">(</span><span class="n">OwnedMinimizePolicy</span><span class="p">);</span>
 </pre></div>
-<pre id="code-4e024199" style="display: none;">void SetOwner(Window*);  Window* GetOwner() const;
+<pre id="code-5e3e8045" style="display: none;">void SetOwner(Window*);  Window* GetOwner() const;
 std::vector&lt;Window*&gt; GetOwnedWindows() const;
 void HideOwnedWindows(); void ShowOwnedWindows();
 void SetPosition(int x, int y);  void SetSize(int w, int h);   // DIP
@@ -699,7 +699,7 @@ void SetOwnedMinimizePolicy(OwnedMinimizePolicy);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-09b1eff5', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-ef32db39', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetRootLayout</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Layout</span><span class="o">&gt;</span><span class="p">);</span>
 <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">ColumnBox</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetRootColumnBox</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认根：ColumnBox margin(20) spacing 10</span>
@@ -709,7 +709,7 @@ void SetOwnedMinimizePolicy(OwnedMinimizePolicy);</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">MarkRepaint</span><span class="p">(</span><span class="n">UIElement</span><span class="o">*</span><span class="p">);</span><span class="w">   </span><span class="c1">// 标脏；只记录，不定帧（帧由定时器/动画驱动）</span>
 <span class="kt">float</span><span class="w"> </span><span class="nf">GetDpiScale</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">GetClientWidthDip</span><span class="o">/</span><span class="n">HeightDip</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-09b1eff5" style="display: none;">void SetRootLayout(std::shared_ptr&lt;Layout&gt;);
+<pre id="code-ef32db39" style="display: none;">void SetRootLayout(std::shared_ptr&lt;Layout&gt;);
 std::shared_ptr&lt;ColumnBox&gt; GetRootColumnBox() const;   // 默认根：ColumnBox margin(20) spacing 10
 void SetContextMenu(std::shared_ptr&lt;Menu&gt;);  void CloseContextMenu();
 UIElement* HitTestElement(float x, float y);
@@ -728,7 +728,7 @@ float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-ca4a5e8f', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-07354169', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetBackdrop</span><span class="p">(</span><span class="n">Backdrop</span><span class="p">,</span><span class="w"> </span><span class="n">DWORD</span><span class="w"> </span><span class="n">tint</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w">  </span><span class="n">Backdrop</span><span class="w"> </span><span class="nf">GetBackdrop</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetBackgroundColor</span><span class="p">(</span><span class="n">Color</span><span class="p">);</span><span class="w">            </span><span class="c1">// 叠加在背景（空/亚克力/云母）之上的颜色</span>
@@ -738,7 +738,7 @@ float GetDpiScale() const;  float GetClientWidthDip/HeightDip() const;</pre>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetIcon</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">big</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="n">small</span><span class="p">);</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAppIcon</span><span class="p">(</span><span class="n">HICON</span><span class="w"> </span><span class="n">big</span><span class="p">,</span><span class="w"> </span><span class="n">HICON</span><span class="w"> </span><span class="n">small</span><span class="p">);</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetSuspendAnimationsWhileResizing</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">GetSuspendAnimationsWhileResizing</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-ca4a5e8f" style="display: none;">void SetBackdrop(Backdrop, DWORD tint=0);  Backdrop GetBackdrop() const;
+<pre id="code-07354169" style="display: none;">void SetBackdrop(Backdrop, DWORD tint=0);  Backdrop GetBackdrop() const;
 void SetBackgroundColor(Color);            // 叠加在背景（空/亚克力/云母）之上的颜色
 void SetContentOpacity(float opacity);     // 弹窗淡入
 void SetTitleBarColors(COLORREF caption, COLORREF text, COLORREF border);
@@ -757,7 +757,7 @@ void SetSuspendAnimationsWhileResizing(bool);   bool GetSuspendAnimationsWhileRe
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-f92da43d', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-068a6383', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetCustomTitleBar</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="p">);</span><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">UIElement</span><span class="o">&gt;</span><span class="w"> </span><span class="n">GetCustomTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">HasCustomTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTitleBarVisible</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span>
@@ -770,7 +770,7 @@ void SetSuspendAnimationsWhileResizing(bool);   bool GetSuspendAnimationsWhileRe
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetMenuBarInTitleBar</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span><span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsMenuBarInTitleBar</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetShowTitleText</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span><span class="w">                 </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsShowTitleText</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
 </pre></div>
-<pre id="code-f92da43d" style="display: none;">void SetCustomTitleBar(std::shared_ptr&lt;UIElement&gt;);  std::shared_ptr&lt;UIElement&gt; GetCustomTitleBar() const;
+<pre id="code-068a6383" style="display: none;">void SetCustomTitleBar(std::shared_ptr&lt;UIElement&gt;);  std::shared_ptr&lt;UIElement&gt; GetCustomTitleBar() const;
 bool HasCustomTitleBar() const;   void SetTitleBarVisible(bool);
 CaptionMetrics QueryCaptionMetrics() const;
 void Minimize(); void Maximize(); void Restore(); void MaximizeRestore();
@@ -797,7 +797,7 @@ void SetShowTitleText(bool on);                 bool IsShowTitleText() const;</p
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-08cb7029', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-b6286e71', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetTaskbarProgress</span><span class="p">(</span><span class="n">TaskbarProgress</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">done</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ULONGLONG</span><span class="w"> </span><span class="n">total</span><span class="o">=</span><span class="mi">0</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarProgress</span><span class="p">();</span>
 <span class="kt">void</span><span class="w"> </span><span class="n">SetTaskbarOverlayIcon</span><span class="p">(</span><span class="n">HICON</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sa">L</span><span class="s">""</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ClearTaskbarOverlayIcon</span><span class="p">();</span>
@@ -806,7 +806,7 @@ void SetShowTitleText(bool on);                 bool IsShowTitleText() const;</p
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetJumpList</span><span class="p">(...);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">Flash</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">times</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">alsoTaskbar</span><span class="o">=</span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">FlashUntilForeground</span><span class="p">();</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">SetAppUserModelID</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">wstring</span><span class="o">&amp;</span><span class="p">);</span>
 </pre></div>
-<pre id="code-08cb7029" style="display: none;">void SetTaskbarProgress(TaskbarProgress, ULONGLONG done=0, ULONGLONG total=0);  void ClearTaskbarProgress();
+<pre id="code-b6286e71" style="display: none;">void SetTaskbarProgress(TaskbarProgress, ULONGLONG done=0, ULONGLONG total=0);  void ClearTaskbarProgress();
 void SetTaskbarOverlayIcon(HICON, const std::wstring&amp; = L"");  void ClearTaskbarOverlayIcon();
 ZSignal&lt;ThumbButtonId&gt; ThumbButtonClicked;
 void SetThumbButtons(...);   void UpdateThumbButton(ThumbButtonId, bool enabled);
@@ -832,7 +832,7 @@ void SetAppUserModelID(const std::wstring&amp;);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-75184aa1', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-7c766060', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">SetAccessibilityEnabled</span><span class="p">(</span><span class="kt">bool</span><span class="p">);</span><span class="w">   </span><span class="kt">bool</span><span class="w"> </span><span class="nf">IsAccessibilityEnabled</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">   </span><span class="c1">// 默认开，v1.17.0</span>
 <span class="n">UIElement</span><span class="o">*</span><span class="w"> </span><span class="n">GetFocusedElement</span><span class="o">/</span><span class="n">HoveredElement</span><span class="o">/</span><span class="n">PressedElement</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
@@ -843,7 +843,7 @@ void SetAppUserModelID(const std::wstring&amp;);</pre>
 <span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">BackdropUnsupported</span><span class="p">,</span><span class="w"> </span><span class="n">DeviceLost</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">HRESULT</span><span class="o">&gt;</span><span class="w"> </span><span class="n">RenderingError</span><span class="p">;</span>
 <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">Timer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CreateTimer</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">intervalMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
 </pre></div>
-<pre id="code-75184aa1" style="display: none;">void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // 默认开，v1.17.0
+<pre id="code-7c766060" style="display: none;">void SetAccessibilityEnabled(bool);   bool IsAccessibilityEnabled() const;   // 默认开，v1.17.0
 UIElement* GetFocusedElement/HoveredElement/PressedElement() const;
 void FocusElement(UIElement*);
 ZSignal&lt;&gt; Activated, Deactivated;   ZSignal&lt;bool*&gt; Closing;   ZSignal&lt;&gt; Closed;
@@ -866,7 +866,7 @@ std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);</pre>
 <div class="code-container">
 <div class="code-header">
 <span class="code-language">cpp</span>
-<button class="copy-btn" onclick="copyCode('code-4f88d94a', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
+<button class="copy-btn" onclick="copyCode('code-a189df40', this)" onmouseenter="animateButton(this)" onmouseleave="resetButton(this)">复制</button>
 </div>
 <div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">Placement</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">SystemDefault</span><span class="p">,</span><span class="w"> </span><span class="n">CenterOwner</span><span class="p">,</span><span class="w"> </span><span class="n">CenterScreen</span><span class="w"> </span><span class="p">};</span>
 <span class="k">enum</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="nc">MoveBounds</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Unrestricted</span><span class="p">,</span><span class="w"> </span><span class="n">OwnerClient</span><span class="p">,</span><span class="w"> </span><span class="n">MonitorWorkArea</span><span class="w"> </span><span class="p">};</span>
@@ -882,7 +882,7 @@ std::shared_ptr&lt;Timer&gt; CreateTimer(int intervalMs = 1000);</pre>
 <span class="n">ZSignal</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">Opening</span><span class="p">,</span><span class="w"> </span><span class="n">Opened</span><span class="p">,</span><span class="w"> </span><span class="n">BehaviorChanged</span><span class="p">;</span>
 <span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">CloseReason</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="o">*&gt;</span><span class="w"> </span><span class="n">CloseRequested</span><span class="p">;</span><span class="w">   </span><span class="n">ZSignal</span><span class="o">&lt;</span><span class="n">CloseReason</span><span class="o">&gt;</span><span class="w"> </span><span class="n">CloseAccepted</span><span class="p">,</span><span class="w"> </span><span class="n">CloseCancelled</span><span class="p">;</span>
 </pre></div>
-<pre id="code-4f88d94a" style="display: none;">enum class Placement { SystemDefault, CenterOwner, CenterScreen };
+<pre id="code-a189df40" style="display: none;">enum class Placement { SystemDefault, CenterOwner, CenterScreen };
 enum class MoveBounds { Unrestricted, OwnerClient, MonitorWorkArea };
 enum class CloseReason { Programmatic, Caption, Escape, System, Forced };
 void SetPlacement(Placement);   Placement GetPlacement() const;

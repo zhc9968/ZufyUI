@@ -8,7 +8,7 @@
 
 > **两个贯穿全文的标记**：
 > - **`易错`**：真实踩过的坑 / 反直觉行为，优先看这些。
-> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v1.30.0**。
+> - **`版本`**：该 API 或语义发生显著变化的版本（`新增`/`变更`/`废弃`）。当前发布为 **v1.31.0**。
 
 ###chapter: 约定 | 命名空间、单位、生命周期、版本与易错标注约定
 
@@ -1086,7 +1086,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 - `GetSelectedIndex()` 是**过滤后可见序**；`SetItemDisabled` 按**源索引**持久（v1.15.0 修）。
 ###block_red_end
 
-- **`版本`**：下拉几何/状态 `v1.12.0`；源索引 API `v1.15.0`；下拉箭头随展开进度旋转（smoothstep，`v1.19.0`）。
+- **`版本`**：下拉几何/状态 `v1.12.0`；源索引 API `v1.15.0`；下拉箭头随展开进度旋转（smoothstep，`v1.19.0`）。自 `v1.31.0` 起，绘制、悬停、点击与宽度限制共用同一份动画几何矩形。
 
 ###chapter: 选择与输入 | CheckBox、RadioButton、RadioGroup、ToggleSwitch、Slider、NumberBox
 
@@ -1547,11 +1547,16 @@ void SetColumnVisible(int,bool);
 // 虚拟化（v1.15.0，全部按“源行”）：SetItemHidden/SetFilter/SetViewComparator/SortView/VisibleCount/SourceOfVisible/VisibleOfSource
 // 选中 / 勾选 / 元数据
 void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow/Column(int);
+void SelectRowNoScroll(int);  void SetCurrentCellNoScroll(int,int);
+struct CellHit { int row = -1, col = -1; explicit operator bool() const; };
+CellHit HitTestCellAt(float x,float y);  float GetScrollOffsetY() const; void SetScrollOffsetY(float);
 void SelectAll();  void ClearSelection();  std::vector<std::pair<int,int>> GetSelectedCells() const;  std::vector<int> GetSelectedRows() const;
 void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int,bool);
 void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&);
 void SetColumnComparator(int, std::function<bool(const std::wstring&,const std::wstring&)>);  void SortByColumn(int,bool=true);
 ```
+
+`HitTestCellAt` 与鼠标路由使用同一套表头、滚动条和行高几何。`SelectRowNoScroll` / `SetCurrentCellNoScroll` 用于程序化恢复选择但不移动视口；`GetScrollOffsetY` / `SetScrollOffsetY` 读写当前滚动位置。
 
 ###block_red_start
 **易错**
@@ -2235,7 +2240,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.6**：
   - 修复：`ListView` 按钮模式下勾选框**命中位置少偏移 4px**（与绘制/子元素左边界对齐）。
   - 修复：`Label::MeasureOverride` 的 Wrap 分支**漏算内联子控件宽度**（带 `AddChild` 的换行 Label 文本会挤压/溢出）。
-  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.30.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
+  - 文档：版本号改为**单一来源**（`API.md`/`README.md` 顶部引用 `ZufyUI.h` 宏，生成器 `mdapi2html.py` 注入 `1.31.0`）；清理过时项（`ImageView` 默认值行、`Sort`→`SortItems`、`Menu::onClosed`、图表 fill 说明、README 菜单 `+90MB` 历史条目）；`mdapi2html.py` 修正 `--theme auto` 语义与 `c++` 类语言名正则。
 - **v1.19.7**：
   - 修复：`ChartBase` 横/纵滚动条占位写反（`viewW` 用竖条、`viewH` 用横条）→ 最右/最底滚不到；`NumberBox` 滚轮焦点判断（焦点在内部 `TextBox`）；`lastActiveAnimElements_` 悬垂（析构时从动画集合擦除，防随机崩溃）；`Menu::ShowAt` 非 `shared_ptr` 时抛 `bad_weak_ptr`；`ChildrenSig` 缺 `EnsureView`；`TreeView::SetDefaultExpandDepth` 对 `AddRoot`/`AddChild` 不生效。
   - 修复：`ColumnBox`/`RowBox` spacing 按“参与布局的子元素数”算；`GridLayout` 行列数过滤不可见元素；`Label` 换行漏算子控件宽度 / 多算一个间距；`ListView`/`TableView` 释放 Label 前清 `childrenView_`、补释放池化/富项/单元格 Label；`Window::defaultIMC_` 改 `ImmAssociateContext`；`DragData::GetFiles` 缓冲 `len+1`；`TextEdit` 清选区补发 `SelectionChanged`；`MessageBox` 默认标题本地化。

@@ -7,7 +7,7 @@
 
 > **Two markers used throughout**:
 > - **`Pitfall`**: real traps / counter-intuitive behavior — read these first.
-> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.30.0**.
+> - **`Version`**: the release in which the API or its semantics changed notably (`added`/`changed`/`deprecated`). Current release is **v1.31.0**.
 
 ###chapter: Conventions | Namespaces, units, lifetime, version & pitfall notation
 
@@ -1079,7 +1079,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 - `GetSelectedIndex()` is the **filtered/visible** index; `SetItemDisabled` persists by **source** index (v1.15.0).
 ###block_red_end
 
-- **`Version`**: dropdown geometry/state `v1.12.0`; source-index API `v1.15.0`; the dropdown arrow rotates with expansion progress (smoothstep, `v1.19.0`).
+- **`Version`**: dropdown geometry/state `v1.12.0`; source-index API `v1.15.0`; the dropdown arrow rotates with expansion progress (smoothstep, `v1.19.0`). Since `v1.31.0`, drawing, hover, click and width clamping share one animated geometry rectangle.
 
 ###chapter: Selection & input | CheckBox, RadioButton, RadioGroup, ToggleSwitch, Slider, NumberBox
 
@@ -1539,11 +1539,16 @@ void SetColumnVisible(int,bool);
 // virtualization (v1.15.0; all by source row): SetItemHidden/SetFilter/SetViewComparator/SortView/VisibleCount/SourceOfVisible/VisibleOfSource
 // selection / check / metadata
 void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow/Column(int);
+void SelectRowNoScroll(int);  void SetCurrentCellNoScroll(int,int);
+struct CellHit { int row = -1, col = -1; explicit operator bool() const; };
+CellHit HitTestCellAt(float x,float y);  float GetScrollOffsetY() const; void SetScrollOffsetY(float);
 void SelectAll();  void ClearSelection();  std::vector<std::pair<int,int>> GetSelectedCells() const;  std::vector<int> GetSelectedRows() const;
 void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int,bool);
 void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&);
 void SetColumnComparator(int, std::function<bool(const std::wstring&,const std::wstring&)>);  void SortByColumn(int,bool=true);
 ```
+
+`HitTestCellAt` uses the same header, scrollbar and row metrics as mouse routing. `SelectRowNoScroll` / `SetCurrentCellNoScroll` restore a selection identity without moving the viewport; `GetScrollOffsetY` / `SetScrollOffsetY` expose the current scroll position.
 
 ###block_red_start
 **Pitfall**
@@ -2224,7 +2229,7 @@ inline void SetDebugEnabled(bool);   inline bool IsDebugEnabled();
 - **v1.19.6**:
   - Fix: `ListView` button mode checkbox **hit test was 4px off** (now aligned with the draw / child left edge).
   - Fix: `Label::MeasureOverride` wrap branch **ignored inline children width** (wrapping Labels with `AddChild` squeezed/overflowed text).
-  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `1.30.0`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
+  - Docs: version is now a **single source** (`API.md`/`README.md` headers reference the `ZufyUI.h` macro; the generator `mdapi2html.py` injects `1.31.0`); cleaned stale items (`ImageView` default row, `Sort`→`SortItems`, `Menu::onClosed`, chart fill wording, README menu `+90MB` history entry); `mdapi2html.py` fixes `--theme auto` semantics and `c++`-style language names in the code-fence regex.
 - **v1.19.7**:
   - Fixes: `ChartBase` swapped horizontal/vertical scrollbar allowance (`viewW` uses the vertical bar, `viewH` the horizontal) → rightmost/bottom content unreachable; `NumberBox` wheel focus check (focus is on the inner `TextBox`); `lastActiveAnimElements_` dangling (erased from the anim sets on destruction, prevents random crashes); `Menu::ShowAt` throwing `bad_weak_ptr` when not shared-owned; `ChildrenSig` missing `EnsureView`; `TreeView::SetDefaultExpandDepth` not applied by `AddRoot`/`AddChild`.
   - Fixes: `ColumnBox`/`RowBox` spacing counts only layout-participating children; `GridLayout` row/col count skips invisible; `Label` wrap ignored/duplicated spacing; `ListView`/`TableView` clear `childrenView_` before releasing labels and release pooled/rich/cell labels; `Window::defaultIMC_` via `ImmAssociateContext`; `DragData::GetFiles` buffer `len+1`; `TextEdit` fires `SelectionChanged` when clearing a selection; `MessageBox` default title localized.
