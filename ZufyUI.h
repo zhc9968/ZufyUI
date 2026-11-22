@@ -91,9 +91,9 @@ namespace ZufyUI { namespace detail { void DebugLog(const wchar_t* msg); } }   /
 
 // ---------- ZufyUI 版本 ----------
 #define ZufyUI_VERSION_MAJOR 1
-#define ZufyUI_VERSION_MINOR 30
+#define ZufyUI_VERSION_MINOR 31
 #define ZufyUI_VERSION_PATCH 0
-#define ZufyUI_VERSION_STRING L"1.30.0"
+#define ZufyUI_VERSION_STRING L"1.31.0"
 
 // ---------- 可选：启用 Common Controls v6（主题化）----------
 // 在包含本库头之前 #define ZUFYUI_ENABLE_COMCTL_V6 即可：本库会向链接器注入
@@ -8931,7 +8931,8 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 auto& it = menu_->items[(size_t)top];
                 if (it->type != MenuItem::Type::Row) return -1;
                 for (int c = 0; c < (int)it->children.size(); ++c)
-                    if (it->children[(size_t)c] && it->children[(size_t)c]->enabled) return c;
+                    if (it->children[(size_t)c] && it->children[(size_t)c]->type != MenuItem::Type::Separator &&
+                        it->children[(size_t)c]->enabled) return c;
                 return -1;
             };
             auto activateDefault = [&]() {
@@ -8956,26 +8957,37 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
             if (vk == VK_UP || vk == VK_DOWN || vk == VK_HOME || vk == VK_END) {
                 const int n = (int)menu_->items.size();
                 if (n == 0) return true;
-                int i = hoveredIndex_;
-                if (vk == VK_HOME) i = -1;
-                else if (vk == VK_END) i = n;
-                const int step = (vk == VK_UP || vk == VK_HOME) ? -1 : 1;
-                for (int k = 0; k < n; ++k) {
-                    i += step;
-                    if (i < 0) i = n - 1; else if (i >= n) i = 0;
+                auto focus = [&](int i) {
                     auto& it = menu_->items[(size_t)i];
-                    if (!it || it->type == MenuItem::Type::Separator) continue;
+                    if (!it || it->type == MenuItem::Type::Separator) return false;
                     if (it->type == MenuItem::Type::Row) {
                         int c = firstChildOf(i);
-                        if (c < 0) continue;
+                        if (c < 0) return false;
                         hoveredIndex_ = i;
                         hoveredChild_ = (hoveredChild_ >= 0 && hoveredChild_ < (int)it->children.size()
-                            && it->children[(size_t)hoveredChild_] && it->children[(size_t)hoveredChild_]->enabled)
+                            && it->children[(size_t)hoveredChild_] &&
+                            it->children[(size_t)hoveredChild_]->type != MenuItem::Type::Separator &&
+                            it->children[(size_t)hoveredChild_]->enabled)
                             ? hoveredChild_ : c;
                     }
                     else if (it->enabled) { hoveredIndex_ = i; hoveredChild_ = -1; }
-                    else continue;
-                    break;
+                    else return false;
+                    return true;
+                };
+                if (vk == VK_HOME || vk == VK_END) {
+                    const int step = (vk == VK_HOME) ? 1 : -1;
+                    for (int i = (vk == VK_HOME) ? 0 : n - 1; i >= 0 && i < n; i += step) {
+                        if (focus(i)) break;
+                    }
+                }
+                else {
+                    int i = hoveredIndex_;
+                    const int step = (vk == VK_UP) ? -1 : 1;
+                    for (int k = 0; k < n; ++k) {
+                        i += step;
+                        if (i < 0) i = n - 1; else if (i >= n) i = 0;
+                        if (focus(i)) break;
+                    }
                 }
                 InvalidateRect(GetHwnd(), nullptr, FALSE);
                 return true;
@@ -8985,8 +8997,13 @@ namespace detail { inline bool DebugEnabled(); }                          // 前
                 if (hoveredIndex_ >= 0 && hoveredIndex_ < (int)menu_->items.size()) {
                     auto& top = menu_->items[(size_t)hoveredIndex_];
                     if (top->type == MenuItem::Type::Row && hoveredChild_ >= 0) {
-                        int next = hoveredChild_ + (right ? 1 : -1);
-                        if (next >= 0 && next < (int)top->children.size()) {
+                        const int step = right ? 1 : -1;
+                        int next = hoveredChild_;
+                        for (int k = 0; k < (int)top->children.size(); ++k) {
+                            next += step;
+                            if (next < 0 || next >= (int)top->children.size()) break;
+                            auto& child = top->children[(size_t)next];
+                            if (!child || child->type == MenuItem::Type::Separator || !child->enabled) continue;
                             hoveredChild_ = next;
                             InvalidateRect(GetHwnd(), nullptr, FALSE);
                             return true;

@@ -382,6 +382,16 @@ static void test_fix_regressions() {
     CHECK(!pb->HasActiveAnimation());
     CHECK(pb->GetValue() == 1.0f);
 
+    // 文本变化必须让该 Label 的离屏缓存失效；否则窗口 resize 前可能一直显示旧文字。
+    auto cachedLabel = std::make_shared<Label>(L"0%");
+    cachedLabel->SetWidth(56.0f);
+    cachedLabel->Measure(Size(56.0f, 24.0f));
+    cachedLabel->Arrange(Rect(0.0f, 0.0f, 56.0f, 24.0f));
+    cachedLabel->cacheValid_ = true;
+    cachedLabel->SetText(L"7%");
+    CHECK(!cachedLabel->DebugCacheValid());
+    CHECK(cachedLabel->GetText() == L"7%");
+
     // ③ ToggleSwitch：一帧走不完（缓动，不是瞬变），足够多帧后收敛到 1
     auto tg = d::ZToggle(false);
     tg->SetOn(true);
@@ -1906,6 +1916,37 @@ static void test_api_feedback() {
     }
 
     {
+        TableView tv;
+        tv.SetCellLabelProvider(100, 1, [](int, int, Label&) {});
+        tv.Arrange(Rect(0, 0, 320.0f, 120.0f));
+        tv.SetScrollOffsetY(300.0f);
+        const float before = tv.GetScrollOffsetY();
+        tv.SelectRowNoScroll(0);
+        CHECK(tv.GetCurrentRow() == 0);
+        CHECK(fabs(tv.GetScrollOffsetY() - before) < 0.01f);
+        tv.SetCurrentCellNoScroll(50, 0);
+        CHECK(tv.GetCurrentRow() == 50);
+        CHECK(fabs(tv.GetScrollOffsetY() - before) < 0.01f);
+    }
+
+    {
+        TableView tv;
+        tv.SetCellLabelProvider(100, 1, [](int, int, Label&) {});
+        tv.SetHeaderHeight(24.0f);
+        tv.SetRowHeight(20.0f);
+        tv.Arrange(Rect(0.0f, 0.0f, 320.0f, 120.0f));
+
+        auto hit = tv.HitTestCellAt(5.0f, 29.0f);
+        CHECK(hit && hit.row == 0 && hit.col == 0);
+        CHECK(!tv.HitTestCellAt(5.0f, 10.0f));   // header
+        CHECK(!tv.HitTestCellAt(319.0f, 29.0f)); // vertical scrollbar
+
+        tv.SetScrollOffsetY(200.0f);
+        hit = tv.HitTestCellAt(5.0f, 29.0f);
+        CHECK(hit && hit.row == 10 && hit.col == 0);
+    }
+
+    {
         TreeView tv;
         tv.AddRoot(L"a");
         auto b = tv.AddRoot(L"b");
@@ -2901,6 +2942,48 @@ static void test_menu_rows_api() {
     CHECK(!menu.items[0]->children[1]->enabled);
 }
 
+static void test_combo_dropdown_geometry() {
+    ComboBox combo;
+    combo.SetItems({ L"0", L"1", L"2", L"3", L"4", L"5", L"6", L"7" });
+    combo.SetListItemHeight(20.0f);
+    combo.SetMaxVisibleItems(5);
+    combo.Measure(Size(160.0f, 32.0f));
+    combo.Arrange(Rect(10.0f, 20.0f, 160.0f, 32.0f));
+    combo.SetSelectedIndex(-1);
+
+    combo.OnKeyDown(VK_F4, 0);   // programmatic open without the click-to-open guard
+    CHECK(combo.IsExpanded());
+    CHECK(!combo.IsPointInExpandedList(12.0f, 54.0f));   // animation has not opened a hit area yet
+    combo.UpdateAnimation(0.05f);
+    CHECK(combo.IsPointInExpandedList(12.0f, 54.0f));    // hit area follows the drawn height
+    CHECK(!combo.IsPointInExpandedList(12.0f, 90.0f));   // not the full target height yet
+
+    combo.UpdateAnimation(1.0f);
+    CHECK(combo.IsPointInExpandedList(12.0f, 150.0f));
+    CHECK(!combo.IsPointInExpandedList(12.0f, 153.0f));
+    combo.OnMouseDown(12.0f, 54.0f);
+    combo.OnMouseUp(12.0f, 54.0f);
+    CHECK(combo.GetSelectedIndex() == 0);
+
+    combo.Expand();
+    combo.UpdateAnimation(1.0f);
+    combo.SetMaxVisibleItems(3);
+    CHECK(combo.IsPointInExpandedList(12.0f, 110.0f));
+    CHECK(!combo.IsPointInExpandedList(12.0f, 113.0f));
+
+    combo.SetEnabled(false);
+    CHECK(!combo.IsPointInExpandedList(12.0f, 54.0f));
+    combo.SetEnabled(true);
+    combo.SetVisible(false);
+    CHECK(!combo.IsExpanded());
+    combo.SetVisible(true);
+    combo.Expand();
+    combo.UpdateAnimation(1.0f);
+    combo.ClearItems();
+    CHECK(!combo.IsExpanded());
+    CHECK(!combo.IsPointInExpandedList(12.0f, 54.0f));
+}
+
 static void test_pagehost_animation() {
     PageHost host;
     auto a = std::make_shared<Page>();
@@ -2957,6 +3040,7 @@ int main() {
     test_tableview_column_resize();
     test_file_lock_dialog_layout();
     test_menu_rows_api();
+    test_combo_dropdown_geometry();
     test_pagehost_animation();
     test_backdrop_defaults();
     test_signal_lifetime();

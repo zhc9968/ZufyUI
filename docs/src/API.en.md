@@ -1079,7 +1079,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 - `GetSelectedIndex()` is the **filtered/visible** index; `SetItemDisabled` persists by **source** index (v1.15.0).
 ###block_red_end
 
-- **`Version`**: dropdown geometry/state `v1.12.0`; source-index API `v1.15.0`; the dropdown arrow rotates with expansion progress (smoothstep, `v1.19.0`).
+- **`Version`**: dropdown geometry/state `v1.12.0`; source-index API `v1.15.0`; the dropdown arrow rotates with expansion progress (smoothstep, `v1.19.0`). Since `v1.31.0`, drawing, hover, click and width clamping share one animated geometry rectangle.
 
 ###chapter: Selection & input | CheckBox, RadioButton, RadioGroup, ToggleSwitch, Slider, NumberBox
 
@@ -1539,11 +1539,16 @@ void SetColumnVisible(int,bool);
 // virtualization (v1.15.0; all by source row): SetItemHidden/SetFilter/SetViewComparator/SortView/VisibleCount/SourceOfVisible/VisibleOfSource
 // selection / check / metadata
 void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow/Column(int);
+void SelectRowNoScroll(int);  void SetCurrentCellNoScroll(int,int);
+struct CellHit { int row = -1, col = -1; explicit operator bool() const; };
+CellHit HitTestCellAt(float x,float y);  float GetScrollOffsetY() const; void SetScrollOffsetY(float);
 void SelectAll();  void ClearSelection();  std::vector<std::pair<int,int>> GetSelectedCells() const;  std::vector<int> GetSelectedRows() const;
 void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int,bool);
 void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&);
 void SetColumnComparator(int, std::function<bool(const std::wstring&,const std::wstring&)>);  void SortByColumn(int,bool=true);
 ```
+
+`HitTestCellAt` uses the same header, scrollbar and row metrics as mouse routing. `SelectRowNoScroll` / `SetCurrentCellNoScroll` restore a selection identity without moving the viewport; `GetScrollOffsetY` / `SetScrollOffsetY` expose the current scroll position.
 
 ###block_red_start
 **Pitfall**

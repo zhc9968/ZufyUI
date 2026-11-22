@@ -335,9 +335,10 @@ ZufyUI/
 
 ## Version history
 
-> Current version: **1.30.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
+> Current version: **1.31.0** (source of truth: `ZUFYUI_VERSION_STRING` in `ZufyUI.h`).
 > Only "roughly what changed/fixed" (noun level); full per-item details are in [CHANGELOG.en.md](CHANGELOG.en.md).
 
+- **1.31.0**: TableView precise cell hit-testing, no-scroll selection restore and scroll-offset access; Label dynamic-text cache invalidation; unified ComboBox dropdown geometry/hit-testing/width; menu Home/End and in-row arrow navigation skip unusable items.
 - **1.30.0**: context menus support Row layouts (2–6 columns, Inline/IconTop, Equal/ContentFit, independent icon/disabled/danger/shortcut/submenu), plus a "Menu Rows" stress-test page.
 - **1.29.2**: custom title bars now show title text and icon by default (`SetIcon` syncs the custom bar; `SetAppIcon` also updates the class icon); Card no longer animates on hover by default (opt in explicitly); ComboBox dropdown lists hit-test as overlays; normal `ReleaseCapture` no longer fires a spurious pointer cancel; data-view column-width changes invalidate the element cache.
 - **1.29.1**: fixed PageHost EaseOut reverse jump, animated hit-test offsets and stale indices after page removal; wired `OnPointerCancel` with an OLE drag-out exemption; restored `Opening/Opened` for menus and other non-DWM windows.

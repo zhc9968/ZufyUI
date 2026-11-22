@@ -335,9 +335,10 @@ ZufyUI/
 
 ## 版本历史
 
-> 当前版本：**1.30.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
+> 当前版本：**1.31.0**（以 `ZufyUI.h` 的 `ZUFYUI_VERSION_STRING` 为准）。
 > 只列“大概更新/修复了什么”（名词级）；完整逐项说明见 [CHANGELOG.md](CHANGELOG.md)。
 
+- **1.31.0**：TableView 精确单元格命中、无滚动恢复选择和滚动偏移读写；Label 动态文本缓存失效修复；ComboBox 下拉几何/命中/宽度统一；菜单 Home/End 与行内方向键跳过不可用项。
 - **1.30.0**：右键菜单支持 Row 横向行（2–6 列、Inline/IconTop、Equal/ContentFit、独立图标/禁用/danger/快捷键/子菜单），新增“右键菜单行”压力测试页。
 - **1.29.2**：自定义标题栏默认显示标题文字和图标（`SetIcon` 同步自定义栏，`SetAppIcon` 补窗口类图标）；Card 默认不再播放悬停动画（需显式启用）；ComboBox 展开层按覆盖层优先命中；正常释放捕获不再误触发指针取消；数据视图列宽变化会失效缓存。
 - **1.29.1**：修复 PageHost EaseOut 反向跳动、动画中命中错位、动画中删页旧索引；接线 `OnPointerCancel`（OLE 拖出豁免）；菜单等非标准窗口恢复 `Opening/Opened`。

@@ -1086,7 +1086,7 @@ void SetEditable(bool);  void SetFilterEnabled(bool);  void ApplyFilter();
 - `GetSelectedIndex()` 是**过滤后可见序**；`SetItemDisabled` 按**源索引**持久（v1.15.0 修）。
 ###block_red_end
 
-- **`版本`**：下拉几何/状态 `v1.12.0`；源索引 API `v1.15.0`；下拉箭头随展开进度旋转（smoothstep，`v1.19.0`）。
+- **`版本`**：下拉几何/状态 `v1.12.0`；源索引 API `v1.15.0`；下拉箭头随展开进度旋转（smoothstep，`v1.19.0`）。自 `v1.31.0` 起，绘制、悬停、点击与宽度限制共用同一份动画几何矩形。
 
 ###chapter: 选择与输入 | CheckBox、RadioButton、RadioGroup、ToggleSwitch、Slider、NumberBox
 
@@ -1547,11 +1547,16 @@ void SetColumnVisible(int,bool);
 // 虚拟化（v1.15.0，全部按“源行”）：SetItemHidden/SetFilter/SetViewComparator/SortView/VisibleCount/SourceOfVisible/VisibleOfSource
 // 选中 / 勾选 / 元数据
 void SetSelectionMode(SelectionMode);  void SetCurrentCell(int,int);  void SelectRow/Column(int);
+void SelectRowNoScroll(int);  void SetCurrentCellNoScroll(int,int);
+struct CellHit { int row = -1, col = -1; explicit operator bool() const; };
+CellHit HitTestCellAt(float x,float y);  float GetScrollOffsetY() const; void SetScrollOffsetY(float);
 void SelectAll();  void ClearSelection();  std::vector<std::pair<int,int>> GetSelectedCells() const;  std::vector<int> GetSelectedRows() const;
 void SetCheckable(bool);  void SetRowChecked(int,bool);  void SetRowDisabled(int,bool);
 void SetCellTextColor(int,int,Color);   void SetCellToolTip(int,int,const std::wstring&);
 void SetColumnComparator(int, std::function<bool(const std::wstring&,const std::wstring&)>);  void SortByColumn(int,bool=true);
 ```
+
+`HitTestCellAt` 与鼠标路由使用同一套表头、滚动条和行高几何。`SelectRowNoScroll` / `SetCurrentCellNoScroll` 用于程序化恢复选择但不移动视口；`GetScrollOffsetY` / `SetScrollOffsetY` 读写当前滚动位置。
 
 ###block_red_start
 **易错**

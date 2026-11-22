@@ -228,6 +228,7 @@ namespace ZufyUI {
             bool changed = (text_ != text);
             text_ = text;
             if (!richRuns_.empty()) richRuns_.clear();
+            if (changed) InvalidateCache();
             InvalidateLayout();
             RequestRepaint();
             if (changed) TextChanged(text_);
@@ -2438,7 +2439,7 @@ namespace ZufyUI {
         void SetBorderColor(D2D1_COLOR_F color) { MarkUserColor(); borderColor_ = color; RequestRepaint(); }
         void SetIndicatorColor(D2D1_COLOR_F color) { MarkUserColor(); indicatorColor_ = color; RequestRepaint(); }
         void SetIndicatorHeightRatio(float ratio) { indicatorHeightRatio_ = clamp(ratio, 0.1f, 1.0f); RequestRepaint(); }
-        void SetListItemHeight(float height) { listItemHeight_ = max(1.0f, height); UpdateIndicatorPosition(); InvalidateLayout(); RequestRepaint(); }   // 夹到 >=1：0 会让 (int)(y/listItemHeight_) 得到 inf/nan → UB
+        void SetListItemHeight(float height) { listItemHeight_ = max(1.0f, height); UpdateListGeometry(); UpdateIndicatorPosition(); InvalidateLayout(); RequestRepaint(); }   // 夹到 >=1：0 会让 (int)(y/listItemHeight_) 得到 inf/nan → UB
         void SetIndicatorWidth(float width) { indicatorWidth_ = width; RequestRepaint(); }
 
         static void SetDefaultExpandAnimationSpeed(float speed) { DefaultExpandAnimationSpeed = speed; }
@@ -2573,6 +2574,7 @@ namespace ZufyUI {
                 if ((prevSrc >= 0 && filteredToSource_[i] == prevSrc) || (!prevSel.empty() && items_[i] == prevSel)) { selectedIndex_ = i; break; }
             if (selectedIndex_ < 0 && !items_.empty() && !noAutoSelect_) selectedIndex_ = 0;
             itemWidthsDirty_ = true;
+            UpdateListGeometry();
             UpdateIndicatorPosition();
             UpdateToolTip();
             InvalidateLayout();
@@ -2600,7 +2602,7 @@ namespace ZufyUI {
             auto _rg = RenderGuard();
             for (int i = 0; i < (int)allItems_.size(); ++i) if (allItems_[i] == item) { RemoveItemAt(i); return; }
         }
-        void ClearItems() { auto _rg = RenderGuard(); allItems_.clear(); items_.clear(); filteredToSource_.clear(); disabledItems_.clear(); selectedIndex_ = -1; UpdateIndicatorPosition(); InvalidateLayout(); RequestRepaint(); }
+        void ClearItems() { auto _rg = RenderGuard(); allItems_.clear(); items_.clear(); filteredToSource_.clear(); disabledItems_.clear(); selectedIndex_ = -1; itemWidthsDirty_ = true; CollapseInternal(); UpdateListGeometry(); UpdateIndicatorPosition(); InvalidateLayout(); RequestRepaint(); }
         int GetItemCount() const { return (int)items_.size(); }
         std::wstring GetItemAt(int index) const { return (index >= 0 && index < (int)items_.size()) ? items_[index] : L""; }
         const std::vector<std::wstring>& GetItems() const { return items_; }
@@ -2621,7 +2623,7 @@ namespace ZufyUI {
         }
         void SetPlaceholder(const std::wstring& placeholder) { placeholder_ = placeholder; RequestRepaint(); }
         const std::wstring& GetPlaceholder() const { return placeholder_; }
-        void SetMaxVisibleItems(int count) { maxVisibleItems_ = max(0, count); InvalidateLayout(); RequestRepaint(); }
+        void SetMaxVisibleItems(int count) { maxVisibleItems_ = max(0, count); UpdateListGeometry(); InvalidateLayout(); RequestRepaint(); }
         int GetMaxVisibleItems() const { return maxVisibleItems_; }
         void Expand() { auto _rg = RenderGuard(); ExpandInternal(); }
         void SetOpen(bool open) { auto _rg = RenderGuard(); if (open) ExpandInternal(); else CollapseInternal(); }
@@ -2629,10 +2631,10 @@ namespace ZufyUI {
         ZSignal<> DropDownClosed;
 
         bool IsPointInExpandedList(float x, float y) const {
-            if (!expanded_ && expandProgress_ <= 0.01f) return false;
-            float listY = expandUp_ ? arrangedRect_.y - listViewHeight_ : arrangedRect_.y + arrangedRect_.height;
-            Rect listRect(arrangedRect_.x, listY, ListWidth(), listViewHeight_);
-            return listRect.Contains(x, y);
+            if (!expanded_ || !visible_ || !IsEffectivelyEnabled()) return false;
+            const Rect r = ExpandedListRect();
+            return r.width > 0 && r.height > 0 && x >= r.x && x < r.x + r.width &&
+                y >= r.y && y < r.y + r.height;
         }
 
         // 测量一段文本的像素宽度
@@ -2673,10 +2675,11 @@ namespace ZufyUI {
             else SetToolTip(std::wstring());
         }
         // 下拉框宽度：至少能完整显示最宽的选项
-        float ListWidth() const {
-            float w = arrangedRect_.width;
-            if (widestItemWidth_ > 0.0f) w = max(w, widestItemWidth_ + 24.0f);
-            return w;
+        float ListWidth() const { return listWidth_; }
+
+        void ArrangeOverride(const Rect& rect) override {
+            UIElement::ArrangeOverride(rect);
+            UpdateListGeometry();
         }
 
         Size MeasureOverride(const Size& availableSize) override {
@@ -2690,18 +2693,11 @@ namespace ZufyUI {
         UIElement* HitTest(float x, float y) override {
             if (!visible_) return nullptr;
             if (arrangedRect_.Contains(x, y)) return this;
-            if (expanded_ || expandProgress_ > 0.01f) {
-                float listY = expandUp_ ? arrangedRect_.y - listViewHeight_ : arrangedRect_.y + arrangedRect_.height;
-                Rect listRect(arrangedRect_.x, listY, ListWidth(), listViewHeight_);
-                if (listRect.Contains(x, y)) return this;
-            }
-            return nullptr;
+            return HitTestOverlay(x, y);
         }
 
         UIElement* HitTestOverlay(float x, float y) override {
-            if (visible_ && (expanded_ || expandProgress_ > 0.01f) && IsPointInExpandedList(x, y))
-                return this;
-            return nullptr;
+            return IsPointInExpandedList(x, y) ? this : nullptr;
         }
 
         void Draw(ID2D1RenderTarget* rt) override {
@@ -2793,14 +2789,13 @@ namespace ZufyUI {
 
             D2D1_SIZE_F rtSize = rt->GetSize();
             UpdateListGeometry(rtSize.width, rtSize.height);   // 目标几何：UI 命中与渲染共用（不再各算各的）
-            float currentListHeight = listViewHeight_ * expandProgress_;
+            const Rect geometry = ExpandedListRect();
+            const float currentListHeight = geometry.height;
             if (currentListHeight <= 0.0f) return;
+            const float listX = geometry.x;
+            const float listY = geometry.y;
 
-            float listY = expandUp_ ? (arrangedRect_.y - currentListHeight)
-                                    : (arrangedRect_.y + arrangedRect_.height);
-            if (expandUp_ && listY < 0.0f) listY = 0.0f;
-
-            D2D1_RECT_F listRect = D2D1::RectF(arrangedRect_.x, listY, arrangedRect_.x + ListWidth(), listY + currentListHeight);
+            D2D1_RECT_F listRect = D2D1::RectF(listX, listY, listX + geometry.width, listY + currentListHeight);
 
             // 下拉列表柔和阴影：与元素阴影同一实现（detail::DrawSoftShadow），颜色取主题 Shadow 角色；
             //   随展开动画淡入（alphaScale = expandProgress_）。列表自身是不透明填充，画在其下即可。
@@ -2846,7 +2841,7 @@ namespace ZufyUI {
 
             for (int i = firstVisibleIndex; i <= lastVisibleIndex; ++i) {
                 float itemTop = listY + i * listItemHeight_ - listScrollOffset_;
-                D2D1_RECT_F itemRect = D2D1::RectF(arrangedRect_.x, itemTop, arrangedRect_.x + ListWidth(), itemTop + listItemHeight_);
+                D2D1_RECT_F itemRect = D2D1::RectF(listX, itemTop, listX + ListWidth(), itemTop + listItemHeight_);
                 bool isSelected = (i == selectedIndex_);
                 bool isHovered = (i == hoveredItemIndex_);
                 bool isPressed = (i == pressedItemIndex_);
@@ -2869,7 +2864,7 @@ namespace ZufyUI {
             }
 
             if (selectedIndex_ >= 0) {
-                float indicatorX = arrangedRect_.x + 4.0f;
+                float indicatorX = listX + 4.0f;
                 float indicatorTop = listY + indicatorY_ - listScrollOffset_;
                 float indicatorHeight = listItemHeight_ * indicatorHeightRatio_;
                 float indicatorOffset = (listItemHeight_ - indicatorHeight) / 2.0f;
@@ -2885,7 +2880,7 @@ namespace ZufyUI {
 
             if (listMaxScroll_ > 0.0f) {
                 float trackWidth = 6.0f;
-                float trackX = arrangedRect_.x + ListWidth() - trackWidth - 2.0f;
+                float trackX = listX + ListWidth() - trackWidth - 2.0f;
                 float trackY = listY + 2.0f;
                 float trackHeight = currentListHeight - 4.0f;
                 if (!scrollTrackBrush_) rt->CreateSolidColorBrush(_th.Get(ThemeRole::ScrollTrack).ToD2D(), &scrollTrackBrush_);
@@ -2950,18 +2945,7 @@ namespace ZufyUI {
                 return;
             }
             int prevHover = hoveredItemIndex_;
-
-            float listY = expandUp_ ? arrangedRect_.y - listViewHeight_ : arrangedRect_.y + arrangedRect_.height;
-            if (x >= arrangedRect_.x && x < arrangedRect_.x + ListWidth() &&
-                y >= listY && y < listY + listViewHeight_) {
-                float adjustedY = y - listY + listScrollOffset_;
-                int idx = (int)(adjustedY / listItemHeight_);
-                if (idx >= 0 && idx < (int)items_.size()) hoveredItemIndex_ = idx;
-                else hoveredItemIndex_ = -1;
-            }
-            else {
-                hoveredItemIndex_ = -1;
-            }
+            hoveredItemIndex_ = GetItemIndexFromPoint(x, y);
             if (hoveredItemIndex_ != prevHover) RequestRepaint();
             MouseMove.Fire(x, y);
         }
@@ -3182,15 +3166,17 @@ namespace ZufyUI {
             if (indicatorY_ < 0.0f) indicatorY_ = targetIndicatorY_;
         }
 
+        // Drawing, hover and click all use the same animated window-DIP rectangle.
+        Rect ExpandedListRect() const {
+            const float h = listViewHeight_ * clamp(expandProgress_, 0.0f, 1.0f);
+            return Rect(listLeft_, expandUp_ ? arrangedRect_.y - h : arrangedRect_.y + arrangedRect_.height,
+                        listWidth_, h);
+        }
         int GetItemIndexFromPoint(float x, float y) const {
-            if (!expanded_) return -1;
-            float listY = expandUp_ ? arrangedRect_.y - listViewHeight_ : arrangedRect_.y + arrangedRect_.height;
-            if (x < arrangedRect_.x || x > arrangedRect_.x + ListWidth() ||
-                y < listY || y > listY + listViewHeight_) return -1;
-            float adjustedY = y - listY + listScrollOffset_;
-            int idx = (int)(adjustedY / listItemHeight_);
-            if (idx >= 0 && idx < (int)items_.size()) return idx;
-            return -1;
+            if (!IsPointInExpandedList(x, y)) return -1;
+            const Rect r = ExpandedListRect();
+            const int index = (int)((y - r.y + listScrollOffset_) / listItemHeight_);
+            return index >= 0 && index < (int)items_.size() ? index : -1;
         }
 
         void AcquireControlCapture() {
@@ -3225,20 +3211,26 @@ namespace ZufyUI {
 
         // 下拉目标几何（动画结束态）：UI 命中/箭头方向与 render 共用同一份，避免"UI 命中用上一帧几何"
         void UpdateListGeometry() {
-            UpdateListGeometry(0.0f, GetWindow() ? GetWindow()->GetClientHeightDip() : 0.0f);
+            UpdateListGeometry(GetWindow() ? GetWindow()->GetClientWidthDip() : 0.0f,
+                               GetWindow() ? GetWindow()->GetClientHeightDip() : 0.0f);
         }
-        void UpdateListGeometry(float /*windowW*/, float windowH) {
+        void UpdateListGeometry(float windowW, float windowH) {
+            if (itemWidthsDirty_) RecalcItemWidths();
+            listWidth_ = max(arrangedRect_.width, widestItemWidth_ > 0 ? widestItemWidth_ + 24.0f : 0.0f);
+            if (windowW > 0) listWidth_ = min(listWidth_, windowW);
+            listLeft_ = windowW > 0 ? clamp(arrangedRect_.x, 0.0f, max(0.0f, windowW - listWidth_)) : arrangedRect_.x;
             float fullListHeight = (float)items_.size() * listItemHeight_;
             float visibleListHeight = fullListHeight;
             if (maxVisibleItems_ > 0) visibleListHeight = min(fullListHeight, maxVisibleItems_ * listItemHeight_);
             if (windowH <= 0.0f) {   // 窗口未就绪：不做屏幕 clamp（保证命中区非空）
                 listViewHeight_ = visibleListHeight;
                 listMaxScroll_ = max(0.0f, fullListHeight - listViewHeight_);
+                listScrollOffset_ = clamp(listScrollOffset_, 0.0f, listMaxScroll_);
                 return;
             }
             float belowSpace = windowH - (arrangedRect_.y + arrangedRect_.height);
             float aboveSpace = arrangedRect_.y;
-            expandUp_ = (belowSpace < fullListHeight && aboveSpace > belowSpace);
+            expandUp_ = (belowSpace < visibleListHeight && aboveSpace > belowSpace);
             float avail = expandUp_ ? aboveSpace : belowSpace;
             if (avail < 0.0f) avail = 0.0f;
             if (avail < visibleListHeight) visibleListHeight = avail;
@@ -3273,7 +3265,6 @@ namespace ZufyUI {
             pressedItemIndex_ = -1;
             pressedOnSelf_ = false;
             justExpanded_ = false;
-            expandUp_ = false;
             if (wasExpanded) {
                 InvalidateLayout();
                 RequestRepaint();
@@ -3315,6 +3306,7 @@ namespace ZufyUI {
 
         float listScrollOffset_;
         float listMaxScroll_;
+        float listLeft_ = 0.0f, listWidth_ = 0.0f;
         float listViewHeight_;
         float listItemHeight_;
 

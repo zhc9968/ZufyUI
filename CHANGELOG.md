@@ -2,11 +2,19 @@
 
 > 完整历史与逐项说明。README 只保留简略版本历史。
 
-> 当前版本：**1.30.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+> 当前版本：**1.31.0**（以 `ZufyUI.h` 的 `ZufyUI_VERSION_STRING` 为准；本日志与 API 文档顶部版本号均以该宏为单一来源）。
+
+### 2026-11-22 — 表格命中/无滚动选择、Label 缓存和 ComboBox 下拉修复（v1.31.0）
+- **TableView 精确命中**：新增 `TableView::CellHit` / `HitTestCellAt()`，按表头、滚动条、滚动偏移和行高命中真实行列；表头、滚动条和空白区返回无效。
+- **TableView 选择与视口**：新增 `SelectRowNoScroll` / `SetCurrentCellNoScroll`，程序化恢复选择不改变滚动位置；新增 `GetScrollOffsetY` / `SetScrollOffsetY`。
+- **Label 缓存**：`SetText` 改变文本时显式 `InvalidateCache()`，固定尺寸动态文本不再复用旧位图。
+- **ComboBox 下拉几何**：绘制、悬停、点击和宽度限制统一使用 `ExpandedListRect()`；展开动画期间命中区域与实际绘制高度一致；`Arrange`、项目/可见数量/行高变化时刷新几何；宽下拉框限制在窗口内；禁用、隐藏或清空后不再保留可交互覆盖层。
+- **菜单键盘导航**：Home/End 正确定位首个/末个可用项；行内左右移动跳过禁用项和分隔符。
+- **验证**：x64 / x86 Release + ZufyUIDebugger 构建与全量自检通过。
 
 ### 2026-11-20 — 右键菜单横向行（v1.30.0）
 - **横向菜单行**：`MenuItem::Type::Row` + `MenuRowLayout/MenuRowWidth/MenuRowOptions`；`Menu::AddRow` / `MakeItem` / `MakeSeparator`，`SetGlyphIcon` / `SetImageIcon`。支持 2–6 列、Inline/IconTop、Equal/ContentFit、行内竖向分割线、独立 hover/pressed/disabled/danger/快捷键/子菜单；MenuWindow 的测量、命中、键盘、子菜单锚点同步升级。IconTop 文字居中，单元格文本/快捷键/箭头按单元格裁剪并省略，禁用项的图标/图片使用禁用色或透明度，省略项悬停显示完整 tooltip。
-- **菜单栏位置**：菜单栏改为贴客户区左右边缘、紧接标题栏，不再被根布局 margin 向内缩。
+- **菜单栏位置**：菜单栏保留内容根布局的左右 margin，并紧接标题栏，不再被根布局顶部 margin 撑开。
 - **演示与验证**：新增“右键菜单行”页面，覆盖 2/3/4/5/6 列、图标在上、ContentFit、混合分组、空行、禁用/danger、动态右键菜单与 30 行压力菜单；新增 API 回归检查。
 
 ### 2026-11-20 — Card 悬停与 ComboBox 展开层命中修复（v1.29.2）

@@ -2,11 +2,19 @@
 
 > Full history with per-item details. README keeps a concise version history.
 
-> Current version: **1.30.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+> Current version: **1.31.0** (source of truth is `ZufyUI_VERSION_STRING` in `ZufyUI.h`; this changelog and the API doc header both derive from that macro).
+
+### 2026-11-22 — Table hit-testing, no-scroll selection, Label cache and ComboBox dropdown fixes (v1.31.0)
+- **TableView precise hit-testing**: added `TableView::CellHit` / `HitTestCellAt()` using the same header, scrollbar, scroll-offset and row metrics as mouse routing; the header, scrollbars and empty areas return invalid.
+- **TableView selection and viewport**: added `SelectRowNoScroll` / `SetCurrentCellNoScroll` so restoring a selection identity does not move the viewport; added `GetScrollOffsetY` / `SetScrollOffsetY`.
+- **Label cache**: `SetText` now explicitly calls `InvalidateCache()` when the text changes, so fixed-size dynamic labels cannot reuse an old cached bitmap.
+- **ComboBox dropdown geometry**: drawing, hover, click and width clamping share `ExpandedListRect()`; the hit area follows the animated drawn height; `Arrange`, item/visible-count/row-height changes refresh the geometry; wide dropdowns are clamped to the window; disabled, hidden or cleared dropdowns retain no interactive overlay.
+- **Menu keyboard navigation**: Home/End now select the first/last usable item; in-row Left/Right skips disabled items and separators.
+- **Verification**: x64 / x86 Release + ZufyUIDebugger builds and full self-tests pass.
 
 ### 2026-11-20 — Horizontal context-menu rows (v1.30.0)
 - **Horizontal menu rows**: added `MenuItem::Type::Row`, `MenuRowLayout/MenuRowWidth/MenuRowOptions`, `Menu::AddRow` / `MakeItem` / `MakeSeparator`, and `SetGlyphIcon` / `SetImageIcon`. Supports 2–6 columns, Inline/IconTop, Equal/ContentFit, in-row vertical dividers, independent hover/pressed/disabled/danger/shortcut/submenu; MenuWindow measurement, hit testing, keyboard navigation and submenu anchors were upgraded. IconTop text is centered; cell text/shortcuts/arrows are clipped and ellipsized; disabled icons/images use the disabled color or opacity; truncated items show a full-text tooltip on hover.
-- **Menu-bar placement**: the menu bar is flush to the client edges directly below the title bar instead of being inset by the content root margin.
+- **Menu-bar placement**: the menu bar keeps the content root's horizontal margins and sits directly below the title bar instead of being pushed down by the content root's top margin.
 - **Demo and verification**: added the "Menu Rows" page with 2/3/4/5/6 columns, IconTop, ContentFit, mixed groups, empty rows, disabled/danger, dynamic right-click menu and a 30-row stress menu; added API regression checks.
 
 ### 2026-11-20 — Card hover and ComboBox overlay hit-test fixes (v1.29.2)
